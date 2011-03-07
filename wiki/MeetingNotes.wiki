@@ -11,3 +11,23 @@
 == 2011-03-07 ==
 
   * ...
+  * AI(lvd): Talk to legal people to figure out the problems with AIS sending
+  * Source code discussions:
+    * On the boat: only C/C++
+    * Off the boat: whatever floats your boat
+    * Proposed src tree layout
+      * docs/
+      * planner/
+      * skipper/
+      * helmsman/lib/`*`.{c,h,a}
+      * io/rudder/
+      * io/ais/
+      * io/gps/, etc.
+      * radio/ (perhaps under of io?)
+    * No circular dependencies, skipper may depend on helmsman or io, but not the other way round
+  * Please put docs either in doc/ or on the Wiki page (which will  then end up in SVN under the wiki/ directory)
+  * We decided on using Rietveld for review, people should download 'upload.py' from http://codereview.appspot.com (and create an account)
+  * AI(uqs): put checkout/build instructions on the Wiki
+  * AI(lvd): write down the shopping list for discussion
+  * AI(all): request commit access from uqs
+  
