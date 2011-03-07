@@ -2,16 +2,51 @@
 #labels Featured
 
 = Meeting Notes =
+<wiki:toc max_depth="2" />
+
+== 2011-02-21 ==
+
+  * Students from ETH visit the Zurich office
+  * General discussion as to how things could progress
 
 == 2011-02-28 ==
 
   * Lots of new people show up
-  * Work is distrubuted
+  * Define license detail -> Freedom to open-sourcing granted
+  * Keep software separate from mars-rover, internal stuff, etc.
+  * Write code from scratch, except where already opensourced
+  * Responsibilities:
+     * alexeyn, wolfb: Planner
+     * emma: Skipper
+     * grundmann: Helmsmann (Support: wolfb with sailing, marius)
+     * code repository: uqs
+     * watchdog & system reliability: bernhard
+     * radio: Marius
+     * sponsoring and HW 
+     * electronic navigational charts (wolf)
+     * sensorics: Richard
+   * Get a bigger room (with VC) for next meeting
 
 == 2011-03-07 ==
 
-  * ...
-  * AI(lvd): Talk to legal people to figure out the problems with AIS sending
+  * introduced a pdb avalon
+  * boat in the lobby Tuesday night
+  * Planner-Skipper interface not documented (sep. meeting setup by grundmann)
+  * Skipper-Helmsman interface defined, to be documented by grundmann
+  * Agreed on Alexey's proposal about units: all interfaces in knots, nautical miles, degrees. All angles in [0, 360)
+  * Status updates:
+    * Marius: Sat receiver can give rough (eps<12nm) position
+    * Steffen: Polardiagram code ready
+    * Wolf: ENC available (US for free, EU at reasonable cost)
+    * Emma: Interface definitions (see above)
+    * Bernhard: Power System Setup, meeting at ETH. The plan is to replace the main switch
+    * all sensors deliver healthy flag, all process check in at different frequencies and report life status, Luuk proposes syslog lib.
+    * Richard: NMEA libraries
+  * Open items (push over to next meeting):
+    * shall we switch on the AIS to improve collision avoidance?
+    * Who gets the permissions to operat in the start and arrival countries?
+    * Who is responsible for the insurance of damages of the boat to others?
+    * Warning plate/flag
   * Source code discussions:
     * On the boat: only C/C++
     * Off the boat: whatever floats your boat
