@@ -1,0 +1,13 @@
+#summary Weekly meeting notes
+#labels Featured
+
+= Meeting Notes =
+
+== 2011-02-28 ==
+
+  * Lots of new people show up
+  * Work is distrubuted
+
+== 2011-03-07 ==
+
+  * ...
