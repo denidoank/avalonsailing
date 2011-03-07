@@ -28,6 +28,7 @@
   * Please put docs either in doc/ or on the Wiki page (which will  then end up in SVN under the wiki/ directory)
   * We decided on using Rietveld for review, people should download 'upload.py' from http://codereview.appspot.com (and create an account)
   * AI(uqs): put checkout/build instructions on the Wiki
-  * AI(lvd): write down the shopping list for discussion
+  * AI(lvd): put up the shopping list for discussion: https://spreadsheets.google.com/a/google.com/ccc?key=0AnVYj5ZguanKdDZ4VDhydjFwR3A3T3pjTzNzbHY3R2c&hl=en#gid=0
+  * AI(lvd): ask professional legal input on the broadcast AIS issue.  Sent out mail to legal@.
   * AI(all): request commit access from uqs
   
