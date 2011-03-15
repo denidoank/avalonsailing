@@ -67,3 +67,15 @@
   * AI(lvd): ask professional legal input on the broadcast AIS issue.  Sent out mail to legal@.
   * AI(all): request commit access from uqs
   
+== 2011-03-14 ==
+
+Status update
+
+  * Marius: Modem connection hardware needed (25pin RS232), help by Luuk
+  * Alexej, Luuk, Wolf: Update on maps and planning algorithm, code in review,
+  * Bernhard: Relais controller
+  * Steffen: send polar diagram code for review, added normalization and conversion routines (in experimental/user/grundmann/avalon/common)
+
+Action items:
+  * Make a demo compilation (uqs and lvd)
+  * Helmsman-Skipper interface (grundmann)
