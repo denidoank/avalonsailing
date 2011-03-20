@@ -1,0 +1,15 @@
+#summary How to checkout the code repository.
+#labels Featured
+
+= Commit Permissions =
+
+The repository is read-only to everybody, for commit access please send an email to `uqs`.
+
+You need to use a special token as password, not your Google or Gmail password. Go to your Profile page, then click Settings where you can (re-)generate a googlecode.com password token.
+
+= Subversion =
+
+{{{
+$ svn checkout https://avalonsailing.googlecode.com/svn/trunk avalonsailing --username <you>@google.com
+}}}
+Upon your first commit, it will ask for the password for `<you>(@gmail.com)`, this will fail. Then it asks for your username (enter `<you>@google.com`) and your password-token. Voilà.
