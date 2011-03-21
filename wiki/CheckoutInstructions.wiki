@@ -30,6 +30,7 @@ Then put the following in your `~/.hgrc`:
 {{{
 [extensions]
 rebase =
+transplant =
 hgsubversion = ~/hgsubversion/hgsubversion
 }}}
 
@@ -41,6 +42,20 @@ $ hg clone svn+https://avalonsailing.googlecode.com/svn avalonsailing
 Use `hg pull` to fetch the latest updates, try not to commit to the default branch as mercurial will not allow you to easily re-write this history for pushing into svn (you should only push the final/complete commit, not all the fixups after code review).
 
 See [http://mercurial.selenic.com/wiki/MqTutorial] for mutable changesets. 
+
+Easier to use is the histedit extension at [https://bitbucket.org/durin42/histedit/src] see [http://mercurial.selenic.com/wiki/HisteditExtension HisteditExtension] on how to use it.
+
+{{{
+$ hg pull #do this while on the default branch
+$ hg branch myfeature
+$ hg add;hg commit; etc. pp.
+# upload patch to Rietveld, once review is finished:
+$ hg histedit -o  # or use -r and give exact revisions, fold all commits into one
+$ hg up -C default && hg pull
+$ hg rebase -s myfeature -d default
+$ hg out # double check everything
+$ hg push
+}}}
 
 After rebasing your work onto the default branch, use `hg out` to check what would be send upstream. Then run `hg push` for the actual svn commit.
 
@@ -60,7 +75,7 @@ Register an account at [http://codereview.appspot.com/] and download [http://cod
 
 == Subversion ==
 
-Create our patch as you would usually do, but don't commit yet. Use `upload.py -r <list-of-reviewers>` to send this patchset to Rietveld and the listed reviewers. After you have included their comments, use upload again to send further patches, but include `-c <issue-number>` so it does not generate a new issue.
+Create our patch as you would usually do, but don't commit yet. Use `upload.py -r <list-of-reviewers> --cc=avalonsailing@googlegroups.com` to send this patchset to Rietveld and the listed reviewers. After you have included their comments, use upload again to send further patches, but include `-c <issue-number>` so it does not generate a new issue.
 
 Finally `svn ci` with a commit message template as given below.
 
@@ -68,13 +83,13 @@ Finally `svn ci` with a commit message template as given below.
 
 CAVEAT: mostly untested
 
-Clone the repository or create a named branch with your commits, use `upload.py -r <list-of-reviewers> --rev=default:branch` or the direct revision numbers of your patch that you'd like to upload to Rietveld. After you have included the review comments, use upload again to send further patches, but include `-c <issue-number>` so it does not generate a new issue.
+Clone the repository or create a named branch with your commits, use `upload.py -r <list-of-reviewers> --cc=avalonsailing@googlegroups.com --rev=default:branch` or the direct revision numbers of your patch that you'd like to upload to Rietveld. After you have included the review comments, use upload again to send further patches, but include `-c <issue-number>` so it does not generate a new issue.
 
 Finally `hg push` with a commit message template as given below.
 
 == Git ==
 
-Clone the repository or create a named branch with your commits, use `upload.py -r <list-of-reviewers> --rev=trunk:master` or the direct revision numbers of your patch that you'd like to upload to Rietveld. After you have included the review comments, use upload again to send further patches, but include `-c <issue-number>` so it does not generate a new issue.
+Clone the repository or create a named branch with your commits, use `upload.py -r <list-of-reviewers> --cc=avalonsailing@googlegroups.com --rev=trunk:master` or the direct revision numbers of your patch that you'd like to upload to Rietveld. After you have included the review comments, use upload again to send further patches, but include `-c <issue-number>` so it does not generate a new issue.
 
 Finally `git svn dcommit` with a commit message template as given below.
 
