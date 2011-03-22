@@ -75,7 +75,7 @@ Register an account at [http://codereview.appspot.com/] and download [http://cod
 
 == Subversion ==
 
-Create our patch as you would usually do, but don't commit yet. Use `upload.py -r <list-of-reviewers> --cc=avalonsailing@googlegroups.com` to send this patchset to Rietveld and the listed reviewers. After you have included their comments, use upload again to send further patches, but include `-c <issue-number>` so it does not generate a new issue.
+Create our patch as you would usually do, but don't commit yet. Use `upload.py -r <list-of-reviewers> --cc=avalonsailing@googlegroups.com` to send this patchset to Rietveld and the listed reviewers. After you have included their comments, use upload again to send further patches, but include `-i <issue-number>` so it does not generate a new issue.
 
 Finally `svn ci` with a commit message template as given below.
 
@@ -83,13 +83,13 @@ Finally `svn ci` with a commit message template as given below.
 
 CAVEAT: mostly untested
 
-Clone the repository or create a named branch with your commits, use `upload.py -r <list-of-reviewers> --cc=avalonsailing@googlegroups.com --rev=default:branch` or the direct revision numbers of your patch that you'd like to upload to Rietveld. After you have included the review comments, use upload again to send further patches, but include `-c <issue-number>` so it does not generate a new issue.
+Clone the repository or create a named branch with your commits, use `upload.py -r <list-of-reviewers> --cc=avalonsailing@googlegroups.com --rev=default:branch` or the direct revision numbers of your patch that you'd like to upload to Rietveld. After you have included the review comments, use upload again to send further patches, but include `-i <issue-number>` so it does not generate a new issue.
 
 Finally `hg push` with a commit message template as given below.
 
 == Git ==
 
-Clone the repository or create a named branch with your commits, use `upload.py -r <list-of-reviewers> --cc=avalonsailing@googlegroups.com --rev=trunk:master` or the direct revision numbers of your patch that you'd like to upload to Rietveld. After you have included the review comments, use upload again to send further patches, but include `-c <issue-number>` so it does not generate a new issue.
+Clone the repository or create a named branch with your commits, use `upload.py -r <list-of-reviewers> --cc=avalonsailing@googlegroups.com --rev=trunk:master` or the direct revision numbers of your patch that you'd like to upload to Rietveld. After you have included the review comments, use upload again to send further patches, but include `-i <issue-number>` so it does not generate a new issue.
 
 Finally `git svn dcommit` with a commit message template as given below.
 
