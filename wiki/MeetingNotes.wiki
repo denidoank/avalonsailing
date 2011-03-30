@@ -90,4 +90,6 @@ Action items:
     * End of August: Transport to Brest + test on ocean + Launch
     * September 1-4: Sail!
  
+  * AI: get Iridium SIM card, open item, 900CHF 
+  * AI: follow the idea of replacing the expensive iridium phone by something else for testing (lvd, marius)
   * Addendum: test commit from SVN done on 29.3.
