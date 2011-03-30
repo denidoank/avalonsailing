@@ -79,3 +79,15 @@ Status update
 Action items:
   * Make a demo compilation (uqs and lvd)
   * Helmsman-Skipper interface (grundmann)
+
+== 2011-03-28 ==
+  * Rough test planning proposal
+    * June 1: Hardware complete  
+    * June 14: All software components complete
+    * June 16-29: Everything put together
+    * July 1-7: TestSeries1 Zurich lake
+    * August 1-7: TestSeries2 on Zurich lake (or Lake Lucerne, depending on the wind)
+    * End of August: Transport to Brest + test on ocean + Launch
+    * September 1-4: Sail!
+ 
+  * Addendum: test commit from SVN done on 29.3.
