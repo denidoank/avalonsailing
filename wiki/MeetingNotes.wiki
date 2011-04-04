@@ -93,3 +93,27 @@ Action items:
   * AI: get Iridium SIM card, open item, 900CHF 
   * AI: follow the idea of replacing the expensive iridium phone by something else for testing (lvd, marius)
   * Addendum: test commit from SVN done on 29.3.
+
+== 20111-04-4 ==
+* new team members Hafez, William
+* grundmann, simulation code, many bugs in reports
+* marius: position (20 nm precision) from satellite phone
+ SIM card defunct, new costs 900CHF, marius takes care of that now. 
+ Marius send encode SMS code for review
+* wind, compass
+Wolf: Is the compass calibrated? (interference with on board electronics possible)
+* Wolf started download of 90m grid data
+  Buy navigational charts 100 Euro for british channel harts (IHO format)
+  we have weather and current maps
+  plus US coastal maps
+  Task: check in the maps in a known format (Wolf) 
+  Task: buy charts (Wolf)
+  Get 100Euro (Piet)
+ 
+* Logistics: William offered help
+
+*Richard: Was on military leave,
+  sent code for NMEA processor
+  Can start on the non-NMEA sensors, access from tomorrow
+ 
+
