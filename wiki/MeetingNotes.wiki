@@ -95,14 +95,14 @@ Action items:
   * Addendum: test commit from SVN done on 29.3.
 
 == 20111-04-4 ==
-* new team members Hafez, William
-* grundmann, simulation code, many bugs in reports
-* marius: position (20 nm precision) from satellite phone
- SIM card defunct, new costs 900CHF, marius takes care of that now. 
- Marius send encode SMS code for review
-* wind, compass
-Wolf: Is the compass calibrated? (interference with on board electronics possible)
-* Wolf started download of 90m grid data
+  * new team members Hafez, William
+  * grundmann, simulation code, many bugs in reports
+  * marius: position (20 nm precision) from satellite phone
+   SIM card defunct, new costs 900CHF, marius takes care of that now. 
+   Marius send encode SMS code for review
+  * wind, compass
+    Wolf: Is the compass calibrated? (interference with on board electronics possible)
+  * Wolf started download of 90m grid data
   Buy navigational charts 100 Euro for british channel harts (IHO format)
   we have weather and current maps
   plus US coastal maps
@@ -110,10 +110,42 @@ Wolf: Is the compass calibrated? (interference with on board electronics possibl
   Task: buy charts (Wolf)
   Get 100Euro (Piet)
  
-* Logistics: William offered help
+  * Logistics: William offered help
 
-*Richard: Was on military leave,
+  * Richard: Was on military leave,
   sent code for NMEA processor
   Can start on the non-NMEA sensors, access from tomorrow
- 
 
+  * Map code in Panner review
+  basically ok, but some doubt about proof of correctnes.
+  Alexej and lvd continue on improvements
+ 
+  Modem cable and connection
+
+  Deadlines precision beta version of helmsman at the end of April
+
+  * Bernhard: Reviews 
+  Adam switch bought, LVD (cut-off at 20V) ordered timing delay relais
+  Financing by Piet
+
+  * lvd expenses: (250 for power supply, 50 cable, 8.90 gender changer)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
