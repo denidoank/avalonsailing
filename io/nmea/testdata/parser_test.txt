@@ -1,0 +1,20 @@
+# Tests the parsing of NMEA sentences (only actually splitting and storing
+# arguments, testing the checksum, not interpreting the data).
+# GPS:
+$GPRMC,123519,A,4807.038,N,01131.000,E,022.4,084.4,230394,003.1,W*6A
+$GPRMC,123519,A,4807.038,S,01131.000,E,022.4,084.4,230394,003.1,W*77
+$GPRMC,181704,A,5209.6815,N,00643.0724,E,000.1,187.0,310109,,*17
+# Wind:
+$WIMWV,214.8,R,0.1,K,A*28
+$IIMWV,273,R,24.3,N,A*10
+# Next line is correctly parsed, but will later not be identified as a GPS
+# sentence (extra fields).
+$GPRMC,123519,A,4807.038,S,02121.000,W,015.4,084.4,230394,003.1,foobar,bazbladata*09
+# Unknown type. Parsed correctly, but later not identified as a known type.
+$FOO,123,bar,bla,baz
+# Error line (> 160 chars, too much data).
+$GPRMC,123519,A,4807.038,S,02121.000,W,015.4,084.4,230394,003.1,foobar,bazbladataaaaaaaaaaaaaaaaaaaaaaaaaaaaaaauuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuababababababab*09
+# Error line (> 32 args, too many args).
+$GPGSV,2,1,08,01,40,083,46,02,17,308,41,12,07,344,39,14,22,228,45,308,41,12,07,344,39,14,22,228,45,39,14,22,228,45*75
+# Error line, incorrect checksum.
+$GPRMC,123519,A,4807.038,N,01131.000,E,022.4,084.4,230394,003.1,W*6B
