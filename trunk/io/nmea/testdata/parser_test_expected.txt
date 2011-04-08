@@ -1,0 +1,15 @@
+Sentence parsed correctly: $GPRMC,123519,A,4807.038,N,01131.000,E,022.4,084.4,230394,003.1,W*6A
+Sentence parsed correctly: $GPRMC,123519,A,4807.038,S,01131.000,E,022.4,084.4,230394,003.1,W*77
+Sentence parsed correctly: $GPRMC,181704,A,5209.6815,N,00643.0724,E,000.1,187.0,310109,,*17
+Sentence parsed correctly: $WIMWV,214.8,R,0.1,K,A*28
+Sentence parsed correctly: $IIMWV,273,R,24.3,N,A*10
+Sentence parsed correctly: $GPRMC,123519,A,4807.038,S,02121.000,W,015.4,084.4,230394,003.1,foobar,bazbladata*9
+Sentence parsed correctly: $FOO,123,bar,bla,baz*11
+Data overflow error for sentence.
+Data overflow error for sentence.
+Incorrect checksum. Calculated checksum: 0x6A, checksum received in sentence: 0x6B.
+$GPRMC,123519,A,4807.038,N,01131.000,E,022.4,084.4,230394,003.1,W*6A
+Summary:
+ Bytes: 1165
+ Errors: 3
+ Sentences: 7
