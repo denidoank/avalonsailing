@@ -122,3 +122,38 @@ Action items:
   * Adam switch bought, LVD (cut-off at 20V) ordered timing delay relais
     * Financing by Piet
   * lvd expenses: (250 for power supply, 50 cable, 8.90 gender changer)
+
+== 2011-04-11 ==
+  * lvd: boat connected, ssh works (rowyourboat) search valentine for that,
+    * 2 accounts: rower pw then ssh to boat: 2 logins: root and castor
+    * No Go on the boat.
+    * lvd will be gone for 3 weeks, spending authority delegated to Pete
+    * some money (Sim card ok)
+  * liam building images 
+  * Richard: submitted NeMEA code, almost works, get no dat for now. tried wind sensor, IMU should work
+    * Bernhard : something happening during start-up, Edge port?  Richard will clarify, 
+    * Kendy looks into Epos library for drive interface. (The protocol is documented)
+  * Wolf: no big updates, made a script, less than 3m depth is forbidden, 
+    * will be away for 6 weeks after next week
+ * Steffen: Simulation code, aerodynamics and boat geometry done
+ * Bernhard: sent some code for review, lab work, ordered a RS323-485 converter,
+    * code of the process manager
+  * Marius: Play with the sim card, send SMS code, in C
+    *found documentation page describing the function, will send an SMS soon.
+  * Wolf: would be good to have a map application, fusion table -> map with current SMS info.
+      * share position in Latitude ? Just reuse the message format. XMPP ?
+      * Or sent everything to twitter.
+  * Wojciech:
+     * optimal_angle = f(position) is the world for skipper
+     *  small obstacles (buoys, drilling platforms) generalize to a 10-50 mile island
+  * AI: Arriving point ? lvd talks to ETH
+  * Wojciech: started drafting a design
+     * loop woken by alarm or fixed time
+  * AI: Steffen: current true wind input format average over last 15-60 minutes. Plus boat speed  
+  * Averaging the wind in the sensor task
+  * Get raw 3D position parallel to filteres sensor-fusioned data.
+
+
+
+
+
