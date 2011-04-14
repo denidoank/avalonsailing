@@ -42,17 +42,17 @@ bool Watchdog::Init() {
   watchdog_fd_ = open("/dev/watchdog", O_RDWR|O_CLOEXEC);
   // If this fails, we hope it's transient and keep trying next time
   if (watchdog_fd_ == -1) {
-    fprintf(stderr, "Failure to open watchdog device\n");
+    perror("Failure to open watchdog device");
     return false;
   }
   // We try to set our intended timeout value, but there is nothing we
   // can do if it fails, other than live with it
-  if(ioctl(watchdog_fd_, WDIOC_GETTIMEOUT, &timeout_) != 0) {
-    fprintf(stderr, "Failure to set watchdog timout\n");
+  if(ioctl(watchdog_fd_, WDIOC_SETTIMEOUT, &timeout_) != 0) {
+    perror("Failure to set watchdog timout");
   }
   if(ioctl(watchdog_fd_, WDIOC_GETTIMEOUT, &timeout_) != 0) {
-    fprintf(stderr, "Failure to read current watchdog timeout\n");
+    perror("Failure to read current watchdog timeout");
   }
-  fprintf(stderr, "Watchdog is active with %d timout\n", timeout_);
+  fprintf(stderr, "Watchdog is active with %ds timeout\n", timeout_);
   return true;
 };
