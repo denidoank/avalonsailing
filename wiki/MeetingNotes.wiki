@@ -153,7 +153,41 @@ Action items:
   * Averaging the wind in the sensor task
   * Get raw 3D position parallel to filteres sensor-fusioned data.
 
+== 2011-04-18 ==
+  * Marius
+  - Did some testing of the system by sending a text message
 
+  * Alexey
+  - finally done with source data, has depth map, has wind and tides
+  - tides. best to do in the collision avoider, no best to do in the global planner
+  - what about just lowering the ocean by 3M such that any points that we could run into look like islands
+  - global planner is digital now
 
+  * Testing
+  - Would be good to put it in the garden for a couple of days and monitor battery life and wear
+  - Lake Geneva might be good
+  - Would be good to do an atlantic test with some amount of time
+  - Need to bear in mind the budget
+  - Come back to this when Luke is here and need to discuss with the ETH guys
 
+  * Emma
+  - Will schedule a monthly social with ETH
+  - Poster, need a team photo. Emma will schedule some time to take the photo this week.
+AI(Emma): Schedule some time to take picture on Wednesday
 
+  * Wolf
+  - working on the map data
+  - will make shipping lanes no go zones
+
+  * Richard
+  - sensor cable
+  - looked at IMU protocol
+
+  * Bernhard
+  - bunch of useful utilities, communication
+  - wrote a buffered I/O (because the standard way didn't seem to be safe)
+
+  * Steffen
+  - Finished the first model of the boat with sails and rudder and everything
+  - Doing it in octave (Open Source version of matlab)
+  - Going to test and debug it now
