@@ -3,9 +3,8 @@
 % that can be found in the LICENSE file.
 % Steffen Grundmann, April 2011
 
-function deg = rad2deg(rad)
-% function deg = rad2deg(rad)
-% Converts from radians to degree.
-deg = 180 * rad / pi;
+function rad = deg2rad(deg)
+% function rad = deg2rad(degrees)
+% converts angles from degrees to radians
+rad = pi * deg / 180;
 endfunction
- 
