@@ -3,9 +3,7 @@
 % that can be found in the LICENSE file.
 % Steffen Grundmann, April 2011
 
-function deg = rad2deg(rad)
-% function deg = rad2deg(rad)
-% Converts from radians to degree.
-deg = 180 * rad / pi;
-endfunction
- 
+function m_per_second = knots2m_per_second(knot)
+% function m_per_second = knots2m_per_second(knot)
+m_per_second = knot * 1852.0 / 3600;
+end

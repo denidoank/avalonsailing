@@ -3,9 +3,8 @@
 % that can be found in the LICENSE file.
 % Steffen Grundmann, April 2011
 
-function deg = rad2deg(rad)
-% function deg = rad2deg(rad)
-% Converts from radians to degree.
-deg = 180 * rad / pi;
+function rey = reynolds(speed_m_per_s, length_meter, ny)
+% Reynolds number
+% function rey = reynolds(speed_m_per_s, length_meter, ny)
+rey = abs(speed_m_per_s * length_meter / ny);
 endfunction
- 
