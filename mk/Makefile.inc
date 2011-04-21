@@ -42,23 +42,23 @@ clean:
 depend:
 	makedepend -Y -I$(TOP) -- $(LIB_CSRCS) $(BIN_CSRCS) $(TST_CSRCS) $(LIB_CCSRCS) $(BIN_CCSRCS) $(TST_CCSRCS)
 
+bin: $(BIN_CCSRCS:_main.cc=) $(BIN_CSRCS:_main.c=)
+
 test: $(TST_CCSRCS:.cc=) $(TST_CSRCS:.c=)
 
 %_test.run: %_test
 	-@echo -n "Running $^: "; ./$<
 
-bin: $(BIN_CCSRCS:_main.cc=) $(BIN_CSRCS:_main.c=)
-
-$(TST_CCSRCS:.cc=) $(BIN_CCSRCS:_main.cc=):lib.a
-$(TST_CSRCS:.cc=) $(BIN_CSRCS:_main.c=):lib.a
-
 ifneq ($(strip $(LIB_CCSRCS:.cc=.o) $(LIB_CSRCS:.c=.o)),)
 LIBA = lib.a
-endif
 
 lib.a: $(LIB_CCSRCS:.cc=.o) $(LIB_CSRCS:.c=.o)
 	@rm -f $@
 	$(AR) -v -q $@ $^
+endif
+
+$(BIN_CCSRCS:_main.cc=) $(BIN_CSRCS:_main.c=) \
+	$(TST_CCSRCS:.cc=) $(TST_CSRCS:.c=): $(LIBA) $(foreach dir, $(DEPS), $(TOP)/$(dir)/lib.a)
 
 # always use the C++ linker
 LINK.o = $(CXX) $(LDFLAGS) $(TARGET_ARCH)  
@@ -66,7 +66,8 @@ LINK.o = $(CXX) $(LDFLAGS) $(TARGET_ARCH)
 %: %_main.o $(LIBA) $(foreach dir, $(DEPS), $(TOP)/$(dir)/lib.a)
 	$(LINK.o) $^ -o $@
 
-$(BIN_CCSRCS:_main.cc=) $(BIN_CSRCS:_main.c=): $(foreach dir, $(DEPS), $(TOP)/$(dir)/lib.a)
+%_test: %_test.o $(LIBA) $(foreach dir, $(DEPS), $(TOP)/$(dir)/lib.a)
+	$(LINK.o) $^ -o $@
 
 $(TOP)/%/lib.a:
 	$(MAKE) -C $(TOP)/$* lib.a
