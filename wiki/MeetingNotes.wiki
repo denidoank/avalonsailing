@@ -222,10 +222,15 @@ AI(Emma): Schedule some time to take picture on Wednesday
   - wind sensor cannot be read maybe it has its own power?
   - wind sensor can measure the system voltage level
 
+Variants for interprocess communication:
+  - fifo
+  - UNIX named pipes
+  - atomic hard links to files on RAM-disk
+
+
+
   * Liam OS ?
   net boot of the controller?
   
 Juerg comes to Google this Friday.
 Check with Juerg: need for more power, radio modem, hardware work
-
-
