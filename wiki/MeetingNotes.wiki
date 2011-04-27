@@ -191,3 +191,41 @@ AI(Emma): Schedule some time to take picture on Wednesday
   - Finished the first model of the boat with sails and rudder and everything
   - Doing it in octave (Open Source version of matlab)
   - Going to test and debug it now
+
+
+
+==2011-04-27==
+  * Bernhard
+  - done with lowest level of system
+  - needs config file, alarms, recovery
+  - duplicate suppression in logging to avoid overloading
+
+  * Alexey
+  - digital planner needs to be put together
+  - meet to discuss the collision avoider
+
+  * Steffen
+  - simulation of straight sailing
+  - need 
+
+  * Marius
+  - Reviews
+  - patched Berhnhards client issue with the serial port to connect to the modem
+  - send init commands etc. 
+
+  * Richard
+  - mid May initial Garden test 
+  - state of the CAN interfaces, Kendy?
+  - AI Richard: ask Kendy
+  - finished
+  - working on IMU interface
+  - wind sensor cannot be read maybe it has its own power?
+  - wind sensor can measure the system voltage level
+
+  * Liam OS ?
+  net boot of the controller?
+  
+Juerg comes to Google this Friday.
+Check with Juerg: need for more power, radio modem, hardware work
+
+
