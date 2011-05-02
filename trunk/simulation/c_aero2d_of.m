@@ -3,8 +3,8 @@
 % that can be found in the LICENSE file.
 % Steffen Grundmann, April 2011
 
-function [c_lift, c_drag, c_arm] = c_aero_of(part, speed_m_per_s, angle_rad)
-
+function [c_lift, c_drag, c_arm] = c_aero2d_of(part, speed_m_per_s, angle_rad)
+% function [c_lift, c_drag, c_arm] = c_aero2d_of(part, speed_m_per_s, angle_rad)
 % part = "keel", "rudder" or "sail"
 % speed in m/s
 % angle_rad in radians, angle of attack AOA between the direction of the free
@@ -23,7 +23,7 @@ else
 endif
 
 if abs(angle_rad) > 10
-  error("angle in radians please!")
+  error("angle in radians please!");
 endif
 
 rey = reynolds_of(part, speed_m_per_s);
@@ -37,8 +37,9 @@ endif
 
 alpha = t1(:,1);
 
-c1 = interp1(alpha, t1(:,2:4), rad2deg(angle_rad), "spline");
-c2 = interp1(alpha, t2(:,2:4), rad2deg(angle_rad), "spline");
+mode = "spline";  % normally "linear", "spline" for beauty, takes 6 times longer
+c1 = interp1(alpha, t1(:,2:4), rad2deg(angle_rad), mode);
+c2 = interp1(alpha, t2(:,2:4), rad2deg(angle_rad), mode);
 
 c = [c1; c2];
 if r1 != r2 
@@ -47,7 +48,7 @@ else
   c_final = c1;
 endif
 
-c_lift = sign * c_final(1) ;
+c_lift = sign * c_final(1);
 c_drag = c_final(2); 
 c_arm = c_final(3);
 endfunction

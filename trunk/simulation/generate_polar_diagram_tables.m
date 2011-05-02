@@ -1,11 +1,13 @@
 % Copyright 2011 The Avalon Project Authors. All rights reserved.
 % Use of this source code is governed by the Apache License 2.0
-% that can be found in the LICENSE file.function plot_all_polar_diagrams()
+% that can be found in the LICENSE file.
 % Steffen Grundmann, April 2011
-% Script to make const table header files for the simulation of sail,
-% rudder and keel in C++.
 
 function generate_polar_diagram_tables.m
+% function generate_polar_diagram_tables
+% Script to make const table header files for the simulation of sail,
+% rudder and keel in C++.
+% Produces a file named "polar_diagrams_tab.h" in the current directory.
 alpha = zeros(361,1);
 c_lift = alpha;
 c_drag = alpha;

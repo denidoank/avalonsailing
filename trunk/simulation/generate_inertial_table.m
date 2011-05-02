@@ -1,9 +1,12 @@
 % Copyright 2011 The Avalon Project Authors. All rights reserved.
 % Use of this source code is governed by the Apache License 2.0
-% that can be found in the LICENSE file.function plot_all_polar_diagrams()
+% that can be found in the LICENSE file.
 % make tables for the simulation in C++
 
 function generate_inertial_table()
+% function generate_inertial_table()
+% Generate C++ header file "inertial_table.h" in the current directory.
+% See report 123, p. 25 please.
 [fid, msg] = fopen("inertial_table.h", "w");
 if fid == -1
   msg
@@ -11,7 +14,7 @@ if fid == -1
   return;
 endif
 B = boat();
-M_inv = inv(B.M);
+M_inv = B.mass_matrix_inverted;
 
 fprintf(fid, "// Inertial table M^-1 (see report 123, p.25, eq.3.3 \n");
 fprintf(fid, "const int m_inv_rows = %d; \n", rows(M_inv));
