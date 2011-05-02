@@ -93,7 +93,7 @@ for n = 1:length(a)
 for k = 1:length(speed)
   angle_array(n, k) = a(n);
   speed_array(n, k) = speed(k);  
-  [c_lift(n, k), c_drag(n, k), c_arm(n, k)] = c_aero_of(part, speed(k), deg2rad(a(n)));
+  [c_lift(n, k), c_drag(n, k), c_arm(n, k)] = c_aero2d_of(part, speed(k), deg2rad(a(n)));
 endfor
 endfor
 

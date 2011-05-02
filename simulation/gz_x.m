@@ -16,13 +16,9 @@ deg = rad2deg(phi_x);
 % negative sign because it turns the boat back into the vertical direction
 % no good estimation beyond 120 degree
 
-if deg < 0
-  sign = -1;
-  deg = abs(deg);
-else
-  sign = 1;
-endif
+signum = sign(deg);
+deg = abs(deg);
 
 C = 0.969 / 76^2;
-gz_x = - sign * (0.969 - C * (deg - 76) ^ 2 );
+gz_x = -signum .* (0.969 - C * (deg - 76) .^ 2 );
 endfunction

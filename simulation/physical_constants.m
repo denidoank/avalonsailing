@@ -7,6 +7,16 @@ function C = physical_constants()
 % function C = physical_constants()
 % These are physical constants (as long as the temperature does not change)
 
+% caching
+persistent cached_const_structure;
+persistent counter = 0;
+if counter > 0
+  C = cached_const_structure;
+  counter++;
+  return
+endif
+counter++;
+
 % Water
 % density (sea water): 
 C.rho_water = 1030;   % kg/m3
@@ -28,3 +38,5 @@ C.ny_air = C.my_air / C.rho_air;
 
 % Gravity
 C.gravity_acceleration = 9.81; % m/s^2
+
+cached_const_structure = C;

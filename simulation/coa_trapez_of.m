@@ -5,14 +5,13 @@
 
 function coa = coa_trapez_of(part)
 % coa = coa_trapez_of(part)
-% center of area for  atrapez with parallel bottom and top sides
-% a straight let edge and a tilted right edge.
+% Center of area for a trapez with parallel bottom and top sides,
+% a straight left edge and a tilted right edge.
 % For a rectangle the center of area is in the middle, at 0.5
 % of the depth. For trapezoidal shapes we have a shift to the thick side,
 % i.e. a coa_fraction > 0.5 and coa_z
 % x_coa and coa_z are measured from the corner of straight edge
 % with the long side of the trapeze. 
-
 % part = "keel", "rudder" or "sail"
 
 if strcmp(part, "keel")

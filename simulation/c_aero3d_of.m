@@ -16,6 +16,21 @@ function [c_lift, c_drag, c_arm] = c_aero3d_of(part, speed_m_per_s, angle_rad)
 % http://www.aerospaceweb.org/question/airfoils/q0150b.shtml
 
 [c_lift_2d, c_drag_2d, c_arm_2d] = c_aero2d_of(part, speed_m_per_s, angle_rad);
-c_lift = c_lift_2d * lambda_factor_of(part);
+
+B = boat();
+if strcmp(part, "keel")
+  lambda_factor = B.lambda_factor_K;
+elseif strcmp(part, "rudder")
+  lambda_factor = B.lambda_factor_R;
+elseif strcmp(part, "sail")
+  lambda_factor = B.lambda_factor_S;
+else
+  part
+  error("part undefined");
+endif
+
+c_lift = c_lift_2d * lambda_factor;
+
 c_drag = c_drag_2d + c_induced_of(part, c_lift_2d); 
 c_arm = c_arm_2d;
+endfunction

@@ -8,30 +8,31 @@ function plot_gz()
 % gz_y is the lever opposing the yaw angle.
 
 close all
+a = -120:1:120;
+gzx = gz_x(deg2rad(a));
+figure
+plot(a, gzx,"b*");
+xlabel("angle of heel/degree");
+ylabel("gz / m");
+title(["GZ = f(phi_x) "]);
 
-for a = -120:1:120
-  gzx = gz_x(deg2rad(a));
-  subplot(1,1,1);
-  plot(a, gzx,"b*");
-  xlabel("angle of heel/degree");
-  ylabel("gz / m");
-  title(["GZ = f(phi_x) "]);
-  hold on
-endfor
+gzy = gz_y(deg2rad(a));
+figure
+plot(a, gzy,"b*");
+xlabel("phi_y/degree");
+ylabel("gz / m");
+title(["GZ_y = f(phi_y) "]);
 
-subplot(1,1,1);
-hold off
-pause 
+% unique solution range + 10% to see the inverse function
+a = -85:1:85;
+gzx = gz_x(deg2rad(a));
+a2 = rad2deg(inv_gz_x(gzx));
 
-for a = -120:1:120
-  gzy = gz_y(deg2rad(a));
-  subplot(1,1,1);
-  plot(a, gzy,"b*");
-  xlabel("phi_y/degree");
-  ylabel("gz / m");
-  title(["GZ_y = f(phi_y) "]);
-  hold on
-endfor
+figure;
+plot(gzx, a, "b*", gzx, a2, "g+");
+ylabel("angle of heel/degree");
+xlabel("gz / m");
+title(["phi_x = f(GZ) Check of inverse function"]);
 
-subplot(1,1,1);
-hold off
+
+

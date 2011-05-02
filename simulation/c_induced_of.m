@@ -9,7 +9,7 @@ function c_induced = c_induced_of(part, c_lift_2d)
 % the drag caused by the wing tips.
 % See: http://en.wikipedia.org/wiki/Aspect_ratio_(wing)
 % part = "keel", "rudder" or "sail"
-% c_lift_2s: lift coefficient (2D)
+% c_lift_2d: lift coefficient (2D)
 
 lambda = lambda_of(part);
 % Oswald efficiency number e

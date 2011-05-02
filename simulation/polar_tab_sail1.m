@@ -13,7 +13,7 @@ function [rey_low, tab_low, rey_high, tab_high] = polar_tab_sail1(reynolds_numbe
 % strongly adapted for |alpha| > 20 degree after seeing:
 % http://www.aerospaceweb.org/question/airfoils/q0150b.shtml
 % Arm from http://www2.foi.se/rapp/foir1305.pdf 
-assert (reynolds_number >= 0)
+assert (reynolds_number >= 0, num2str(reynolds_number))
 
 % tables for different, equidistant Reynolds numbers.
 % JavaFoil parameters: Mach = 0; Re = 75000; T.U. = 1.0; T.L. = 1.0;
