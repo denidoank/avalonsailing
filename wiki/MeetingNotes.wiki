@@ -234,3 +234,79 @@ Variants for interprocess communication:
   
 Juerg comes to Google this Friday.
 Check with Juerg: need for more power, radio modem, hardware work
+
+
+
+= May 9 2011 =
+Ullrich
+
+  *  Bernhard
+    - try to boot on Friday or today together with Liam
+    - NFS mount from rowyourboat
+    - core RAM disk image
+    - image + ssh
+    - sshd
+    - multiple image
+    - test image and prod image
+    - How to persist?
+    - Have never booted
+    - Need USB drivers, hopefully this week.
+
+    - conclusion Logging without WiFi, but to USB
+    - Because we have the GSM modem working
+    - sending works! (Marius)
+
+  * Marius
+    - garden tests with Sattelite modem
+    - Decode SMS code to be done.
+    - Financing of a SIM card is solved
+    - priority of dev work: 1. send and receive SMS, 2. modem 
+
+  * Luuk
+    - FakeSkipper
+    - FakeHelmsman
+    - How arbitrate?
+
+  * Emma
+    - Poster finished!
+    - every second Thursday, pub time Thursday, Rat house
+    - Should have a second light as a backup
+
+  * Alexey
+    - map of Lake Zurich
+    - global digital Planner ready for review
+
+  * Richard
+    - talk to SMS people
+    - brosdcast mechanism for sensor information
+    - have wind, IMU,
+    - Rudder, sail no progress, need Epos library
+    - AIS no connection
+    - will work some time 100% on the boat
+
+  * Luuk
+    - money expenses 
+    - spends a week on the boat next week
+
+  * Ullrich
+    - make/build system
+    - test didnt include the lib
+
+  * Open Problems
+    - temperature in box, metal box  
+    - rudder slack, AI Steffen/Juerg
+    - When Garden test? end of this work 
+    - and where?
+    - AI Steffen: Send heat sticker order URL to Bernhard
+
+
+
+
+
+
+
+
+
+
+
+
