@@ -3,7 +3,7 @@
 // that can be found in the LICENSE file.
 #include "lib/fm/fm.h"
 #include "lib/fm/log.h"
-#include "lib/util/pass_fail.h"
+#include "lib/testing/pass_fail.h"
 
 // Run as a manual test with different FM commandline options to test
 // integration with other system components (syslogd, symon).
