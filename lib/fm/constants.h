@@ -5,15 +5,16 @@
 #define LOG_FM_CONSTANTS_H__
 
 enum FM_LOG_LEVELS {
-  FM_LEVEL_ERROR = 0,
+  FM_LEVEL_FATAL = 0,
+  FM_LEVEL_ERROR,
   FM_LEVEL_WARNING,
   FM_LEVEL_INFO,
   FM_LEVEL_DEBUG,
   FM_LEVEL_MAX // do not use
 };
 // Keep in sync with FM_LOG_LEVELS enum.
-#define FM_LEVEL_NAMES_ {'E', 'W', 'I', 'D'}
-#define FM_LEVEL_SYSLOG_MAP_ {LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG}
+#define FM_LEVEL_NAMES_ {'F', 'E', 'W', 'I', 'D'}
+#define FM_LEVEL_SYSLOG_MAP_ {LOG_CRIT, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG}
 
 // Status of a monitored entity (process or sensor)
 enum FM_STATUS {

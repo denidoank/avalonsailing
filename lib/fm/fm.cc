@@ -36,6 +36,10 @@ void fm_log(enum FM_LOG_LEVELS level, const char *file, int line,
   va_end(arg_ptr);
 
   FM::Log(level, buffer);
+  if (level == FM_LEVEL_FATAL) {
+    FM::SetStatus(FM_STATUS_FAULT, buffer);
+	abort();
+  }
 }
 
 // FM module static data
@@ -150,6 +154,9 @@ void FM::Iteration() {
 void FM::Log(FM_LOG_LEVELS level, const char *msg) {
   static int syslog_levels[] = FM_LEVEL_SYSLOG_MAP_;
   static char level_names[] = FM_LEVEL_NAMES_;
+  if (level == FM_LEVEL_DEBUG && !debug_) {
+    return;
+  }
   if (use_syslog_) {
     syslog(syslog_levels[level], "%s", msg);
   }
