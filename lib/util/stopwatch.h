@@ -12,7 +12,7 @@
 class StopWatch {
  public:
   StopWatch() { Set(); }
-  void Set () {
+  void Set() {
     gettimeofday(&start_time_, NULL);
   }
   // Return elapsed time in milliseconds
@@ -24,6 +24,13 @@ class StopWatch {
                              (start_time_.tv_sec * 1000LL +
                               start_time_.tv_usec / 1000LL));
   }
+  // Returns the current time in microseconds since the Epoch.
+  static long long GetTimestampMicros() {
+    timeval current_time;
+    gettimeofday(&current_time, NULL);
+    return current_time.tv_sec * 1000000LL + current_time.tv_usec;
+  }
+
  private:
   timeval start_time_;
 };
