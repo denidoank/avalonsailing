@@ -15,7 +15,11 @@ You need to use a special token as password, not your Google or Gmail password. 
 {{{
 $ svn checkout https://avalonsailing.googlecode.com/svn/trunk avalonsailing --username <you>@google.com
 }}}
-Upon your first commit, it will ask for the password for `<you>(@gmail.com)`, this will fail. Then it asks for your username (enter `<you>@google.com`) and your password-token. Voilà.
+Upon your first commit, it will ask for the password for `<you>(@gmail.com)`, this will fail. Then it asks for your username (enter `<you>@google.com`) and your password-token
+
+*from* * https://code.google.com/hosting/settings *
+
+. Voilà.
 
 == Mercurial ==
 
