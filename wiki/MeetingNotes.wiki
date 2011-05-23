@@ -299,14 +299,61 @@ Ullrich
     - and where?
     - AI Steffen: Send heat sticker order URL to Bernhard
 
-
-
-
-
-
-
-
-
-
-
-
+= May 23 2011 =
+  * AI for Liam:
+    - move the rudder on to one com bus
+    - try wind sensor with Bernhard's converter
+    - write a script to detect serial ports     
+  * Time schedule
+    - May 30: Garden test
+    - June 13: Software components complete
+    - June 27: All put together
+    - July 7: Test test on the lake
+    - August 1: Second test on lake
+    - August 22: Atlantic test
+  * Components:
+    - Base image (owner Liam):
+      - need to check it it
+      - make sure we run from the flash card and not the network
+      - build process for computer
+      - logging config, make persistent logging
+    - Rudder and sail (owner Luuk, Emmanuel):
+      - check them in
+      - wrap daemon to talk to tty
+      - ready for garden test
+    - Helmsman (owner Grundmann)
+      - sail controller done
+      - integration testing with the daemon
+      - simple controller for stop/brake
+      - simple controller for remote by sms commands
+      - tack/jibe controller will not be ready for the garden test
+    - Skipper (lake): ?
+    - Skipper (ocean): ?
+    - Joystick skipper, a.k.a. remote control?:
+    - Global planner (owner Alexey): 
+      - have something
+      - read/write maps in geotiff format
+      - need more testing
+      - sanity checking
+    - Maps library (owner Wolf):
+      - not essential for Atlantic test
+      - maps for Atlantic and coastal dep/arrival
+    - System management (owner Bernhard):
+      - close for garden test 
+      - need decide what should be done for garden test
+    - Communication (owner Marius):
+      - send/receive SMS ready
+      - simple API/impl to do
+      - need to buy Iridium SIM
+    - Sensors IMU, wind, AIS (owner Richard):
+      - IMU/wind done
+      - need AIS faking for testing
+      - ready for the garden test
+      - AIS not done, need to be ready for Atlantic test
+    - Wiring (owner Luuk):
+      - wiring changes: not essential for garden test
+    - Garden test (owner Luuk):
+      - simple few hours test to check everything is moving
+      - multi-day test to check autonomous systems working and sustainable power
+      - figure out how to get into the garden
+      - getting on the lake
