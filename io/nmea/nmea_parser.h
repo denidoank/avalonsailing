@@ -31,8 +31,8 @@
 //    }
 //  }
 
-#ifndef NMEAPARSER_H
-#define NMEAPARSER_H
+#ifndef IO_NMEA_NMEA_PARSER_H
+#define IO_NMEA_NMEA_PARSER_H
 
 #include <stdbool.h>
 
