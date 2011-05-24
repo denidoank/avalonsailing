@@ -1,0 +1,4 @@
+This directory contains the classes used by sensors to publish their current
+state for other modules of the system to read. The classes implement a
+single-writer, multiple-reader snapshotting mechanism, without frequency
+coupling between reader and writer.
