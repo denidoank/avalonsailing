@@ -2,12 +2,11 @@
 // Use of this source code is governed by the Apache License 2.0
 // that can be found in the LICENSE file.
 
-#include <assert.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <string.h>
+#include <cassert>
+#include <cstdio>
+#include <cstring>
 
-#include "nmeaparser.h"
+#include "io/nmea/nmea_parser.h"
 
 void npInit(NmeaParser *p) {
   assert(p != NULL);
