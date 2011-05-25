@@ -119,6 +119,8 @@ coa_R = coa_trapez_of("rudder");
 % point in the middle between both rudders.
 % We model them at this place.
 B.R = [0.36; 0; -0.45-coa_R(3)] - cog;
+% distance between left and right rudder axis.
+B.distance_lr_R = 0.7;  
 
 % Sail
 B.area_S = 8.4;    % m2 (f0_45_min_max.m)
@@ -152,7 +154,7 @@ B.B =  [1.8+0.307/2; 0; -0.7-1.5-0.25/2] - cog;
 % maximum turning speed omega_max
 % index R for rudder drive
 % index S for sail drive
-B.omega_max_S = deg2rad(15);  % rad/s, 15 degree per second, from simulation_shell.m
+B.omega_max_S = deg2rad(180 / 13);  % rad/s, 13.8 degree per second, from Luuk; simulation_shell.m says 15 degree/s
 B.omega_max_R = deg2rad(30);  % rad/s, from simulation_shell.m
 B.gain_prop_S = 10;           % rad/s / rad, i.e. a control error of 1 radians
                               % causes a speed of 10 rad/s

@@ -3,7 +3,7 @@
 % that can be found in the LICENSE file.
 % Steffen Grundmann, April 2011
 
-function [F, N, omega_drives] = forces(state, inputs, t)
+function [F, N, omega_drives, wind_W] = forces(state, inputs, t)
 % function [F, N, omega_drives] = forces(state, inputs, t) 
 % Forces, torques and drive speeds for the current state, inputs and time.
 % state: the current state column vector (for definition see below)
@@ -13,6 +13,7 @@ function [F, N, omega_drives] = forces(state, inputs, t)
 % F: Force vector (definition see below)
 % N: Torque vector (definition see below)
 % omega_drives: current drive speeds vector (definition see below)
+% wind_W: the wind at the wind sensor, in 3 dimensions (we measure x and y only)  
 %
 % position and angles of the boats body coordinate system
 % state = [... 
@@ -97,7 +98,7 @@ gamma_drives_star = [gamma_S_star; gamma_R1_star; gamma_R2_star];
 gamma_actual = [gamma_S; gamma_R1; gamma_R2];
 
 % Hydrostatic buoyancy forces and torques
-% ===========================
+% =======================================
 % Buoancy-gravity force equlibrium
 % z_E is the z coordinate in earth coordinates
 

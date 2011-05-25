@@ -3,7 +3,7 @@
 % that can be found in the LICENSE file.
 % Steffen Grundmann, April 2011
 
-function force_of_test() 
+function result = force_of_test() 
 
 B = boat();
 % Keel tests
@@ -53,7 +53,7 @@ gamma = deg2rad(-90); % sail turned 90 degrees to the left, most of it is on sta
 aoa = deg2rad(90);
 speed = 10;
 [F, pos] = force_of("sail", aoa, speed, gamma);
-assert_eq([944; 0; 0], F, 10);
+assert_eq([910; -24; 0], F, 10);
 assert_eq(B.S + [0; 0.3; 0], pos, 0.4);
 
 "gamma sail 0-360 degree, at constant angle of attack: expect a circle"
@@ -65,16 +65,16 @@ fy = zeros(size(all_gammas));
 k = 1;
 for gamma = all_gammas
   [F, pos] = force_of("sail", aoa, speed, gamma);
-  assert_eq(537, sqrt(sumsq(F)), 50);
+  assert_eq(360.14, sqrt(sumsq(F)), 10);
   fx(k) = F(1);
   fy(k) = F(2);
   k += 1;
 endfor
-figure
-plot(fy, fx);
-axis("equal");
-figure(gcf);
-pause 
+%figure
+%plot(fy, fx);
+%axis("equal");
+%figure(gcf);
+%pause 
 
 all_alphas = 0:2:25;
 fx = zeros(size(all_alphas));
@@ -90,15 +90,14 @@ for alpha = all_alphas
   fy(k) = F(2);
   k += 1;
 endfor
-figure
+% figure
 % plot with view from above so the axis x and y are swapped.
-plot(fy, fx);
-title("F_x=f(F_y)");
-xlabel("F_y");
-ylabel("F_x");
-axis("equal");
-figure(gcf);
+% plot(fy, fx);
+% title("F_x=f(F_y)");
+% xlabel("F_y");
+% ylabel("F_x");
+% axis("equal");
+% figure(gcf);
 
-
-
+result = 1;
 endfunction

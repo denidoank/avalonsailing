@@ -8,6 +8,7 @@ function inputs = saved_inputs(new_inputs)
 % set and get the inputs vector, which is persistently stored here.
 % (persistent is similar to static in C.)
 persistent inputs_vector = [];
+
 if nargin == 1
   inputs_vector = new_inputs;
   inputs = inputs_vector;

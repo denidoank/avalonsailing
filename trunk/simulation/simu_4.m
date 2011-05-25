@@ -5,7 +5,7 @@
 
 function result = simu_4()
 % Compare to simu_3 (Simple Euler integration), here we use lsode.
-% max_stap_width 2ms,
+% max_step_width 2ms,
 % period of z oscillations < 0.75s at amplitude 0.00001 
 % z_0 = -0.00001, T = 0.727s
 % z_0 = -0.001, T = 0.727s

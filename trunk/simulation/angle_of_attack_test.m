@@ -3,7 +3,7 @@
 % that can be found in the LICENSE file.
 % Steffen Grundmann, April 2011
 
-function angle_of_attack_test() 
+function result = angle_of_attack_test() 
 
 gamma = 0;
 
@@ -61,4 +61,5 @@ wind = [1; 0; 0];
 assert_eq(-3 * pi / 4, alpha);
 assert_eq(1, magnitude);
 
+result = 1;
 endfunction
