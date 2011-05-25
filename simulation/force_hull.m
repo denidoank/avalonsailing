@@ -11,6 +11,7 @@ function f = force_hull(stream_H)
 % 3D-windchannel simulation we make do with a superposition of the
 % resistance forces in 3 axis (which is wrong, but acceptable
 % under the circumstances).
+% stream_H, 3 dimensional stream vector
 B = boat();
 f = sign(stream_H) .* stream_H.^2 .* B.damping_trans_H;
 endfunction

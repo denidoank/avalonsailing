@@ -54,6 +54,6 @@ x_dot = [ ...
   speed;
   omega;
   B.mass_matrix_inverted * [F; N];  % for speed and omega
-  omega_drives]
+  omega_drives];
 
 assert([S.no_of_states, 1] == size(x_dot));

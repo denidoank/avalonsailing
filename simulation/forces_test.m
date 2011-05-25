@@ -214,8 +214,8 @@ gamma_S_star = deg2rad(15);
 pack_inputs_script;
 % debug_print_forces(1);
 [F, N, omega_drives] = forces(state, inputs, 0);
-assert_eq([-38; 104; 0], F, 5);
-assert_eq([378; 136; 67], N, 5);  % strong heel
+assert_eq([-18; 88; 0], F, 5);
+assert_eq([318; 64; 64], N, 5);  % strong heel
 assert_eq(zeros(3, 1), omega_drives);
 
 % rudder
@@ -252,17 +252,5 @@ pack_inputs_script;
 assert_eq([0; 0; 0], F);
 assert_eq([0; 0; 0], N);
 assert_eq([0; 0.52; 0.52], omega_drives, 0.01);
-
-
-
-
-
-
-
-
-
-
-
-
 
 endfunction

@@ -3,7 +3,7 @@
 % that can be found in the LICENSE file.
 % Steffen Grundmann, April 2011
  
-function rotation_matrix_test()
+function result = rotation_matrix_test()
 
 % From earth system E to boat system B
 % See Euler-angles http://mathworld.wolfram.com/EulerAngles.html
@@ -37,5 +37,7 @@ expected = [ ...
   -small   1     small;
    small -small   1];
 assert(equal(expected, rotation_matrix(small, small, small), 0.001));
+
+result = 1;
 
 endfunction

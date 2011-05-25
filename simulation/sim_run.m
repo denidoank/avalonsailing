@@ -43,7 +43,7 @@ S = simulation_options();
 inputs = make_inputs0_function(trial_number)
 x0 = make_x0_function(trial_number, inputs);
 
-% S.T is the sampling period of the innermost control loop and the period of the saves state time series.
+% S.T is the sampling period of the innermost control loop and the period of the saved state time series.
 t_sim = 0:S.T:t_end;
 x_sim = zeros(length(t_sim), S.no_of_states);
 i_sim = zeros(length(t_sim), S.no_of_inputs);

@@ -16,10 +16,9 @@ lsode_options ("relative tolerance", 1E-4);
 lsode_options ("minimum step size", 0.0002);
 lsode_options ("maximum step size", 0.002);  % 0.002s seems to be a value guaranteeing stability and accuracy
 
-
 % activate later!
 % ignore_function_time_stamp ("all")     % on
-% ignore_function_time_stamp ("system")     % back to default
+% ignore_function_time_stamp ("system")  % back to default
 % addpath("~/octave")
 endfunction
 

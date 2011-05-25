@@ -10,15 +10,19 @@ S = simulation_options();
 debug_switch_init();
 state = zeros(S.no_of_states,1);
 inputs = zeros(S.no_of_inputs, 1);
-state_inputs = [state; inputs];
-x_dot = derivatives(state_inputs);
-assert_eq(zeros(S.no_of_states + S.no_of_inputs, 1), x_dot);
+saved_inputs(inputs);
+x_dot = derivatives(state);
+assert_eq(zeros(S.no_of_states, 1), x_dot);
 
 unpack_state_script;
 v_x = 2;
 pack_state_script;
-state_inputs = [state; inputs];
-t1 = time();
-x_dot = derivatives(state_inputs);
-runtime_derivatives = 1000 * (time() - t1)
+tic;
+x_dot = derivatives(state);
+runtime_derivatives = 1000 * toc;
+disp(["Derivatives runtime: ", num2str(runtime_derivatives), " ms"]);
+t1 = cputime();
+x_dot = derivatives(state);
+runtime_derivatives = 1000 * (cputime() - t1);
+disp(["Derivatives CPU time: ", num2str(runtime_derivatives), " ms"]);
 endfunction
