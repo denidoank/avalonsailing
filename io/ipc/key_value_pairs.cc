@@ -4,9 +4,11 @@
 
 #include "io/ipc/key_value_pairs.h"
 
+#include <errno.h>
 #include <iomanip>
 #include <map>
 #include <sstream>
+#include <stdlib.h>
 #include <string>
 #include <sys/time.h>
 #include <vector>
@@ -21,6 +23,7 @@ using std::vector;
 
 const char KeyValuePair::kFieldSeparator(' ');
 const char KeyValuePair::kKeyValueSeparator(':');
+const char KeyValuePair::kValueQuoteChar('"');
 const std::string KeyValuePair::kTimestampKey("timestamp");
 
 namespace {
@@ -42,9 +45,22 @@ bool GetKeyValue(const string& key_value, string* key, string* value) {
                      separator_pos + 1) != string::npos) {
     return false;
   }
+  string raw_value = key_value.substr(separator_pos + 1);
+  int quote = raw_value.find(KeyValuePair::kValueQuoteChar);
+  if (quote == string::npos) {
+    *value = raw_value;
+  } else {
+    // Quote must start the value.
+    if (quote != 0) return false;
+    // Quoted empty string is not allowed.
+    if (raw_value.size() <= 2) return false;
+    // Second quote must be at the end of the value.
+    if (raw_value.find(KeyValuePair::kValueQuoteChar, 1) != raw_value.size() - 1)
+      return false;
+    *value = raw_value.substr(1, raw_value.size() - 2);
+  }
 
   *key = key_value.substr(0, separator_pos);
-  *value = key_value.substr(separator_pos + 1);
   return true;
 }
 }  // anonymous namespace
@@ -60,26 +76,40 @@ KeyValuePair::KeyValuePair(const string& sentence)
     if (found == string::npos) {
       found = sentence.size();
     }
+    // Look for opening quote character in current sub-string.
+    int quote_found = sentence.find(kValueQuoteChar, previous);
+    if (quote_found != string::npos && quote_found < found) {
+      // Look for closing quote character.
+      found = sentence.find(kValueQuoteChar, quote_found + 1);
+      if (found == string::npos) {
+        found = sentence.size();
+      } else {
+        // Adance to first separator after closing quote (should be +1).
+        found = sentence.find(kFieldSeparator, found);
+        if (found == string::npos) {
+          found = sentence.size();
+    }
+      }
+    }
     const string key_value = sentence.substr(previous, found - previous);
     previous = found + 1;
     {
       string key, value;
       // Ignore current pair if key or value cannot be extracted.
       if (!GetKeyValue(key_value, &key, &value)) continue;
-
       Add(key, value);
     }
   } while (found != sentence.size());
 }
 
 bool KeyValuePair::Add(const string& key, const string& value) {
-  // Check that key and value don't contain separator characters.
+  // Check that key and value don't contain forbidden characters.
   if (key.find(kKeyValueSeparator) != string::npos ||
-      value.find(kKeyValueSeparator) != string::npos) {
+      key.find(kFieldSeparator) != string::npos) {
     return false;
   }
-   if (key.find(kFieldSeparator) != string::npos ||
-      value.find(kFieldSeparator) != string::npos) {
+  if (key.find(kValueQuoteChar) != string::npos ||
+      value.find(kValueQuoteChar) != string::npos) {
     return false;
   }
   // Check that the key is not already in the map.
@@ -90,7 +120,7 @@ bool KeyValuePair::Add(const string& key, const string& value) {
   return true;
 }
 
-bool KeyValuePair::Get(const string& key, string* value) {
+bool KeyValuePair::Get(const string& key, string* value) const {
   if (value == NULL) return false;
 
   map<string, string>::const_iterator found = key_value_pairs_.find(key);
@@ -98,6 +128,34 @@ bool KeyValuePair::Get(const string& key, string* value) {
 
   *value = found->second;
   return true;
+}
+
+bool KeyValuePair::GetLong(const string& key, long* value) const {
+  string value_string;
+  if (Get(key, &value_string)) {
+    char *endptr=NULL;
+    errno = 0;
+    *value = strtol(value_string.c_str(), &endptr, 0);
+    if (endptr[0] != '\0' || errno == ERANGE) {
+      return false;
+    }
+    return true;
+  }
+  return false;
+}
+
+bool KeyValuePair::GetDouble(const string& key, double* value) const {
+  string value_string;
+  if (Get(key, &value_string)) {
+    char *endptr=NULL;
+    errno = 0;
+    *value = strtod(value_string.c_str(), &endptr);
+    if (endptr[0] != '\0' || errno == ERANGE) {
+      return false;
+    }
+    return true;
+  }
+  return false;
 }
 
 namespace {
@@ -111,9 +169,19 @@ string GetTimestamp() {
 // separator before the key-value.
 void AppendKeyValue(const string& key, const string& value, string* result) {
   if (result == NULL) return;
+
+  string quoted_value;
+  if (value.find(KeyValuePair::kFieldSeparator) != string::npos ||
+      value.find(KeyValuePair::kKeyValueSeparator) != string::npos) {
+    quoted_value = string(1, KeyValuePair::kValueQuoteChar) + value +
+        string(1, KeyValuePair::kValueQuoteChar);
+  } else {
+    quoted_value = value;
+  }
+
   const string next_pair =
       (result->empty() ? "" : string(1, KeyValuePair::kFieldSeparator)) +
-      key + KeyValuePair::kKeyValueSeparator + value;
+      key + KeyValuePair::kKeyValueSeparator + quoted_value;
   result->append(next_pair);
 }
 }  // anonymous namespace

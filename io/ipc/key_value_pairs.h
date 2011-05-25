@@ -4,9 +4,13 @@
 //
 // Code for printing and parsing key-value pairs (with unique keys). The order
 // of keys (defined by the sequence of calls to Add() or from the input string)
-// is preserved. The key and value strings can contain any character, except
+// is preserved. The key strings can contain any character, except
 // (1) the pair-separator character ' ' (KeyValuePair::kFieldSeparator) and
-// (2) the key-value separator ':' (KeyValuePair::kKeyValueSeparator).
+// (2) the key-value separator ':' (KeyValuePair::kKeyValueSeparator)
+// (3) the quote characer '"' (KeyValuePair::kValueQuoteChar).
+// Value strings may contain separator characters, but then must be wrapped in
+// a single set of quote characters - quotes are otherwise not allowed in the
+// value string.
 //
 // This class is used for the communication between the sensors and the other
 // parts of the system.
@@ -24,6 +28,8 @@ class KeyValuePair {
   static const char kFieldSeparator;
   // Separator between keys and values (':' in "key1:value1 key2:value2").
   static const char kKeyValueSeparator;
+  // Quote character to group strings which contain separators
+  static const char kValueQuoteChar;
   // Timestamp key that is always printed, even if not explicitly Add()ed.
   static const std::string kTimestampKey;
 
@@ -39,7 +45,9 @@ class KeyValuePair {
   bool Add(const std::string& key, const std::string& value);
 
   // Returns true and populates @value if @key is in the map.
-  bool Get(const std::string& key, std::string* value);
+  bool Get(const std::string& key, std::string* value) const;
+  bool GetLong(const std::string& key, long* value) const;
+  bool GetDouble(const std::string& key, double* value) const;
 
   // Returns a string representation of the key-value pairs. A timestamp
   // value (current time) is added at the beginning of the returned string, if

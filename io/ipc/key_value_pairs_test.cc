@@ -26,15 +26,15 @@ void TestGetAddForValidKeysAndValues() {
 void TestGetAddForInvalidKeysAndValues() {
   KeyValuePair kvp;
   PF_TEST(kvp.Add("colon:", "shouldnt_work") == false, "Separator in key");
-  PF_TEST(kvp.Add("colon", "shouldnt:work") == false, "Separator in value");
+  PF_TEST(kvp.Add("colon", "shouldnt\"work") == false, "quote in value");
   PF_TEST(kvp.Add("colon 2", "notgood") == false, "Field separator in key");
-  PF_TEST(kvp.Add("colon2", "not good") == false, "Field separator in value");
+  PF_TEST(kvp.Add("colon\"2", "not good") == false, "quote in key");
 
   string result;
   PF_TEST(kvp.Get("colon:", &result) == false, "Get with separator in key");
-  PF_TEST(kvp.Get("colon", &result) == false, "Get with separator in value");
+  PF_TEST(kvp.Get("colon", &result) == false, "Get with quote in value");
   PF_TEST(kvp.Get("colon 2", &result) == false, "Get with field sep in key");
-  PF_TEST(kvp.Get("colon2", &result) == false, "Get with field sep in value");
+  PF_TEST(kvp.Get("colon\"2", &result) == false, "Get with quote in key");
 }
 
 void TestFromStringForValidKeysAndValues() {
@@ -146,6 +146,39 @@ void TestFromStringForDegenerateKeysAndValues() {
   }
 }
 
+void TestGetWithConversion() {
+  KeyValuePair kv("a:42.5str b:42 c:1.5 d:184467440737095516150");
+
+  long long_result;
+  double double_result;
+  PF_TEST(kv.GetLong("a", &long_result) == false, "Parse error for long");
+  PF_TEST(kv.GetDouble("a", &double_result) == false, "Parse error for double");
+  PF_TEST(kv.GetLong("d", &long_result) == false, "int overflow");
+
+  PF_TEST(kv.GetLong("b", &long_result), "parsing long");
+  PF_TEST(long_result == 42, "value check - long");
+  PF_TEST(kv.GetDouble("c", &double_result), "parsing double");
+  PF_TEST(double_result == 1.5, "value check - double");
+  PF_TEST(kv.GetDouble("b", &double_result), "parsing int as double");
+}
+
+void TestQuoting() {
+  KeyValuePair kv("a:\"this is a test\" b:\"123\""
+                  " c:\"\" d:\"val\"andsome e:\"unbalanced f:123");
+  string result;
+  long long_result;
+  PF_TEST(kv.Get("a", &result), "parse quoted string value");
+  PF_TEST(result == "this is a test", "return proper unquoted value");
+  PF_TEST(kv.GetLong("b", &long_result), "parse quoted long");
+  PF_TEST(long_result == 123, "valid long result");
+  PF_TEST(kv.Get("c", &result) == false, "empty quoted string");
+  PF_TEST(kv.Get("d", &result) == false, "no separator after closing quote");
+  PF_TEST(kv.Get("e", &result) == false, "unbalanced quotes");
+  PF_TEST(kv.Get("f", &result) == false, "element after unbalanced quotes");
+  PF_TEST(kv.ToString(false) == "a:\"this is a test\" b:123",
+          "generated quoted string");
+}
+
 int main() {
   TestGetAddForValidKeysAndValues();
 
@@ -158,4 +191,8 @@ int main() {
   TestFromStringForInvalidKeysAndValues();
 
   TestFromStringForDegenerateKeysAndValues();
+
+  TestGetWithConversion();
+
+  TestQuoting();
 }
