@@ -35,5 +35,5 @@
 // (Tell gcc to use printf style convention for argument error
 // checking on varargs).
 void fm_log(enum FM_LOG_LEVELS level, const char *file, int line,
-         const char *fmt, ...)  __attribute__((format(printf, 4, 5)));
+            const char *fmt, ...)  __attribute__((format(printf, 4, 5)));
 #endif // LIB_FM_LOG_H__

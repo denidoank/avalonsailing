@@ -11,7 +11,34 @@
 #include <termios.h>
 #include <unistd.h>
 
+#include "lib/fm/log.h"
 #include "lib/util/stopwatch.h"
+
+namespace {
+// Returns the baudrate that corresponds to speed (which can either be a
+// baudrate enum or an int). Returns 0 if the speed is not supported.
+speed_t GetBaudrateEnum(int speed) {
+  // Return speed if it's already a supported baudrate enum.
+  switch (speed) {
+    case B4800:
+    case B9600:
+    case B115200:
+      return speed;
+  }
+  // Otherwise, assume its a number of bits per second and convert to enum.
+  switch (speed) {
+    case 4800:
+      return B4800;
+    case 9600:
+      return B9600;
+    case 115200:
+      return B115200;
+  }
+  FM_LOG_WARN("Unsupported baudrate for tty: %d.\n", speed);
+  // Unsupported speed.
+  return 0;
+}
+}  // anonymous namespace
 
 bool Reader::Init(int fd, bool own) {
   fd_ = fd;
@@ -51,8 +78,9 @@ bool Reader::OpenSerial(const char *filename, int baudrate) {
   serial_params.c_iflag = 0;
   serial_params.c_oflag = 0;
 
-  cfsetispeed(&serial_params, baudrate);
-  cfsetospeed(&serial_params, baudrate);
+  const speed_t baudrate_enum = GetBaudrateEnum(baudrate);
+  cfsetispeed(&serial_params, baudrate_enum);
+  cfsetospeed(&serial_params, baudrate_enum);
 
   // input mode to non-canonical (raw?)
   serial_params.c_lflag = 0;
