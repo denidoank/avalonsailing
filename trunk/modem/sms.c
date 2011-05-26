@@ -25,7 +25,7 @@
 
 // Swap decimal digits of a number (e.g. 12 -> 21).
 static unsigned char SwapDecimalNibble(const unsigned char x) {
-  return (x / 10) | ((x % 10) << 4);
+  return (x / 16) + ((x % 16) * 10);
 }
 
 // Encode/Decode PDU: Translate ASCII 7bit characters to 8bit buffer.
@@ -221,14 +221,15 @@ int DecodeSMS(const unsigned char* buffer, const int buffer_length,
 
   // Decode timestamp.
   struct tm sms_broken_time;
-  sms_broken_time.tm_year = SwapDecimalNibble(buffer[sms_pid_start + 2]);
-  sms_broken_time.tm_mon = SwapDecimalNibble(buffer[sms_pid_start + 3]) -1;
+  sms_broken_time.tm_year = 100 + SwapDecimalNibble(buffer[sms_pid_start + 2]);
+  sms_broken_time.tm_mon = SwapDecimalNibble(buffer[sms_pid_start + 3]) - 1;
   sms_broken_time.tm_mday = SwapDecimalNibble(buffer[sms_pid_start + 4]);
   sms_broken_time.tm_hour = SwapDecimalNibble(buffer[sms_pid_start + 5]);
   sms_broken_time.tm_min = SwapDecimalNibble(buffer[sms_pid_start + 6]);
   sms_broken_time.tm_sec = SwapDecimalNibble(buffer[sms_pid_start + 7]);
-  // const int gmt_offset = SwapDecimalNibble(buffer[sms_pid_start + 8]);
-  (*output_sms_time) = mktime(&sms_broken_time);
+  const char gmt_offset = SwapDecimalNibble(buffer[sms_pid_start + 8]);
+  // GMT offset is expressed in 15 minutes increments.
+  (*output_sms_time) = mktime(&sms_broken_time) - gmt_offset * 15 * 60;
 
   const int sms_start = sms_pid_start + 2 + 7;
   if (sms_start + 1 > buffer_length)

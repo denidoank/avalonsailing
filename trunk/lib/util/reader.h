@@ -34,7 +34,10 @@ class Reader {
   ~Reader();
   int GetFd() { return fd_; }
 
-  // Read a single character with given timeout in ms
+  // Try to read a single character with given timeout in ms. If successfull,
+  // the character is not removed from the input buffer.
+  ReadState PeekChar(char *buffer, long timeout);
+  // Read a single character with given timeout in ms.
   ReadState ReadChar(char *buffer, long timeout);
   // Read a full line of up to size characters with given timeout in ms.
   // (Newline is stripped from buffer).

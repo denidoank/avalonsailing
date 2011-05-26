@@ -6,6 +6,10 @@
 
 #include <time.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* 
  * Encode an SMS message. Output the encoded message into output buffer.
  * Returns the length of the SMS encoded message in the output buffer or
@@ -26,5 +30,9 @@ int DecodeSMS(const unsigned char* buffer, const int buffer_size,
               time_t* output_sms_time, char* output_sender_phone_number,
               const int sender_phone_number_size, char* output_sms_text,
               const int sms_text_length);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif   // MODEM_SMS_H_
