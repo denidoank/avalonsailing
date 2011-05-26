@@ -28,8 +28,9 @@ int main(int argc, char **argv) {
   FM::Keepalive();
 
   DeviceMonitor test_device("test", 100);
-  test_device.DataError();
-  test_device.DataValid();
+  test_device.CommError();
+  test_device.DevError();
+  test_device.Ok();
   test_device.SetStatus(FM_STATUS_OK, "set status to ok");
 
   PF_TEST(true, "did not crash until here...");

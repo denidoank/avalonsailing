@@ -30,6 +30,10 @@
 #define FM_ASSERT(cond) do { if (!(cond)) { FM_LOG_FATAL(\
                           "assertion failed: '%s'", #cond); } } while(false)
 
+#define FM_ASSERT_PERROR(cond) do { if (!(cond)) { FM_LOG_FATAL(\
+                          "assertion failed: '%s' - %s", #cond,\
+                          strerror(errno)); } } while(false)
+
 // Declaration of underlying logging function.
 // Probably no need to use it directly
 // (Tell gcc to use printf style convention for argument error

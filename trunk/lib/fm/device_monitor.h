@@ -19,8 +19,9 @@ class DeviceMonitor {
   // a success or failure. Iterations which result in
   // hanging read or read timeouts should not be reported
   // as data error (device will eventually be timed out).
-  void DataValid();
-  void DataError();
+  void Ok();
+  void CommError(); // e.g. CRC errors, msg corruption etc.
+  void DevError(); // unexpected errors from the device
 
   // Explicitly report task status to system monitor (optional)
   void SetStatus(FM_STATUS status, const char *msg);
@@ -32,7 +33,8 @@ class DeviceMonitor {
   long timeout_ms_;
   char device_name_[30];
   long valid_count_;
-  long error_count_;
+  long comm_err_count_;
+  long dev_err_count_;
 };
 
 #endif // LIB_FM_LOG_H__
