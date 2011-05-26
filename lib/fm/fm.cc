@@ -11,6 +11,7 @@
 #include <sys/resource.h>
 #include <sys/time.h>
 
+#include "lib/fm/fm_messages.h"
 #include "lib/fm/log.h"
 
 void fm_log(enum FM_LOG_LEVELS level, const char *file, int line,
@@ -70,6 +71,7 @@ bool FM::Init(int argc, char **argv) {
 
   strncpy(task_name_, argv[0], sizeof(task_name_));
 
+  optind = 1; // reset in case somebody already did getopt
   opterr = 0; // turn off getopt error messages for options we don't care about
   while (getopt_long(argc, argv, "", long_options, &opt_index) != -1) {
     switch(opt_index) {
@@ -99,6 +101,7 @@ bool FM::Init(int argc, char **argv) {
         break;
     }
   }
+  optind = 1; // reset argv iteration index
 
   if (use_syslog_) {
     openlog(task_name_, 0, LOG_USER);
@@ -124,8 +127,7 @@ void FM::Keepalive() {
   }
   long cpu_time = usage_data.ru_utime.tv_sec + usage_data.ru_stime.tv_sec;
 
-  mon_client_.SendMonMsg("task=%s;time=%ld;iter=%ld;err=%ld;warn=%ld;info=%ld;"
-                         "cpu=%ld;mem=%ld",
+  mon_client_.SendMonMsg(FM_MSG_TASK_KEEPALIVE,
                          task_name_,
                          interval_.Elapsed(),
                          iterations_,
@@ -140,7 +142,7 @@ void FM::Keepalive() {
 
 void FM::SetStatus(FM_STATUS status, const char *msg) {
   static const char *status_names[] = FM_STATUS_NAMES_;
-  mon_client_.SendMonMsg("task=%s;status=%s;msg=%s",
+  mon_client_.SendMonMsg(FM_MSG_STATUS,
                          task_name_,
                          status_names[status],
                          msg);

@@ -44,7 +44,7 @@ void MonClient::SendMonMsg(const char *fmt, ...) const {
    va_end(arg_ptr);
 
 
-   if (sendto(sockfd_, buffer, len, 0,
+   if (sendto(sockfd_, buffer, len + 1, 0,
               &monitor_address_, sizeof(monitor_address_)) == -1) {
      FM_LOG_PERROR("Sending report to sysmon");
    }
