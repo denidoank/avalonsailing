@@ -99,7 +99,7 @@ Reader::~Reader() {
   }
 }
 
-Reader::ReadState Reader::ReadChar(char *buffer, long timeout) {
+Reader::ReadState Reader::PeekChar(char *buffer, long timeout) {
   ReadState state;
   if (isEmpty()) {
     state = isReadable(timeout);
@@ -112,10 +112,17 @@ Reader::ReadState Reader::ReadChar(char *buffer, long timeout) {
     }
   }
   if (!isEmpty()) {
-    buffer[0] = buffer_[read_pos_++];
+    buffer[0] = buffer_[read_pos_];
     return READ_OK;
   }
   return READ_ERROR;
+}
+
+Reader::ReadState Reader::ReadChar(char *buffer, long timeout) {
+  ReadState state = PeekChar(buffer, timeout);
+  if (state == READ_OK)
+    read_pos_++;
+  return state;
 }
 
 Reader::ReadState Reader::ReadLine(char *buffer, long size, long timeout,
