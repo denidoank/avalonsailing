@@ -11,6 +11,7 @@
 #include <stdio.h>
 
 #include "common/check.h"
+#include "common/normalize.h"
 #include "helmsman/gamma_sail_tab_common.h"
 #include "helmsman/gamma_sail_tab_3.h"
 #include "helmsman/gamma_sail_tab_6.h"
@@ -39,7 +40,8 @@ const double* heeling[4] = {heeling_tab_3, heeling_tab_6,
 
 
 double OptimalGammaSail(double alpha_apparent_wind, double magnitude_wind) {
-  int sign;
+  int sign = 1;
+  alpha_apparent_wind = SymmetricRadians(alpha_apparent_wind);
   if (alpha_apparent_wind < 0) {
     sign = -1;
     alpha_apparent_wind = -alpha_apparent_wind;
@@ -68,7 +70,8 @@ double OptimalGammaSail(double alpha_apparent_wind, double magnitude_wind) {
 }
 
 void OptimalTriplett(double alpha_apparent_wind, double magnitude_wind, double* gamma_sail, double* force, double* heel) {
-  int sign;
+  int sign = 1;
+  alpha_apparent_wind = SymmetricRadians(alpha_apparent_wind);
   if (alpha_apparent_wind < 0) {
     sign = -1;
     alpha_apparent_wind = -alpha_apparent_wind;
@@ -80,8 +83,6 @@ void OptimalTriplett(double alpha_apparent_wind, double magnitude_wind, double* 
   int index_alpha_high = ceil(quotient_alpha);
   double weight_alpha_high = quotient_alpha - index_alpha_low;
   double weight_alpha_low = 1 - weight_alpha_high;
-
-  printf("index_alpha_low, index_alpha_high, weight_alpha_low, weight_alpha_high %15d %15d %15g %15g\n", index_alpha_low, index_alpha_high, weight_alpha_low, weight_alpha_high);
   
   CHECK(magnitude_wind >= 0);
   magnitude_wind = min(max(magnitude_wind, magnitude_wind_min), magnitude_wind_max);

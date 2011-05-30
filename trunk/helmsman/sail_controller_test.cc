@@ -8,10 +8,10 @@
 #include <iostream>
 #include <math.h>
 
+#include "common/convert.h"
 #include "helmsman/sail_controller_const.h"
 #include "helmsman/sampling_period.h"  // kSamplingPeriod
-#include "common/convert.h"
-#include "common/testing.h"
+#include "lib/testing/testing.h"
 
 using namespace std;
 
@@ -29,37 +29,47 @@ TEST(SailController, Basic) {
   EXPECT_EQ(Deg2Rad(-90), controller.BestGammaSail( Deg2Rad(80), 5));
 
   double alpha_wind = kSwitchpoint;
-  EXPECT_EQ(kSwitchpoint - M_PI + aoa_optimal, controller.BestGammaSail(kSwitchpoint, 5));
+  EXPECT_EQ(kSwitchpoint - M_PI + aoa_optimal,
+            controller.BestGammaSail(kSwitchpoint, 5));
   EXPECT_FLOAT_EQ(0.05 - kDragMax, controller.BestGammaSail(0.1, 5));
 
-  EXPECT_EQ(  alpha_wind - M_PI + aoa_optimal,  controller.BestStabilizedGammaSail( alpha_wind, 5));
+  EXPECT_EQ(alpha_wind - M_PI + aoa_optimal,
+            controller.BestStabilizedGammaSail( alpha_wind, 5));
 
-  EXPECT_EQ(-(alpha_wind - M_PI + aoa_optimal), controller.BestStabilizedGammaSail(-alpha_wind, 5));
+  EXPECT_EQ(-(alpha_wind - M_PI + aoa_optimal),
+            controller.BestStabilizedGammaSail(-alpha_wind, 5));
 
   // No wind case.
   EXPECT_EQ(0, controller.BestStabilizedGammaSail(-alpha_wind, 0));
   // Switch to spinnaker mode is delayed.
-  EXPECT_EQ(alpha_wind - M_PI + aoa_optimal,  controller.BestStabilizedGammaSail( alpha_wind, 5));
+  EXPECT_EQ(alpha_wind - M_PI + aoa_optimal,
+            controller.BestStabilizedGammaSail( alpha_wind, 5));
 
   alpha_wind = kSwitchpoint - 1.1 * kHalfHysteresis;  // in SPINAKER region now
   int delay = static_cast<int>(kSwitchBackDelay / kSamplingPeriod + 0.5);
   for(int i = 0; i < delay; ++i)
-    EXPECT_EQ(alpha_wind - M_PI + aoa_optimal,  controller.BestStabilizedGammaSail( alpha_wind, 5));
-  EXPECT_EQ(0.5 * alpha_wind - kDragMax,  controller.BestStabilizedGammaSail( alpha_wind, 5));
+    EXPECT_EQ(alpha_wind - M_PI + aoa_optimal,
+              controller.BestStabilizedGammaSail( alpha_wind, 5));
+  EXPECT_EQ(0.5 * alpha_wind - kDragMax,
+            controller.BestStabilizedGammaSail( alpha_wind, 5));
 
   // and switch back.
   alpha_wind = kSwitchpoint + 1.1 * kHalfHysteresis;  // in WING region now
   for(int i = 0; i < delay; ++i)
-    EXPECT_EQ(0.5 * alpha_wind - kDragMax,  controller.BestStabilizedGammaSail( alpha_wind, 5));
-  EXPECT_EQ(alpha_wind - M_PI + aoa_optimal,  controller.BestStabilizedGammaSail( alpha_wind, 5));
+    EXPECT_EQ(0.5 * alpha_wind - kDragMax,
+              controller.BestStabilizedGammaSail( alpha_wind, 5));
+  EXPECT_EQ(alpha_wind - M_PI + aoa_optimal,
+            controller.BestStabilizedGammaSail( alpha_wind, 5));
 
   // Now the wind changes drastically and we switch immediately.
   alpha_wind = kSwitchpoint - 2.1 * kHalfHysteresis;  // far in the SPINAKER region now
-  EXPECT_EQ(0.5 * alpha_wind - kDragMax,  controller.BestStabilizedGammaSail( alpha_wind, 5));
+  EXPECT_EQ(0.5 * alpha_wind - kDragMax,
+            controller.BestStabilizedGammaSail( alpha_wind, 5));
 
   // and switch back.
   alpha_wind = kSwitchpoint + 2.1 * kHalfHysteresis;  // far in the WING region now
-  EXPECT_EQ(alpha_wind - M_PI + aoa_optimal,  controller.BestStabilizedGammaSail( alpha_wind, 5));
+  EXPECT_EQ(alpha_wind - M_PI + aoa_optimal,
+            controller.BestStabilizedGammaSail( alpha_wind, 5));
 }
 
 int main(int argc, char* argv[]) {
