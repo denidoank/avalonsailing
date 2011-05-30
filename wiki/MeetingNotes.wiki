@@ -357,3 +357,58 @@ Ullrich
       - multi-day test to check autonomous systems working and sustainable power
       - figure out how to get into the garden
       - getting on the lake
+
+   * Components
+      - Richard 
+NMEA ready to be submitted
+finalized can talk to IMU
+parametrized
+Wind data 
+need integration with system manager (handle sensor errors , corruption etc.)
+Wind sensor outputs something, but reports invalid data.
+Try to get rid of one converter (Bernhard)
+Initial version of the IMU code , Ready by end of the week
+
+- Marius
+SIM card valid for 1 year/500min
+sending SMS did not succeed over mobile
+redirect
+Need to send email to Iridium#number to send commands
+3 weeks off, leaving on Thursday
+will make message queue today
+Mount it back on Wednesday into the boat
+Problem Antenna does not work in the office
+
+- Emma
+  MTV
+
+
+- Bernhard
+2 CLs in reviewe
+can monitor processentities,
+next device entity, hierarchy model, power zone, USB port etc.
+escalation policy
+Alarms
+Messy part and tuning to be done.
+away from June 8th-July 12th
+
+- Liam
+not much 
+figure out 
+no final hardware modification 
+HW kind of ok.
+Need build system on the boat , ETA his week
+How to checkout Avalon on the gateway machine?
+aim: build with uc/libc
+Compact Flash cards arrived
+
+- Steffen
+State control CL
+
+
+
+
+
+
+
+
