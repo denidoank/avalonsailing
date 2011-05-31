@@ -5,7 +5,7 @@
 #include "common/unknown.h"  // kUnknown
 #include "common/convert.h"
 
-#include "helmsman/controller.h"  
+#include "helmsman/brake_controller.h"  
 
 const double kRudderBrakeAngleRad = Deg2Rad(80);
 
