@@ -27,7 +27,7 @@ void ReadPolarDiagram(double angle_true_wind,
                       bool* dead_zone_jibe,
                       double* boat_speed) {
   CHECK_GE(wind_speed, 0);
-  angle_true_wind = SymmetricAngle(angle_true_wind);  // convert to (-180, 180]
+  angle_true_wind = SymmetricDeg(angle_true_wind);  // convert to (-180, 180]
   CHECK_LE(angle_true_wind, 180);
   CHECK_GE(angle_true_wind, -180);
 

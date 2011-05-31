@@ -14,11 +14,11 @@
 // See http://www.oppedijk.com/zeilen/create-polar-diagram or
 // http://www.scribd.com/doc/13811789/Segeln-gegen-den-Wind
 
-void ReadPolarDiagram(double angle_true_wind,
-                      double wind_speed,
+void ReadPolarDiagram(double angle_true_wind_deg,
+                      double wind_speed_m_s,
                       bool* dead_zone_tack,
                       bool* dead_zone_jibe,
-                      double* speed);
+                      double* speed_m_s);
 
 
 double TackZone();

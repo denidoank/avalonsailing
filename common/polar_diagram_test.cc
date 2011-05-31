@@ -7,7 +7,7 @@
 #include <math.h>
 #include <stdio.h>
 #include "common/convert.h"
-#include "common/testing.h"
+#include "lib/testing/testing.h"
 
 // print polar diagram as x-y-chart.
 // Columns: angle/degree, speed_magnitude/kt, speed_x/kt, speed_y/kt,
@@ -70,7 +70,7 @@ ReadPolarDiagram(0,
 EXPECT_EQ(dead_zone_tack, true);
 EXPECT_EQ(dead_zone_jibe, false);
 
-EXPECT_FLOAT_EQ(3.4523156, boat_speed);
+EXPECT_FLOAT_EQ(3.539395, boat_speed);
 EXPECT_FLOAT_EQ(cos(Deg2Rad(tack_zone_angle)) * close_reach_speed,
                 boat_speed);
 

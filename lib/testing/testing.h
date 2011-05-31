@@ -17,63 +17,107 @@
 #define TEST(class_name, test_case)  void class_name##_##test_case()
 
 #define EXPECT_EQ(a, b) \
-  if ((a) != (b)) { \
-    std::cout << __FILE__ << ":" <<__LINE__ \
-    << "\nTest a == b failed with expected:\n"; \
-    std::cout << (a) << "\n"; \
-    std::cout << "versus actual:\n"; \
-    std::cout << (b) << "\n"; \
-    exit(1); \
-  } 
+  do { \
+    if ((a) != (b)) { \
+      std::cout << __FILE__ << ":" <<__LINE__ \
+      << "\nTest a == b failed with expected:\n"; \
+      std::cout << (a) << "\n"; \
+      std::cout << "versus actual:\n"; \
+      std::cout << (b) << "\n"; \
+      exit(1); \
+    } \
+  } while(0)
+
+#define EXPECT_TRUE(a) \
+  do { \
+    if (!(a)) { \
+      std::cout << __FILE__ << ":" <<__LINE__ \
+                << "\n" #a " was unexpectedly false.\n"; \
+      exit(1); \
+    } \
+  } while(0)
+
+#define EXPECT_FALSE(a) \
+  do { \
+    if (a) { \
+      std::cout << __FILE__ << ":" <<__LINE__ \
+                << "\n" #a " was unexpectedly true.\n"; \
+      exit(1); \
+    } \
+  } while(0)
 
 #define EXPECT_FLOAT_EQ(a, b) \
-  if (fabs((a) - (b)) > 1E-6) { \
-    std::cout << __FILE__ << ":" <<__LINE__ \
-    << "\nTest a == b (tol:1E-6) failed with expected:\n"; \
-    std::cout << (a) << "\n"; \
-    std::cout << "versus actual:\n"; \
-    std::cout << (b) << "\n"; \
-    exit(1); \
-  } 
+  do { \
+    if (fabs((a) - (b)) > 1E-5) { \
+      std::cout << __FILE__ << ":" <<__LINE__ \
+      << "\nTest a == b (tol:1E-5) failed with expected:\n"; \
+      std::cout << (a) << "\n"; \
+      std::cout << "versus actual:\n"; \
+      std::cout << (b) << "\n"; \
+      exit(1); \
+    } \
+  } while(0) 
 
 #define EXPECT_LT(a, b) \
-  if ((a) >= (b)) { \
-    std::cout << __FILE__ << ":" <<__LINE__ \
-    << "\nTest a < b failed with a:\n"; \
-    std::cout << (a) << "\n"; \
-    std::cout << "versus b:\n"; \
-    std::cout << (b) << "\n"; \
-    exit(1); \
-  } 
+  do { \
+    if ((a) >= (b)) { \
+      std::cout << __FILE__ << ":" <<__LINE__ \
+      << "\nTest a < b failed with a:\n"; \
+      std::cout << (a) << "\n"; \
+      std::cout << "versus b:\n"; \
+      std::cout << (b) << "\n"; \
+      exit(1); \
+    } \
+  } while(0) 
 
 #define EXPECT_LE(a, b) \
-  if ((a) > (b)) { \
-    std::cout << __FILE__ << ":" <<__LINE__ \
-    << "\nTest a <= b failed with a:\n"; \
-    std::cout << (a) << "\n"; \
-    std::cout << "versus b:\n"; \
-    std::cout << (b) << "\n"; \
-    exit(1); \
-  } 
+  do { \
+    if ((a) > (b)) { \
+      std::cout << __FILE__ << ":" <<__LINE__ \
+      << "\nTest a <= b failed with a:\n"; \
+      std::cout << (a) << "\n"; \
+      std::cout << "versus b:\n"; \
+      std::cout << (b) << "\n"; \
+      exit(1); \
+    } \
+  } while(0) 
 
 #define EXPECT_GE(a, b) \
-  if ((a) < (b)) { \
-    std::cout << __FILE__ << ":" <<__LINE__ \
-    << "\nTest a >= b failed with a:\n"; \
-    std::cout << (a) << "\n"; \
-    std::cout << "versus b:\n"; \
-    std::cout << (b) << "\n"; \
-    exit(1); \
-  } 
+  do { \
+    if ((a) < (b)) { \
+      std::cout << __FILE__ << ":" <<__LINE__ \
+      << "\nTest a >= b failed with a:\n"; \
+      std::cout << (a) << "\n"; \
+      std::cout << "versus b:\n"; \
+      std::cout << (b) << "\n"; \
+      exit(1); \
+    } \
+  } while(0)
 
 #define EXPECT_GT(a, b) \
-  if ((a) <= (b)) { \
-    std::cout << __FILE__ << ":" <<__LINE__ \
-    << "\nTest a > b failed with a:\n"; \
-    std::cout << (a) << "\n"; \
-    std::cout << "versus b:\n"; \
-    std::cout << (b) << "\n"; \
-    exit(1); \
-  } 
+  do { \
+    if ((a) <= (b)) { \
+      std::cout << __FILE__ << ":" <<__LINE__ \
+      << "\nTest a > b failed with a:\n"; \
+      std::cout << (a) << "\n"; \
+      std::cout << "versus b:\n"; \
+      std::cout << (b) << "\n"; \
+      exit(1); \
+    } \
+  } while(0) 
+
+#define EXPECT_IN_INTERVAL(a, x, b) \
+  do { \
+    if (!((a) <= (x) && (x) <= (b))) { \
+      std::cout << __FILE__ << ":" <<__LINE__ \
+      << "\nTest x in [a,  b] failed with a: " #a "\n"; \
+      std::cout << (a) << "\n"; \
+      std::cout << "versus b: " #b "\n"; \
+      std::cout << (b) << "\n"; \
+      std::cout << "with x: " #x"\n"; \
+      std::cout << (x) << "\n"; \
+      exit(1); \
+    } \
+  } while(0) 
 
 #endif  // LIB_TESTING_TESTING_H

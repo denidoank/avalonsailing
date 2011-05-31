@@ -41,7 +41,7 @@ const double* heeling[4] = {heeling_tab_3, heeling_tab_6,
 
 double OptimalGammaSail(double alpha_apparent_wind, double magnitude_wind) {
   int sign = 1;
-  alpha_apparent_wind = SymmetricRadians(alpha_apparent_wind);
+  alpha_apparent_wind = SymmetricRad(alpha_apparent_wind);
   if (alpha_apparent_wind < 0) {
     sign = -1;
     alpha_apparent_wind = -alpha_apparent_wind;
@@ -71,7 +71,7 @@ double OptimalGammaSail(double alpha_apparent_wind, double magnitude_wind) {
 
 void OptimalTriplett(double alpha_apparent_wind, double magnitude_wind, double* gamma_sail, double* force, double* heel) {
   int sign = 1;
-  alpha_apparent_wind = SymmetricRadians(alpha_apparent_wind);
+  alpha_apparent_wind = SymmetricRad(alpha_apparent_wind);
   if (alpha_apparent_wind < 0) {
     sign = -1;
     alpha_apparent_wind = -alpha_apparent_wind;

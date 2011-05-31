@@ -5,68 +5,128 @@
 //
 // Unit test for common/normalize
 #include "common/normalize.h"
-#include "common/testing.h"
+#include "lib/testing/testing.h"
 
 #include <math.h>
 
 
-TEST(CommonNormalizeTest, AllNormalizeAngle) {
-EXPECT_EQ(179.99, NormalizeAngle(179.99));
-EXPECT_EQ(180,    NormalizeAngle(180));
-EXPECT_EQ(180.01, NormalizeAngle(180.01));
+TEST(CommonNormalizeTest, AllNormalizeDeg) {
+EXPECT_EQ(179.99, NormalizeDeg(179.99));
+EXPECT_EQ(180,    NormalizeDeg(180));
+EXPECT_EQ(180.01, NormalizeDeg(180.01));
 
-EXPECT_EQ(180.01, NormalizeAngle(-179.99));
-EXPECT_EQ(180,    NormalizeAngle(-180));
-EXPECT_EQ(179.99, NormalizeAngle(-180.01));
+EXPECT_EQ(180.01, NormalizeDeg(-179.99));
+EXPECT_EQ(180,    NormalizeDeg(-180));
+EXPECT_EQ(179.99, NormalizeDeg(-180.01));
 
-EXPECT_EQ(0,      NormalizeAngle(0));
-EXPECT_EQ(359.99, NormalizeAngle(359.99));
-EXPECT_FLOAT_EQ(0.01, NormalizeAngle(360.01));
+EXPECT_EQ(0,      NormalizeDeg(0));
+EXPECT_EQ(359.99, NormalizeDeg(359.99));
+EXPECT_FLOAT_EQ(0.01, NormalizeDeg(360.01));
 
-EXPECT_EQ(0, NormalizeAngle(-10800000));
-EXPECT_EQ(0, NormalizeAngle(-108000));
-EXPECT_EQ(0, NormalizeAngle(-1080));
-EXPECT_EQ(0, NormalizeAngle(-720));
-EXPECT_EQ(0, NormalizeAngle(-360));
-EXPECT_EQ(0, NormalizeAngle(0));
-EXPECT_EQ(0, NormalizeAngle(360));
-EXPECT_EQ(0, NormalizeAngle(720));
-EXPECT_EQ(0, NormalizeAngle(1080));
-EXPECT_EQ(0, NormalizeAngle(108000));
-EXPECT_EQ(0, NormalizeAngle(10800000));
+EXPECT_EQ(0, NormalizeDeg(-10800000));
+EXPECT_EQ(0, NormalizeDeg(-108000));
+EXPECT_EQ(0, NormalizeDeg(-1080));
+EXPECT_EQ(0, NormalizeDeg(-720));
+EXPECT_EQ(0, NormalizeDeg(-360));
+EXPECT_EQ(0, NormalizeDeg(0));
+EXPECT_EQ(0, NormalizeDeg(360));
+EXPECT_EQ(0, NormalizeDeg(720));
+EXPECT_EQ(0, NormalizeDeg(1080));
+EXPECT_EQ(0, NormalizeDeg(108000));
+EXPECT_EQ(0, NormalizeDeg(10800000));
 
-EXPECT_EQ(359, NormalizeAngle(-10800001));
-EXPECT_EQ(1,   NormalizeAngle( 10800001));
+EXPECT_EQ(359, NormalizeDeg(-10800001));
+EXPECT_EQ(1,   NormalizeDeg( 10800001));
 }
 
-TEST(CommonNormalizeTest, SymmetricAngle) {
+TEST(CommonNormalizeTest, SymmetricDeg) {
 // (-180, 180] !!!
-EXPECT_EQ( 179.99, SymmetricAngle(179.99));
-EXPECT_EQ( 180,    SymmetricAngle(180));
-EXPECT_EQ(-179.99, SymmetricAngle(180.01));
+EXPECT_EQ( 179.99, SymmetricDeg(179.99));
+EXPECT_EQ( 180,    SymmetricDeg(180));
+EXPECT_EQ(-179.99, SymmetricDeg(180.01));
 
-EXPECT_EQ(-179.99, SymmetricAngle(-179.99));
-EXPECT_EQ(-180,    SymmetricAngle(-180));
-EXPECT_EQ( 179.99, SymmetricAngle(-180.01));
+EXPECT_EQ(-179.99, SymmetricDeg(-179.99));
+EXPECT_EQ(-180,    SymmetricDeg(-180));
+EXPECT_EQ( 179.99, SymmetricDeg(-180.01));
 
-EXPECT_EQ(0, SymmetricAngle(-10800000));
-EXPECT_EQ(0, SymmetricAngle(-108000));
-EXPECT_EQ(0, SymmetricAngle(-1080));
-EXPECT_EQ(0, SymmetricAngle(-720));
-EXPECT_EQ(0, SymmetricAngle(-360));
-EXPECT_EQ(0, SymmetricAngle(0));
-EXPECT_EQ(0, SymmetricAngle(360));
-EXPECT_EQ(0, SymmetricAngle(720));
-EXPECT_EQ(0, SymmetricAngle(1080));
-EXPECT_EQ(0, SymmetricAngle(108000));
-EXPECT_EQ(0, SymmetricAngle(10800000));
+EXPECT_EQ(0, SymmetricDeg(-10800000));
+EXPECT_EQ(0, SymmetricDeg(-108000));
+EXPECT_EQ(0, SymmetricDeg(-1080));
+EXPECT_EQ(0, SymmetricDeg(-720));
+EXPECT_EQ(0, SymmetricDeg(-360));
+EXPECT_EQ(0, SymmetricDeg(0));
+EXPECT_EQ(0, SymmetricDeg(360));
+EXPECT_EQ(0, SymmetricDeg(720));
+EXPECT_EQ(0, SymmetricDeg(1080));
+EXPECT_EQ(0, SymmetricDeg(108000));
+EXPECT_EQ(0, SymmetricDeg(10800000));
 
-EXPECT_EQ(-1, SymmetricAngle(-10800001));
-EXPECT_EQ( 1, SymmetricAngle( 10800001));
+EXPECT_EQ(-1, SymmetricDeg(-10800001));
+EXPECT_EQ( 1, SymmetricDeg( 10800001));
 }
+
+TEST(CommonNormalizeTest, AllNormalizeRad) {
+const double eps = 0.01;
+EXPECT_FLOAT_EQ(M_PI - eps, NormalizeRad(M_PI - eps));
+EXPECT_FLOAT_EQ(M_PI,       NormalizeRad(M_PI));
+EXPECT_FLOAT_EQ(M_PI + eps, NormalizeRad(M_PI + eps));
+
+EXPECT_FLOAT_EQ(M_PI + eps, NormalizeRad(-M_PI + eps));
+EXPECT_FLOAT_EQ(M_PI,       NormalizeRad(-M_PI));
+EXPECT_FLOAT_EQ(M_PI - eps, NormalizeRad(-M_PI - eps));
+
+EXPECT_FLOAT_EQ(0,              NormalizeRad(0));
+EXPECT_FLOAT_EQ(2 * M_PI - eps, NormalizeRad(2 * M_PI - eps));
+EXPECT_FLOAT_EQ(eps, NormalizeRad(2 * M_PI + eps));
+
+EXPECT_FLOAT_EQ(0, NormalizeRad(-300 * 2 * M_PI));
+EXPECT_FLOAT_EQ(0, NormalizeRad( -30 * 2 * M_PI));
+EXPECT_FLOAT_EQ(0, NormalizeRad(  -3 * 2 * M_PI));
+EXPECT_FLOAT_EQ(0, NormalizeRad(  -2 * 2 * M_PI));
+EXPECT_FLOAT_EQ(0, NormalizeRad(  -1 * 2 * M_PI));
+EXPECT_FLOAT_EQ(0, NormalizeRad(   0 * 2 * M_PI));
+EXPECT_FLOAT_EQ(0, NormalizeRad(   1 * 2 * M_PI));
+EXPECT_FLOAT_EQ(0, NormalizeRad(   2 * 2 * M_PI));
+EXPECT_FLOAT_EQ(0, NormalizeRad(   3 * 2 * M_PI));
+EXPECT_FLOAT_EQ(0, NormalizeRad(  30 * 2 * M_PI + 1E-6));
+EXPECT_FLOAT_EQ(0, NormalizeRad( 300 * 2 * M_PI + 1E-6));
+
+EXPECT_FLOAT_EQ(2 * M_PI - eps, NormalizeRad(-300 * 2 * M_PI - eps));
+EXPECT_FLOAT_EQ(           eps, NormalizeRad( 300 * 2 * M_PI + eps));
+}
+
+TEST(CommonNormalizeTest, SymmetricRad) {
+const double eps = 0.01;
+// (-M_PI, M_PI] !!!
+EXPECT_FLOAT_EQ( M_PI - eps, SymmetricRad(M_PI - eps));
+EXPECT_FLOAT_EQ( M_PI,       SymmetricRad(M_PI));
+EXPECT_FLOAT_EQ(-M_PI + eps, SymmetricRad(M_PI + eps));
+
+EXPECT_FLOAT_EQ(-M_PI + eps, SymmetricRad(-M_PI + eps));
+EXPECT_FLOAT_EQ(-M_PI,    SymmetricRad(-M_PI));
+EXPECT_FLOAT_EQ( M_PI - eps, SymmetricRad(-M_PI - eps));
+
+EXPECT_FLOAT_EQ(0, SymmetricRad(-300 * 2 * M_PI));
+EXPECT_FLOAT_EQ(0, SymmetricRad( -30 * 2 * M_PI));
+EXPECT_FLOAT_EQ(0, SymmetricRad(  -3 * 2 * M_PI));
+EXPECT_FLOAT_EQ(0, SymmetricRad(  -2 * 2 * M_PI));
+EXPECT_FLOAT_EQ(0, SymmetricRad(  -1 * 2 * M_PI));
+EXPECT_FLOAT_EQ(0, SymmetricRad(   0 * 2 * M_PI));
+EXPECT_FLOAT_EQ(0, SymmetricRad(   1 * 2 * M_PI));
+EXPECT_FLOAT_EQ(0, SymmetricRad(   2 * 2 * M_PI));
+EXPECT_FLOAT_EQ(0, SymmetricRad(   3 * 2 * M_PI));
+EXPECT_FLOAT_EQ(0, SymmetricRad(  30 * 2 * M_PI));
+EXPECT_FLOAT_EQ(0, SymmetricRad( 300 * 2 * M_PI));
+
+EXPECT_FLOAT_EQ(-eps, SymmetricRad(-300 * 2 * M_PI - eps));
+EXPECT_FLOAT_EQ( eps, SymmetricRad( 300 * 2 * M_PI + eps));
+}
+
 
 int main(int argc, char* argv[]) {
-  CommonNormalizeTest_AllNormalizeAngle();
-  CommonNormalizeTest_SymmetricAngle();
+  CommonNormalizeTest_AllNormalizeDeg();
+  CommonNormalizeTest_SymmetricDeg();
+  CommonNormalizeTest_AllNormalizeRad();
+  CommonNormalizeTest_SymmetricRad();
   return 0;
 }

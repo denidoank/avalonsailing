@@ -7,7 +7,7 @@
 
 #include <math.h>
 
-#include "common/testing.h"
+#include "lib/testing/testing.h"
 
 TEST(CommonTransformTest, All) {
 // Angle
