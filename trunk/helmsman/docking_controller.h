@@ -7,14 +7,14 @@
 
 #include "helmsman/controller.h"
 
-class StraightController : public Controller {
+class DockingController : public Controller {
  public:
-  virtual ~StraightController();
+  virtual ~DockingController();
   virtual void Run(const ControllerInput& in,
                    const FilteredMeasurements& filtered,
                    ControllerOutput* out);
   virtual const char* Name() {
-    return "Straight";
+    return "Docking";
   };
 };
 
