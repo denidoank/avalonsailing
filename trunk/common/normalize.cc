@@ -6,8 +6,8 @@
 #include <math.h>
 
 // Force angle into [0, 360).
-double NormalizeAngle(double alpha) {
-  double x = fmod(alpha, 360.0);
+double NormalizeDeg(double alpha_deg) {
+  double x = fmod(alpha_deg, 360.0);
   if (x >= 0)
     return x;
   else
@@ -15,13 +15,13 @@ double NormalizeAngle(double alpha) {
 }
 
 // Force result into (-180, 180].
-double SymmetricAngle(double alpha) {
-  return drem(alpha, 360.0);
+double SymmetricDeg(double alpha_deg) {
+  return drem(alpha_deg, 360.0);
 }
 
 // Force radians into [0, 2*pi).
-double NormalizeRadians(double alpha) {
-  double x = fmod(alpha, 2 * M_PI);
+double NormalizeRad(double alpha_rad) {
+  double x = fmod(alpha_rad, 2 * M_PI);
   if (x >= 0)
     return x;
   else
@@ -29,7 +29,7 @@ double NormalizeRadians(double alpha) {
 }
 
 // Force result into (-pi, pi].
-double SymmetricRadians(double alpha) {
-  return drem(alpha, 2 * M_PI);
+double SymmetricRad(double alpha_rad) {
+  return drem(alpha_rad, 2 * M_PI);
 }
 

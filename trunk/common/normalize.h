@@ -6,16 +6,16 @@
 #define COMMON_NORMALIZE_H_
 
 // Force angle into [0, 360). This is the standard convention for interfaces.
-double NormalizeAngle(double alpha);
+double NormalizeDeg(double alpha_deg);
 
 // Force angle into (-180, 180]
-double SymmetricAngle(double alpha);
+double SymmetricDeg(double alpha_deg);
 
 // Force radians into [0, 2*pi).
-double NormalizeRadians(double alpha);
+double NormalizeRad(double alpha_rad);
 
 // Force angle into (-pi, pi]
-double SymmetricRadians(double alpha);
+double SymmetricRad(double alpha_rad);
 
 #endif  // COMMON_NORMALIZE_H_
 
