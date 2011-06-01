@@ -179,6 +179,14 @@ void TestQuoting() {
           "generated quoted string");
 }
 
+void TestMerge() {
+  KeyValuePair kv1("a:1 b:2 c:3 d:4");
+  KeyValuePair kv2("a:x c:y e:z");
+
+  kv1.MergeFrom(kv2);
+  PF_TEST(kv1.ToString(false) == "a:x b:2 c:y d:4 e:z", "merged output");
+}
+
 int main() {
   TestGetAddForValidKeysAndValues();
 
@@ -195,4 +203,6 @@ int main() {
   TestGetWithConversion();
 
   TestQuoting();
+
+  TestMerge();
 }

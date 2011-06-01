@@ -44,6 +44,10 @@ class KeyValuePair {
   // map).
   bool Add(const std::string& key, const std::string& value);
 
+  // Merge values from another KeyValuePair.
+  // Replace existing values with new ones and append new ones to key order.
+  void MergeFrom(const KeyValuePair &source);
+
   // Returns true and populates @value if @key is in the map.
   bool Get(const std::string& key, std::string* value) const;
   bool GetLong(const std::string& key, long* value) const;
