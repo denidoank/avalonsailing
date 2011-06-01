@@ -19,7 +19,7 @@ class TokenBuffer {
 
   // Tokenize valid string in buffer using ' ' or '\n' as the
   // separator.
-  bool Tokenize();
+  bool Tokenize(const char *sparators = "\n ");
 };
 
 #endif // LIB_UTIL_TOKEN_BUFFER_H__

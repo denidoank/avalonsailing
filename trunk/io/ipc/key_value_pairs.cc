@@ -120,6 +120,17 @@ bool KeyValuePair::Add(const string& key, const string& value) {
   return true;
 }
 
+void KeyValuePair::MergeFrom(const KeyValuePair &source) {
+  for (map<string, string>::const_iterator it = source.key_value_pairs_.begin();
+       it != source.key_value_pairs_.end();
+       ++it) {
+    if (key_value_pairs_.find(it->first) == key_value_pairs_.end()) {
+      key_order_.push_back(it->first);
+    }
+    key_value_pairs_[it->first] = it->second;
+  }
+}
+
 bool KeyValuePair::Get(const string& key, string* value) const {
   if (value == NULL) return false;
 

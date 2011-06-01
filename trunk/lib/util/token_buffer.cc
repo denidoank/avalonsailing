@@ -5,11 +5,11 @@
 
 #include <string.h>
 
-bool TokenBuffer::Tokenize() {
+bool TokenBuffer::Tokenize(const char *separators) {
   char *current = buffer;
   for (argc = 0; argc < TB_MAX_TOKENS; argc++) {
     do {
-      argv[argc] = strsep(&current, "\n ");
+      argv[argc] = strsep(&current, separators);
       if (argv[argc] == NULL) {
         return true;
       }
