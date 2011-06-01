@@ -33,8 +33,10 @@ TOP = $(realpath $(dir $(lastword $(MAKEFILE_LIST)))..)
 CFLAGS+=-I$(TOP)
 CXXFLAGS+=-I$(TOP)
 
+.PHONY: all bin test test.run clean
+
 # default targets
-all: test bin
+all: bin test
 
 clean:
 	rm -f *~ *.o lib.a Makefile.bak $(TST_CSRCS:.c=) $(TST_CCSRCS:.cc=) $(BIN_CSRCS:_main.c=) $(BIN_CCSRCS:_main.cc=)
@@ -46,8 +48,10 @@ bin: $(BIN_CCSRCS:_main.cc=) $(BIN_CSRCS:_main.c=)
 
 test: $(TST_CCSRCS:.cc=) $(TST_CSRCS:.c=)
 
+test.run: $(TST_CCSRCS:.cc=.run) $(TST_CSRCS:.c=.run)
+
 %_test.run: %_test
-	-@echo -n "Running $^: "; ./$<
+	@echo -n "Running $^: "; ./$<
 
 ifneq ($(strip $(LIB_CCSRCS:.cc=.o) $(LIB_CSRCS:.c=.o)),)
 LIBA = lib.a
