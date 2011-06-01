@@ -26,12 +26,17 @@ BIN_CSRCS = $(wildcard *_main.c)
 TST_CSRCS = $(wildcard *_test.c)
 LIB_CSRCS = $(filter-out $(BIN_CSRCS) $(TST_CSRCS), $(wildcard *.c))  
 
+# All the binaries we've found
+BINARIES = $(BIN_CCSRCS:_main.cc=) $(BIN_CSRCS:_main.c=)
+
 # TOP is this makefile's directory's parent
 TOP = $(realpath $(dir $(lastword $(MAKEFILE_LIST)))..)
 
 # make includes relative to the top work
 CFLAGS+=-I$(TOP)
 CXXFLAGS+=-I$(TOP)
+
+INSTALL = install
 
 .PHONY: all bin test test.run clean
 
@@ -44,9 +49,14 @@ clean:
 depend:
 	makedepend -Y -I$(TOP) -- $(LIB_CSRCS) $(BIN_CSRCS) $(TST_CSRCS) $(LIB_CCSRCS) $(BIN_CCSRCS) $(TST_CCSRCS)
 
-bin: $(BIN_CCSRCS:_main.cc=) $(BIN_CSRCS:_main.c=)
+bin: $(BINARIES)
 
 test: $(TST_CCSRCS:.cc=) $(TST_CSRCS:.c=)
+
+install: $(BINARIES)
+  ifneq ($<,)
+	$(INSTALL) $< $(DESTDIR)
+  endif
 
 test.run: $(TST_CCSRCS:.cc=.run) $(TST_CSRCS:.c=.run)
 
@@ -65,7 +75,7 @@ $(BIN_CCSRCS:_main.cc=) $(BIN_CSRCS:_main.c=) \
 	$(TST_CCSRCS:.cc=) $(TST_CSRCS:.c=): $(LIBA) $(foreach dir, $(DEPS), $(TOP)/$(dir)/lib.a)
 
 # always use the C++ linker
-LINK.o = $(CXX) $(LDFLAGS) $(TARGET_ARCH)  
+LINK.o = $(CXX) $(LDFLAGS) $(TARGET_ARCH)
 
 %: %_main.o $(LIBA) $(foreach dir, $(DEPS), $(TOP)/$(dir)/lib.a)
 	$(LINK.o) $^ -o $@
