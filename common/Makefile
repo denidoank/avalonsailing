@@ -1,3 +1,4 @@
-DEPS+=lib/util
 DEPS+=common
+DEPS+=lib/util
+
 include ../mk/Makefile.inc

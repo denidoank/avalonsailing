@@ -14,9 +14,9 @@ double NormalizeDeg(double alpha_deg) {
     return 360.0 + x;
 }
 
-// Force result into (-180, 180].
+// Force result into [-180, 180).
 double SymmetricDeg(double alpha_deg) {
-  return drem(alpha_deg, 360.0);
+  return NormalizeDeg(alpha_deg + 180.0) - 180.0;
 }
 
 // Force radians into [0, 2*pi).
@@ -28,8 +28,7 @@ double NormalizeRad(double alpha_rad) {
     return 2 * M_PI + x;
 }
 
-// Force result into (-pi, pi].
+// Force result into [-pi, pi).
 double SymmetricRad(double alpha_rad) {
-  return drem(alpha_rad, 2 * M_PI);
+  return NormalizeRad(alpha_rad + M_PI) - M_PI;
 }
-
