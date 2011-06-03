@@ -163,19 +163,19 @@ void TestGetWithConversion() {
 }
 
 void TestQuoting() {
-  KeyValuePair kv("a:\"this is a test\" b:\"123\""
+  KeyValuePair kv("a:\"this is a test:\" b:\"123\""
                   " c:\"\" d:\"val\"andsome e:\"unbalanced f:123");
   string result;
   long long_result;
   PF_TEST(kv.Get("a", &result), "parse quoted string value");
-  PF_TEST(result == "this is a test", "return proper unquoted value");
+  PF_TEST(result == "this is a test:", "return proper unquoted value");
   PF_TEST(kv.GetLong("b", &long_result), "parse quoted long");
   PF_TEST(long_result == 123, "valid long result");
   PF_TEST(kv.Get("c", &result) == false, "empty quoted string");
   PF_TEST(kv.Get("d", &result) == false, "no separator after closing quote");
   PF_TEST(kv.Get("e", &result) == false, "unbalanced quotes");
   PF_TEST(kv.Get("f", &result) == false, "element after unbalanced quotes");
-  PF_TEST(kv.ToString(false) == "a:\"this is a test\" b:123",
+  PF_TEST(kv.ToString(false) == "a:\"this is a test:\" b:123",
           "generated quoted string");
 }
 

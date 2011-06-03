@@ -49,6 +49,8 @@ class ProcessTable {
 
   ProcessInfo tasks_[PT_MAX_TASKS];
   int task_count_;
+
+  friend class SysMon;
 };
 
 

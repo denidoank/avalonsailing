@@ -8,6 +8,8 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "lib/fm/fm.h"
+#include "lib/fm/log.h"
 #include "lib/util/stopwatch.h"
 #include "sysmgr/adam.h"
 #include "sysmgr/process_table.h"
@@ -18,11 +20,12 @@
 #define ADAM_POWER_BUS_CPU 0
 #define ADAM_POWER_BUS_MAIN 1
 
-static const char *const short_options = "a:f:hnst:";
+static const char *const short_options = "a:f:hm:nst:";
 static const struct option long_options[] = {
   {"adam-device", 1, NULL, 'a'},
   {"cfg-file", 1, NULL, 'f'},
   {"help", 0, NULL, 'h'},
+  {"sysmon-cfg", 0, NULL, 'm'},
   {"test-mode", 0, NULL, 'n'},
   {"stdio", 0, NULL, 's'},
   {"timeout", 1, NULL, 't'},
@@ -55,16 +58,16 @@ void InitPowerMgr(Adam &relay_controller, const char *adam_dev) {
   }
 
   if (!relay_controller.Init(adam_dev)) {
-    perror("opening ADAM serial port");
-    fprintf(stderr, "could not initialize ADAM controller on port %s\n",
-            adam_dev);
+    FM_LOG_PERROR("opening ADAM serial port");
+    FM_LOG_ERROR("could not initialize ADAM controller on port %s\n",
+                 adam_dev);
     // Keep going anyway - but we won't be able to power-cycle
   } else {
     bool relay_state;
     if (relay_controller.GetRelayState(ADAM_POWER_BUS_CPU, &relay_state)) {
       if (relay_state) {
-        fprintf(stderr, "CPU bus relay is triggered - "
-                "probably recovering from power-cycling\n");
+        FM_LOG_INFO("CPU bus relay is triggered - "
+                    "probably recovering from power-cycling\n");
       }
     }
     // Force relays into know/desired state (no-op if they already are)
@@ -74,16 +77,17 @@ void InitPowerMgr(Adam &relay_controller, const char *adam_dev) {
 }
 
 int main(int argc, char **argv) {
-
   // Defaults settings correspond to production environment
   bool test_mode = false; // use real hw access
   const char *adam_dev = "";
   const char *config_file = "/etc/sysmgr.conf";
+  const char *sysmon_conf = "/etc/sysmon.conf";
   int timeout = 60; // 60 seconds
   bool use_sysmon = true;
 
   char *endptr=NULL;
   int next_opt;
+  opterr = 0;
   do {
     next_opt = getopt_long(argc, argv, short_options,
                            long_options, NULL);
@@ -96,6 +100,9 @@ int main(int argc, char **argv) {
         break;
       case 'f':
         config_file = optarg;
+        break;
+      case 'm':
+        sysmon_conf = optarg;
         break;
       case 's':
         use_sysmon = false;
@@ -111,12 +118,16 @@ int main(int argc, char **argv) {
       case -1:   /* Done with options */
         break;
       case 'h':
-      default:   /* invalid options */
-          PrintUsage(argv[0]);
+        PrintUsage(argv[0]);
+      default:   /* ignore invalid options */
+        break;
     }
   } while (next_opt != -1);
 
   Watchdog watchdog(timeout, test_mode);
+
+  // Re-scan argv/argc for logging system defaults
+  FM::Init(argc, argv);
 
   // Handle graceful shutdown - mostly for testing
   // as in production, this should never happen...
@@ -138,7 +149,7 @@ int main(int argc, char **argv) {
   InitPowerMgr(relay_controller, adam_dev);
 
   TokenBuffer sysmon_cmd;
-  SysMonClient sysmon(use_sysmon, timeout);
+  SysMonClient sysmon(use_sysmon, timeout, sysmon_conf, proc_table);
 
   StopWatch timer;
   while (!should_exit) {
@@ -152,7 +163,7 @@ int main(int argc, char **argv) {
     // TODO(bsuter): try to use SIGCHLD to allow for longer wait
     // without loss of responsiveness
     if (sysmon.GetCommand(&sysmon_cmd, 3)) {
-        fprintf(stderr, "received '%s' from sysmon\n", sysmon_cmd.buffer);
+      FM_LOG_INFO("received '%s' from sysmon\n", sysmon_cmd.buffer);
       sysmon_cmd.Tokenize();
       if (sysmon_cmd.argc == 2 &&
           strcmp(sysmon_cmd.argv[0], "task-restart") == 0) {
@@ -161,15 +172,15 @@ int main(int argc, char **argv) {
                  strcmp(sysmon_cmd.argv[0], "power-cycle") ==0) {
         if (strcmp(sysmon_cmd.argv[1], "power-bus-cpu") == 0) {
           if (!relay_controller.Pulse(ADAM_POWER_BUS_CPU, 5)) {
-            fprintf(stderr, "could not power cycle CPU power bus\n");
+            FM_LOG_ERROR("could not power cycle CPU power bus\n");
           }
           // Poof... we should be gone now
         } else if (strcmp(sysmon_cmd.argv[1], "power-bus-main") == 0) {
           if (!relay_controller.Pulse(ADAM_POWER_BUS_MAIN, 5)) {
-            fprintf(stderr, "could not power cycle main power bus\n");
+            FM_LOG_ERROR("could not power cycle main power bus\n");
           }
         } else {
-          fprintf(stderr, "Invalid bus ID for power-cycle: %s\n",
+          FM_LOG_ERROR("Invalid bus ID for power-cycle: %s\n",
                   sysmon_cmd.argv[1]);
         }
       }
@@ -186,14 +197,14 @@ int main(int argc, char **argv) {
 
   // Code below is for testing only - we should never
   // get here in production
-  fprintf(stderr, "shutting down...\n");
+  FM_LOG_INFO("shutting down...\n");
   proc_table.Shutdown();
   sysmon.Shutdown();
   // TODO(bsuter): remove this once we are done with kernel customizations
   // i.e. watchdog is compiled with NOWAYOUT.
   if (!test_mode) {
     sleep(2*watchdog.GetTimeout());
-    fprintf(stderr, "hmm, we should have rebooted by now...\n");
+    FM_LOG_ERROR("hmm, we should have rebooted by now...\n");
   }
   return 0;
 }
