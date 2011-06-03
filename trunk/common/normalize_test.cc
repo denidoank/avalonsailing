@@ -5,9 +5,9 @@
 //
 // Unit test for common/normalize
 #include "common/normalize.h"
-#include "lib/testing/testing.h"
 
 #include <math.h>
+#include "lib/testing/testing.h"
 
 
 TEST(CommonNormalizeTest, AllNormalizeDeg) {
@@ -40,14 +40,22 @@ EXPECT_EQ(1,   NormalizeDeg( 10800001));
 }
 
 TEST(CommonNormalizeTest, SymmetricDeg) {
-// (-180, 180] !!!
+// [-180, 180)
 EXPECT_EQ( 179.99, SymmetricDeg(179.99));
-EXPECT_EQ( 180,    SymmetricDeg(180));
+EXPECT_EQ(-180,    SymmetricDeg(180));
 EXPECT_EQ(-179.99, SymmetricDeg(180.01));
 
 EXPECT_EQ(-179.99, SymmetricDeg(-179.99));
 EXPECT_EQ(-180,    SymmetricDeg(-180));
 EXPECT_EQ( 179.99, SymmetricDeg(-180.01));
+
+// [-180, 180)
+EXPECT_EQ(-160,    SymmetricDeg(200));
+EXPECT_EQ(  40,    SymmetricDeg(400));
+
+EXPECT_EQ( 160,    SymmetricDeg(-200));
+EXPECT_EQ( -40,    SymmetricDeg(-400));
+
 
 EXPECT_EQ(0, SymmetricDeg(-10800000));
 EXPECT_EQ(0, SymmetricDeg(-108000));
@@ -97,9 +105,9 @@ EXPECT_FLOAT_EQ(           eps, NormalizeRad( 300 * 2 * M_PI + eps));
 
 TEST(CommonNormalizeTest, SymmetricRad) {
 const double eps = 0.01;
-// (-M_PI, M_PI] !!!
+// [-M_PI, M_PI)
 EXPECT_FLOAT_EQ( M_PI - eps, SymmetricRad(M_PI - eps));
-EXPECT_FLOAT_EQ( M_PI,       SymmetricRad(M_PI));
+EXPECT_FLOAT_EQ(-M_PI,       SymmetricRad(M_PI));
 EXPECT_FLOAT_EQ(-M_PI + eps, SymmetricRad(M_PI + eps));
 
 EXPECT_FLOAT_EQ(-M_PI + eps, SymmetricRad(-M_PI + eps));

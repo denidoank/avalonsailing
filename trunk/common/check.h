@@ -11,6 +11,7 @@
 #include <math.h>  // fabs
 
 
+
 #define CHECK(a) assert(a)
 #define CHECK_EQ(a, b) assert((a) == (b))
 #define CHECK_FLOAT_EQ(a, b) assert(fabs((a) - (b)) < 1E-5)
