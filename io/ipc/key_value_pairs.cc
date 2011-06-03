@@ -40,11 +40,13 @@ bool GetKeyValue(const string& key_value, string* key, string* value) {
   if (separator_pos == 0) return false;
   // There should be at least one character after the separator.
   if (separator_pos + 1 >= key_value.size()) return false;
-  // The separator should not appear twice.
-  if (key_value.find(KeyValuePair::kKeyValueSeparator,
-                     separator_pos + 1) != string::npos) {
+  // Separator must nor appear in unquoted values.
+  if (key_value[separator_pos + 1] != KeyValuePair::kValueQuoteChar &&
+     key_value.find(KeyValuePair::kKeyValueSeparator,
+                    separator_pos + 1) != string::npos) {
     return false;
   }
+
   string raw_value = key_value.substr(separator_pos + 1);
   int quote = raw_value.find(KeyValuePair::kValueQuoteChar);
   if (quote == string::npos) {

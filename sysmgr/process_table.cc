@@ -11,13 +11,17 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
+#include "lib/fm/fm.h"
+#include "lib/fm/fm_messages.h"
+#include "lib/fm/log.h"
+
 
 ProcessTable::ProcessTable(): task_count_(0) { };
 
 bool ProcessTable::Load(const char *filename) {
   FILE *fp = fopen(filename, "r");
   if (fp == NULL) {
-    perror("could not open process table file");
+    FM_LOG_PERROR("could not open process table file");
     return false;
   }
 
@@ -31,7 +35,7 @@ bool ProcessTable::Load(const char *filename) {
     }
   }
   fclose(fp);
-  fprintf(stderr, "loaded %d tasks from '%s'\n", task_count_, filename);
+  FM_LOG_INFO("loaded %d tasks from '%s'\n", task_count_, filename);
   return true;
 }
 
@@ -89,6 +93,10 @@ void ProcessTable::Reap() {
       // Check if this task has gone down
       pid_t pid = waitpid(tasks_[i].pid, NULL, WNOHANG);
       if (pid == tasks_[i].pid) {
+        FM::Monitor().SendMonMsg(FM_MSG_STATUS,
+                           tasks_[i].name,
+                           "FAULT",
+                           "crash detected");
         tasks_[i].pid = -1;
       }
     }
@@ -101,7 +109,7 @@ pid_t ProcessTable::LaunchTask(const ProcessInfo &task_info) {
 
   if (pid != 0) { // we are the parent
     if (pid == -1) {
-      perror("fork failed");
+      FM_LOG_PERROR("fork failed");
     }
     // Return -1, will retry to launch again in next iteration.
     return pid;
@@ -117,8 +125,8 @@ pid_t ProcessTable::LaunchTask(const ProcessInfo &task_info) {
   sigprocmask(SIG_SETMASK, &empty, NULL);
 
   execv(task_info.tokens.argv[0], task_info.tokens.argv);
-  perror("exec failed");
-  fprintf(stderr, "could not start %s\n", task_info.name);
+  FM_LOG_PERROR("exec failed");
+  FM_LOG_ERROR("could not start %s\n", task_info.name);
   exit(1);
 }
 
