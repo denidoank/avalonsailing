@@ -13,7 +13,7 @@
 class DeviceMonitor {
  public:
 
-  DeviceMonitor(const char *name, long timeout_ms);
+  DeviceMonitor(const char *name, long period_s = 3);
 
   // For each iteration report if the operations was
   // a success or failure. Iterations which result in
@@ -30,7 +30,7 @@ class DeviceMonitor {
   void Keepalive(bool force = false);
 
   StopWatch timer_;
-  long timeout_ms_;
+  long period_s_;
   char device_name_[30];
   long valid_count_;
   long comm_err_count_;

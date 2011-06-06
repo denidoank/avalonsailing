@@ -56,7 +56,7 @@ bool FM::logtostderr_ = false;
 bool FM::use_syslog_ = true;
 char FM::task_name_[30] = "";
 
-bool FM::Init(int argc, char **argv) {
+int FM::Init(int argc, char **argv) {
   static const struct option long_options[] = {
     {"debug", 0, NULL, 0},
     {"logtostderr", 0, NULL, 0},
@@ -94,13 +94,14 @@ bool FM::Init(int argc, char **argv) {
         timeout_sec_ = strtol(optarg, &endptr, 0);
         if (timeout_sec_ < 10 ||  endptr[0] != '\0') {
           fprintf(stderr, "invalid timeout (value must be larger than 10s)\n");
-          return false;
+          return -1;
         }
         break;
       default:
         break;
     }
   }
+  int rc = optind;
   optind = 1; // reset argv iteration index
 
   if (use_syslog_) {
@@ -116,16 +117,27 @@ bool FM::Init(int argc, char **argv) {
               use_syslog_ ? 'y' : 'n',
               mon_client_.GetDestination());
 
-  return true;
+  return rc;
 }
 
-void FM::Keepalive() {
+void FM::Keepalive(const CustomVar *variables) {
   rusage usage_data;
   if (getrusage(RUSAGE_SELF, &usage_data) == -1) {
     FM_LOG_PERROR("rusage failure");
     return;
   }
   long cpu_time = usage_data.ru_utime.tv_sec + usage_data.ru_stime.tv_sec;
+  char buffer[256];
+  if (variables != NULL) {
+    for (int i = 0, pos = 0;
+         variables[i].name != NULL && pos < sizeof(buffer);
+         i++ ) {
+      pos += snprintf(buffer + pos, sizeof(buffer) - pos,
+                      " %s:%.3f", variables[i].name, variables[i].value);
+    }
+  } else {
+    buffer[0] = '\0';
+  }
 
   mon_client_.SendMonMsg(FM_MSG_TASK_KEEPALIVE,
                          task_name_,
@@ -135,7 +147,8 @@ void FM::Keepalive() {
                          log_counts_[FM_LEVEL_WARNING],
                          log_counts_[FM_LEVEL_INFO],
                          cpu_time,
-                         usage_data.ru_maxrss);
+                         usage_data.ru_maxrss,
+                         buffer);
   interval_.Set();
   memset(log_counts_, '\0', sizeof(log_counts_));
 }
