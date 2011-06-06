@@ -54,9 +54,9 @@ bin: $(BINARIES)
 test: $(TST_CCSRCS:.cc=) $(TST_CSRCS:.c=)
 
 install: $(BINARIES)
-  ifneq ($<,)
+ifneq ($(strip $(BINARIES)),)
 	$(INSTALL) $< $(DESTDIR)
-  endif
+endif
 
 test.run: $(TST_CCSRCS:.cc=.run) $(TST_CSRCS:.c=.run)
 
