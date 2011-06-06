@@ -27,7 +27,14 @@ int main(int argc, char **argv) {
   FM_LOG_INFO("execution time: %ldms", timer.Elapsed());
   FM::Keepalive();
 
-  DeviceMonitor test_device("test", 100);
+  FM::CustomVar vars[3] = {
+    {"var1", 1.0},
+    {"var2", 2.0},
+    {NULL, 0.0}
+  };
+  FM::Keepalive(vars);
+
+  DeviceMonitor test_device("test");
   test_device.CommError();
   test_device.DevError();
   test_device.Ok();

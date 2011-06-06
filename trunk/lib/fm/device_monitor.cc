@@ -5,8 +5,8 @@
 #include "lib/fm/fm_messages.h"
 #include "lib/fm/fm.h"
 
-DeviceMonitor::DeviceMonitor(const char *name, long timeout_ms) :
-    timeout_ms_(timeout_ms),
+DeviceMonitor::DeviceMonitor(const char *name, long period_s) :
+    period_s_(period_s),
     valid_count_(0), comm_err_count_(0), dev_err_count_(0) {
   strncpy(device_name_, name, sizeof(device_name_));
 }
@@ -37,7 +37,7 @@ void DeviceMonitor::SetStatus(FM_STATUS status, const char *msg){
 }
 
 void  DeviceMonitor::Keepalive(bool force) {
-  if (force || timer_.Elapsed() > (timeout_ms_ / 3)) {
+  if (force || timer_.Elapsed() > period_s_ * 1000) {
     FM::Monitor().SendMonMsg(FM_MSG_DEVICE_KEEPALIVE,
                              device_name_,
                              timer_.Elapsed(),

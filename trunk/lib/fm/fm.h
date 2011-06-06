@@ -11,17 +11,30 @@
 // Task level fault-management interface
 class FM {
  public:
+  // Structure to report application specific custom variable
+  // values to sysmon as part of a keepalive message.
+  struct CustomVar {
+    const char *name;
+    double value;
+  };
 
   // Configure FM module by extracting some long options from cmdline
-  static bool Init(int argc, char **argv);
+  // Returns optind on success and -1 on failure.
+  static int Init(int argc, char **argv);
 
   // Trigger SW watchdog keepalive message to system monitor
-  static void Keepalive();
+  // If variables is not NULL, it must point to an array of
+  // initialized CustomVar structures, where the last element
+  // in the array has name set to NULL.
+  static void Keepalive(const CustomVar *variables = NULL);
 
   // Explicitly report task status to system monitor (optional)
   static void SetStatus(FM_STATUS status, const char *msg);
   // Increment task iteration counter (optional)
   static void Iteration();
+
+  static long GetTimeoutS() { return timeout_sec_; }
+  static const char *TaskName() { return task_name_; }
 
   // Generate a system log message
   static void Log(FM_LOG_LEVELS level, const char *msg);
