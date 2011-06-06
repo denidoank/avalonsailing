@@ -115,7 +115,7 @@ uint32_t print_status(int port, uint8_t nodeid) {
         fprintf(stderr, " )\nError History:\n");
 
         uint32_t errors[5];
-        err = epos_get_deverrors(port, nodeid, errors);
+        err = epos_get_deverrors(port, nodeid, 5, errors);
         if (err) return err;
         int i;
         for (i = 0; i < 5; i++) {
@@ -172,7 +172,7 @@ int main(int argc, char* argv[]) {
 
         if (homing) {
 
-                fprintf(stderr, "Starting Homing Mode: ");
+                fprintf(stderr, "Configuring Homing Mode: ");
                 fflush(stderr);
                 struct EposHomingConfig hcfg = {
                          2000,  // max_following_error;
@@ -187,9 +187,16 @@ int main(int argc, char* argv[]) {
                          homing,// homing_method;
                 };
 
-                err = epos_motor_homing(port, nodeid, &hcfg);
-                if (err) crash("Error Starting Homing Mode: %s", epos_strerror(err));
+                err = epos_motor_homing_init(port, nodeid, &hcfg);
+                if (err) crash("Error: %s", epos_strerror(err));
                 fprintf(stderr, "Ok\n");
+
+                fprintf(stderr, "Executing Homing Mode: ");
+                fflush(stderr);
+                err = epos_motor_homing_exec(port, nodeid);
+                if (err) crash("Error: %s", epos_strerror(err));
+                fprintf(stderr, "Ok\n");
+
 
                 err = print_status(port, nodeid);
                 if (err) crash("Error getting status: %s", epos_strerror(err));

@@ -45,7 +45,7 @@ epos_open(const char* path_to_dev)
                 return -1;
         }
 
-        bzero(&t, sizeof(t));
+        memset(&t, 0, sizeof(t));
 
         cfmakeraw(&t);
         t.c_cflag |=  CLOCAL | CREAD;
@@ -155,7 +155,7 @@ recv(int fd, uint8_t* data, int* size)
 
         char ack = 'O';
         err = write(fd, &ack, 1);	// send ack
-        VLOGF("recv: send readyack (%02x, '%c'): %d\n", ack, ack, err);
+        VLOGF("recv: send readyAck (%02x, '%c'): %d\n", ack, ack, err);
         if (err != 1) return EPOS_ERR_XMIT;
 
         err = read_timeout(fd, data + 1, 1);	// recv len
@@ -257,6 +257,83 @@ epos_writeobject(int fd, uint16_t index, uint8_t subindex, uint8_t nodeid, uint3
 
         return r;
 }
+
+
+
+uint32_t
+epos_sendnmtservice(int fd, uint8_t nodeid, int nmt_cmd)
+{
+        uint8_t xmitframe[] = {
+                0x0e,		// 0: opcode
+                1,              // 1: len - 1, in units of 16-bit words after this one,
+				//     and excluding the crc
+                nodeid, 0,	// 2,3: low byte of nodeid, high byte of nodeid == 0
+                nmt_cmd, 0,	// 4,5: low byte of command, high byte of command == 0
+                0, 0,           // 6,7: room for crc
+        };
+
+        return xmit(fd, xmitframe, sizeof(xmitframe));
+}
+
+
+uint32_t
+epos_sendcanframe(int fd, uint16_t cobid, int len, uint8_t data[8])
+{
+        // Validity of CAN message:
+        assert(cobid & ~0x7FF == 0);  // 11 bits
+        assert(len <= 8);
+
+        // NOTE: section 6.3.3.1 says len-1 == 9, but i think that's wrong (lvd).
+        uint8_t xmitframe[] = {
+                0x20,		// 0: opcode
+                5,              // 1: len - 1, in units of 16-bit words after this one,
+				//     and excluding the crc
+                cobid,		// 2,3: lo/hi can id (only 11 bits)
+                cobid >> 8,	//
+                len, 0,		// 4,5: lo/hi of len, but hi == 0
+                0, 0, 0, 0, 0, 0, 0, 0,  // 6..13: data
+                0, 0,           // 14,15: room for crc
+        };
+        memmove(xmitframe+6, data, len);
+        return xmit(fd, xmitframe, sizeof(xmitframe));
+}
+
+
+uint32_t
+epos_requestcanframe(int fd, uint16_t cobid, int len, uint8_t data[8])
+{
+        // Validity of CAN message:
+        assert(cobid & ~0x7FF == 0);  // 11 bits
+
+        // NOTE: section 6.3.3.1 says len-1 == 9, but i think that's wrong (lvd).
+        uint8_t xmitframe[] = {
+                0x20,		// 0: opcode
+                1,              // 1: len - 1, in units of 16-bit words after this one,
+				//     and excluding the crc
+                cobid, cobid >> 8, // 2,3: lo/hi can id
+                len, 0,		// 4,5: lo/hi of len, but hi == 0
+                0, 0,           // 6,7: room for crc
+        };
+        uint32_t r = xmit(fd, xmitframe, sizeof(xmitframe));
+        if (r != 0) return r;
+
+        uint8_t recvframe[16];
+        int rawlen = sizeof(recvframe);
+
+        r = recv(fd, recvframe, &rawlen);
+
+        if (r != 0) return r;
+        if (recvframe[0] != 0) return EPOS_ERR_BADRESPONSE;
+        if (rawlen != 16 || recvframe[1] != 5) return EPOS_ERR_BADRESPONSE;
+
+        r = (recvframe[5]<<24) + (recvframe[4]<<16) + (recvframe[3]<<8) + recvframe[2];
+        if (r == 0) {
+                memmove(recvframe+6, data, len);
+                memset(data+len, 0, sizeof(data)-len);
+        }
+        return r;
+}
+
 
 static struct epos_error_str_t {
         uint32_t code;

@@ -12,6 +12,9 @@
  *
  * http://test.maxonmotor.com/docsx/Download/Product/Pdf/EPOS_Application_Note_Device_Programming_E.pdf
  *
+ *  Detailed reference: "Epos Positioning Controller Documentation Firmware Specification"
+ *  http://test.maxonmotor.com/docsx/Download/Product/Pdf/EPOS_Firmware_Specification_E.pdf
+ *
  *  All functions return the epos_read/writeobject return value that
  *  causes it to exit or 0 on success.
  *
@@ -121,9 +124,9 @@ uint32_t epos_motor_status(int fd, uint8_t nodeid,
 
 const char* epos_strstatus(uint32_t status);
 
-// Get current and last 5 device errors, not to be confused with
+// Get current and last n device errors, not to be confused with
 // communication errors.  top one is current
-uint32_t epos_get_deverrors(int fd, uint8_t nodeid, uint32_t errors[5]);
+uint32_t epos_get_deverrors(int fd, uint8_t nodeid, int n, uint32_t* errors);
 const char* epos_strdeverror(uint32_t error);
 
 struct EposPPMConfig {
@@ -154,19 +157,22 @@ uint32_t epos_motor_pvm_exec(int fd, uint8_t nodeid, uint32_t target);   // targ
 uint32_t epos_motor_wait_target(int fd, uint8_t nodeid, int timeout_ms);
 
 struct EposHomingConfig {
-        uint32_t max_following_error;
-        uint32_t home_offset;
-        uint32_t max_profile_velocity;
-        uint32_t quickstop_deceleration;
-        uint32_t switch_search_speed;
-        uint32_t zero_search_speed;
-        uint32_t homing_acceleration;
-        uint32_t current_threshold;
-        uint32_t home_position;
-        uint32_t homing_method;
+        uint32_t max_following_error;      // User specific [2000 qc]
+        uint32_t home_offset;              // User specific [0 qc]
+        uint32_t max_profile_velocity;     // Motor specific [25000 rpm]
+        uint32_t quickstop_deceleration;   // User specific [10000 rpm/s]
+        uint32_t switch_search_speed;      //User specific [100 rpm]
+        uint32_t zero_search_speed;        //User specific [10 rpm]
+        uint32_t homing_acceleration;      //User specific [1000 rpm/s]
+        uint32_t current_threshold;        //User specific [500 mA]
+        uint32_t home_position;            //User specific [0 qc]
+        uint32_t homing_method;            // see firmware doc section 9.3.3
 };
 
-uint32_t epos_motor_homing(int fd, uint8_t nodeid, struct EposHomingConfig* cfg);
+uint32_t epos_motor_homing_init(int fd, uint8_t nodeid, struct EposHomingConfig* cfg);
+
+uint32_t epos_motor_homing_exec(int fd, uint8_t nodeid);
+
 // uint32_t epos_motor_wait_homed(int fd, uint8_t nodeid, int timeout_ms);  // bit 10 or 12 USE wait_target instead
 
 // 3 more modes, TBD

@@ -79,29 +79,33 @@ const char* epos_strdeverror(uint32_t error) {
         return "Unknown error";
 }
 
-
 uint32_t
-epos_get_deverrors(int fd, uint8_t nodeid, uint32_t errors[5])
+epos_get_deverrors(int fd, uint8_t nodeid, int n, uint32_t* errors)
 {
         uint32_t err;
         int i;
-        bzero(errors, sizeof(errors));
+        bzero(errors, n*sizeof(*errors));
 
-        uint32_t n = 0;
-        if ((err= epos_readobject(fd, 0x1003, 0, nodeid, &n)) != 0)
+        uint32_t nn = 0;
+        if ((err=epos_waitobject(fd, 1000, 0x1003, 0, nodeid, 0, &nn)) != 0)
                 return err;
 
-        for (i = 0; (i < 5) && (i < n); ++i)
-                if ((err= epos_readobject(fd, 0x1003, i+1, nodeid, errors)) != 0)
-                    return err;
+	if (nn < n) n = nn;
+        for (i = 0; i < n; ++i)
+		if ((err=epos_waitobject(fd, 1000, 0x1003, i+1, nodeid, 0, errors+i)) != 0)
+			return err;
 
         // clear error history
-        if ((err= epos_writeobject(fd, 0x1003, 0, nodeid, 0)) != 0)
+        struct EposCmd cmds[] = {
+                { 0x1003, 0, 0 },
+                { 0, 0, 0 },
+        };
+        struct EposCmd* c = cmds;
+        if ((err=epos_sequence(fd, nodeid, &c)) != 0)
                 return err;
 
         return 0;
 }
-
 
 // Probe for device type, manufacturer, identity object (section 14.1, 14.5, 14.13)
 // timeout hardcoded to 1sec per probe.
@@ -192,7 +196,6 @@ epos_motor_ppm_init(int fd, uint8_t nodeid, struct EposPPMConfig* cfg)
         return err;
 }
 
-
 uint32_t
 epos_motor_ppm_execabs(int fd, uint8_t nodeid, uint32_t target)
 {
@@ -206,7 +209,8 @@ epos_motor_ppm_execabs(int fd, uint8_t nodeid, uint32_t target)
         return err;
 }
 
-uint32_t epos_motor_ppm_execrel(int fd, uint8_t nodeid, uint32_t target)
+uint32_t
+epos_motor_ppm_execrel(int fd, uint8_t nodeid, uint32_t target)
 {
         struct EposCmd cmds[] = {
                 { 0x607A, 0, target }, // desired position
@@ -238,11 +242,12 @@ epos_motor_pvm_init(int fd, uint8_t nodeid, struct EposPVMConfig* cfg)
         return err;
 }
 
-
-uint32_t epos_motor_pvm_exec(int fd, uint8_t nodeid, uint32_t target) {
+uint32_t
+epos_motor_pvm_exec(int fd, uint8_t nodeid, uint32_t target)
+{
         struct EposCmd cmds[] = {
                 { 0x60FF, 0, target }, // target velocity
-                { 0x6040, 0, 0xF   }, // start immediately
+                { 0x6040, 0, 0xF   },  // start immediately
                 { 0, 0, 0 },
         };
         struct EposCmd* c = cmds;
@@ -250,7 +255,8 @@ uint32_t epos_motor_pvm_exec(int fd, uint8_t nodeid, uint32_t target) {
         return err;
 }
 
-uint32_t epos_motor_homing(int fd, uint8_t nodeid, struct EposHomingConfig* cfg)
+uint32_t
+epos_motor_homing_init(int fd, uint8_t nodeid, struct EposHomingConfig* cfg)
 {
         struct EposCmd cmds[] = {
                 { 0x6040, 0, 0x80 }, // clear fault
@@ -267,6 +273,17 @@ uint32_t epos_motor_homing(int fd, uint8_t nodeid, struct EposHomingConfig* cfg)
                 { 0x6098, 0, cfg->homing_method },        // see firmware doc
                 { 0x6040, 0, 0x6 }, // shutdown
                 { 0x6040, 0, 0xF }, // switch on
+                { 0, 0, 0 },
+        };
+        struct EposCmd* c = cmds;
+        uint32_t err = epos_sequence(fd, nodeid, &c);
+        return err;
+}
+
+uint32_t
+epos_motor_homing_exec(int fd, uint8_t nodeid)
+{
+        struct EposCmd cmds[] = {
                 { 0x6040, 0, 0xF }, // switch on
                 { 0x6040, 0, 0x1F }, // start homing
                 { 0, 0, 0 },
@@ -277,16 +294,34 @@ uint32_t epos_motor_homing(int fd, uint8_t nodeid, struct EposHomingConfig* cfg)
 }
 
 
-uint32_t epos_motor_wait_target(int fd, uint8_t nodeid, int timeout_ms) {
+uint32_t
+epos_motor_wait_target(int fd, uint8_t nodeid, int timeout_ms)
+{
         uint32_t status = EPOS_STS_BIT_TARGETREACHED;
         return epos_waitobject(fd, timeout_ms,
                                0x6041, 0, nodeid, EPOS_STS_BIT_TARGETREACHED, &status);
 }
 
-uint32_t epos_motor_quickstop(int fd, uint8_t nodeid) {
-        return epos_writeobject(fd, 0x6040, 0, nodeid, 0xB);
+uint32_t
+epos_motor_quickstop(int fd, uint8_t nodeid)
+{
+        struct EposCmd cmds[] = {
+                { 0x6040, 0, 0xB },
+                { 0, 0, 0 },
+        };
+        struct EposCmd* c = cmds;
+        uint32_t err = epos_sequence(fd, nodeid, &c);
+        return err;
 }
 
-uint32_t epos_motor_clearfault(int fd, uint8_t nodeid) {
-        return epos_writeobject(fd, 0x6040, 0, nodeid, 0x80);
+uint32_t
+epos_motor_clearfault(int fd, uint8_t nodeid)
+{
+        struct EposCmd cmds[] = {
+                { 0x6040, 0, 0x80 },
+                { 0, 0, 0 },
+        };
+        struct EposCmd* c = cmds;
+        uint32_t err = epos_sequence(fd, nodeid, &c);
+        return err;
 }
