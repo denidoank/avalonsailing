@@ -405,10 +405,34 @@ Compact Flash cards arrived
 - Steffen
 State control CL
 
+==June 6==
+    -  demons:
+    - eposcom, eposd, rudderd
+    -  windd
+    - IMUd
+    - SMSd?
+
+    - Liam:
+    missing binaries
+    build script puts them into
+    /usr/bin
+    make install
+    config file free
+    no scripts for startup
+    config for the fm
+
+    - 10/6 test in carpark
+
+    - logging to USB-stick
+
+    - Wednesday morning for helmsman-drived interface.
 
 
 
 
+
+
+ 
 
 
 
