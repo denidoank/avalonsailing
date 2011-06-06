@@ -8,9 +8,7 @@
 //
 // http://shop.maxonmotor.com/maxon/assets_external/Katalog_neu/eshop/Downloads/maxon_motor_control/Positionierung/Common_EPOS/Communication_Guide/EPOS_Communication_Guide_E.pdf
 //
-//  Note. The only methods currently implemented are ReadObject and
-//  WriteObject.  None of read/write segmented, or the CAN bridge
-//  messages are here. We probably don't need them.
+//  Note. The segmented read/writeobject methods are not implemented.
 //
 #ifndef IO_EPOS_COM_H
 #define IO_EPOS_COM_H
@@ -35,6 +33,7 @@
  */
 int epos_open(const char* path_to_dev);
 
+
 /*
  * epos_readobject:  Issue a ReadObject command and receive the reply.
  *
@@ -51,6 +50,7 @@ int epos_open(const char* path_to_dev);
 
 uint32_t epos_readobject(int fd, uint16_t index, uint8_t subindex, uint8_t nodeid, uint32_t* value);
 
+
 /*
  * epos_writeobject:  Issue a WriteObject command and receive the reply.
  *
@@ -59,6 +59,49 @@ uint32_t epos_readobject(int fd, uint16_t index, uint8_t subindex, uint8_t nodei
  * Arguments and return value are like those of epos_readobject().
  */
 uint32_t epos_writeobject(int fd, uint16_t index, uint8_t subindex, uint8_t nodeid, uint32_t value);
+
+
+/*
+ * epos_sendnmtservice: Issue a CAN Network ManagementTsomething message.
+ *
+ * See section 6.3.2.3
+ *
+ */
+
+enum {
+        EPOS_NMT_CMD_STARTREMOTENODE = 1,
+        EPOS_NMT_CMD_STOPREMOTENODE = 2,
+        EPOS_NMT_CMD_ENTERPREOPERATIONAL = 128,
+        EPOS_NMT_CMD_RESETNODE = 129,
+        EPOS_NMT_CMD_RESETCOMMUNICATION = 130,
+};
+
+uint32_t epos_sendnmtservice(int fd, uint8_t nodeid, int nmt_cmd);
+
+
+/*
+ * epos_sendcanframe: Send a generic CAN frame.
+ *
+ * CAN messages may be up to 8 bytes in length.
+ *
+ * See section 6.3.3.1
+ *
+ */
+
+uint32_t epos_sendcanframe(int fd, uint16_t cobid, int len, uint8_t data[8]);
+
+
+/*
+ * epos_requestcanframe: Issue a CAN Remote Transmission Request (RTR)
+ *                       for a generic CAN frame and receive the response.
+ *
+ * Note: len must be set on call.
+ *
+ * See section 6.3.3.2
+ *
+ */
+uint32_t epos_requestcanframe(int fd, uint16_t cobid, int len, uint8_t data[8]);
+
 
 /*
  * turn epos error code e into a human readable string.
