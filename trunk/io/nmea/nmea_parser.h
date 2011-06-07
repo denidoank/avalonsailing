@@ -47,7 +47,7 @@
 // Data for one parsed NMEA sentence. The data is stored as an array of bytes,
 // with pointers to the data for the individual arguments. Checksum data is
 // stored separately.
-typedef struct {
+struct NmeaSentence {
   // Data that was read.
   char data[NMEA_PARSER_MAX_DATA_LEN];
   // Pointers into data.
@@ -59,7 +59,7 @@ typedef struct {
   int receivedChecksum;
   // Checksum calculated from the sentence data.
   int checksum;
-} NmeaSentence;
+};
 
 // Prints the raw data in NmeaSentence.
 void npPrintRawSentenceData(NmeaSentence *sentence);
@@ -72,15 +72,15 @@ void npPrintRawSentenceData(NmeaSentence *sentence);
 #define ARG_SEPARATOR_CHAR ','
 
 // Current state of the NMEA parser.
-typedef enum {
+enum NmeaParserInternalState {
   NMEA_PARSER_STATE_SEARCH_FOR_START = 0,  // Searching for start of message.
   NMEA_PARSER_STATE_CMD,  // Getting command and arguments.
   NMEA_PARSER_STATE_CHECKSUM_1,  // Getting first checksum character.
   NMEA_PARSER_STATE_CHECKSUM_2  // Getting second checksum character.
-} NmeaParserInternalState;
+};
 
 // Parser state.
-typedef struct {
+struct NmeaParser {
   // Current internal state of the parser.
   NmeaParserInternalState state;
 
@@ -95,18 +95,18 @@ typedef struct {
   long totErr;
   // Total number of correctly parsed sentences.
   long totSentences;
-} NmeaParser;
+};
 
 // External state of the NMEA sentence parser. Returned when calling
 // the parser to read a byte.
-typedef enum {
+enum NmeaParsingState {
   NMEA_PARSER_STILL_PARSING = 0,  // Sentence not finished parsing yet.
   NMEA_PARSER_SENTENCE_PARSED,  // Sentence finished parsing at this byte.
   NMEA_PARSER_DATA_OVERFLOW_ERROR,  // Internal data structures too small for
                                     // current sentence.
   NMEA_PARSER_INCORRECT_CHECKSUM  // Sentence was parsed, but received checksum
                                   // and actual checksum do not match.
-} NmeaParsingState;
+};
 
 // Initializes NmeaParser p.
 void npInit(NmeaParser *p);
