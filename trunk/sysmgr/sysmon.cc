@@ -20,10 +20,9 @@
 #include "lib/config/properties.h"
 #include "sysmgr/entity.h"
 #include "sysmgr/process_table.h"
-#include "sysmgr/recovery.h"
 
 static const char *defaults[][2] = {{"socket", "/tmp/sysmon"},
-                                    {"alarm_log", "/tmp/alarms.txt"},
+                                    {"alarm_log", "/tmp/alarms.log"},
                                     {"alarm_log_timeout_s", "600"},
                                     {NULL, NULL}};
 

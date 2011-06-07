@@ -1,12 +1,12 @@
 # Generic Gnu Make file for C and C++ subsystems.
 # vi:set ft=make:
 #
-# Almost zero config make system. in your project, 
+# Almost zero config make system. in your project,
 # create a Makefile containing optionally
 #     DEPS+=path/to/dir (relative to top)
 # lines and ending with
 #     include ../mk/Makefile.inc
-# this file, make sure you include enough ../'s.  
+# this file, make sure you include enough ../'s.
 #
 # main programs should have a file name ending in _main.c or _main.cc
 # test programs should have a file name ending in _test.c or _test.cc
@@ -17,14 +17,14 @@
 # level directory.
 
 # C++ Source files
-BIN_CCSRCS = $(wildcard *_main.cc) 
+BIN_CCSRCS = $(wildcard *_main.cc)
 TST_CCSRCS = $(wildcard *_test.cc)
-LIB_CCSRCS = $(filter-out $(BIN_CCSRCS) $(TST_CCSRCS), $(wildcard *.cc))  
+LIB_CCSRCS = $(filter-out $(BIN_CCSRCS) $(TST_CCSRCS), $(wildcard *.cc))
 
 # C Source files
 BIN_CSRCS = $(wildcard *_main.c)
 TST_CSRCS = $(wildcard *_test.c)
-LIB_CSRCS = $(filter-out $(BIN_CSRCS) $(TST_CSRCS), $(wildcard *.c))  
+LIB_CSRCS = $(filter-out $(BIN_CSRCS) $(TST_CSRCS), $(wildcard *.c))
 
 # All the binaries we've found
 BINARIES = $(BIN_CCSRCS:_main.cc=) $(BIN_CSRCS:_main.c=)
@@ -33,9 +33,9 @@ BINARIES = $(BIN_CCSRCS:_main.cc=) $(BIN_CSRCS:_main.c=)
 TOP = $(realpath $(dir $(lastword $(MAKEFILE_LIST)))..)
 
 # make includes relative to the top work
-CFLAGS+=-I$(TOP)
-CXXFLAGS+=-I$(TOP)
-
+CFLAGS+=-I$(TOP) -m32
+CXXFLAGS+=-I$(TOP) -fno-rtti -fno-exceptions -m32
+LDFLAGS+=-fno-rtti -fno-exceptions -m32
 INSTALL = install
 
 .PHONY: all bin test test.run clean
