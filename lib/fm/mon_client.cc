@@ -11,7 +11,7 @@
 
 #include "lib/fm/log.h"
 
-#define DEFAULT_SOCKET "/dev/sysmon"
+#define DEFAULT_SOCKET "/tmp/sysmon"
 
 MonClient::MonClient() {
   SetDestination(DEFAULT_SOCKET);
