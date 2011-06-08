@@ -8,8 +8,8 @@
 #include "helmsman/sail_controller.h"
 
 enum SailMode {
-  WING,      // for sailing at the wind
-  SPINNAKER  // optimal for broad reach
+  WING,       // for sailing at the wind
+  SPINNAKER   // optimal for broad reach
 };
 
 class SailModeLogic {
@@ -40,6 +40,7 @@ class SailController {
                                  double mag_wind);
 
   void SetOptimalAngleOfAttack(double optimal_angle_of_attack_rad);
+
  private:
   double GammaSailInternal(double alpha_wind_rad,
                            double mag_wind,
