@@ -4,20 +4,20 @@
 
 #include "io/ipc/producer_consumer.h"
 
+#include "lib/fm/log.h"
+
 #include <cerrno>
 #include <cstdio>  // For rename(...).
 #include <cstring> // For strerror(...).
-#include <string>
 #include <fcntl.h>
-#include <unistd.h>
+#include <string>
+#include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-
-#include "lib/fm/log.h"
+#include <sys/un.h>
+#include <unistd.h>
 
 using std::string;
-
-Consumer::Consumer(const string& path) : path_(path) {}
 
 bool Consumer::Consume(string* output) const {
   if (output == NULL) return false;
@@ -64,8 +64,6 @@ bool Consumer::Consume(string* output) const {
   return true;
 }
 
-Producer::Producer(const string& path) : path_(path) {}
-
 bool Producer::Produce(const string& content) const {
   const string tmp_file = path_ + ".tmp";
   // This process is the only one modifying the file, so mode: u=rw,g=r,o=r.
@@ -108,4 +106,55 @@ bool Producer::Produce(const string& content) const {
   }
 
   return true;
+}
+
+namespace {
+int opensocket(const string& path) {
+  int s = socket(AF_LOCAL, SOCK_STREAM, 0);
+  if (s < 0) {
+    FM_LOG_ERROR("Could not open socket %s:%s\n", path.c_str(), strerror(errno));
+    return -1;
+  }
+
+  struct sockaddr_un addr;
+  addr.sun_family = AF_LOCAL;
+  strncpy(addr.sun_path, path.c_str(), sizeof(addr.sun_path));
+  if (connect(s, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
+    FM_LOG_ERROR("Could not connect socket %s:%s\n", path.c_str(), strerror(errno));
+    close(s);
+    return -1;
+  }
+  if (fcntl(s, F_SETFL, O_NONBLOCK) < 0) {
+    FM_LOG_ERROR("Could not NONBLOCK socket %s:%s\n", path.c_str(), strerror(errno));
+    close(s);
+    return -1;
+  }
+  return s;
+}
+}
+
+
+ProducerConsumer::~ProducerConsumer() { close(fd_); }
+
+bool ProducerConsumer::Consume(string* output) {
+  if (fd_ < 0) fd_ = opensocket(path_);
+  if (fd_ < 0) return false;
+  char line[1024];
+  int r = read(fd_, line, sizeof line);
+  if (r > 0) {
+    output->assign(line, r);
+    return true;
+  }
+  if (errno != EAGAIN) {
+    close(fd_);
+    fd_ = -1;
+  }
+  output->clear();
+  return false;
+}
+
+bool ProducerConsumer::Produce(const string& content) {
+  if (fd_ < 0) fd_ = opensocket(path_);
+  if (fd_ < 0) return false;
+  return write(fd_, content.data(), content.size()) == content.size();
 }
