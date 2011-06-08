@@ -3,10 +3,13 @@
 // that can be found in the LICENSE file.
 // Steffen Grundmann, May 2011
 
-#include "helmsman/drive_data.h" 
+#include "drive_data.h"
 
-#include "common/check.h" 
-#include "common/convert.h" 
+#include "common/check.h"
+#include "common/convert.h"
+
+#include <stdio.h>
+#include <string.h>
 
 DriveActualValues::DriveActualValues() {
   Reset();
@@ -38,7 +41,15 @@ DriveReferenceValues::DriveReferenceValues(
   gamma_rudder_star_right_deg = Rad2Deg(ref_rad.gamma_rudder_star_right_rad);
   gamma_sail_star_deg = Rad2Deg(ref_rad.gamma_sail_star_rad);
 }
-  
+
+std::string DriveReferenceValues::ToString() const {
+  char line[1024];
+  int s = snprintf(line, sizeof line, "rudder_l_deg:%f rudder_r_deg:%f sail_deg:%f\n");
+  return std::string(line, s);
+}
+
+
+
 void DriveReferenceValues::Reset() {
   gamma_rudder_star_left_deg = 0;
   gamma_rudder_star_right_deg = 0;
@@ -91,4 +102,24 @@ void DriveReferenceValuesRad::Reset() {
   gamma_rudder_star_left_rad  = 0;
   gamma_rudder_star_right_rad = 0;
   gamma_sail_star_rad = 0;
+}
+
+DriveActualValuesRad::DriveActualValuesRad(const std::string& kvline) {
+  Reset();
+  const char* line = kvline.c_str();
+  while (*line) {
+    char key[16];
+    double value;
+    int skip = 0;
+    int n = sscanf(line, "%16[a-z_]:%lf %n", key, &value, &skip);
+    CHECK(n >= 2);    // invalid line
+    CHECK(skip > 0);  // invalid line
+    line += skip;
+    CHECK(line - kvline.c_str() <= kvline.size());  // really a bug
+
+    if (!strcmp(key, "rudder_l_deg")) { gamma_rudder_left_rad  = Deg2Rad(value); homed_rudder_left = true; continue; }
+    if (!strcmp(key, "rudder_r_deg")) { gamma_rudder_right_rad = Deg2Rad(value); homed_rudder_right = true;continue; }
+    if (!strcmp(key, "sail_deg"    )) { gamma_sail_rad         = Deg2Rad(value); homed_sail = true;        continue; }
+    CHECK(false);  // if we get here there is an unrecognized key.
+  }
 }

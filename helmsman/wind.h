@@ -22,6 +22,9 @@ struct Wind {
 
 // Controller needs metric units and radians.
 struct WindRad {
+  WindRad() {
+    Reset();
+  }
   WindRad(const Wind& wind) {
     CHECK_GE(wind.mag_kn, 0);
     mag_m_s = KnotsToMeterPerSecond(wind.mag_kn);  
