@@ -238,7 +238,6 @@ static void client_puts(struct Client* client, char* line) {
                 fclose(client->out);
                 client->out = NULL;
         }
-
 }
 
 static void client_flush(struct Client* client) {
@@ -251,8 +250,6 @@ static void client_flush(struct Client* client) {
                 client->out = 0;
         }
 }
-
-
 
 int main(int argc, char* argv[]) {
 
@@ -385,7 +382,7 @@ int main(int argc, char* argv[]) {
                 int r = pselect(max_fd + 1, &rfds, &wfds, NULL, &timeout, &empty_mask);
                 if (r == -1 && errno != EINTR) crash("pselect");
 
-                fprintf(stderr, "woke up %d.\n", r);
+                // fprintf(stderr, "woke up %d.\n", r);
 
                 if (got_SIGCHLD) {
                         got_SIGCHLD = 0;

@@ -1,3 +1,5 @@
-CFLAGS+=-m32 -static
-LDFLAGS+=-m32 -static -s
+TARGET_ARCH=-m32
+LDFLAGS+=-static
+CC=gcc
+LINK.o =$(CC) $(LDFLAGS) $(TARGET_ARCH)
 include ../../mk/Makefile.inc
