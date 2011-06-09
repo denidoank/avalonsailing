@@ -26,6 +26,12 @@ BIN_CSRCS = $(wildcard *_main.c)
 TST_CSRCS = $(wildcard *_test.c)
 LIB_CSRCS = $(filter-out $(BIN_CSRCS) $(TST_CSRCS), $(wildcard *.c))
 
+# Configuration files
+CONF_SRCS = $(wildcard *.conf)
+TEST_CONF_SRCS = $(wildcard *_test.conf)
+
+CONF_FILES = $(filter-out $(TEST_CONF_SRCS), $(CONF_SRCS))
+
 # All the binaries we've found
 BINARIES = $(BIN_CCSRCS:_main.cc=) $(BIN_CSRCS:_main.c=)
 
@@ -55,7 +61,12 @@ test: $(TST_CCSRCS:.cc=) $(TST_CSRCS:.c=)
 
 install: $(BINARIES)
 ifneq ($(strip $(BINARIES)),)
-	$(INSTALL) $< $(DESTDIR)
+	$(INSTALL) $+ $(DESTDIR)
+endif
+
+installconf: $(CONF_FILES)
+ifneq ($(strip $(CONF_FILES)),)
+	$(INSTALL) $+ $(DESTDIR)
 endif
 
 test.run: $(TST_CCSRCS:.cc=.run) $(TST_CSRCS:.c=.run)
