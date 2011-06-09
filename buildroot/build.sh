@@ -14,10 +14,7 @@ START=$PWD
 
 function install_packages_if_necessary() {
   while [ ! -z "$1" ] ; do
-    dpkg -l "$1" | grep -q ^ii
-    if [ "$?" != "0" ] ; then
-      sudo apt-get install "$1"
-    fi
+    dpkg -l "$1" | grep -q ^ii || sudo apt-get install "$1"
     shift
   done
 }
