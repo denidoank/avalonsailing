@@ -534,21 +534,19 @@ void DumpData(float* numbers, int numbers_size, const Producer& producer) {
 }
 
 int main(int argc, char** argv) {
-  FM::Init(argc, argv);
+  int arg_start = FM::Init(argc, argv);
 
-  // TODO(rekwall): skip FM args in argv.
-  if (argc != 4) {
-    FM_LOG_FATAL("Usage: %s "
-                 "--logtostderr <tty> <outputfile>",
+  if (argc - arg_start != 2) {
+    FM_LOG_FATAL("Usage: %s <tty> <outputfile>",
                  argv[0]);
   }
 
   Serial serial;
-  if (!serial.Init(argv[2], B115200)) {
-    FM_LOG_FATAL("Could not open tty %s", argv[2]);
+  if (!serial.Init(argv[arg_start], B115200)) {
+    FM_LOG_FATAL("Could not open tty %s", argv[arg_start]);
   }
 
-  Producer producer(argv[3]);
+  Producer producer(argv[arg_start + 1]);
 
   const int numbers_size = 19;
   float numbers[numbers_size];

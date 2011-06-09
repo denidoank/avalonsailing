@@ -139,30 +139,31 @@ bool AddInterpreter(const string& nmea_identifier,
 }  // anonymous namespace
 
 int main(int argc, char **argv) {
-  FM::Init(argc, argv);
+  // Get index at which daemon's parameters start.
+  int arg_start = FM::Init(argc, argv);
 
-  // TODO(rekwall): skip FM args in argv.
-  if (argc < 4) {
+  if (argc - arg_start < 3) {
     FM_LOG_FATAL("Usage: %s "
                  "<tty> <baudrate> (<nmea-identifier>:<output-file>)+",
                  argv[0]);
   }
 
-  const string device_name(argv[1]);
+  const string device_name(argv[arg_start]);
 
   int speed = -1;
   {
     // TODO(rekwall): factor this out to lib/util.
     char* endptr = NULL;
     errno = 0;
-    speed = strtol(argv[2], &endptr, 0);
+    speed = strtol(argv[arg_start + 1], &endptr, 0);
     if (endptr[0] != '\0' || errno == ERANGE) {
-      FM_LOG_FATAL("Could not convert %s to an integer baud rate.",  argv[2]);
+      FM_LOG_FATAL("Could not convert %s to an integer baud rate.",
+                   argv[arg_start + 1]);
     }
   }
 
   InterpreterMap interpreters;
-  for (int i = 3; i < argc; ++i) {
+  for (int i = arg_start + 2; i < argc; ++i) {
     vector<string> nmea_interpreter;
     SplitString(argv[i], ':', &nmea_interpreter);
     if (nmea_interpreter.size() != 2) {
