@@ -99,13 +99,14 @@ int main(int argc, char* argv[]) {
 		 uint32_t serial = 0;
 		 int index     = 0;
 		 int subindex  = 0;
+		 int64_t value_l = 0;
 		 int32_t value = 0;
 
 		 int c1 = 0;
 		 int c2 = 0;
-		 int n = sscanf(line, "%i:%i[%i] %n:= %i%n",
+		 int n = sscanf(line, "%i:%i[%i] %n:= %lli%n",
 				&serial, &index, &subindex, &c1,
-				&value, &c2);
+				&value_l, &c2);
 		 // TBD maybe disallow n == 3 && line[c1] == ':' or '=',
 		 // or stronger: require line[c1] == 0 or '#'
 
@@ -130,7 +131,7 @@ int main(int argc, char* argv[]) {
 		 }
 
 		 case 4: {
-
+			 value = value_l;
 			 if (raw) {
 				 err = epos_writeobject(fd, index, subindex, nodeid, value);
 			 } else {

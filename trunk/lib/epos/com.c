@@ -31,7 +31,7 @@ vlogf(const char* fmt, ...)
 
 #define VLOGF(fmt, ...) vlogf(fmt, __VA_ARGS__)
 #else
-#define VLOGF(fmt, ...)
+#define VLOGF(fmt, ...) do {} while(0)
 #endif
 
 int
