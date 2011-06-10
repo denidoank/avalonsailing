@@ -40,11 +40,11 @@ void usage(void) {
 }
 
 // Map serial numbers to nodeids.
-static uint32_t nodeidmap[16] = {
+static uint32_t nodeidmap[] = {
 	-1, -1, -1, -1,
 	-1, -1, -1, -1,
-	-1, -1, -1, -1,
-	-1, -1, -1, -1,
+	-1, -1, /* -1, -1,
+        -1, -1, -1, -1, */
 };
 
 int main(int argc, char* argv[]) {

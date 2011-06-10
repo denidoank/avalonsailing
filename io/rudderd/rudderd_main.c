@@ -212,15 +212,17 @@ int main(int argc, char* argv[]) {
         fprintf(stderr, "created socket:%s\n", path_to_socket);
 
 	Bus* bus = NULL;
-	if (!strncmp("/dev/tty", argv[0], 8))
+	if (!strncmp("/dev/tty", argv[0], 8)) {
 		bus = bus_open_eposcom(path_to_eposcom, argv[0]);
-	else
+        } else {
 		for (i = 0; ; i++) {
 			bus = bus_open_eposd(argv[0]);
 			if (bus) break;
 			fprintf(stderr, "Waiting for %s...%c\r", argv[0], "-\\|/"[i++%4]);
 			sleep(1);
 		}
+                fprintf(stderr, "Waiting for %s...bingo!\n", argv[0]);
+        }
 
 	if (!bus) crash("bus open(%s)", argv[0]);
 
