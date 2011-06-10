@@ -41,7 +41,7 @@ Now make modifications to your svn source, and run the last command when you wan
   * `cp buildroot/out/rootfs.ext2.gz /path/to/where/you/want/it`
 
 ==Full Rebuild of persistent buildroot==
-This is more complicated.  (to be completed)
+This is more complicated.  
 
   * `BUILDROOT=/tmp/avalon/buildroot-2011.05`
   * `cd $BUILDROOT`
