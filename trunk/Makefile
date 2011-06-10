@@ -14,7 +14,7 @@ all clean test test.run install installconf:
 	@for d in $(SUBDIRS); do $(MAKE) -C $$d $@; done
 
 tarball: clean
-	tar zcpf $(OUTDIR)/$(PROJECT)-$(DATE).tar.gz .
+	tar zcpf $(OUTDIR)/$(PROJECT)-$(DATE).tar.gz --exclude .svn --exclude "svn*" .
 
 image: clean
 	$(MAKE) -C buildroot $@
