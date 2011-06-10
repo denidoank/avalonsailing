@@ -375,8 +375,15 @@ int sail_control(Device* motor, Device* bmmh,
 
         int32_t new_targ_qc = curr_pos_qc + angle_to_qc(motor_params, target_delta_deg);
         int32_t delta_targ_qc = new_targ_qc - curr_targ_qc;
-        if ((delta_targ_qc < -20) || (delta_targ_qc > 20))
+        if ((delta_targ_qc < -1000) || (delta_targ_qc > 1000)) {
+                // pretend we didn't arrive and that we're not moving
+                // for the decision tree beow
                 status &= ~STATUS_TARGETREACHED;
+                if (control == CONTROL_START) {
+                        device_invalidate_register(motor, REG_CONTROL);
+                        control &= ~0x30;
+                }
+        }
 
         VLOGF("sail_control: curr_pos_qc: %d curr_targ_qc: %d new_targ_qc: %d delta_targ_qc: %d",
               curr_pos_qc, curr_targ_qc, new_targ_qc, delta_targ_qc);
@@ -384,16 +391,32 @@ int sail_control(Device* motor, Device* bmmh,
 
         if (!(status & STATUS_TARGETREACHED)) {
                 VLOGF("sail_control: Status not reached, going to %d", new_targ_qc);
-                device_invalidate_register(motor, REG_CONTROL);
-                device_invalidate_register(motor, REG_TARGPOS);
+                device_set_register(motor, REGISTER(0x2078, 1), 0); // brake off
 
-                if(device_set_register(motor, REGISTER(0x2078, 1), 0))  // brake off
-                        if(!device_set_register(motor, REG_TARGPOS, new_targ_qc))  // ! because new value
-                                device_set_register(motor, REG_CONTROL, CONTROL_START);
+                switch(control) {
+                case CONTROL_SHUTDOWN:
+                        VLOGF("sail_control: shutdown->switchon");
+                        device_set_register(motor, REG_CONTROL, CONTROL_SWITCHON);
+                        break;
+                case CONTROL_SWITCHON:
+                        VLOGF("sail_control: switchon -> start");
+                        device_invalidate_register(motor, REG_TARGPOS);
+                        device_set_register(motor, REG_TARGPOS, new_targ_qc);
+                        device_set_register(motor, REG_CONTROL, CONTROL_START);
+                        break;
+                case CONTROL_START:
+                        VLOGF("sail_control: moving, patience");
+                        break;
+                default:  // weird, shutdown first
+                        VLOGF("sail_control: ? (%x) -> shutdown", control);
+                        device_set_register(motor, REG_CONTROL, CONTROL_SHUTDOWN);
+                        break;
+                }
         } else {
                 VLOGF("sail_control: Status Reached");
                 device_set_register(motor, REG_CONTROL, CONTROL_SHUTDOWN);
-                device_set_register(motor, REGISTER(0x2078, 1), (1<<12));  // brake on
+                if (device_set_register(motor, REGISTER(0x2078, 1), (1<<12)))  // brake on
+                        VLOGF("sail_control: brake on");
         }
 
         device_invalidate_register(bmmh,  REG_BMMHPOS);
