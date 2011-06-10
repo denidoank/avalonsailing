@@ -1,0 +1,47 @@
+#summary How to build an image of the system.
+#labels Phase-Deploy
+
+= Introduction =
+
+This document will go through the steps necessary to build and deploy
+an image of the avalon sailing system.
+
+= Details =
+
+==Useful features of the avalon sailing build system:==
+  * `make tarball`
+    * Creates a tar.gz file of the current source
+  * `make image [ IMAGE_DIR=/tmp/avalon ]`
+    * runs buildroot/build.sh (optionally persisting the output in $(IMAGE_DIR)
+
+==Steps to build an image:==
+  * checkout the source code (or svn up if you already have it)
+  * [#Prepare_CF Prepare] a CF card 
+  * `make image`
+  * mount CF somewhere
+    * `mount /dev/sdb1 /mnt`
+  * cp buildroot/out/vmlinuz /mnt
+  * cp buildroot/out/rootfs.ext2.gz /mnt/initrd.img
+  * `sync; umount /mnt`
+
+==Prepare CF==
+  * find out what device it appeared as (say /dev/sdb)
+  * `apt-get install syslinux mbr`
+  * make a VFAT filesystem on it
+    * `fdisk /dev/sdb`
+    * `mkfs.vfat -F32 /dev/sdb1`
+  * `install-mbr /dev/sdb`
+  * `syslinux /dev/sdb`
+  * find a syslinux.cfg for it (if we haven't made one already)
+
+==Quick Rebuild of persistent buildroot==
+This is more complicated.  (to be completed)
+
+  * `BUILDROOT=/tmp/avalon/buildroot-2011.05`
+  * `cd $BUILDROOT`
+  * `cd output/build/avalonsailing`
+  * make whatever changes you want
+  * invalidate the build stamps
+    * `rm -rf .stamps/`
+  * `cd $BUILDROOT`
+  * make
