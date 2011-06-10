@@ -42,6 +42,7 @@ This is more complicated.  (to be completed)
   * `cd output/build/avalonsailing`
   * make whatever changes you want
   * invalidate the build stamps
-    * `rm -rf .stamps/`
+    * `rm -rf .stamps_*`
   * `cd $BUILDROOT`
   * make
+  * cp output/images/rootfs.ext2.gz /path/to/where/you/want/it
