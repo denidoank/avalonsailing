@@ -19,19 +19,17 @@ function install_packages_if_necessary() {
   done
 }
 
-export BUILDROOT_DL_DIR=/home/lbedford/www/buildroot
-
 if [ "$1" == "-d" ] ; then
   BUILDDIR="$2"
   if [ ! -d "$BUILDDIR" ] ; then
     mkdir -p $BUILDDIR
-    mkdir -p $BUILDDIR/dl
-    export BUILDROOT_DL_DIR=$BUILDDIR/dl
   fi
 else
   TMPDIR=$(mktemp -d)
   BUILDDIR=$TMPDIR
 fi
+mkdir -p $BUILDDIR/dl
+export BUILDROOT_DL_DIR=$BUILDDIR/dl
 
 OUTDIR="$PWD/out"
 [ ! -d "$OUTDIR" ] && mkdir -p "$OUTDIR"
