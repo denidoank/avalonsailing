@@ -7,35 +7,17 @@
 #ifndef HELMSMAN_IMU_H
 #define HELMSMAN_IMU_H
 
+#include <string>
+
 // Original units from IMU, Controllers needs metric units and radians anyway. 
 struct Imu {
-  void Reset() {
-    speed_m_s = 0;
-    position.longitude_deg = 0;
-    position.latitude_deg = 0;
-    position.altitude_deg = 0;
-    attitude.phi_x_rad = 0;
-    attitude.phi_y_rad = 0;
-    attitude.phi_z_rad = 0;
-    velocity.x_m_s = 0;
-    velocity.y_m_s = 0;
-    velocity.z_m_s = 0;
-    acceleration.x_m_s2 = 0;
-    acceleration.y_m_s2 = 0;
-    acceleration.z_m_s2 = 0;
-    gyro.omega_x_rad_s = 0;
-    gyro.omega_y_rad_s = 0;
-    gyro.omega_z_rad_s = 0;
-    temperature_c = 20;        
-  
-  }
-  
+  std::string ToString();  
   double speed_m_s; // in m/s
   // GPS-Data
   struct Position {
     double longitude_deg;
     double latitude_deg;
-    double altitude_deg;
+    double altitude_m;
   } position;
 
   // IMU-Data

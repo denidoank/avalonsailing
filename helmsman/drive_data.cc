@@ -44,11 +44,10 @@ DriveReferenceValues::DriveReferenceValues(
 
 std::string DriveReferenceValues::ToString() const {
   char line[1024];
-  int s = snprintf(line, sizeof line, "rudder_l_deg:%f rudder_r_deg:%f sail_deg:%f\n");
+  int s = snprintf(line, sizeof line, "rudder_l_deg:%f rudder_r_deg:%f sail_deg:%f\n",
+      gamma_rudder_star_left_deg, gamma_rudder_star_right_deg, gamma_sail_star_deg);
   return std::string(line, s);
 }
-
-
 
 void DriveReferenceValues::Reset() {
   gamma_rudder_star_left_deg = 0;
