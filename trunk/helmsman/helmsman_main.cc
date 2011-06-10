@@ -10,6 +10,8 @@
 // ./helmsman --logtostderr --no-syslog --task-name=helmsman --timeout=10 \
 //       --debug  --imu=testdata/imu.nme --wind=testdata/wind.nme  --drives=testdata/drive_in.nme  --command=testdata/commands.txt --skipper=testdata/skipper.txt
 
+#include <stdio.h>
+#include <time.h>
 
 #include "io/ipc/producer_consumer.h"
 #include "lib/fm/fm.h"
@@ -91,7 +93,11 @@ long long NowMicros() {
 long long WaitUntil(long long next, long long period) {
   long long now = NowMicros();
   if (next > now) {
-    sleep((next - now) / 1E6);
+    timespec spec;
+    timespec remainder;
+    spec.tv_sec = 0;
+    spec.tv_nsec = 1000 * (next - now);
+    nanosleep(&spec, &remainder);
   } else {
     FM_LOG_INFO("Helmsman: to late %lld micros", now - next);
   }
@@ -155,7 +161,10 @@ int main(int argc, char** argv) {
   long long next_micros = NowMicros() + kSamplingPeriod * 1E6;
   // wait until the next tick passed.
   next_micros = WaitUntil(next_micros, kSamplingPeriod * 1E6);
+  long long start_time = NowMicros();
+  FM_LOG_INFO("start_time: %f s since the epoch\n", start_time / 1E6); 
   while (true) {
+    
     if (imu_consumer.Consume(&imu_raw)) {
       FM_LOG_INFO("Found imu data: %s \n", imu_raw.c_str());
       FillImu(imu_raw, &imu);
@@ -172,19 +181,19 @@ int main(int argc, char** argv) {
     drive_reference.Reset();
 
     // A few steps in the reference values as test signal to measure max rotation speeds    
-    int phase = (rounds % 600) / 60;  // 1 cycle / minute, each phase has 10s
-    drive_reference.gamma_rudder_left_rad  = phase == 0 ? Deg2Rad(15) : -Deg2Rad(15);
-    drive_reference.gamma_rudder_right_rad = phase == 2 ? Deg2Rad(15) : -Deg2Rad(15);
-    drive_reference.gamma_sail_rad =         phase == 4 ? Deg2Rad(20) : -Deg2Rad(20);
+    int phase = (rounds % 600) / 100;  // 1 cycle / minute, each phase has 10s
+    drive_reference.gamma_rudder_star_left_rad  = phase == 0 ? Deg2Rad(15) : -Deg2Rad(15);
+    drive_reference.gamma_rudder_star_right_rad = phase == 2 ? Deg2Rad(15) : -Deg2Rad(15);
+    drive_reference.gamma_sail_star_rad =         phase == 4 ? Deg2Rad(20) : -Deg2Rad(20);
 
     {
       DriveReferenceValues out(drive_reference);
       drive.Produce(out.ToString());
       FM_LOG_INFO("d ref: t %6.5f l %6.4f r %6.4f s %6.4f\n",
-          NowMicros() ? 1.0E6,
-          drive_reference.gamma_rudder_star_left,
-          drive_reference.gamma_rudder_star_right,
-          drive_reference.gamma_sail_star);
+          (NowMicros() - start_time) / 1.0E6,
+          out.gamma_rudder_star_left_deg,
+          out.gamma_rudder_star_right_deg,
+          out.gamma_sail_star_deg);
     }
 
     FM::Keepalive();
