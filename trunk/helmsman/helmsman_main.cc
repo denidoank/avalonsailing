@@ -151,7 +151,7 @@ int main(int argc, char** argv) {
 
   DriveReferenceValuesRad drive_reference;
 
-  int rounds = 3;
+  int rounds = 0;
   long long next_micros = NowMicros() + kSamplingPeriod * 1E6;
   // wait until the next tick passed.
   next_micros = WaitUntil(next_micros, kSamplingPeriod * 1E6);
@@ -164,18 +164,32 @@ int main(int argc, char** argv) {
     string line;
     drive.Consume(&line);
     DriveActualValuesRad drive_actual(line);
+    FM_LOG_INFO("d actual: l %6.4f r %6.4f s %6.4f\n",
+        drive_actual.homed_rudder_left  ? Rad2Deg(drive_actual.gamma_rudder_left_rad)  : -999,
+        drive_actual.homed_rudder_right ? Rad2Deg(drive_actual.gamma_rudder_right_rad) : -999,
+        drive_actual.homed_sail         ? Rad2Deg(drive_actual.gamma_sail_rad)         : -999);
 
-    drive_reference.Reset();     /// fill this somehow
+    drive_reference.Reset();
+
+    // A few steps in the reference values as test signal to measure max rotation speeds    
+    int phase = (rounds % 600) / 60;  // 1 cycle / minute, each phase has 10s
+    drive_reference.gamma_rudder_left_rad  = phase == 0 ? Deg2Rad(15) : -Deg2Rad(15);
+    drive_reference.gamma_rudder_right_rad = phase == 2 ? Deg2Rad(15) : -Deg2Rad(15);
+    drive_reference.gamma_sail_rad =         phase == 4 ? Deg2Rad(20) : -Deg2Rad(20);
 
     {
       DriveReferenceValues out(drive_reference);
       drive.Produce(out.ToString());
+      FM_LOG_INFO("d ref: t %6.5f l %6.4f r %6.4f s %6.4f\n",
+          NowMicros() ? 1.0E6,
+          drive_reference.gamma_rudder_star_left,
+          drive_reference.gamma_rudder_star_right,
+          drive_reference.gamma_sail_star);
     }
 
     FM::Keepalive();
 
     next_micros = WaitUntil(next_micros, kSamplingPeriod * 1E6);
-    if (--rounds <= 0)
-      break;
+    ++rounds;
   }
 }
