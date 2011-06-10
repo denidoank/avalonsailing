@@ -29,7 +29,9 @@ else
   BUILDDIR=$TMPDIR
 fi
 mkdir -p $BUILDDIR/dl
-export BUILDROOT_DL_DIR=$BUILDDIR/dl
+LINUXDIR=$BUILDDIR/linux-$LINUX_VER/
+BUILDROOTDIR=$BUILDDIR/buildroot-$BUILDROOT_VER/
+export BUILDROOT_DL_DIR=$BUILDROOTDIR/dl
 
 OUTDIR="$PWD/out"
 [ ! -d "$OUTDIR" ] && mkdir -p "$OUTDIR"
@@ -46,9 +48,6 @@ pushd $BUILDDIR
 tar jxf $BASE_URL/$BUILDROOT_TAR
 tar jxf $BASE_URL/$LINUX_TAR
 
-LINUXDIR=$BUILDDIR/linux-$LINUX_VER/
-BUILDROOTDIR=$BUILDDIR/buildroot-$BUILDROOT_VER/
-
 cp $START/configs/linux_config $LINUXDIR/.config
 cp $START/configs/buildroot_config $BUILDROOTDIR/.config
 
@@ -56,7 +55,8 @@ cp $START/configs/buildroot_config $BUILDROOTDIR/.config
 pushd $BUILDROOTDIR
 
 # copy the package definition files into place
-tar cpfC - $START/package/ . | tar xvpfC - $BUILDROOTDIR/package
+tar cpfC - $START/package/ --exclude .svn --exclude "svn*" . |\
+    tar xvpfC - $BUILDROOTDIR/package
 
 # update the name of the tarball
 sed -i -e "s/%SOURCE%/$AVALONSAILING_TAR/g" \
@@ -64,9 +64,11 @@ sed -i -e "s/%SOURCE%/$AVALONSAILING_TAR/g" \
 
 # setup the SSH server config
 DROPBEARDIR=package/customize/source/etc/dropbear
-mkdir -p $DROPBEARDIR
-dropbearkey -t rsa -f $DROPBEARDIR/dropbear_rsa_host_key
-dropbearkey -t dss -f $DROPBEARDIR/dropbear_dss_host_key
+if [ ! -d "$DROPBEARDIR" ] ; then
+  mkdir -p $DROPBEARDIR
+  dropbearkey -t rsa -f $DROPBEARDIR/dropbear_rsa_host_key
+  dropbearkey -t dss -f $DROPBEARDIR/dropbear_dss_host_key
+fi
 
 # setup the network
 cat >>fs/skeleton/etc/network/interfaces <<EOD
@@ -80,6 +82,11 @@ EOD
 # set passwords
 sed -i -e "s/root::/root:$PASSWORD:/" -e "s/default::/default:$PASSWORD:/" \
     fs/skeleton/etc/shadow
+
+# just in case, make sure it has to build avalonsailing again
+if [ -d output/build/avalonsailing ] ; then
+  rm output/build/avalongsailing/.stamp_*
+fi
 
 make
 cp output/images/* $OUTDIR/
