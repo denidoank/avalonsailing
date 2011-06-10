@@ -34,7 +34,12 @@ an image of the avalon sailing system.
   * `syslinux /dev/sdb`
   * find a syslinux.cfg for it (if we haven't made one already)
 
-==Quick Rebuild of persistent buildroot==
+==Quick rebuild of persistent buildroot==
+  * `BUILDROOT=/tmp/avalon`
+  * `make image IMAGE_DIR=$BUILDROOT`
+Now make modifications to your svn source, and run the last command when you want to build
+
+==Full Rebuild of persistent buildroot==
 This is more complicated.  (to be completed)
 
   * `BUILDROOT=/tmp/avalon/buildroot-2011.05`
