@@ -38,6 +38,7 @@ an image of the avalon sailing system.
   * `BUILDROOT=/tmp/avalon`
   * `make image IMAGE_DIR=$BUILDROOT`
 Now make modifications to your svn source, and run the last command when you want to build
+  * `cp buildroot/out/rootfs.ext2.gz /path/to/where/you/want/it`
 
 ==Full Rebuild of persistent buildroot==
 This is more complicated.  (to be completed)
@@ -49,5 +50,5 @@ This is more complicated.  (to be completed)
   * invalidate the build stamps
     * `rm -rf .stamps_*`
   * `cd $BUILDROOT`
-  * make
-  * cp output/images/rootfs.ext2.gz /path/to/where/you/want/it
+  * `make`
+  * `cp output/images/rootfs.ext2.gz /path/to/where/you/want/it`
