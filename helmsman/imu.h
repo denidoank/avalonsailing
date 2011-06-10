@@ -11,7 +11,8 @@
 
 // Original units from IMU, Controllers needs metric units and radians anyway. 
 struct Imu {
-  std::string ToString();  
+  void Reset();
+  std::string ToString() const;  
   double speed_m_s; // in m/s
   // GPS-Data
   struct Position {
