@@ -16,6 +16,13 @@ class FilterInterface {
   // beeing called a finite number of times.
   virtual bool ValidOutput() = 0;
 
+  // For a quick startup set the output to the initially expected value.
+  // By default the initial output value is zero.
+  virtual void SetOutput(double y0) = 0;
+
+  // Support filters for values wrapping around.
+  virtual void Shift(double shift) = 0;
+
   virtual ~FilterInterface();
 };
 

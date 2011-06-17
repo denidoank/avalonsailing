@@ -25,11 +25,11 @@ TEST(LowPass1Filter, Percent63) {
     // printf(" %9d,  %9g, %s\n", 10, out, f.ValidOutput() ? "valid" : "filling-up");
     if (i == 9) {
       EXPECT_IN_INTERVAL(10 * 0.61, out, 10 * 0.66);  // should be 0.63 (1/e)
-    }  
+    }
     if (i >= 9)
       EXPECT_TRUE(f.ValidOutput());
     else
-      EXPECT_FALSE(f.ValidOutput());    
+      EXPECT_FALSE(f.ValidOutput());
   }
 }
 

@@ -10,8 +10,10 @@ TEST(Median3, Ramp) {
   Median3Filter f;
   for (int i = 0; i < 20; ++i) {
     double out = f.Filter(i);
-    if (f.ValidOutput())
+    if (f.ValidOutput()) {
       EXPECT_FLOAT_EQ(i - 1, out);
+      EXPECT_LE(2, i);
+    }
   }
 }
 
@@ -38,8 +40,10 @@ TEST(Median5, Ramp) {
   Median5Filter f;
   for (int i = 0; i < 20; ++i) {
     double out = f.Filter(i);
-    if (f.ValidOutput())
+    if (f.ValidOutput()) {
       EXPECT_FLOAT_EQ(i - 2, out);
+      EXPECT_LE(4, i);
+    }
   }
 }
 

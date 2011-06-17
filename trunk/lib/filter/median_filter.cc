@@ -9,6 +9,7 @@
 #include "lib/filter/filter_interface.h"
 #include "lib/filter/median_n.h"
 
+#include <stdio.h>
 
 Median3Filter::Median3Filter() : index_(0), valid_(false) {
   for (int i = 0; i < 3; ++i)
@@ -23,12 +24,24 @@ void Median3Filter::NextIndex() {
 
 double Median3Filter::Filter(double in) {
   z_[index_] = in;
-  index_ = (index_ + 1) % 3;
+  NextIndex();
   return Median3(z_[0], z_[1], z_[2]);
 }
 
 bool Median3Filter::ValidOutput() {
   return valid_;
+}
+
+// Wipe history as if all past input values had been equal to y0.
+void Median3Filter::SetOutput(double y0) {
+  for (int i = 0; i < 3; ++i)
+    z_[i] = y0;
+  valid_ = true;
+}
+
+void Median3Filter::Shift(double shift) {
+  for (int i = 0; i < 3; ++i)
+    z_[i] += shift;
 }
 
 Median3Filter::~Median3Filter() {}
@@ -40,7 +53,7 @@ Median5Filter::Median5Filter() : index_(0), valid_(false) {
 }
 
 void Median5Filter::NextIndex() {
-  index_ = (index_ + 1) % 3;
+  index_ = (index_ + 1) % 5;
   // If index_ has completed the cycle 0, 1, ... N-1, 0 then z_ is completely
   // filled with valid input data.
   if(!index_)
@@ -55,6 +68,18 @@ double Median5Filter::Filter(double in) {
 
 bool Median5Filter::ValidOutput() {
   return valid_;
+}
+
+// Wipe history as if all past input values had been equal to y0.
+void Median5Filter::SetOutput(double y0) {
+  for (int i = 0; i < 5; ++i)
+    z_[i] = y0;
+  valid_ = true;
+}
+
+void Median5Filter::Shift(double shift) {
+  for (int i = 0; i < 5; ++i)
+    z_[i] += shift;
 }
 
 

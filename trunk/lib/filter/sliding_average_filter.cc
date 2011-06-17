@@ -27,6 +27,12 @@ void SlidingAverageFilter::SetOutput(double y0) {
   valid_ = true;
 }
 
+void SlidingAverageFilter::Shift(double shift) {
+  for (int i = 0; i < window_size_; ++i)
+    z_[i] += shift;
+  sum_ += window_size_* shift;
+}
+
 void SlidingAverageFilter::NextIndex() {
   index_ = (index_ + 1) % window_size_;
   if(!index_)

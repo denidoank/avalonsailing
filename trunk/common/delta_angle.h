@@ -5,9 +5,9 @@
 #ifndef COMMON_DELTA_ANGLE_H
 #define COMMON_DELTA_ANGLE_H
 
-// Functions to handle (-pi, pi] angles and their differences
+// Functions to handle [-pi, pi) angles and their differences a2 - a1.
 
-// A delta function for symmetric angles in (-180, 180]
+// A delta function for symmetric angles in [-180, 180)
 // such that SymmetricNormalize(a1 + Delta(a1, a2)) = a2
 // and fabs(Delta(a1, a2)) <= 180
 double DeltaRad(double a1_rad, double a2_rad);
