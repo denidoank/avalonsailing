@@ -1,3 +1,5 @@
+DEPS+=common
+DEPS+=lib/fm
 DEPS+=lib/util
 
 include ../../mk/Makefile.inc

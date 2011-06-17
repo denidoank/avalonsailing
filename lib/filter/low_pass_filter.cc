@@ -21,8 +21,12 @@ void LowPass1Filter::SetOutput(double y0) {
   valid_ = true;
 }
 
+void LowPass1Filter::Shift(double shift) {
+  z_ += shift;
+}
+
 void LowPass1Filter::NextIndex() {
-  if (!valid_) ;
+  if (!valid_)
     if(--warm_up_ == 0)
       valid_ = true;
 }

@@ -18,7 +18,10 @@ class SlidingAverageFilter : public FilterInterface {
   virtual ~SlidingAverageFilter();
   // For a quick startup set the output to the initially expected value.
   // By default the initial output value is zero.
-  void SetOutput(double y0);
+  virtual void SetOutput(double y0);
+  // Support filters for values wrapping around.
+  virtual void Shift(double shift);
+
  private:
   void NextIndex();
 

@@ -15,6 +15,8 @@ class Median3Filter : public FilterInterface {
   virtual double Filter(double in);
   virtual bool ValidOutput();
   virtual ~Median3Filter();
+  virtual void SetOutput(double y0);
+  virtual void Shift(double shift);
  private:
   void NextIndex();
 
@@ -30,6 +32,8 @@ class Median5Filter : public FilterInterface {
   Median5Filter();
   virtual double Filter(double in);
   virtual bool ValidOutput();
+  virtual void SetOutput(double y0);
+  virtual void Shift(double shift);
   virtual ~Median5Filter();
  private:
   void NextIndex();
