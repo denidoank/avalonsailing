@@ -141,7 +141,7 @@ TEST(NewGammaSail, Jibe) {
                &new_gamma_sail,
                &delta_gamma_sail,
                &type);
-  EXPECT_IN_INTERVAL(-93, Rad2Deg(new_gamma_sail), -92);
+  EXPECT_IN_INTERVAL(-94, Rad2Deg(new_gamma_sail), -92);
   EXPECT_IN_INTERVAL(-54, Rad2Deg(delta_gamma_sail), -52);
   EXPECT_EQ(kChange, type);
 
