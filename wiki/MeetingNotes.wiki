@@ -421,3 +421,23 @@ Check with Juerg: need for more power, radio modem, hardware work
   * 10/6 test in carpark
   * logging to USB-stick
   * Wednesday morning for helmsman-driven interface.
+
+
+== June 20 ==
+
+lvd:
+  * Epos communication problems
+  * lagging on schedule
+  * Spot in the Berlin Hackathon end of July
+  * Idea, 3-4 people to work on skipper ((grundmann) and maybe Planner) 
+
+Steffen
+   *  Normal controller
+   *  Collision avoidance algorithm
+   * Away next week, wants to finish Helmsman
+   * Command Interpreter for SMS heading commands for lake tests
+
+Luuk: SMS interface into the Drive demon and to the helmsman
+
+Critical is that we are lagging behind our schedule.
+Richard intends to work more during July. Steffen will work for a week in July on Avalon.
