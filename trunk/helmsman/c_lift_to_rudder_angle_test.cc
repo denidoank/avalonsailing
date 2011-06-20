@@ -84,6 +84,33 @@ TEST(CLiftToAngleTest, All) {
   EXPECT_FLOAT_EQ(10, Rad2Deg(rudder_angle));
   EXPECT_EQ(1, limited);
 
+  c_lift = -1.5;
+  water_speed_m_s = 13;
+  CLiftToRudderAngle(c_lift,
+                     water_speed_m_s,
+                     &rudder_angle,
+                     &limited);
+  EXPECT_FLOAT_EQ(-10, Rad2Deg(rudder_angle));
+  EXPECT_EQ(-1, limited);
+
+  c_lift = 1.5;
+  water_speed_m_s = 13;
+  CLiftToRudderAngle(c_lift,
+                     water_speed_m_s,
+                     &rudder_angle,
+                     &limited);
+  EXPECT_FLOAT_EQ(10, Rad2Deg(rudder_angle));
+  EXPECT_EQ(1, limited);
+
+  c_lift = -1.5;
+  water_speed_m_s = 13;
+  CLiftToRudderAngle(c_lift,
+                     water_speed_m_s,
+                     &rudder_angle,
+                     &limited);
+  EXPECT_FLOAT_EQ(-10, Rad2Deg(rudder_angle));
+  EXPECT_EQ(-1, limited);
+
   LogCLiftDiagram();
   LogCLiftOverSpeedDiagram();
 }

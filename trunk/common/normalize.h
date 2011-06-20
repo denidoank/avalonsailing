@@ -8,13 +8,13 @@
 // Force angle into [0, 360). This is the standard convention for interfaces.
 double NormalizeDeg(double alpha_deg);
 
-// Force angle into (-180, 180]
+// Force angle into [-180, 180)
 double SymmetricDeg(double alpha_deg);
 
 // Force radians into [0, 2*pi).
 double NormalizeRad(double alpha_rad);
 
-// Force angle into (-pi, pi]
+// Force angle into [-pi, pi)
 double SymmetricRad(double alpha_rad);
 
 #endif  // COMMON_NORMALIZE_H_
