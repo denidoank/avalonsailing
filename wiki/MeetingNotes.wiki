@@ -233,7 +233,7 @@ Variants for interprocess communication:
 Juerg comes to Google this Friday.
 Check with Juerg: need for more power, radio modem, hardware work
 
-= 2011-05-09 =
+== 2011-05-09 ==
 
   * Bernhard
     * try to boot on Friday or today together with Liam
