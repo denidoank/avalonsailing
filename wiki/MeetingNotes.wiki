@@ -423,7 +423,7 @@ Check with Juerg: need for more power, radio modem, hardware work
   * Wednesday morning for helmsman-driven interface.
 
 
-== June 20 ==
+== 2011-06-20 ==
 
 lvd:
   * Epos communication problems
