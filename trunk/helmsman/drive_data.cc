@@ -25,9 +25,9 @@ void DriveActualValues::Reset() {
 }
 
 void DriveActualValues::Check() {
-  CHECK_INTERVAL(-180, gamma_rudder_left_deg, 180);
-  CHECK_INTERVAL(-180, gamma_rudder_right_deg, 180);
-  CHECK_INTERVAL(-180, gamma_sail_deg, 180);
+  CHECK_IN_INTERVAL(-180, gamma_rudder_left_deg, 180);
+  CHECK_IN_INTERVAL(-180, gamma_rudder_right_deg, 180);
+  CHECK_IN_INTERVAL(-180, gamma_sail_deg, 180);
 }
 
 
@@ -56,9 +56,9 @@ void DriveReferenceValues::Reset() {
 }
 
 void DriveReferenceValues::Check() {
-  CHECK_INTERVAL(-180, gamma_rudder_star_left_deg, 180);
-  CHECK_INTERVAL(-180, gamma_rudder_star_right_deg, 180);
-  CHECK_INTERVAL(-180, gamma_sail_star_deg, 180);
+  CHECK_IN_INTERVAL(-180, gamma_rudder_star_left_deg, 180);
+  CHECK_IN_INTERVAL(-180, gamma_rudder_star_right_deg, 180);
+  CHECK_IN_INTERVAL(-180, gamma_sail_star_deg, 180);
 }
 
 
