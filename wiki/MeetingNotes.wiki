@@ -436,6 +436,7 @@ Steffen
    *  Collision avoidance algorithm
    * Away next week, wants to finish Helmsman
    * Command Interpreter for SMS heading commands for lake tests
+   * Compass state, Doubt in the function of the IMU, got a new compass, has RS232 NME interface
 
 Luuk: SMS interface into the Drive demon and to the helmsman
 
