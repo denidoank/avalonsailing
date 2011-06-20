@@ -37,17 +37,44 @@ struct ControllerOutput {
 
 struct FilteredMeasurements {
   void Reset() {
-    alpha_apparent = 0;
-    mag_apparent = 0;
+    alpha_boat = 0;
+    mag_boat = 0;
+    omega_boat = 0;
     alpha_true = 0;
     mag_true = 0;
+    alpha_app = 0;
+    mag_app = 0;
+    longitude_deg = 0;
+    latitude_deg = 0;
+    phi_x_rad = 0;
+    phi_y_rad = 0;
+    temperature_c = 0;
   } 
-  double alpha_apparent;
-  double mag_apparent;
+  // Apply the same filters for all 3 vectors!
+  // true speed, global frame
+  double alpha_boat;
+  double mag_boat;
+  double omega_boat;
+  // true wind, global frame
   double alpha_true;
   double mag_true;
+  // apparent wind direction, boat frame
+  double alpha_app;
+  double mag_app;
+  // GPS data
+  double longitude_deg;
+  double latitude_deg;
+
+  double phi_x_rad;  // roll or heel
+  double phi_y_rad;  // pitch
+  double temperature_c;       // in deg C        
 };
 
 
-
+/*  double alpha_app;
+  double mag_app;
+  Apparent(alpha_true, mag_true,
+           alpha_boat, mag_boat,
+           &alpha_app, &mag_app);
+*/
 #endif  // HELMSMAN_CONTROLLER_IO_H

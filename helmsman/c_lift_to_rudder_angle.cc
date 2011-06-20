@@ -34,22 +34,22 @@ double RudderLimit(double speed_m_s) {
 }  // namespace naca0010
 
 // limited is
-// -1 for limitation at the lower limit of alpha
+// -1 for limitation at the lower limit of c_lift
 //  0 for the unlimited case
-// +1 for a limitation at the positive limit.
-void CLiftToRudderAngle(double CLift,
+// +1 for a limitation at the positive limit of the c_lift.
+void CLiftToRudderAngle(double c_lift,
                         double speed_m_s,
                         double* alpha_rad,
                         int* limited) {
   double limit = naca0010::RudderLimit(speed_m_s);
-  double CLiftPerRad;
-  if (speed_m_s == kUnknown || speed_m_s < 0) {
-    CLiftPerRad = naca0010::kCLiftPerRadReverse;
+  double c_lift_per_rad;
+  if (speed_m_s != kUnknown && speed_m_s < 0) {
+    c_lift_per_rad = -naca0010::kCLiftPerRadReverse;
   } else {
-    CLiftPerRad = naca0010::kCLiftPerRad;
+    c_lift_per_rad = naca0010::kCLiftPerRad;
   }
 
-  double alpha_unlimited = CLift / CLiftPerRad;
+  double alpha_unlimited = c_lift / c_lift_per_rad;
   if (alpha_unlimited < -limit) {
     *alpha_rad = -limit;
     *limited = -1;
