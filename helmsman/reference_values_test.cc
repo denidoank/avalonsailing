@@ -15,11 +15,11 @@ TEST(RefeferenceValues, Tack) {
   double omega_star;
   double gamma_sail_star;
   ref.GetReferenceValues(&phi_z_star, &omega_star, &gamma_sail_star);
-  EXPECT_EQ(Deg2Rad(50), phi_z_star);
+  EXPECT_FLOAT_EQ(Deg2Rad(50), phi_z_star);
   EXPECT_EQ(0, omega_star);
   EXPECT_FLOAT_EQ(Deg2Rad(-15), gamma_sail_star);
   ref.GetReferenceValues(&phi_z_star, &omega_star, &gamma_sail_star);
-  EXPECT_EQ(Deg2Rad(50), phi_z_star);
+  EXPECT_FLOAT_EQ(Deg2Rad(50), phi_z_star);
   EXPECT_EQ(0, omega_star);
   EXPECT_FLOAT_EQ(Deg2Rad(-15), gamma_sail_star);
 
@@ -80,7 +80,7 @@ TEST(RefeferenceValues, Tack) {
   EXPECT_EQ(0, omega_star);
   EXPECT_FLOAT_EQ(Deg2Rad(145), gamma_sail_star);
   ref.GetReferenceValues(&phi_z_star, &omega_star, &gamma_sail_star);
-  EXPECT_EQ(Deg2Rad(-150), phi_z_star);
+  EXPECT_FLOAT_EQ(Deg2Rad(-150), phi_z_star);
   EXPECT_EQ(0, omega_star);
   EXPECT_FLOAT_EQ(Deg2Rad(145), gamma_sail_star);
 

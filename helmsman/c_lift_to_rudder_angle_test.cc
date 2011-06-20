@@ -72,7 +72,7 @@ TEST(CLiftToAngleTest, All) {
                      water_speed_m_s,
                      &rudder_angle,
                      &limited);
-  EXPECT_FLOAT_EQ(9.61538, Rad2Deg(rudder_angle));
+  EXPECT_FLOAT_EQ(-9.61538, Rad2Deg(rudder_angle));
   EXPECT_EQ(0, limited);
 
   c_lift = 1.5;
