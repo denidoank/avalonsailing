@@ -8,8 +8,9 @@
 #include "helmsman/sail_controller.h"
 
 enum SailMode {
-  WING,       // for sailing at the wind
-  SPINNAKER   // optimal for broad reach
+  WING,        // for sailing at the wind
+  WING_LOCKED, // as WING, but we don't switch to SPINNAKER
+  SPINNAKER    // optimal for broad reach
 };
 
 class SailModeLogic {
@@ -17,6 +18,8 @@ class SailModeLogic {
   SailModeLogic();
   SailMode BestMode(double alpha_apparent_wind_rad) const;
   SailMode BestStabilizedMode(double alpha_apparent_wind_rad);
+  void LockInWingMode();
+  void UnlockMode();
  private:
   SailMode mode_;  // need state for hysteresis
   int delay_counter_;
@@ -40,6 +43,8 @@ class SailController {
                                  double mag_wind);
 
   void SetOptimalAngleOfAttack(double optimal_angle_of_attack_rad);
+  void LockInWingMode();
+  void UnlockMode();
 
  private:
   double GammaSailInternal(double alpha_wind_rad,

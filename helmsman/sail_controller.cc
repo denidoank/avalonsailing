@@ -10,7 +10,6 @@
 
 #include "lib/fm/log.h"
 #include "common/check.h"
-//#include "helmsman/imu.h"
 
 #include "helmsman/sail_controller_const.h"
 #include "helmsman/sampling_period.h"  // kSamplingPeriod
@@ -28,6 +27,9 @@ SailMode SailModeLogic::BestMode(double apparent) const {
 
 SailMode SailModeLogic::BestStabilizedMode(double apparent) {
   const int delay = static_cast<int>(kSwitchBackDelay / kSamplingPeriod + 0.5);
+  if (mode_ == WING_LOCKED) {
+    return WING_LOCKED;
+  }
   if (mode_ == WING) {
     if (apparent <= kSwitchpoint - 2 * kHalfHysteresis ||
         (apparent < kSwitchpoint - kHalfHysteresis &&
@@ -46,6 +48,14 @@ SailMode SailModeLogic::BestStabilizedMode(double apparent) {
     }
   }
   return mode_;
+}
+
+void SailModeLogic::LockInWingMode() {
+  mode_ = WING_LOCKED;
+}
+
+void SailModeLogic::UnlockMode() {
+  mode_ = WING;
 }
 
 
@@ -97,3 +107,10 @@ double SailController::GammaSailInternal(double alpha_wind_rad,
   return gamma_sail_rad;
 }
 
+void SailController::LockInWingMode() {
+  logic_.LockInWingMode();
+}
+
+void SailController::UnlockMode() {
+  logic_.UnlockMode();
+}

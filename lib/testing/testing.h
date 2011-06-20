@@ -21,9 +21,9 @@
     if ((a) != (b)) { \
       std::cout << __FILE__ << ":" <<__LINE__ \
       << "\nTest a == b failed with expected:\n"; \
-      std::cout << (a) << "\n"; \
+      std::cout << #a " which is " << (a) << "\n"; \
       std::cout << "versus actual:\n"; \
-      std::cout << (b) << "\n"; \
+      std::cout << #b " which is " << (b) << "\n"; \
       exit(1); \
     } \
   } while(0)
@@ -48,12 +48,12 @@
 
 #define EXPECT_FLOAT_EQ(a, b) \
   do { \
-    if (fabs((a) - (b)) > 1E-5) { \
+    if (fabs((a) - (b)) > 1E-4) { \
       std::cout << __FILE__ << ":" <<__LINE__ \
-      << "\nTest a == b (tol:1E-5) failed with expected:\n"; \
-      std::cout << (a) << "\n"; \
+      << "\nTest a == b (tol:1E-4) failed with expected:\n"; \
+      std::cout << #a " which is " << (a) << "\n"; \
       std::cout << "versus actual:\n"; \
-      std::cout << (b) << "\n"; \
+      std::cout << #b " which is " << (b) << "\n"; \
       exit(1); \
     } \
   } while(0) 
@@ -63,9 +63,9 @@
     if ((a) >= (b)) { \
       std::cout << __FILE__ << ":" <<__LINE__ \
       << "\nTest a < b failed with a:\n"; \
-      std::cout << (a) << "\n"; \
+      std::cout << #a " which is " << (a) << "\n"; \
       std::cout << "versus b:\n"; \
-      std::cout << (b) << "\n"; \
+      std::cout << #b " which is " << (b) << "\n"; \
       exit(1); \
     } \
   } while(0) 
@@ -75,9 +75,9 @@
     if ((a) > (b)) { \
       std::cout << __FILE__ << ":" <<__LINE__ \
       << "\nTest a <= b failed with a:\n"; \
-      std::cout << (a) << "\n"; \
+      std::cout << #a " which is " << (a) << "\n"; \
       std::cout << "versus b:\n"; \
-      std::cout << (b) << "\n"; \
+      std::cout << #b " which is " << (b) << "\n"; \
       exit(1); \
     } \
   } while(0) 
@@ -87,9 +87,9 @@
     if ((a) < (b)) { \
       std::cout << __FILE__ << ":" <<__LINE__ \
       << "\nTest a >= b failed with a:\n"; \
-      std::cout << (a) << "\n"; \
+      std::cout << #a " which is " << (a) << "\n"; \
       std::cout << "versus b:\n"; \
-      std::cout << (b) << "\n"; \
+      std::cout << #b " which is " << (b) << "\n"; \
       exit(1); \
     } \
   } while(0)
@@ -99,9 +99,9 @@
     if ((a) <= (b)) { \
       std::cout << __FILE__ << ":" <<__LINE__ \
       << "\nTest a > b failed with a:\n"; \
-      std::cout << (a) << "\n"; \
+      std::cout << #a " which is " << (a) << "\n"; \
       std::cout << "versus b:\n"; \
-      std::cout << (b) << "\n"; \
+      std::cout << #b " which is " << (b) << "\n"; \
       exit(1); \
     } \
   } while(0) 
