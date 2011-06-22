@@ -4,3 +4,7 @@ b:2
 
 c:3
 d:4 e:4
+f:false
+g:true
+h:1
+i:t
