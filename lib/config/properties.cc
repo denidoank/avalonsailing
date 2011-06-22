@@ -8,19 +8,18 @@
 
 #include "lib/fm/log.h"
 
-bool LoadProperties(const char *defaults[][2], const char *filename,
-                    KeyValuePair *properties) {
-  if (properties == NULL) {
-    return false;
-  }
+Properties::Properties(const char *defaults[][2]) {
   if (defaults != NULL) {
     for (int i = 0; defaults[i][0] != NULL; i++) {
-      if (properties->Add(defaults[i][0], defaults[i][1]) == false) {
+      if (properties_.Add(defaults[i][0], defaults[i][1]) == false) {
         FM_LOG_FATAL("invalid default property %s:%s",
                      defaults[i][0], defaults[i][1]);
       }
     }
   }
+}
+
+bool Properties::LoadFromFile(const char *filename) {
   FILE *fp = fopen(filename, "r");
   if (fp == NULL) {
     FM_LOG_PERROR("could not open properties file");
@@ -41,7 +40,48 @@ bool LoadProperties(const char *defaults[][2], const char *filename,
       continue;
     }
     KeyValuePair segment(buffer);
-    properties->MergeFrom(segment);
+    properties_.MergeFrom(segment);
   }
   return true;
+}
+
+std::string Properties::Get(const std::string &key,
+                            const std::string &default_string) const {
+  std::string result;
+  if (properties_.Get(key, &result)) {
+      return result;
+  } else {
+    return default_string;
+  }
+}
+
+double Properties::Get(const std::string &key, double default_double) const {
+  double result;
+  if (properties_.GetDouble(key, &result)) {
+    return result;
+  } else {
+    return default_double;
+  }
+}
+
+long Properties::Get(const std::string &key, long default_long) const {
+  long result;
+  if (properties_.GetLong(key, &result)) {
+    return result;
+  } else {
+    return default_long;
+  }
+}
+
+bool Properties::Get(const std::string &key, bool default_bool) const {
+  std::string result;
+  if (properties_.Get(key, &result)) {
+    if (result == "true" || result == "t" || result == "1") {
+      return true;
+    } else {
+      return false;
+    }
+  } else {
+    return default_bool;
+  }
 }

@@ -13,15 +13,42 @@ int main(int argc, char **argv) {
                                {"c", "c1"},
                                {NULL, NULL}};
 
-  KeyValuePair prop;
-  PF_TEST(LoadProperties(defaults, "./properties_test.txt", &prop),
+  Properties prop(defaults);
+  PF_TEST(prop.LoadFromFile("./properties_test.txt"),
           "load properties");
 
-  std::string result;
-  PF_TEST(prop.Get("a", &result), "get a");
-  PF_TEST(result == "a1", "a is a1");
-  PF_TEST(prop.Get("c", &result), "get c");
-  PF_TEST(result == "3", "c is 3");
-  PF_TEST(prop.Get("e", &result), "get e");
-  PF_TEST(result == "4", "e is 4");
+
+  std::string default_string = "";
+  long default_long = 0;
+  double default_double = 0.0;
+  bool default_bool = false;
+
+  // Get original value from defaults
+  PF_TEST(prop.Get("a", default_string) == "a1", "get a='a1'");
+  // File value overrides defaults
+  PF_TEST(prop.Get("b", default_string) == "2", "get b=2");
+
+  // Parse as long (values from properties_test.txt)
+  PF_TEST(prop.Get("c", default_long) == 3, "get c=3"); // overrides defaults
+  PF_TEST(prop.Get("e", default_long) == 4, "get e=4"); // from file only
+
+  // Parse different types of boolean representations
+  // (values from properties_test.txt)
+  PF_TEST(prop.Get("f", default_bool) == false, "get f=false");
+  PF_TEST(prop.Get("g", default_bool), "get g=true");
+  PF_TEST(prop.Get("h", default_bool), "get h=1");
+  PF_TEST(prop.Get("i", default_bool), "get i=t");
+
+  // Parse as double
+  PF_TEST(prop.Get("e", default_double) == 4.0, "get e as double");
+
+  // Return hard-coded default if property key is not in map
+  // (neither defaults or file)
+  PF_TEST(prop.Get("z", default_string) == "",
+          "get non-existant string value");
+  PF_TEST(prop.Get("z", default_long) == 0, "get non-existant long value");
+  PF_TEST(prop.Get("z", default_double) == 0.0,
+          "get non-existant double value");
+  PF_TEST(prop.Get("z", default_bool) == false,
+          "get non-existant boolean value");
 }
