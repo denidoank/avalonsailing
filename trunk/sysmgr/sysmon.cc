@@ -29,7 +29,7 @@ static const char *defaults[][2] = {{"socket", "/tmp/sysmon"},
 SysMon::SysMon(int timeout_s, int sysmgr_pipe, const char *config_file,
                const ProcessTable &proc_table)
   : timeout_s_(timeout_s) {
-  LoadProperties(defaults, config_file, &properties_);
+  // LoadProperties(defaults, config_file, &properties_);
 
   std::string socket;
   FM_ASSERT(properties_.Get("socket", &socket));
