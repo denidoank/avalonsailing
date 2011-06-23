@@ -7,8 +7,8 @@
 #include <strings.h>
 
 #include "motor.h"
-#include "seq.h"
-#include "com.h"
+#include "../seq.h"
+#include "../com.h"
 
 struct epos_status_str_t {
         uint32_t c;

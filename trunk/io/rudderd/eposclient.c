@@ -93,6 +93,7 @@ Bus* bus_open_eposd(char* path_to_socket) {
         strncpy(addr.sun_path, path_to_socket, sizeof(addr.sun_path));
         if (connect(fd, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
                 VLOGF("connect(%s)", path_to_socket);
+		close(fd);
 		return NULL;
 	}
 	return bus_new(fdopen(fd, "r"), fdopen(dup(fd), "w"));

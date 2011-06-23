@@ -13,7 +13,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "com.h"
+#include "../com.h"
 #include "motor.h"
 
 const char* version = "$Id: $";
