@@ -92,7 +92,6 @@ parseline(char* line, double* angles_deg)
 		if (!strcmp(key, "rudd"))  { angles_deg[LEFT] = angles_deg[RIGHT] = value; continue; }
 		if (!strcmp(key, "sail"))  { angles_deg[SAIL] = value; continue; }
 #endif
-                if (!strcmp(key, "time_s")) { /*ignored*/ continue; }
                 return 0;
         }
         return 1;
