@@ -9,6 +9,7 @@
 
 class InitialController : public Controller {
  public:
+  InitialController();
   virtual ~InitialController();
   virtual void Entry(const ControllerInput& in,
                      const FilteredMeasurements& filtered);
@@ -19,6 +20,23 @@ class InitialController : public Controller {
   virtual const char* Name() {
     return "Initial";
   };
+ private:
+  // Phase sleep serves to settle the filters.
+  // Phase Turtle means to turn until we are in a sailable direction, if necessary
+  // Phase KOGGE means to sail from the wind, i.e. our direction is determined by
+  //   the wind direction
+  enum Phase {
+    SLEEP,
+    TURTLE,
+    KOGGE
+  };
+  
+  void Reset();
+  void PhaseChoice(double angle_attack);
+  
+  Phase phase_;
+  int gamma_sign_; 
+  int count_;
 };
 
 #endif  // HELMSMAN_INITIAL_CONTROLLER_H

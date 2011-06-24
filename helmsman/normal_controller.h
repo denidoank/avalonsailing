@@ -2,6 +2,13 @@
 // Use of this source code is governed by the Apache License 2.0
 // that can be found in the LICENSE file.
 // Steffen Grundmann, May 2011
+
+// This is the controller for normal sailing operation.
+// This controller assumes that all sensor information (heading and speed
+// especially are a vailable and that the wind is strong enough to measure
+// a reliable wind direction.
+// This controller uses Rudder and sail controllers and perfoms tacks and jibes.
+
 #ifndef HELMSMAN_NORMAL_CONTROLLER_H
 #define HELMSMAN_NORMAL_CONTROLLER_H
 

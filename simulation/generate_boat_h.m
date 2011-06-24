@@ -32,12 +32,15 @@ fprintf(fid, "const double kNumberR = %g;   // number of rudders\n", B.number_R)
 % left and right rudder axis from COG, in x-y plane
 radius = sqrt(B.R(1, 1)^2 + (B.distance_lr_R / 2)^2);
 fprintf(fid, "const double kLeverR = %g;    // m, COG to rudder axis lever\n", radius); 
+fprintf(fid, "const double kWindSensorOffsetRad = %g;   // rad\n", B.offset_rad_W);
 
 C = physical_constants();
 
 fprintf(fid, "const double kRhoWater = %g;  // kg/m^3\n", C.rho_water);
 
 fprintf(fid, "const double kOmegaMaxSail = %g;  // rad/s\n", B.omega_max_S);
+fprintf(fid, "const double kOmegaMaxRudder = %g;  // rad/s\n", B.omega_max_R);
+
 
 fprintf(fid, "}  // namespace\n");
 fprintf(fid, "#endif  // HELMSMAN_BOAT_H_\n");

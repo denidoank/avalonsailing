@@ -10,7 +10,7 @@
 
 #include "common/check.h"
 #include "common/convert.h"
-
+#include "common/normalize.h"
 
 Polar::Polar(double alpha_rad, double mag)
     : alpha_(alpha_rad),
@@ -18,7 +18,10 @@ Polar::Polar(double alpha_rad, double mag)
       x_(0),
       y_(0),
       cartesian_(false) {
-  CHECK_GE(mag_, 0);
+  CHECK_IN_INTERVAL(-10, alpha_rad, 10);  // probably degree input
+  if (mag_ == 0)
+    alpha_ = 0;
+  alpha_ = SymmetricRad(alpha_);
 }
 
 Polar Polar::operator+(const Polar& b) const {
@@ -40,7 +43,7 @@ Polar Polar::operator-(const Polar& b) const {
   double y = y_ - b.mag_ * sin(b.alpha_);
   double mag = sqrt(x * x + y * y);
   double alpha;
-  if (mag_ > 0)
+  if (mag_ != 0)
     alpha = atan2(y, x);
   else
     alpha = 0;

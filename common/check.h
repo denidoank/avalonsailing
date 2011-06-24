@@ -12,6 +12,8 @@
 
 #define CHECK(a) assert(a)
 #define CHECK_EQ(a, b) assert((a) == (b))
+#define CHECK_NE(a, b) assert((a) != (b))
+#define CHECK_NOT_NULL(a) (assert((a) != NULL), a)
 #define CHECK_FLOAT_EQ(a, b) assert(fabs((a) - (b)) < 1E-5)
 #define CHECK_LT(a, b) assert((a) < (b))
 #define CHECK_LE(a, b) assert((a) <= (b))

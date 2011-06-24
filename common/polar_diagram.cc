@@ -8,8 +8,10 @@
 #include "common/convert.h"
 #include "common/normalize.h"
 
-const double kTackZone = 50;        // degrees, a safe guess.
-const double kJibeZone = 180 - 15;  // degrees, might be 170 at storm
+namespace {
+const double kTackZoneDeg = 50;        // degrees, a safe guess.
+const double kJibeZoneDeg = 180 - 15;  // degrees, might be 170 at storm
+}  // namespace
 
 double Speed(double angle, double wind_speed);
 
@@ -32,16 +34,16 @@ void ReadPolarDiagram(double angle_true_wind,
   CHECK_GE(angle_true_wind, -180);
 
   angle_true_wind = fabs(angle_true_wind);
-  *dead_zone_tack = angle_true_wind < kTackZone;
-  *dead_zone_jibe = angle_true_wind > kJibeZone;
+  *dead_zone_tack = angle_true_wind < kTackZoneDeg;
+  *dead_zone_jibe = angle_true_wind > kJibeZoneDeg;
 
   if (*dead_zone_tack) {
-    const double v_0 = Speed(kTackZone, wind_speed) *
-                       cos(Deg2Rad(kTackZone));
+    const double v_0 = Speed(kTackZoneDeg, wind_speed) *
+                       cos(Deg2Rad(kTackZoneDeg));
     *boat_speed = v_0 / cos(Deg2Rad(angle_true_wind));
   } else if (*dead_zone_jibe) {
-    const double v_180 = Speed(kJibeZone, wind_speed) *
-                         cos(Deg2Rad(kJibeZone));
+    const double v_180 = Speed(kJibeZoneDeg, wind_speed) *
+                         cos(Deg2Rad(kJibeZoneDeg));
     *boat_speed = v_180 / cos(Deg2Rad(angle_true_wind));
   } else {
     *boat_speed = Speed(angle_true_wind, wind_speed);
@@ -57,8 +59,8 @@ void ReadPolarDiagram(double angle_true_wind,
 // 45 - 180 degree.
 
 double Speed(double angle, double wind_speed) {
-  CHECK_GE(angle, kTackZone);
-  CHECK_LE(angle, kJibeZone);
+  CHECK_GE(angle, kTackZoneDeg);
+  CHECK_LE(angle, kJibeZoneDeg);
   // We might adapt this for different wind speeds later.
   // This approximation was done for WindSpeed = 10 kts;
   const double K0 = -0.9844053104;
@@ -78,11 +80,19 @@ double Speed(double angle, double wind_speed) {
   return relative_speed * wind_speed;
 }
 
-double TackZone() {
-  return kTackZone;
+double TackZoneDeg() {
+  return kTackZoneDeg;
 }
 
-double JibeZone() {
-  return kJibeZone;
+double JibeZoneDeg() {
+  return kJibeZoneDeg;
+}
+
+double TackZoneRad() {
+  return Deg2Rad(kTackZoneDeg);
+}
+
+double JibeZoneRad() {
+  return Deg2Rad(kJibeZoneDeg);
 }
 
