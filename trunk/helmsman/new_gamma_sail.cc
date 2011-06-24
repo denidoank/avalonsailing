@@ -8,21 +8,10 @@
 #include "common/normalize.h"
 #include "common/polar.h"
 #include "common/sign.h"
+#include "helmsman/apparent.h"
+
 #include <stdio.h>
 
-
-
-
-void Apparent(double alpha_true, double mag_true,
-              double alpha_boat, double mag_boat,
-              double* alpha_app, double* mag_app) {
-  // apparent wind in global frame
-  const Polar apparent = Polar(alpha_true, mag_true) - Polar(alpha_boat, mag_boat);
-  *mag_app = apparent.Mag();
-  *alpha_app = SymmetricRad(apparent.AngleRad() - alpha_boat);
-}
-
-// or make interface with Polar
 void NewGammaSail(double alpha_true, double mag_true,
                   double alpha_boat, double mag_boat,
                   double new_alpha_boat,

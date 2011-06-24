@@ -50,7 +50,7 @@ bool dead_zone_tack;
 bool dead_zone_jibe;
 double close_reach_speed;
 
-double tack_zone_angle = TackZone();
+double tack_zone_angle = TackZoneDeg();
 ReadPolarDiagram(tack_zone_angle,
                  wind_speed,
                  &dead_zone_tack,
@@ -75,7 +75,7 @@ EXPECT_FLOAT_EQ(cos(Deg2Rad(tack_zone_angle)) * close_reach_speed,
                 boat_speed);
 
 
-double jibe_zone_angle =  JibeZone();
+double jibe_zone_angle = JibeZoneDeg();
 double jibe_zone_speed;
 ReadPolarDiagram(jibe_zone_angle,
                  wind_speed,
@@ -98,6 +98,9 @@ EXPECT_EQ(dead_zone_jibe, true);
 EXPECT_FLOAT_EQ(5.4464617, boat_speed);
 EXPECT_FLOAT_EQ(fabs(cos(Deg2Rad(jibe_zone_angle))) * jibe_zone_speed,
                 boat_speed);
+
+EXPECT_FLOAT_EQ(JibeZoneDeg(), 180 * JibeZoneRad() / M_PI);
+EXPECT_FLOAT_EQ(TackZoneDeg(), 180 * TackZoneRad() / M_PI);
 
 LogPolarDiagram();
 }

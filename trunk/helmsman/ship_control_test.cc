@@ -36,12 +36,12 @@ TEST(ShipControl, All) {
   ShipControl::Brake("no further brake parameters");
 
   ShipControl::Run(in, &out);
-  Expect(-180, 80, -80, out);
+  Expect(0, 80, -80, out);
 
   ShipControl::Brake("no further brake parameters");
 
   ShipControl::Run(in, &out);
-  Expect(-180, 80, -80, out);
+  Expect(0, 80, -80, out);
 
   ShipControl::Docking("no further parameters");
 

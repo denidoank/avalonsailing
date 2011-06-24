@@ -20,8 +20,11 @@ void ReadPolarDiagram(double angle_true_wind_deg,
                       bool* dead_zone_jibe,
                       double* speed_m_s);
 
+// in degrees
+double TackZoneDeg();
+double JibeZoneDeg();
+// in radians
+double TackZoneRad();
+double JibeZoneRad();
 
-double TackZone();
-
-double JibeZone();
 #endif  // COMMON_POLAR_DIAGRAM_H_

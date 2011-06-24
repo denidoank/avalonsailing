@@ -15,6 +15,7 @@ DockingController ShipControl::docking_controller_;
 
 Controller* ShipControl::controller_ = &ShipControl::initial_controller_; 
 FilteredMeasurements ShipControl::filtered_;
+FilterBlock ShipControl::filter_block_;
 
 // All methods are static.
 void ShipControl::Transition(Controller* new_state,
@@ -36,11 +37,12 @@ bool ShipControl::Docking(const char* dummy_command) {
   return true;
 }
 
-/*
+
 bool ShipControl::Normal(const char* dummy_command) {
-  meta_state = kNormal;
+  meta_state_ = kNormal;
   return true;
 }
+/*
 bool ShipControl::OverrideSkipper(const char* dummy_command) {
   meta_state = kNormal;
   alpha_star = read value from command
@@ -60,12 +62,14 @@ void ShipControl::StateMachine(const ControllerInput& in) {
     return;
   }  
   
+  
   /*
   if (drives not ready) {
     Transition(&initial_controller_, in);
     return;
   }
   */
+  
 
   // all other transition decisions, possibly delegated to the controllers
   
@@ -73,9 +77,10 @@ void ShipControl::StateMachine(const ControllerInput& in) {
 
 // This needs to run with the sampling period.
 void ShipControl::Run(const ControllerInput& in, ControllerOutput* out) {
-  // figure out apparent and true wind
-  // fill skipper data
-  // get wind speed 
+  // Get wind speed and all other actual measurement values
+  // Figure out apparent and true wind
+  filter_block_.Filter(in, &filtered_);
+  // TODO fill skipper data
 
   // find state 
   StateMachine(in);

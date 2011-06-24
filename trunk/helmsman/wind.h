@@ -10,8 +10,8 @@
 #include "common/convert.h"
 #include "common/normalize.h"
 
-// Original units from Wind sensor
-struct Wind {
+// Original units from Wind sensor, relative to mast.
+struct WindSensor {
   void Reset() {
     mag_kn = 0;  
     alpha_deg = 0;
@@ -25,7 +25,7 @@ struct WindRad {
   WindRad() {
     Reset();
   }
-  WindRad(const Wind& wind) {
+  WindRad(const WindSensor& wind) {
     CHECK_GE(wind.mag_kn, 0);
     mag_m_s = KnotsToMeterPerSecond(wind.mag_kn);  
     alpha_rad = SymmetricRad(Deg2Rad(wind.alpha_deg));

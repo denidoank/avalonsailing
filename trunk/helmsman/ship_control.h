@@ -7,6 +7,7 @@
 
 
 #include "helmsman/controller_io.h"
+#include "helmsman/filter_block.h"
 
 #include "helmsman/controller.h"
 #include "helmsman/initial_controller.h"
@@ -24,7 +25,7 @@ class ShipControl {
   static void Run(const ControllerInput& in, ControllerOutput* out);
   static bool Brake(const char* dummy_command);
   static bool Docking(const char* dummy_command);
-  //static bool Normal(const char* dummy_command);
+  static bool Normal(const char* dummy_command);
 
  private:
   static void StateMachine(const ControllerInput& in);
@@ -32,6 +33,7 @@ class ShipControl {
                          const ControllerInput& in);
 
   static double alpha_star_;
+  static FilterBlock filter_block_;
   static FilteredMeasurements filtered_;
   static MetaState meta_state_;
   static Controller* controller_;

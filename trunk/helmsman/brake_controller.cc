@@ -20,7 +20,7 @@ void BrakeController::Run(const ControllerInput& in,
   
   // Turn the sail into the flag position, if the wind direction is known.
   double gamma_sail_rad = 0;
-  if (filtered.alpha_app != kUnknown)
-    gamma_sail_rad = SymmetricRad(filtered.alpha_app - M_PI);
+  if (filtered.angle_app != kUnknown)
+    gamma_sail_rad = SymmetricRad(filtered.angle_app - M_PI);
   out->drives_reference.gamma_sail_star_rad = gamma_sail_rad;
 }
