@@ -12,16 +12,16 @@
 TEST(CommonTransformTest, All) {
 // Angle
 EXPECT_EQ(-M_PI, Deg2Rad(-180));
-EXPECT_EQ(-1, Deg2Rad(-180 / M_PI));
+EXPECT_FLOAT_EQ(-1, Deg2Rad(-180 / M_PI));
 EXPECT_EQ(0, Deg2Rad(0));
-EXPECT_EQ(1, Deg2Rad(180 / M_PI));
+EXPECT_FLOAT_EQ(1, Deg2Rad(180 / M_PI));
 EXPECT_EQ(M_PI / 2.0, Deg2Rad(90));
 EXPECT_EQ(M_PI, Deg2Rad(180));
-EXPECT_EQ(2 * M_PI, Deg2Rad(360));
-EXPECT_EQ(4 * M_PI, Deg2Rad(720));
+EXPECT_FLOAT_EQ(2 * M_PI, Deg2Rad(360));
+EXPECT_FLOAT_EQ(4 * M_PI, Deg2Rad(720));
 
-EXPECT_EQ(-180, Rad2Deg(-M_PI));
-EXPECT_EQ(90, Rad2Deg(M_PI / 2));
+EXPECT_FLOAT_EQ(-180, Rad2Deg(-M_PI));
+EXPECT_FLOAT_EQ(90, Rad2Deg(M_PI / 2));
 
 // Distance
 EXPECT_EQ(1852.0, NauticalMileToMeter(1));
