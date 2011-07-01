@@ -10,21 +10,13 @@ using std::string;
 // Processes an NMEA sentence for the tests.
 static bool ProcessSentence(const string& sentence, NmeaSentence* output) {
   NmeaParser np;
-  npInit(&np);
-
-  for (string::const_iterator i = sentence.begin(); i != sentence.end(); ++i) {
-    NmeaParsingState state = npProcessByte(&np, output, *i);
-    switch (state) {
-      case NMEA_PARSER_STILL_PARSING:
-        continue;
-      case NMEA_PARSER_SENTENCE_PARSED:
-        return true;
-      default:
-        npPrintRawSentenceData(output);
-        return false;
-    }
+  switch (np.Parse(sentence, output)) {
+    case NmeaParser::SENTENCE_PARSED:
+      return true;
+    default:
+      printf("Could not parse sentence %s\n", sentence.c_str());
+      return false;
   }
-  return false;
 }
 
 // Checks that NMEA sentence @nmea is correctly parsed and that @interpreter

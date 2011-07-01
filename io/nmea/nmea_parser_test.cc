@@ -18,7 +18,6 @@ int main(int argc, char *argv[]) {
   int c;
   NmeaParser np;
   NmeaSentence sentence;
-  npInit(&np);
 
   FILE *f = stdin;
   if (argc >= 2) {
@@ -30,36 +29,38 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 
-  for(c = fgetc(f); c != EOF; c = fgetc(f)) {
-    switch (npProcessByte(&np, &sentence, c)) {
-      case NMEA_PARSER_SENTENCE_PARSED:
-        printf("Sentence parsed correctly: ");
+  char buf[200];
+  while (fgets(buf, 200, f) != NULL) {
+    switch (np.Parse(buf, &sentence)) {
+      case NmeaParser::SENTENCE_PARSED:
+        printf("Sentence parsed correctly: \n");
         break;
 
-      case NMEA_PARSER_INCORRECT_CHECKSUM:
-        printf("Incorrect checksum. Calculated checksum: 0x%X, "
-               "checksum received in sentence: 0x%X.\n",
+      case NmeaParser::INCORRECT_CHECKSUM:
+        printf("Incorrect checksum. Calculated checksum: 0x%02X, "
+               "checksum received in sentence: 0x%02X.\n",
                sentence.checksum, sentence.receivedChecksum);
         break;
 
-      case NMEA_PARSER_STILL_PARSING:
-        // Byte was added. Continue to next one.
+      case NmeaParser::CHECKSUM_MISSING:
+      case NmeaParser::MALFORMED_CHECKSUM:
+        printf("Missing/malformed checksum.\n");
         continue;
 
-      case NMEA_PARSER_DATA_OVERFLOW_ERROR:
-        printf("Data overflow error for sentence.\n");
+      case NmeaParser::INCORRECT_START_CHAR:
+        printf("Incorrect start character.\n");
         continue;
 
       default:
         printf("Unknown parsing state.\n");
         continue;
     }
-    npPrintRawSentenceData(&sentence);
+    printf("%s\n", sentence.DebugString().c_str());
   }
 
-  printf("Summary:\n Bytes: %ld\n Errors: %ld\n Sentences: %ld\n",
-      np.totBytes,
-      np.totErr,
-      np.totSentences);
+  printf("Summary:\n Bytes: %lld\n Errors: %lld\n Correct sentences: %lld\n",
+      np.GetNumBytesRead(),
+      np.GetNumErrors(),
+      np.GetNumCorrectSentences());
   return 0;
 }
