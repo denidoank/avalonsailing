@@ -3,6 +3,7 @@
 // that can be found in the LICENSE file.
 
 #include <cstdlib>
+#include <cstdio>
 #include <map>
 #include <string>
 #include <utility>
@@ -43,7 +44,7 @@ typedef map<string, InterpreterAndProducer> InterpreterMap;
 namespace {
 void InterpretSentence(const NmeaSentence& sentence,
                        const InterpreterMap& interpreters) {
-  const string sentence_type(sentence.argv[0]);
+  const string& sentence_type = sentence.parts[0];
   InterpreterMap::const_iterator found = interpreters.find(sentence_type);
   if (found == interpreters.end()) {
     FM_LOG_FATAL("Received NMEA sentence of type '%s' for which there "
@@ -67,28 +68,26 @@ void InterpretSentence(const NmeaSentence& sentence,
 void ReadNmeaSentences(Reader* reader, const InterpreterMap& interpreters) {
   NmeaParser parser;
   NmeaSentence sentence;
-  npInit(&parser);
 
   FM_LOG_INFO("Starting to read NMEA sentences.");
-  char c;
-  while (reader->ReadChar(&c, kReadTimeout) == Reader::READ_OK) {
-    switch(npProcessByte(&parser, &sentence, c)) {
-     case NMEA_PARSER_STILL_PARSING:
-       break;
-     case NMEA_PARSER_DATA_OVERFLOW_ERROR:
-       // TODO(rekwall): add device monitor here. See lib/fm/device_monitor.h.
-       FM_LOG_WARN("NMEA sentence dropped: data overflow.");
-       break;
-     case NMEA_PARSER_INCORRECT_CHECKSUM:
+  char buf[200];
+  while (reader->ReadLine(buf, 200, kReadTimeout) == Reader::READ_OK) {
+    switch(parser.Parse(buf, &sentence)) {
+     case NmeaParser::CHECKSUM_MISSING:
+     case NmeaParser::MALFORMED_CHECKSUM:
        // TODO(rekwall): log more details.
+       FM_LOG_WARN("NMEA sentence dropped: invalid checksum data.");
+       break;
+     case NmeaParser::INCORRECT_CHECKSUM:
        FM_LOG_WARN("NMEA sentence dropped: incorrect checksum.");
        break;
-     case NMEA_PARSER_SENTENCE_PARSED:
-       // Do something with the sentence, e.g.
-       // npPrintRawSentenceData(&sentence);
-       // or something based on sentence.argv[0].
-       // Find sentence.argv[0] in the type -> function map.
-       npPrintRawSentenceData(&sentence);
+     case NmeaParser::INCORRECT_START_CHAR:
+       FM_LOG_WARN("NMEA sentence dropped: unexpected start character.");
+       break;
+
+     case NmeaParser::SENTENCE_PARSED:
+       // Find sentence.parts[0] in the type -> function map.
+       printf("%s\n", sentence.DebugString().c_str());
        InterpretSentence(sentence, interpreters);
        // TODO(rekwall): this shouldn't be called too often. For windsensor
        // data, it will be called about once a second. This should be guarded by

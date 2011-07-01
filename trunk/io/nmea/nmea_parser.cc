@@ -2,188 +2,128 @@
 // Use of this source code is governed by the Apache License 2.0
 // that can be found in the LICENSE file.
 
-#include <cassert>
+#include <algorithm>
 #include <cstdio>
-#include <cstring>
+#include <string>
+#include <set>
 
 #include "io/nmea/nmea_parser.h"
 
-void npInit(NmeaParser *p) {
-  assert(p != NULL);
-  memset(p, 0, sizeof(*p));
-  p->state = NMEA_PARSER_STATE_SEARCH_FOR_START;
+NmeaParser::NmeaParser()
+  : num_bytes_read_(0),
+    num_errors_(0),
+    num_correct_sentences_(0) {
 }
 
+using std::string;
+using std::set;
 
-// Resets an NmeaSentence.
-static void resetSentence(NmeaParser *parser, NmeaSentence *sentence) {
-  // Reset parser state.
-  parser->index = 0;  // Reset index.
-  parser->finalized = false;
-
-  // Reset sentence state.
-  memset(sentence, 0, sizeof(*sentence));
-  sentence->checksum = 0;
-  sentence->receivedChecksum = 0;
-  sentence->argc = 1;
-  sentence->argv[0] = sentence->data;
-}
-
-
-// Adds a byte of data to parser->sentence. Returns true if there
-// is no data overflow (and the sentence has not been finalized before).
-static bool addDataToSentence(char data, bool updateChecksum,
-                              NmeaParser *parser, NmeaSentence *sentence) {
-  if (parser->finalized) {
-    return false;
-  }
-  assert(parser->index < NMEA_PARSER_MAX_DATA_LEN);
-  sentence->data[parser->index++] = data;
-  if (updateChecksum) {
-    sentence->checksum ^= data;
-  }
-  // Check for overflow, knowing that at least one more char (e.g. final
-  // '\0') still needs to be added to this sentence.
-  return parser->index < NMEA_PARSER_MAX_DATA_LEN;
-}
-
-static void finalizeSentence(NmeaParser *parser, NmeaSentence *sentence) {
-  assert(parser->index < NMEA_PARSER_MAX_DATA_LEN);
-  assert(!parser->finalized);
-
-  sentence->data[parser->index] = '\0';
-  parser->finalized = true;
-}
-
-// Starts a new argv entry in parser->sentence. Return true if there was no
-// overflow in the number of arguments or amount of data.
-static bool startNewArgument(char separator,
-                             NmeaParser *parser,
-                             NmeaSentence *sentence) {
-  // Check that we haven't reached the max number of args.
-  if  (sentence->argc >= NMEA_PARSER_MAX_ARGS) {
-    return false;
-  }
-  // Finalize previous argument.
-  if (!addDataToSentence('\0', false, parser, sentence)) {
-    return false;
-  }
-  // Update checksum explicitly. Separator is not part of the data.
-  sentence->checksum ^= separator;
-
-  // Create a pointer to the new argument.
-  assert(sentence->argc < NMEA_PARSER_MAX_ARGS);
-  sentence->argv[sentence->argc++] = sentence->data + parser->index;
-  return true;
-}
-
-// Returns the integer value corresponding to hex_digit (between '0' and '9'
-// or 'A' and 'F'). If hex_digit is not a valid hexadecimal digit, returns -1.
-static int getHexDigitValue(char hex_digit) {
+namespace {
+// Sets value to the integer value corresponding to hex_digit
+// (between '0' and '9' or 'A' and 'F'). If hex_digit is not
+// a valid hexadecimal digit, returns false.
+bool GetHexDigitValue(char hex_digit, int* value) {
   if (hex_digit >= '0' && hex_digit <= '9') {
-    return hex_digit - '0';
+    *value = hex_digit - '0';
+    return true;
   } else if (hex_digit >= 'A' && hex_digit <= 'F') {
-    return (hex_digit - 'A') + 10;
+    *value = (hex_digit - 'A') + 10;
+    return true;
   } else {
-    return -1;
-  }
-}
-
-// Adds the parsed value of hex_digit, shifted left by shift to
-// sentence->receivedChecksum.
-static bool addToCheckSum(char hex_digit, int shift, NmeaSentence *sentence) {
-  int value = getHexDigitValue(hex_digit);
-  if (value < 0) {
     return false;
   }
-  sentence->receivedChecksum |= (value << shift);
+}
+
+// Checks that checksum_chars are valid hex characters, populates
+// output with their value and returns true on success.
+bool ParseChecksum(const string& checksum_chars, int* output) {
+  if (checksum_chars.size() != 2) return false;
+
+  int digits[2];
+  if (!GetHexDigitValue(checksum_chars[0], &digits[0]) ||
+      !GetHexDigitValue(checksum_chars[1], &digits[1])) {
+    return false;
+  }
+
+  *output = (digits[0] * 0x10) + digits[1];
   return true;
 }
+}  // anonymous namespace
 
-NmeaParsingState npProcessByte(NmeaParser *p,
-                               NmeaSentence *sentence,
-                               char data) {
-  NmeaParsingState result = NMEA_PARSER_STILL_PARSING;
-  p->totBytes++;
-
-  switch(p->state) {
-    // Search for start of message '$'.
-    case NMEA_PARSER_STATE_SEARCH_FOR_START:
-      if(data == SENTENCE_START_CHAR) {
-        resetSentence(p, sentence);
-        p->state = NMEA_PARSER_STATE_CMD;
-      }
-      // Else: skip data.
-      break;
-
-    // Retrieve command (NMEA Address).
-    case NMEA_PARSER_STATE_CMD:
-      if (data == ARG_SEPARATOR_CHAR) {
-        if(startNewArgument(data, p, sentence)) {
-          p->state = NMEA_PARSER_STATE_CMD;
-        } else {
-          p->state = NMEA_PARSER_STATE_SEARCH_FOR_START;
-          p->totErr++;
-          result = NMEA_PARSER_DATA_OVERFLOW_ERROR;
-        }
-      } else if (data == CHECKSUM_START_CHAR) {
-        // Start of checksum, end of data.
-        finalizeSentence(p, sentence);
-        p->state = NMEA_PARSER_STATE_CHECKSUM_1;
-      } else if (data == '\r' || data == '\n') {
-        // Sentence without checksum.
-        finalizeSentence(p, sentence);
-        p->totSentences++;
-        p->state = NMEA_PARSER_STATE_SEARCH_FOR_START;
-        result = NMEA_PARSER_SENTENCE_PARSED;
-      } else {
-        // Regular data byte.
-        if(!addDataToSentence(data, true, p, sentence)) {
-          p->state = NMEA_PARSER_STATE_SEARCH_FOR_START;
-          p->totErr++;
-          result = NMEA_PARSER_DATA_OVERFLOW_ERROR;
-        }
-      }
-      break;
-
-    case NMEA_PARSER_STATE_CHECKSUM_1:
-      // High order checksum byte. Shift left by 4.
-      if (addToCheckSum(data, 4, sentence)) {
-        p->state = NMEA_PARSER_STATE_CHECKSUM_2;
-      } else {
-        // Invalid checksum digit.
-        p->state = NMEA_PARSER_STATE_SEARCH_FOR_START;
-        p->totErr++;
-        result = NMEA_PARSER_INCORRECT_CHECKSUM;
-      }
-      break;
-
-    case NMEA_PARSER_STATE_CHECKSUM_2:
-      // Low order checksum byte. No shift left.
-      if (addToCheckSum(data, 0, sentence) &&
-          sentence->checksum == sentence->receivedChecksum) {
-        p->totSentences++;
-        result = NMEA_PARSER_SENTENCE_PARSED;
-      } else {
-        // Invalid checksum digit or non-matching checksum.
-        p->totErr++;
-        result = NMEA_PARSER_INCORRECT_CHECKSUM;
-      }
-      p->state = NMEA_PARSER_STATE_SEARCH_FOR_START;
-      break;
-
-    default:
-      // Unknown state. This assertion will fail.
-      assert(p->state == NMEA_PARSER_STATE_SEARCH_FOR_START);
-  }
-  return result;
+NmeaParser::Result NmeaParser::Failure(
+    NmeaParser::Result error_code,
+    int bytes_read,
+    NmeaSentence* output) {
+  // Assert(error_code != SENTENCE_PARSED)
+  output->parts.clear();
+  num_bytes_read_ += bytes_read;
+  ++num_errors_;
+  return error_code;
 }
 
-void npPrintRawSentenceData(NmeaSentence *sentence) {
-  int i;
-  printf("$%s", sentence->argv[0]);
-  for (i = 1; i < sentence->argc; ++i) {
-    printf(",%s", sentence->argv[i]);
+NmeaParser::Result NmeaParser::Success(int bytes_read) {
+  num_bytes_read_ += bytes_read;
+  ++num_correct_sentences_;
+  return SENTENCE_PARSED;
+}
+
+NmeaParser::Result NmeaParser::Parse(const string& nmea_line,
+                                     NmeaSentence* output) {
+  const size_t end_of_line = std::min(nmea_line.size(),
+                                      nmea_line.find_first_of("\n\r"));
+  // Assert(output != NULL)
+  output->parts.clear();
+  if (nmea_line.empty()) {
+    return Failure(INCORRECT_START_CHAR, 0, output);
   }
-  printf("*%X\n", sentence->checksum);
+
+  set<char> start_chars;
+  start_chars.insert('$');
+  start_chars.insert('!');
+  if (start_chars.find(nmea_line[0]) == start_chars.end()) {
+    return Failure(INCORRECT_START_CHAR, 1, output);
+  }
+
+  size_t start = 0;
+  for (size_t found = nmea_line.find(',', start);
+       found != string::npos;
+       found = nmea_line.find(',', start)) {
+    // Assert(found != string::npos)
+    output->parts.push_back(nmea_line.substr(start, found - start));
+    start = found + 1;
+  }
+
+  size_t checksum_start = nmea_line.find('*', start);
+  if (checksum_start == string::npos ||          // Checksum must be present.
+      end_of_line - checksum_start != 3) {  // Two checksum digits and '*'.
+    return Failure(CHECKSUM_MISSING,
+                   std::min(end_of_line, checksum_start),
+                   output);
+  }
+  output->parts.push_back(nmea_line.substr(start, checksum_start - start));
+
+  if (!ParseChecksum(nmea_line.substr(checksum_start + 1, 2),
+                     &output->receivedChecksum)) {
+    return Failure(MALFORMED_CHECKSUM, end_of_line, output);
+  }
+
+  // TODO(rekwall): calculate the checksum of the sentence here.
+
+  return Success(end_of_line);
+}
+
+string NmeaSentence::DebugString() const {
+  if (parts.empty()) {
+    return "(Invalid/empty sentence)";
+  }
+
+  string result = parts[0];
+  for (int i = 1; i < parts.size(); ++i) {
+    result.append("," + parts[i]);
+  }
+  char checksum_chars[3];
+  snprintf(checksum_chars, 3, "%02X", checksum);
+  result.append(checksum_chars, 2);
+  result.append("\n");
+  return result;
 }
