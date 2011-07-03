@@ -338,6 +338,7 @@ int main(int argc, char* argv[]) {
         sigset_t sigmask;
         sigemptyset(&sigmask);
         sigaddset(&sigmask, SIGCHLD);
+        sigaddset(&sigmask, SIGPIPE);
         if (sigprocmask(SIG_BLOCK, &sigmask, NULL) == -1) crash("sigprocmask");
 
         struct sigaction sa;

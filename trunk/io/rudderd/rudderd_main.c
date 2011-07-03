@@ -197,6 +197,8 @@ int main(int argc, char* argv[]) {
 
 	if (argc != 1) usage();
 
+	if (signal(SIGPIPE, SIG_IGN) == -1) crash("signal");
+
         // Set up socket
 	unlink(path_to_socket);
 
