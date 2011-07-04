@@ -96,6 +96,10 @@ static int DecodePDUMessage(const unsigned char* buffer,
 	break;
     }
   }
+  if (output_text_length < sms_text_length) {  // Add last remainder.
+    output_sms_text[output_text_length++] =
+        buffer[i - 1] >> (8 - carry_on_bits);
+  }
   return output_text_length;
 }
 
@@ -206,8 +210,10 @@ int DecodeSMS(const unsigned char* buffer, const int buffer_length,
     return -1;
   const int sms_deliver_start = 1 + buffer[0];
   if (sms_deliver_start + 1 > buffer_length ||
-      buffer[sms_deliver_start] != SMS_DELIVER_ONE_MESSAGE)
+      (buffer[sms_deliver_start] & SMS_DELIVER_ONE_MESSAGE !=
+       SMS_DELIVER_ONE_MESSAGE)) {
     return -1;
+  }
 
   const int sender_number_length = buffer[sms_deliver_start + 1];
   if (sender_number_length + 1 > sender_phone_number_size)
