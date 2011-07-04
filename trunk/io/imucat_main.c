@@ -164,7 +164,7 @@ static float decode_float(uint8_t** dd) {
 int imu_decode_variables(uint8_t* b, int len, uint16_t mode, uint32_t settings, struct IMUProto* vars) {
 	uint8_t *e = b + len;
 
-#define checklen(x, n)							\
+#define checklen(x, n)	\
 	if (e - b < n) {  if (debug) fprintf(stderr, "checklen %s\n", #x); return -1; }
 
 	if (mode & IMU_OM_TMP) {
