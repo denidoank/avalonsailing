@@ -4,7 +4,14 @@
 //
 // Open serial port and decode NMEA messages
 // 
-
+//
+// NMEA 0183 official page:
+// http://www.nmea.org/content/nmea_standards/nmea_083_v_400.asp
+//
+// Other unofficial and free sources:
+// NMEA protocol: http://www.serialmon.com/protocols/nmea0183.html
+// GPS NMEA messages: http://www.gpsinformation.org/dale/nmea.htm
+//
 #include <errno.h>
 #include <fcntl.h>
 #include <stdarg.h>
@@ -17,6 +24,13 @@
 #include <time.h>
 #include <sys/time.h>
 #include <unistd.h>
+
+// -----------------------------------------------------------------------------
+//   Avalon-specific tweaks
+// -----------------------------------------------------------------------------
+
+// the windsensor ($WIMVX) is mounted under an angle to the sail on the mast.
+const double AVALON_WINDSENSOR_OFFSET = -27.0; 
 
 // -----------------------------------------------------------------------------
 //   Together with getopt in main, this is our minimalistic UI
@@ -103,8 +117,8 @@ struct WindProto {
 
 // For use in printf and friends.
 #define OFMT_WINDPROTO(x, n) \
-	"timestamp_ms:%lld angle_deg:%.3lf relative:%d speed_m_s:%.2lf valid:%d%n", \
-	(x).timestamp_ms, (x).angle_deg, (x).relative, (x).speed_m_s, (x).valid, (n)
+	"timestamp_ms:%lld angle_deg:%.3lf speed_m_s:%.2lf relative:%d valid:%d%n", \
+	(x).timestamp_ms, (x).angle_deg, (x).speed_m_s, (x).relative, (x).valid, (n)
 
 int parse_wimvx(char* sentence, struct WindProto* wp) {
 	char* flde;
@@ -113,7 +127,7 @@ int parse_wimvx(char* sentence, struct WindProto* wp) {
 
 	fld = strsep(&sentence, ",");   // field 1: angle in degrees
 	if (!fld) return 0;
-	wp->angle_deg = strtod(fld, &flde);
+	wp->angle_deg = strtod(fld, &flde) + AVALON_WINDSENSOR_OFFSET;
 	if (*flde) return 0;
 
 	fld = strsep(&sentence, ",");  // field 2: "R" for relative
@@ -246,7 +260,7 @@ int main(int argc, char* argv[]) {
 		}
 
 		if (strncmp(start, "WIXDR", 5) == 0) {
-			// ignore
+			// ignore: temperature and voltages
 			continue;
 		}
 
