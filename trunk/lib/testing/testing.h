@@ -16,6 +16,14 @@
 
 #define TEST(class_name, test_case)  void class_name##_##test_case()
 
+#define EXPECT_THAT(cond) \
+  if (!(cond)) { \
+    std::cout << __FILE__ << ":" <<__LINE__ \
+    << "\nTest condition failed with actual:\n"; \
+    std::cout << (cond) << "\n"; \
+    exit(1); \
+  } 
+
 #define EXPECT_EQ(a, b) \
   do { \
     if ((a) != (b)) { \
