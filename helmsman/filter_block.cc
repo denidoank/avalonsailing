@@ -26,7 +26,8 @@ struct FilterElement {
 };
 
 const double kShortFilterPeriod = 1.0; // s
-const double kLongFilterPeriod = 100.0; // s
+const double kLongFilterPeriod = 100.0; // s, N.B. The state Initial cannot be
+                                        // shorter than this time period.
 }  // namespace
 
 

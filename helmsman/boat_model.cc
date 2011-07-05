@@ -25,12 +25,13 @@ BoatModel::BoatModel(double sampling_period,
       homing_counter_left_(50),
       homing_counter_right_(20),
       north_(0),
-      east_(0) {}
+      east_(0),
+      apparent_(0, 0) {}
 
 // The x-component of the sail force, very roughly.
 double BoatModel::ForceSail(Polar apparent, double gamma_sail) {
 
-  double angle_attack = gamma_sail - apparent.AngleRad() - M_PI;
+  double angle_attack = SymmetricRad(gamma_sail - apparent.AngleRad() - M_PI);
   double lift;
   // Improvements see:
   // https://docs.google.com/a/google.com/viewer?a=v&pid=explorer&srcid=0B9PVZMr3Jl1ZZGRlMWRlOTEtOTNhNC00NGY0LWJmNzAtOTU3YzY0NWZhY2U5&hl=en
@@ -44,11 +45,21 @@ double BoatModel::ForceSail(Polar apparent, double gamma_sail) {
 }
 
 // The rotational acceleration effect of the rudder force, very roughly.
-double BoatModel::RudderAcc(double water_speed, double gamma_rudder) {
-  // staal above 25 degrees
+double BoatModel::RudderAcc(double gamma_rudder, double water_speed) {
+  // This can lead to oscillations in the model due to the bad Euler integration
+  // model. The magic damping factor 0.7 dampens these oscillation artefacts.
+  double alpha_water = 0;
+  if (water_speed > 0)
+    alpha_water = 0.7 * -atan2(omega_ * 1.9, water_speed);  // 1.9 m distance COG to rudder
+  gamma_rudder -= alpha_water;
+    
+  // stall above 25 degrees
   double lift = (fabs(gamma_rudder) < Deg2Rad(25)) * -gamma_rudder / Deg2Rad(10);
-  // 2 rudders * area * rho_water / 2; assumed 120 kg m^2
-  return lift * water_speed * water_speed * 0.085 * 2 * 1030 / 2 / 120 * Sign(water_speed);
+
+  return (lift * water_speed * water_speed * Sign(water_speed) * 
+          (0.085 * 2 * 1030 / 2)        // 2 rudders * area * rho_water / 2; 
+          - 20 * omega_) /              // viscose damping
+              120 ;                     // assumed inertia of 120 kg m^2
 }
 
 double BoatModel::Saturate(double x, double limit) { 
@@ -71,7 +82,8 @@ void BoatModel::SimDrives(const DriveReferenceValuesRad& drives_reference,
 
   FollowRateLimited(drives_reference.gamma_sail_star_rad,
                     kOmegaMaxSail, &gamma_sail_); 
-     drives->homed_sail = true;
+  drives->gamma_sail_rad = gamma_sail_;
+  drives->homed_sail = true;
 
   if (homing_counter_left_ <= 0) {
     FollowRateLimited(drives_reference.gamma_rudder_star_left_rad,
@@ -100,29 +112,43 @@ void BoatModel::SimDrives(const DriveReferenceValuesRad& drives_reference,
 void BoatModel::Simulate(const DriveReferenceValuesRad& drives_reference, 
                          Polar true_wind,
                          ControllerInput* in) {
-  in->Reset();
-  Polar apparent(0 ,0);  // apparent wind in the boat frame
-  ApparentPolar(true_wind, Polar(phi_z_, v_x_), &apparent);
+  in->imu.Reset();
+  in->wind.Reset();
+  // alpha_star remains
+ 
+  apparent_ = Polar (0, 0);  // apparent wind in the boat frame
+  ApparentPolar(true_wind, Polar(phi_z_, v_x_), &apparent_);
 
   // Euler integration, acc turns clockwise
-  omega_ += RudderAcc(gamma_rudder_right_, v_x_) * period_  - 0.01 * omega_;
+  // Homing is symmetric and does not produce much rotation.
+  if (in->drives.homed_rudder_right && in->drives.homed_rudder_left)
+    omega_ += RudderAcc(gamma_rudder_right_, v_x_) * period_;
   phi_z_ += omega_ * period_;
   phi_z_ = NormalizeRad(phi_z_);
 
 
-  v_x_ += period_ / 535.0 * (ForceSail(apparent, gamma_sail_) +
-                             v_x_ * v_x_ * -Sign(v_x_) * 1030/2*0.1);  // eqiv. area 0.5m^2
-  //printf("%g\n", v_x_ * v_x_ * -Sign(v_x_) * 1030/2*0.5);
-  
+  v_x_ += period_ / 535.0 * (ForceSail(apparent_, gamma_sail_) +
+                             0.2 * v_x_ * v_x_ * -Sign(v_x_) * 1030/2);  // eqiv. area 0.2m^2
+
   north_ += v_x_ * cos(phi_z_) * period_;
   east_  += v_x_ * sin(phi_z_) * period_;
   
-  double angle_sensor = apparent.AngleRad() + kWindSensorOffsetRad - gamma_sail_;
-
-  // Add Wind sensor offset to boat.m
+  // Sensor signal is:
+  // The true wind vector direction - (all the angles our sensor is turned by),
+  // where the latter expands to
+  // phi_z_ (rotation of the boat) +
+  // gamma_s (rotation of the mast) +
+  // sensor Offset (rotation of the sensor zero relative to the mast) +
+  // pi (sensor direction convention is to indicate where the wind comes from,
+  // not where the vector is pointing to as we do with all our stuff)
+  
+  // The apparent wind vector in the boat system contains the true wind and the
+  // boats rotation already. Thus:
+  double angle_sensor = apparent_.AngleRad() - (
+      kWindSensorOffsetRad + gamma_sail_ + M_PI);
 
   in->wind.alpha_deg = NormalizeDeg(Rad2Deg(angle_sensor));
-  in->wind.mag_kn = MeterPerSecondToKnots(apparent.Mag());
+  in->wind.mag_kn = MeterPerSecondToKnots(apparent_.Mag());
   SimDrives(drives_reference, &in->drives);
   in->imu.speed_m_s = v_x_;
   in->imu.position.longitude_deg = east_;
@@ -144,12 +170,34 @@ void BoatModel::Simulate(const DriveReferenceValuesRad& drives_reference,
 }
 
 void BoatModel::Print(double t) {
- printf("%5.3f %6.4f %6.4f %6.4f %6.4f %6.4f %6.4f\n",
+ printf("%6.3f %8.3f %8.3f %8.3f %8.3f %8.3f %8.3f (%8.3f)\n",
         t, north_, east_, Rad2Deg(SymmetricRad(phi_z_)), v_x_,
-        Rad2Deg(gamma_sail_), Rad2Deg(gamma_rudder_right_));
+        Rad2Deg(gamma_sail_), Rad2Deg(gamma_rudder_right_), Rad2Deg(apparent_.AngleRad()));
 }
 
 void BoatModel::PrintHeader() {
- printf("time/s North/m, East/m, phi/degree, v/m/s, sail, rudder");
+ printf("\n%-7s %-8s %-8s %-8s %-8s %-8s %-8s\n",
+        "time/s", "North/m", "East/m",
+        "phi/deg", "v/m/s", "sail/deg", "rudder/deg");
 }
 
+
+void BoatModel::SetSpeed(double speed){
+  v_x_ = speed;
+}
+
+void BoatModel::SetPhiZ(double  phi_z){
+  phi_z_ = phi_z;
+}
+
+void BoatModel::SetOmega(double omega){
+  omega_ = omega;
+}
+
+double BoatModel::GetSpeed() {
+  return v_x_;
+}
+
+double BoatModel::GetPhiZ() {
+  return phi_z_;
+}

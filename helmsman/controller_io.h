@@ -12,6 +12,9 @@
 
 // Input definition
 struct ControllerInput {
+  ControllerInput() {
+    Reset();
+  }  
   void Reset () {
     imu.Reset();
     wind.Reset();

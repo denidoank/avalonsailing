@@ -13,4 +13,6 @@
 
 double Sign(double x);
 
+double SignNotZero(double x);
+
 #endif  // COMMON_SIGN_H

@@ -19,5 +19,8 @@ const double kDragMax = Deg2Rad(93);             // 93 degree because of slightl
 // varies by +-5 degrees even when filtered over 90s.
 const double kSwitchBackDelay = 20;              // seconds, Do not switch back for 20s! 
 
+const double kHalfHysteresisSign = Deg2Rad(25);  // for the sign logic
+
+
 #endif  // HELMSMAN_SAIL_CONTROLLER_CONST_H
 

@@ -9,5 +9,8 @@ Controller::~Controller() {}
 void Controller::Entry(const ControllerInput& in,
                        const FilteredMeasurements& filtered) {}
 
-void Controller::Exit() {}
+bool Controller::Done() {
+  return false;
+}
 
+void Controller::Exit() {}
