@@ -4,7 +4,7 @@
 #ifndef LIB_FM_FM_MESSAGES_H__
 #define LIB_FM_FM_MESSAGES_H__
 
-#define FM_MSG_TASK_KEEPALIVE "name:%s time:%ld iter:%ld err:%ld warn:%ld"\
+#define FM_MSG_TASK_KEEPALIVE "name:%s time:%ld iter:%ld err:%ld warn:%ld "\
                                "info:%ld cpu:%ld mem:%ld%s"
 #define FM_MSG_DEVICE_KEEPALIVE "name:%s time:%ld valid:%ld cerr:%ld hwerr:%ld"
 

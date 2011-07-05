@@ -11,6 +11,7 @@
 #include <unistd.h>
 
 #include "io/ipc/key_value_pairs.h"
+#include "lib/config/properties.h"
 #include "lib/util/delayed_event.h"
 #include "lib/util/reader.h"
 #include "lib/util/stopwatch.h"
@@ -46,12 +47,15 @@ class SysMon : public DelayedEvent {
 
  private:
   void OpenSocket(const char *socket_name);
+
+  void CreatePassiveEntities();
   void CreateTaskEntities(const ProcessTable &procTable);
+  void CreateDeviceEntities();
 
   bool GetMessage(char *buffer, int size, int timeout_ms);
 
   EntityMap entities_;
-  KeyValuePair properties_;
+  Properties properties_;
 
   int msg_socket_;
   FILE *pipe_;

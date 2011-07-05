@@ -17,8 +17,9 @@
 
 #include "lib/fm/fm_messages.h"
 #include "lib/fm/log.h"
-#include "lib/config/properties.h"
-#include "sysmgr/entity.h"
+#include "lib/util/strings.h"
+#include "sysmgr/active_entity.h"
+#include "sysmgr/passive_entity.h"
 #include "sysmgr/process_table.h"
 
 static const char *defaults[][2] = {{"socket", "/tmp/sysmon"},
@@ -32,10 +33,12 @@ SysMon::SysMon(int timeout_s, int sysmgr_pipe, const char *config_file,
   // LoadProperties(defaults, config_file, &properties_);
 
   std::string socket;
-  FM_ASSERT(properties_.Get("socket", &socket));
+  FM_ASSERT(properties_.GetKeyVals().Get("socket", &socket));
   OpenSocket(socket.c_str());
 
+  CreatePassiveEntities();
   CreateTaskEntities(proc_table);
+  CreateDeviceEntities();
   LoadAlarmLog();
 
   // Create FILE from pipe fd
@@ -60,11 +63,10 @@ int SysMon::Run() {
   while(1) {
     if (GetMessage(buffer, sizeof(buffer),
                    DelayedEvent::GetWaitTimeS(3) * 1000)) {
-        printf("%s\n", buffer);
         std::string msg_string = buffer;
         KeyValuePair msg(msg_string);
         std::string name;
-
+        FM_LOG_DEBUG("%s", buffer);
         if (msg.Get("name", &name)) {
           EntityMap::iterator it = entities_.find(name);
           if ( it != entities_.end()) {
@@ -97,7 +99,7 @@ void SysMon::ExecuteAction(const char *cmd) {
 
 bool SysMon::LoadAlarmLog() {
   std::string filename;
-  if (!properties_.Get("alarm_log", &filename)) {
+  if (!properties_.GetKeyVals().Get("alarm_log", &filename)) {
     return false;
   }
   FILE *fp = fopen(filename.c_str(), "r");
@@ -108,8 +110,7 @@ bool SysMon::LoadAlarmLog() {
   struct stat file_stats;
   if (fstat(fileno(fp), &file_stats) != -1) {
     time_t now = time(NULL);
-    long log_timeout = 60 * 10;
-    properties_.GetLong("alarm_log_timeout_s", &log_timeout);
+    long log_timeout = properties_.Get("alarm_log_timeout_s", 60L * 10);
     if (now - file_stats.st_mtime > log_timeout) {
       FM_LOG_INFO("alarm log file is older than %lds - ignoring content",
                   log_timeout);
@@ -148,7 +149,7 @@ bool SysMon::LoadAlarmLog() {
 
 bool SysMon::StoreAlarmLog() {
   std::string filename;
-  if (!properties_.Get("alarm_log", &filename)) {
+  if (!properties_.GetKeyVals().Get("alarm_log", &filename)) {
     return false;
   }
   FILE *fp = fopen(filename.c_str(), "w");
@@ -181,16 +182,106 @@ void SysMon::OpenSocket(const char *socket_name) {
   FM_LOG_INFO("Open socket %s", socket_name);
 }
 
+void SysMon::CreatePassiveEntities() {
+  {
+  std::string name = "controller-power";
+  RecoveryPolicy policy(properties_.Get(name + ".repair_time", 600L), // 10min
+                        properties_.Get(name + ".retry_time", 86400L)); // 24h
+  SystemEntity *system;
+  FM_ASSERT(system = new SystemEntity(name.c_str(),
+                                      "power-cycle power-bus-cpu",
+                                      policy, this));
+  entities_[name] = system;
+  }
+ {
+  std::string name = "motors-power";
+  RecoveryPolicy policy(properties_.Get(name + ".repair_time", 600L), // 10min
+                        properties_.Get(name + ".retry_time", 43200L)); // 12h
+  PowerBusEntity *motors;
+  FM_ASSERT(motors = new PowerBusEntity(name.c_str(),
+                                        "power-cycle power-bus-main",
+                                        policy, this));
+  entities_[name] = motors;
+  }
+ {
+  std::string name = "sensors-power";
+  RecoveryPolicy policy(properties_.Get(name + ".repair_time", 300L), // 5min
+                        properties_.Get(name + ".retry_time", 21600L)); // 6h
+  PowerBusEntity *sensors;
+  FM_ASSERT(sensors = new PowerBusEntity(name.c_str(),
+                                         "power-cycle power-bus-aux",
+                                         policy, this));
+  entities_[name] = sensors;
+  }
+}
+
 void SysMon::CreateTaskEntities(const ProcessTable &procTable) {
+  EntityList recovery_order;
+  recovery_order.push_back(entities_["controller-power"]);
   for (int i = 0; i < procTable.task_count_; i++) {
     std::string name = procTable.tasks_[i].name;
     long timeout = procTable.tasks_[i].timeout;
 
     TaskEntity *task;
-    FM_ASSERT(task = new TaskEntity(name.c_str(), timeout, this));
+    RecoveryPolicy policy(properties_.Get(name + ".repair_time", 10L),
+                          properties_.Get(name + ".retry_time", 60L));
+    FM_ASSERT(task = new TaskEntity(name.c_str(), timeout,
+                                    properties_.Get(name + ".alarm_hold_time",
+                                                    2 * timeout),
+                                    policy, recovery_order, this, properties_));
     entities_[name] = task;
   }
   FM_LOG_INFO("created %d monitoring task entities", procTable.task_count_);
+}
+
+void SysMon::CreateDeviceEntities() {
+  std::string value;
+  if (!properties_.GetKeyVals().Get("devices", &value)) {
+      FM_LOG_ERROR("no devices registered");
+      return;
+    }
+  std::vector<std::string> dev_list;
+  if (!SplitString(value, ',', &dev_list)) {
+    FM_LOG_ERROR("devices is not a proper ',' separated list: '%s'",
+                 value.c_str());
+    return;
+  }
+
+  for (std::vector<std::string>::iterator it = dev_list.begin();
+       it != dev_list.end(); ++it) {
+    std::string &name = *it;
+
+    if (!properties_.GetKeyVals().Get(name + ".recovery_order", &value)) {
+      FM_LOG_ERROR("no recovery_order for %s", name.c_str());
+      continue;
+    }
+    std::vector<std::string> recovery_list;
+    if (!SplitString(value, ',', &recovery_list)) {
+      FM_LOG_ERROR("recovery_order is not a proper ',' separated list: '%s'",
+                   value.c_str());
+      return;
+    }
+
+    EntityList recovery_order;
+    for (std::vector<std::string>::iterator it = recovery_list.begin();
+         it != recovery_list.end(); ++it) {
+      EntityMap::iterator mit = entities_.find(*it);
+      if (mit == entities_.end()) {
+        FM_LOG_ERROR("Could not find entity '%s'", it->c_str());
+      }
+      recovery_order.push_back(mit->second);
+    }
+    RecoveryPolicy policy(properties_.Get(name + ".repair_time", 10L),
+                          properties_.Get(name + ".retry_time", 60L));
+    DeviceEntity *device;
+    FM_ASSERT(device = new DeviceEntity(name.c_str(),
+                                        properties_.Get(name + ".timeout", 10L),
+                                        properties_.Get(
+                                            name + ".alarm_hold_time", 30L),
+                                        policy, recovery_order,
+                                        this, properties_));
+    entities_[name] = device;
+  }
 }
 
 bool SysMon::GetMessage(char *buffer, int size, int timeout_ms) {

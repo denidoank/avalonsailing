@@ -42,6 +42,8 @@ class RecoveryPolicy {
   // Delay in seconds until we are allowed to start a recovery for this alarm.
   long NextAuthorizedRecoveryTimeS(const Alarm &alarm) const;
 
+  long GetRepairTimeS() { return repair_time_s_; };
+
   void LoadState(const KeyValuePair &data);
   void StoreState(KeyValuePair *data) const;
 

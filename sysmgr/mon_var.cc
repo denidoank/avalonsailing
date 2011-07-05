@@ -33,7 +33,7 @@ std::string MonVar::ToString() const {
 }
 
 void MonVar::ManageAlarm(bool condition, SysMon *sysmon) {
-  if (!var_alarm_.Update(condition)) {
+  if (var_alarm_.Update(condition)) {
     sysmon->SendSMS(var_alarm_.ToString());
   }
 }
