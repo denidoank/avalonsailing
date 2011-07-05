@@ -38,8 +38,8 @@ long DelayedEvent::GetWaitTimeS(long default_delay_s) {
   if (schedule_.begin() == schedule_.end()) {
     return default_delay_s;
   }
-  return schedule_.begin()->first - now;
-
+  long delay = schedule_.begin()->first - now;
+  return (delay > 0) ? delay : 0;
 }
 
 std::map<time_t, DelayedEvent *> DelayedEvent::schedule_;

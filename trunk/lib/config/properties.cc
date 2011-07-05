@@ -49,8 +49,10 @@ std::string Properties::Get(const std::string &key,
                             const std::string &default_string) const {
   std::string result;
   if (properties_.Get(key, &result)) {
+    FM_LOG_DEBUG("%s:%s *", key.c_str(), result.c_str());
       return result;
   } else {
+    FM_LOG_DEBUG("%s:%s", key.c_str(), default_string.c_str());
     return default_string;
   }
 }
@@ -58,8 +60,10 @@ std::string Properties::Get(const std::string &key,
 double Properties::Get(const std::string &key, double default_double) const {
   double result;
   if (properties_.GetDouble(key, &result)) {
+   FM_LOG_DEBUG("%s:%f *", key.c_str(), result);
     return result;
   } else {
+    FM_LOG_DEBUG("%s:%f", key.c_str(), default_double);
     return default_double;
   }
 }
@@ -67,8 +71,10 @@ double Properties::Get(const std::string &key, double default_double) const {
 long Properties::Get(const std::string &key, long default_long) const {
   long result;
   if (properties_.GetLong(key, &result)) {
+    FM_LOG_DEBUG("%s:%ld *", key.c_str(), result);
     return result;
   } else {
+    FM_LOG_DEBUG("%s:%ld", key.c_str(), default_long);
     return default_long;
   }
 }
@@ -77,11 +83,14 @@ bool Properties::Get(const std::string &key, bool default_bool) const {
   std::string result;
   if (properties_.Get(key, &result)) {
     if (result == "true" || result == "t" || result == "1") {
+      FM_LOG_DEBUG("%s:t *", key.c_str());
       return true;
     } else {
+      FM_LOG_DEBUG("%s:t *", key.c_str());
       return false;
     }
   } else {
+    FM_LOG_DEBUG("%s:%c", key.c_str(), default_bool ? 't' : 'f');
     return default_bool;
   }
 }

@@ -93,10 +93,6 @@ void ProcessTable::Reap() {
       // Check if this task has gone down
       pid_t pid = waitpid(tasks_[i].pid, NULL, WNOHANG);
       if (pid == tasks_[i].pid) {
-        FM::Monitor().SendMonMsg(FM_MSG_STATUS,
-                           tasks_[i].name,
-                           "FAULT",
-                           "crash detected");
         tasks_[i].pid = -1;
       }
     }

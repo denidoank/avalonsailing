@@ -11,10 +11,13 @@
 #include "lib/util/delayed_event.h"
 #include "sysmgr/alarm.h"
 #include "sysmgr/mon_var.h"
+#include "sysmgr/recovery.h"
+
+class Entity;
+class SysMon;
 
 typedef std::vector<MonVar *> MonVarList;
-
-class SysMon;
+typedef std::vector<Entity *> EntityList;
 
 // Represents an abstract monitored entity.
 //
@@ -27,63 +30,38 @@ class SysMon;
 // entities, which do not receive any messages from a client, but only
 // participate in recovery actions (main computer, edgeport serial converter,
 // power buses etc.).
-class Entity : public DelayedEvent {
+
+class Entity {
  public:
-
-  Entity(const char *name, int timeout_s,
-         SysMon *sysmon) : entity_alarm_(name, "status",
-                                         timeout_s),
-                           timeout_s_(timeout_s),
-                           sysmon_(sysmon),
-                           name_(name) {Schedule(timeout_s);};
+  Entity(const char *name, const RecoveryPolicy &policy, SysMon *sysmon) :
+      name_(name),
+      recovery_policy_(policy),
+      sysmon_(sysmon) {};
   virtual ~Entity();
-
-  // Process a monitoring status message from FM client.
   virtual void ProcessMessage(const KeyValuePair &msg);
 
-  // Trigger next phase of recovery (if alarm is still active).
-  virtual void Recover() = 0;
+   // Store and recover essential entity state from alarm/recovery log.
+  virtual void LoadState(const KeyValuePair &data);
+  virtual void StoreState(KeyValuePair *data);
 
-  // Timer callback.
-  void Handle();
+  // Checks recovery policy if it can execute recovery action
+  // for this root-cause alarm. If yes, RecoveryAction is called
+  // and the function returns true.
+  // In case of succcess, wait_time is set to repair time of this recovery
+  // action and otherwise to the necessary waiting time until the
+  // recovery can be executed.
+  bool TriggerRecovery(const Alarm &root_cause, long *wait_time);
 
-  // Store and recover essential entity state from alarm/recovery log.
-  void LoadState(const KeyValuePair &data);
-  void StoreState(KeyValuePair *data);
+  const std::string &GetName() const { return name_; }
 
  protected:
-  bool CheckMonStatus();
+  // Hook for executing the appropriate local recovery action for this entity.
+  // (Called by self-delegation from TriggerRecovery after policy check)
+  virtual void RecoveryAction() = 0;
 
-  Alarm entity_alarm_; // Status alarm
-
-  MonVarList mon_var_list_; // List of monitored variables
-
-  const int timeout_s_; // Entity keepalive timeout
   const std::string name_;
-  SysMon *sysmon_; // Interface to telemetry SMS & recovery actions
+  RecoveryPolicy recovery_policy_;
+  SysMon *sysmon_;
 };
 
-// Active Entity representing a unix process.
-//
-// Handles messages from FM:Keepalive and FM:SetStatus.
-class TaskEntity : public Entity {
- public:
-  TaskEntity(const char *name, int timeout_s, SysMon *sysmon);
-  ~TaskEntity();
-
-  void ProcessMessage(const KeyValuePair &msg);
-  void Recover();
- private:
-  // Variables reported in keepalive messages.
-  enum {
-    VAR_ERRORS, // Rate of log messages of severity error.
-    VAR_LOG, // Overall rate of log messages.
-    VAR_CPU, // CPU utilization.
-    VAR_MEM // Memory allocation.
-  };
-};
-
-// TODO(bsuter): implement DeviceEntity
-// TODO(bsuter): implement passive entities for recovery
-// corresponding to each reboot or power-cycle action.
 #endif // SYSMGR_ENTITY_H__
