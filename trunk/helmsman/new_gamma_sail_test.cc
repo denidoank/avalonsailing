@@ -96,7 +96,7 @@ TEST(NewGammaSail, Jibe) {
                &type);
   EXPECT_IN_INTERVAL(-59, Rad2Deg(new_gamma_sail), -58);
   EXPECT_IN_INTERVAL(-115, Rad2Deg(delta_gamma_sail), -114);
-  EXPECT_EQ(kTack, type); // Wrong!!
+  EXPECT_EQ(kTack, type); // Wrong!! TODO(grundmann)
 
   /* Correct jibe, sail turns over the bow, delta gamma is positive and
      has a magnitude of more than 180 degrees.

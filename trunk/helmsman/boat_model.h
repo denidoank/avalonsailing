@@ -7,10 +7,11 @@
 #ifndef HELMSMAN_BOAT_MODEL_H
 #define HELMSMAN_BOAT_MODEL_H
 
-#include "common/polar.h"
-#include "common/sign.h"
+
 #include "common/check.h"
 #include "common/convert.h"
+#include "common/polar.h"
+#include "common/sign.h"
 
 #include "helmsman/apparent.h"
 #include "helmsman/boat.h" 
@@ -18,6 +19,7 @@
 
 class BoatModel {
  public:
+  // everything in radians and meter per second.
   BoatModel(double sampling_period,
             double omega_ = 0,
             double phi_z_ = 0, 
@@ -32,11 +34,17 @@ class BoatModel {
                 ControllerInput* in);
   void Print(double t);
   void PrintHeader();
+  
+  void SetSpeed(double speed);
+  void SetPhiZ(double  phi_z);
+  void SetOmega(double omega);
+  double GetSpeed();
+  double GetPhiZ();
 
  private:
   // The x-component of the sail force, very roughly.
   double ForceSail(Polar sail_wind_angle, double gamma_sail);
-  double RudderAcc(double water_speed, double gamma_rudder);
+  double RudderAcc(double gamma_rudder, double water_speed);
  
   double Saturate(double x, double limit);
   void FollowRateLimited(double in, double max_rate, double* follows);
@@ -44,7 +52,6 @@ class BoatModel {
                  DriveActualValuesRad* drives);
 
   double period_;
-
   double omega_;
   double phi_z_; 
   double v_x_;
@@ -57,5 +64,6 @@ class BoatModel {
   
   double north_;
   double east_;
+  Polar apparent_;  // apparent wind in the boat frame
 };
 #endif  // HELMSMAN_BOAT_MODEL_H

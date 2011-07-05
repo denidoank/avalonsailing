@@ -50,9 +50,13 @@ class SailController {
   double GammaSailInternal(double alpha_wind_rad,
                            double mag_wind,
                            bool stabilized);
+  double HandleSign(double alpha_wind_rad, bool stabilized);
 
   double optimal_angle_of_attack_rad_;
   SailModeLogic logic_;
+  int sign_;  // The sign has to be inert, otherwise we might get into a
+              // situation if the apparent wind is around zero and we would have
+              // to turn the sail from -90 to +90 degrees permanently.
 };
 
 #endif  // HELMSMAN_SAIL_CONTROLLER_H

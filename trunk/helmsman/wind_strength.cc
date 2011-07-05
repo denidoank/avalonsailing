@@ -18,7 +18,7 @@
 //     has difficulties
 //   - the progress made does not justify high energy consumption
 //
-// * Above 18 knots of true wind speed the risk of
+// * Above 36 knots of true wind speed the risk of
 //   - overloading the sail and of
 //   - getting the solar panels on deck or the boat hull damaged
 //   is big.
@@ -27,8 +27,8 @@ namespace {
 const double kCalmLimit_m_s = 0.5;
 const double kCalmLimitHysteresis_m_s = 0.15;
 
-const double kStormLimit_m_s = 10;
-const double kStormLimitHysteresis_m_s = 2;
+const double kStormLimit_m_s = 20;
+const double kStormLimitHysteresis_m_s = 4;
 }  // namespace
 
 WindStrengthRange WindStrength(WindStrengthRange previous_range,

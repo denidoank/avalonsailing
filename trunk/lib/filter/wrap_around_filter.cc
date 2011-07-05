@@ -22,7 +22,6 @@ WrapAroundFilter:: WrapAroundFilter(FilterInterface* filter)
 
 // Returns filtered value in [0, 2*pi)
 double WrapAroundFilter::Filter(double in) {
-  //printf("in:   %6.4f \n", in);
   CHECK_IN_INTERVAL(0, in, 2 * M_PI);
   if (initial_) {
     prev_ = in;

@@ -25,6 +25,12 @@ TEST(Apparent, All) {
   ApparentPolar(true_wind, motion, &app);
   EXPECT_FLOAT_EQ(-0.0833488, app.AngleRad());
   EXPECT_FLOAT_EQ(11.9917, app.Mag());
+
+  true_wind = Polar(Deg2Rad(170), 10);
+  motion = Polar(Deg2Rad(-100.421), -2.652);
+  ApparentPolar(true_wind, motion, &app);
+  EXPECT_FLOAT_EQ(Deg2Rad(-74.754), app.AngleRad());
+  EXPECT_FLOAT_EQ(10.3645, app.Mag());
 }
 
 int main(int argc, char* argv[]) {

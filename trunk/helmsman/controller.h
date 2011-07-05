@@ -18,8 +18,9 @@ class Controller {
   virtual void Run(const ControllerInput& in,
                    const FilteredMeasurements& filtered,
                    ControllerOutput* out) = 0;
-  // default implementaton here
+  // with default implementaton here
   virtual void Exit();
+  virtual bool Done();
   virtual const char* Name() = 0;
 };
 

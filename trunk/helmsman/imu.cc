@@ -6,6 +6,10 @@
 
 #include <stdio.h>
 
+Imu::Imu() {
+  Reset();
+}
+
 void Imu::Reset() {
   speed_m_s = 0;
   position.longitude_deg = 0;

@@ -12,6 +12,9 @@
 
 // Original units from Wind sensor, relative to mast.
 struct WindSensor {
+  WindSensor() {
+    Reset();
+  }
   void Reset() {
     mag_kn = 0;  
     alpha_deg = 0;
