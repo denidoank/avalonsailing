@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include "common/check.h"
 #include "common/convert.h"
+#include "common/delta_angle.h"
 #include "common/normalize.h"
 #include "lib/fm/log.h"
 #include "helmsman/boat.h"  // constants from simulation/boat.m, kMaxOmegaSail
@@ -54,8 +55,8 @@ void ReferenceValues::NewPlan(double phi_z_1,
                               double speed) {
   phi_z_1 = SymmetricRad(phi_z_1);
   phi_z_final_ = phi_z_1;
-  gamma_sail_final_ = gamma_sail_ + delta_gamma_sail;
-  double delta_phi = phi_z_1 - phi_z_;
+  gamma_sail_final_ = gamma_sail_ + delta_gamma_sail;  // intentionally no normalization here, because the sails way may be longer than 180 degrees
+  double delta_phi = DeltaOldNewRad(phi_z_, phi_z_1);
   omega_ = 0;
   // Turn around such that 3 conditions are met:
   // * The sail can follow.

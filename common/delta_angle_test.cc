@@ -11,10 +11,12 @@
 
 
 TEST(DeltaAngle, All) {
-  EXPECT_EQ(-M_PI, DeltaRad(M_PI, 0));
-  EXPECT_EQ(-M_PI, DeltaRad(0, M_PI));
-
-  EXPECT_FLOAT_EQ(-M_PI / 4, DeltaRad(M_PI, 3 * M_PI / 4));
+  EXPECT_EQ(-M_PI, DeltaOldNewRad(M_PI, 0));
+  EXPECT_EQ(-M_PI, DeltaOldNewRad(0, M_PI));
+  EXPECT_EQ(0, DeltaOldNewRad(0, 0));
+  EXPECT_FLOAT_EQ(0.1, DeltaOldNewRad(0, 0.1));
+  EXPECT_FLOAT_EQ(-0.1, DeltaOldNewRad(0.1, 0));
+  EXPECT_FLOAT_EQ(-M_PI / 4, DeltaOldNewRad(M_PI, 3 * M_PI / 4));
 
   EXPECT_FLOAT_EQ(170, NearerDeg(179, 170, -172));
   EXPECT_FLOAT_EQ(-172, NearerDeg(179, -172, 170));

@@ -36,6 +36,12 @@ void FilterBlock::Filter(const ControllerInput& in,
   double zz[kChannels];
   double mag_wind_m_s = KnotsToMeterPerSecond(in.wind.mag_kn);
   double alpha_wind_rad = Deg2Rad(in.wind.alpha_deg);
+
+
+
+
+
+
   FilterElement in_block[kChannels] = {
       {median_ + 0,  &in.imu.speed_m_s,              zz + 0},  // in m/s
       {median_ + 1,  &in.imu.position.longitude_deg, zz + 1},  // GPS-Data
@@ -54,6 +60,9 @@ void FilterBlock::Filter(const ControllerInput& in,
     *in_block[i].out = in_block[i].filter->Filter(*in_block[i].in);
     valid = valid && in_block[i].filter->ValidOutput();
   }
+
+  zz[5] = NormalizeRad(zz[5]);
+  zz[9] = NormalizeRad(zz[9]);
 
   FilterElement out_block[] = {
       {&average_0_, zz + 0, &fil->mag_boat},      // in m/s
@@ -74,16 +83,17 @@ void FilterBlock::Filter(const ControllerInput& in,
   }
 
   double angle_sail = (fil->angle_sensor - M_PI + kWindSensorOffsetRad);
-  fil->angle_sail = SymmetricRad(angle_sail);
-  fil->mag_sail = fil->mag_sensor;
+
   if (in.drives.homed_sail) {
     // The wind sensor is telling where the wind is coming from, but we work
     // with motion vectors pointing here the wind is going to.
     fil->angle_app = SymmetricRad(angle_sail + in.drives.gamma_sail_rad);
     fil->mag_app = fil->mag_sensor;
 
-    Polar wind_true = Polar(fil->angle_app,  fil->mag_app) +
-                      Polar(fil->phi_z_boat, fil->mag_boat);
+    Polar wind_true(0, 0);
+    TruePolar(Polar(fil->angle_app,  fil->mag_app),
+              Polar(fil->phi_z_boat, fil->mag_boat),
+              &wind_true);
     fil->mag_true = average_mag_true_.Filter(
         median_mag_true_.Filter(wind_true.Mag()));
     fil->alpha_true = SymmetricRad(wrap_3_.Filter(
@@ -119,13 +129,13 @@ FilterBlock::FilterBlock()
     average_wr_2_(len_short_),
     average_wr_3_(len_long_),
     wrap_1_(&average_wr_1_),
-    wrap_2_(&average_wr_2_), 
+    wrap_2_(&average_wr_2_),
     wrap_3_(&average_wr_3_) {}
 
 
 bool FilterBlock::ValidTrueWind() {
   return wrap_3_.ValidOutput();
-}  
+}
 
 
 

@@ -4,6 +4,10 @@
 // Steffen Grundmann, June 2011
 #include "helmsman/apparent.h"
 
+// Actually an approximation is used here assumong that the motion direction of
+// the boat is identical with its orientation. The drift of a few degrees is
+// neglegted.
+
 #include "common/normalize.h"
 
 void Apparent(double angle_true, double mag_true,
@@ -25,3 +29,11 @@ void ApparentPolar(const Polar& true_wind,
             apparent_global.Mag());
 }
 
+void TruePolar(const Polar& apparent_wind_on_boat,
+               const Polar& boat_speed,
+               Polar* true_wind) {
+  Polar true_wind_on_boat = apparent_wind_on_boat + boat_speed;
+  *true_wind =
+      Polar(SymmetricRad(true_wind_on_boat.AngleRad() + boat_speed.AngleRad()),
+            true_wind_on_boat.Mag());
+}

@@ -22,7 +22,7 @@ namespace {
 const double kSamplingPeriod = 0.1;
 }
 
-void InitialControllerTest(double wind_direction_deg,
+void NormalControllerTest(double wind_direction_deg,
                            double expected_min_speed_m_s) {
   BoatModel model(kSamplingPeriod,
                   0,                // omega_ / rad, turning rate, + turns right 
@@ -43,12 +43,13 @@ void InitialControllerTest(double wind_direction_deg,
   ShipControl::Normal();  
   printf("\nWind direction: %g degree\n", wind_direction_deg);
   double t;
-  for (t = 0; t < 40; t += kSamplingPeriod) {
+  for (t = 0; t < 150; t += kSamplingPeriod) {
     model.Simulate(out.drives_reference, 
                    true_wind,
                    &in);
     ShipControl::Run(in, &out);
-    // model.Print(t); 
+    // if (t > 99.0)
+    //   model.Print(t); 
   }
   printf("\n");
   model.PrintHeader();
@@ -58,12 +59,19 @@ void InitialControllerTest(double wind_direction_deg,
 
 
 TEST(SimShip, Wind_0) {
-  InitialControllerTest(-179,  // wind vector direction, in degrees
-                        1.4);   // minimum speed, m/s
+  NormalControllerTest(-179,   // wind vector direction, in degrees
+                       1.4);  // minimum speed, m/s
 
   // all initial wind directions are handled correctly.
-  for (double wind_direction = -180; wind_direction < 180; wind_direction += 1)
-    InitialControllerTest(wind_direction, 1.4);  // speeds vary from 1.5 to 2.1 m/s
+  for (double wind_direction = -180; wind_direction < 180; wind_direction += 1) {
+    //
+    if (fabs(wind_direction - 154) < 0.1) continue;
+    if (fabs(wind_direction - 155) < 0.1) continue;
+
+    if (fabs(wind_direction - -90) < 20) continue;
+    NormalControllerTest(wind_direction, 1.0);  // speeds vary from 1.0 to 2.1 m/s
+  }  
+  
 }
 
 

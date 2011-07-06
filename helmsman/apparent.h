@@ -17,4 +17,9 @@ void Apparent(double angle_true, double mag_true,
 void ApparentPolar(const Polar& true_wind,
                    const Polar& boat_speed,
                    Polar* apparent_wind_on_boat);
+
+void TruePolar(const Polar& apparent_wind_on_boat,
+               const Polar& boat_speed,
+               Polar* true_wind);
+                   
 #endif   //  HELMSMAN_APPARENT_H

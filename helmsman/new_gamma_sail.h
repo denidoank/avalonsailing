@@ -21,5 +21,15 @@ void NewGammaSail(double alpha_true, double mag_true,
                   double* delta_gamma_sail,
                   ManeuverType* maneuver_type);
 
+void NewGammaSailWithOldGammaSail(
+                  double alpha_true, double mag_true,
+                  double alpha_boat, double mag_boat,
+                  double new_alpha_boat,
+                  double old_gamma_sail,
+                  ManeuverType maneuver_type,
+                  SailController* sail_controller,
+                  double* new_gamma_sail,
+                  double* delta_gamma_sail);
+
 #endif   // HELMSMAN_NEW_GAMMA_SAIL_H
 

@@ -20,6 +20,7 @@ class SailModeLogic {
   SailMode BestStabilizedMode(double alpha_apparent_wind_rad);
   void LockInWingMode();
   void UnlockMode();
+  void Reset();
  private:
   SailMode mode_;  // need state for hysteresis
   int delay_counter_;
@@ -45,6 +46,7 @@ class SailController {
   void SetOptimalAngleOfAttack(double optimal_angle_of_attack_rad);
   void LockInWingMode();
   void UnlockMode();
+  void Reset();
 
  private:
   double GammaSailInternal(double alpha_wind_rad,

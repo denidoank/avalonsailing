@@ -46,8 +46,10 @@ class BoatModel {
   double ForceSail(Polar sail_wind_angle, double gamma_sail);
   double RudderAcc(double gamma_rudder, double water_speed);
  
-  double Saturate(double x, double limit);
+  double Saturate(double x, double limit); 
   void FollowRateLimited(double in, double max_rate, double* follows);
+  void FollowRateLimitedRadWrap(double in, double max_rate, double* follows);
+
   void SimDrives(const DriveReferenceValuesRad& drives_reference,
                  DriveActualValuesRad* drives);
 

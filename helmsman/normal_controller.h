@@ -37,6 +37,7 @@ class NormalController : public Controller {
                             double alpha_true, double mag_true,
                             double alpha_boat, double mag_boat,
                             double alpha_app,  double mag_app,
+                            double old_gamma_sail,
                             double* phi_z_star,
                             double* omega_z_star,
                             double* gamma_sail_star);

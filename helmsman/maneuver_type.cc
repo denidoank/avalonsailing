@@ -7,19 +7,22 @@
 #include "common/delta_angle.h"
 #include "common/sign.h"
 
-namespace {
-double BinarySign(double x) {
-  return x >= 0 ? 1 : -1;
-}
-}  // namespace
 
-ManeuverType FindManeuverType(double old_apparent_angle,
-                              double new_apparent_angle) { 
-  if (BinarySign(old_apparent_angle) == BinarySign(new_apparent_angle))
-    return kChange;
-  if (BinarySign(old_apparent_angle) *
-      BinarySign(DeltaRad(old_apparent_angle, new_apparent_angle)) > 0)
-    return kTack;
-  else
+// old and new angle of heading relative to true wind
+ManeuverType FindManeuverType(double old_phi_z,
+                              double new_phi_z,
+                              double true_direction) {
+  double old_delta = DeltaOldNewRad(true_direction, old_phi_z);                                  
+  double new_delta = DeltaOldNewRad(true_direction, new_phi_z);                                  
+  double turn = DeltaOldNewRad(old_phi_z, new_phi_z);   
+
+  // If the motion direction crosses the true wind vector, then it is a jibe.
+  if (old_delta * new_delta < 0 &&
+      turn * old_delta < 0)
     return kJibe;
+  // The opposite case: a tack.     
+  if (Reverse(old_delta) * Reverse(new_delta) < 0 &&
+      turn * Reverse(old_delta) < 0)
+    return kTack;
+  return kChange;  
 }

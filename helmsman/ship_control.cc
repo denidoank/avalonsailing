@@ -35,7 +35,7 @@ void ShipControl::Transition(Controller* new_state,
   controller_->Exit();
   controller_ = new_state;
   FM_LOG_INFO("Entering %s", controller_->Name());
-  printf("Entering %s", controller_->Name());
+  printf("Entering %s\n", controller_->Name());
   controller_->Entry(in, filtered_);  
 }
 
@@ -98,14 +98,14 @@ void ShipControl::StateMachine(const ControllerInput& in) {
       Transition(&normal_to_storm_controller_, in);
       return;
     }
-
+    */
     if (controller_->Done() &&
         wind_strength_ == kNormalWind &&
-        filter_block_.ValidTrueWind()) {
+        filter_block_->ValidTrueWind()) {
       Transition(&normal_controller_, in);
       return;
     }
-    */
+
   }
 }
 
@@ -131,4 +131,9 @@ void ShipControl::Run(const ControllerInput& in, ControllerOutput* out) {
 void ShipControl::Reset() {
   delete filter_block_;
   filter_block_ = new FilterBlock;
+  wind_strength_ = kCalmWind;
+  wind_strength_apparent_ = kCalmWind;
+  rudder_controller_.Reset();
+  sail_controller_.Reset();
+  controller_ = &initial_controller_; 
 }
