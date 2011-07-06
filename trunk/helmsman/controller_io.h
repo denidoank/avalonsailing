@@ -49,8 +49,6 @@ struct FilteredMeasurements {
     mag_app = 0;
     angle_sensor = 0;
     mag_sensor = 0;
-    angle_sail = 0;
-    mag_sail = 0;
     longitude_deg = 0;
     latitude_deg = 0;
     phi_x_rad = 0;
@@ -72,9 +70,6 @@ struct FilteredMeasurements {
   // sensor wind angle, mast frame
   double angle_sensor;
   double mag_sensor;
-  // sail wind angle, is the negative angle of attack of the wind to the sail 
-  double angle_sail;
-  double mag_sail;
   // GPS data
   double longitude_deg;
   double latitude_deg;

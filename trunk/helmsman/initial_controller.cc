@@ -8,6 +8,8 @@
 
 #include "helmsman/initial_controller.h"  
 
+#include <stdio.h>
+
 #include "lib/fm/log.h"
 #include "common/delta_angle.h"
 #include "common/polar_diagram.h"

@@ -27,7 +27,10 @@ NormalController::~NormalController() {}
 
 void NormalController::Entry(const ControllerInput& in,
                              const FilteredMeasurements& filtered){
-  prev_alpha_star_limited_ = in.alpha_star;
+  // Make sure we get the right idea of the direction change when we come
+  // from another state.
+  prev_alpha_star_limited_ = SymmetricRad(filtered.phi_z_boat); 
+  ref_.SetReferenceValues(prev_alpha_star_limited_, in.drives.gamma_sail_rad);
 }     
 
 void NormalController::Run(const ControllerInput& in,
@@ -44,10 +47,11 @@ void NormalController::Run(const ControllerInput& in,
   double phi_star;
   double omega_star;
   double gamma_sail_star;
-  ReferenceValueSwitch(in.alpha_star,
-                       filtered.alpha_true, filtered.mag_true,
-                       filtered.phi_z_boat, filtered.mag_boat,
-                       filtered.angle_app,  filtered.mag_app,
+  ReferenceValueSwitch(SymmetricRad(in.alpha_star),
+                       SymmetricRad(filtered.alpha_true), filtered.mag_true,
+                       SymmetricRad(filtered.phi_z_boat), filtered.mag_boat,
+                       SymmetricRad(filtered.angle_app),  filtered.mag_app,
+                       in.drives.gamma_sail_rad,
                        &phi_star,
                        &omega_star,
                        &gamma_sail_star);
@@ -57,7 +61,7 @@ void NormalController::Run(const ControllerInput& in,
   double gamma_rudder_star;
   rudder_controller_->Control(phi_star,
                               omega_star,
-                              filtered.phi_z_boat,
+                              SymmetricRad(filtered.phi_z_boat),
                               filtered.omega_boat,
                               filtered.mag_boat,
                               &gamma_rudder_star);
@@ -69,9 +73,7 @@ void NormalController::Run(const ControllerInput& in,
                Rad2Deg(gamma_rudder_star), Rad2Deg(gamma_sail_star));
 }
 
-void NormalController::Exit() {
-;
-}
+void NormalController::Exit() {}
 
 
 
@@ -79,6 +81,7 @@ void NormalController::ReferenceValueSwitch(double alpha_star,
                                             double alpha_true, double mag_true,
                                             double phi_z_boat, double mag_boat,
                                             double angle_app,  double mag_app,
+                                            double old_gamma_sail,
                                             double* phi_z_star,
                                             double* omega_z_star,
                                             double* gamma_sail_star) {
@@ -87,27 +90,33 @@ void NormalController::ReferenceValueSwitch(double alpha_star,
   double angle_from_wind = SymmetricRad(alpha_star - alpha_true - M_PI);
   double alpha_star_limited = alpha_star;
   if (angle_from_wind < 0 && angle_from_wind > -TackZoneRad())
-    alpha_star_limited = alpha_true - M_PI - TackZoneRad();  
+    alpha_star_limited = SymmetricRad(alpha_true - M_PI - TackZoneRad());  
   else if (angle_from_wind >= 0 && angle_from_wind < TackZoneRad())
-    alpha_star_limited = alpha_true - M_PI + TackZoneRad();
+    alpha_star_limited = SymmetricRad(alpha_true - M_PI + TackZoneRad());
 
   if (!ref_.RunningPlan() &&
-      fabs(DeltaRad(alpha_star_limited, prev_alpha_star_limited_)) >
+      fabs(DeltaOldNewRad(alpha_star_limited, prev_alpha_star_limited_)) >
           Deg2Rad(20)) {
     // The heading just jumped by a lot, need a new plan.
     double new_gamma_sail;
     double delta_gamma_sail;
-    ManeuverType maneuver_type;
-    NewGammaSail(alpha_true, mag_true,
+    ManeuverType maneuver_type = FindManeuverType(prev_alpha_star_limited_,
+                                                  alpha_star_limited,
+                                                  alpha_true);
+    NewGammaSailWithOldGammaSail(alpha_true, mag_true,
                  phi_z_boat, mag_boat,
                  alpha_star_limited,
+                 old_gamma_sail,
+                 maneuver_type,
                  sail_controller_,
                  &new_gamma_sail,
-                 &delta_gamma_sail,
-                 &maneuver_type);
-    if (maneuver_type != kChange) {
-      ref_.NewPlan(alpha_star_limited, delta_gamma_sail, mag_boat);
-    }
+                 &delta_gamma_sail);
+    if (true) {
+      ref_.SetReferenceValues(prev_alpha_star_limited_, old_gamma_sail);
+      ref_.NewPlan(alpha_star_limited,
+                   delta_gamma_sail,
+                   mag_boat);
+    }               
     prev_alpha_star_limited_ = alpha_star_limited;
     ref_.GetReferenceValues(phi_z_star, omega_z_star, gamma_sail_star);  
   } else if (ref_.RunningPlan()) {

@@ -11,10 +11,8 @@ enum ManeuverType {
   kJibe
 };
 
-// This works for the apparent wind angles (relative to the boat axis) as well
-// as for (alpha_true - alpha_star), i.e. the exact vector calculation to
-// calculate the apparent wind is not necessary here. 
-ManeuverType FindManeuverType(double old_apparent_angle,
-                              double new_apparent_angle);
+ManeuverType FindManeuverType(double old_phi_z,
+                              double new_phi_z,
+                              double true_direction);
 
 #endif   // HELMSMAN_MANEUVER_TYPE_H

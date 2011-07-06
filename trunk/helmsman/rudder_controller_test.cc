@@ -78,7 +78,7 @@ TEST(RudderController, All) {
   p_part = 3 * -0.0175681;
   i_part = 3 * -0.000909052;
   // run into limit at -9 degree
-  for (int t = 1; t < 60; ++t) {
+  for (int t = 1; t < 20; ++t) {
     c.Control(0.3, omega_star,
               phi, omega,
               speed, &gamma);
@@ -86,7 +86,8 @@ TEST(RudderController, All) {
   }
   // test of anti wind-up, control angle shall not be stuck at -9 degrees when
   // the reference value changes.
-  for (int t = 1; t < 50; ++t) {
+  // Stop before the integral part gets clamped!
+  for (int t = 1; t < 20; ++t) {
     c.Control(-0.3, omega_star,
               phi, omega,
               speed, &gamma);
@@ -124,8 +125,8 @@ TEST(RudderController, All) {
   c.Control(0.1, 0.1,
             phi, omega,
             -0.2 * speed, &gamma);
-  // +22 degrees (10 from reversed NACA profile, 12 for gamma_0)
-  EXPECT_FLOAT_EQ(0.383972, gamma);
+  // +2 degrees
+  EXPECT_FLOAT_EQ(0.0349066, gamma);
 }
 
 int main(int argc, char* argv[]) {

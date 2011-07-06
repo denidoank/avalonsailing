@@ -44,7 +44,7 @@ void CLiftToRudderAngle(double c_lift,
   double limit = naca0010::RudderLimit(speed_m_s);
   double c_lift_per_rad;
   if (speed_m_s != kUnknown && speed_m_s < 0) {
-    c_lift_per_rad = -naca0010::kCLiftPerRadReverse;
+    c_lift_per_rad = naca0010::kCLiftPerRadReverse;
   } else {
     c_lift_per_rad = naca0010::kCLiftPerRad;
   }

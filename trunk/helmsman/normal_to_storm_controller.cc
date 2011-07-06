@@ -54,7 +54,7 @@ void NormalToStormController::Entry(const ControllerInput& in,
                               filtered.wind_true_alpha - kBoatStormAngle);
 
   alpha_star_ = filtered.phi_z_rad;
-  double turn = DeltaRad(alpha_star_, storm_heading_);
+  double turn = DeltaOldNewRad(alpha_star_, storm_heading_);
   delta_alpha_star_ = Sign(turn) * kTurnRateRad * kSamplingPeriod
   duration_ = turn / delta_alpha_star;
   done_ = false;

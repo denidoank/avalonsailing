@@ -50,7 +50,7 @@ double BoatModel::RudderAcc(double gamma_rudder, double water_speed) {
   // model. The magic damping factor 0.7 dampens these oscillation artefacts.
   double alpha_water = 0;
   if (water_speed > 0)
-    alpha_water = 0.7 * -atan2(omega_ * 1.9, water_speed);  // 1.9 m distance COG to rudder
+    alpha_water = 0.7 * -atan2(omega_ * 1.43, water_speed);  // 1.43 m distance COG to rudder, was 1.9m
   gamma_rudder -= alpha_water;
     
   // stall above 25 degrees
@@ -76,11 +76,29 @@ void BoatModel::FollowRateLimited(double in, double max_rate, double* follows) {
   *follows += Saturate(delta, max_rate * period_);
 }
 
+void BoatModel::FollowRateLimitedRadWrap(double in, double max_rate, double* follows) {
+  double delta = in - *follows;
+  // underflow
+  if (delta > M_PI) {
+    delta -= 2 * M_PI;
+  }
+  // overflow
+  if (delta < -M_PI) {
+    delta += 2 * M_PI;
+  }
+    
+  *follows += Saturate(delta, max_rate * period_);
+  *follows = SymmetricRad(*follows);
+}
+
+
+
+
 void BoatModel::SimDrives(const DriveReferenceValuesRad& drives_reference,
                           DriveActualValuesRad* drives) {
   const double kOmegaMaxRudder = Deg2Rad(30);
 
-  FollowRateLimited(drives_reference.gamma_sail_star_rad,
+  FollowRateLimitedRadWrap(drives_reference.gamma_sail_star_rad,
                     kOmegaMaxSail, &gamma_sail_); 
   drives->gamma_sail_rad = gamma_sail_;
   drives->homed_sail = true;
@@ -154,9 +172,9 @@ void BoatModel::Simulate(const DriveReferenceValuesRad& drives_reference,
   in->imu.position.longitude_deg = east_;
   in->imu.position.latitude_deg = north_;
   in->imu.position.altitude_m = 0;
-  in->imu.attitude.phi_x_rad = phi_z_;
+  in->imu.attitude.phi_x_rad = 0;
   in->imu.attitude.phi_y_rad = 0;
-  in->imu.attitude.phi_z_rad = 0;
+  in->imu.attitude.phi_z_rad = phi_z_;
   in->imu.velocity.x_m_s = 0;
   in->imu.velocity.y_m_s = 0;
   in->imu.velocity.z_m_s = v_x_;
