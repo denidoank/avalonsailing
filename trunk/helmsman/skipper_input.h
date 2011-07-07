@@ -18,9 +18,9 @@ struct SkipperInput {
   double latitude_deg;
 
   // true wind, global frame
-  // Both values are kUnknown initially.
+  // Both values are kUnknown initially.  MAKE THEM math.h::NAN
   double angle_true_deg;
-  double mag_true_kn;
+  double mag_true_kn;   // m/s?
 };
 
 #endif  // HELMSMAN_SKIPPER_INPUT_H

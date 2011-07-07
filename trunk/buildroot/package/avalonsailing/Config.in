@@ -2,7 +2,7 @@ config BR2_PACKAGE_AVALONSAILING
 	bool "avalonsailing"
 	depends on BR2_INSTALL_LIBSTDCPP
 	help
-          Code to row your boat across the ocean.
+          Code to sail your boat across the ocean.
           http://code.google.com/p/avalonsailing
 
 comment "iperf requires a toolchain with C++ support enabled"

@@ -2,203 +2,532 @@
 // Use of this source code is governed by the Apache License 2.0
 // that can be found in the LICENSE file.
 //
-// Helmsman daemon for conrolling boat heading and sail
-// ./helmsman --logtostderr --no-syslog --task-name=helmsman --timeout=10 --debug \
-//        --imu=testdata/imu.nme --wind=testdata/wind.nme \
-//        --drives=testdata/drive_in.nme \
-//        --command=testdata/commands.txt --skipper_file=testdata/skipper.txt
-// ./helmsman --logtostderr --no-syslog --task-name=helmsman --timeout=10 \
-//       --debug  --imu=testdata/imu.nme --wind=testdata/wind.nme  --drives=testdata/drive_in.nme  --command=testdata/commands.txt --skipper=testdata/skipper.txt
+// Main loop for helmsman: open client sockets to wind and imu, server
+// socket for helsman clients (e.g. the skipper and sysmon) and shovel
+// data between all open file descriptors and the main controller.
+//
 
+#include <errno.h>
+#include <fcntl.h>
+#include <math.h>
+#include <signal.h>
+#include <stdarg.h>
+#include <stdint.h>
 #include <stdio.h>
-#include <time.h>
-
-#include "io/ipc/producer_consumer.h"
-#include "lib/fm/fm.h"
-#include "lib/fm/log.h"
-//#include "modem/modem.h"
-
-#include "helmsman/drive_data.h"
-#include "helmsman/fill.h"
-#include "helmsman/imu.h"
-
-#include "helmsman/sampling_period.h"
-#include "helmsman/ship_control.h"
-#include "helmsman/wind.h"
-#include "lib/util/stopwatch.h"
-
-#include <getopt.h>
 #include <stdlib.h>
-#include <string>
+#include <string.h>
+#include <sys/select.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <sys/un.h>
+#include <sys/wait.h>
+#include <syslog.h>
+#include <time.h>
 #include <unistd.h>
 
-using namespace std;
+#include "common/convert.h"
+#include "ship_control.h"
 
-const size_t kFlagSize = 256;
+// -----------------------------------------------------------------------------
+namespace {
 
-static char imu_file[kFlagSize] = "";
-static char wind_file[kFlagSize] = "";
-static char drives_file[kFlagSize] = "";
-static char skipper_file[kFlagSize] = "";
-static char command_file[kFlagSize] = "";
+// -----------------------------------------------------------------------------
+//   Together with getopt in main, this is our minimalistic UI
+// -----------------------------------------------------------------------------
 
+const char* version = "$Id: $";
+const char* argv0;
+int verbose = 0;
+int debug = 0;
 
-static void Init(int argc, char** argv) {
-  static const struct option long_options[] = {
-    { "imu", 1, NULL, 0},
-    { "wind", 1, NULL, 0},
-    { "drives", 1, NULL, 0},
-    { "command", 1, NULL, 0},
-    { "skipper", 1, NULL, 0},
-    { NULL, 0, NULL, 0 }
-  };
-  
-  optind = 1;
-  opterr = 0;
-  int opt_index;
-  int opt;
-  while ((opt = getopt_long(argc, argv, "", long_options, &opt_index)) != -1) {
-    if (opt != 0)  // Invalid argument, probably used by other module.
-      continue;
-    switch(opt_index) {
-      case 0:  // --imu=...
-        strncpy(imu_file, optarg, kFlagSize);
-        break;
-      case 1:  // --wind=...
-        strncpy(wind_file, optarg, kFlagSize);
-        break;
-      case 2:  // --drives=...
-        strncpy(drives_file, optarg, kFlagSize);
-        break;
-      case 3:  // --commands=...
-        strncpy(command_file, optarg, kFlagSize);
-        break;
-      case 4:  // --skipper=...
-        strncpy(skipper_file, optarg, kFlagSize);
-        break;
-      default:
-        FM_LOG_INFO("usage: %s -i imu_dev] [-w wind_dev]\n"
-                    "\t -d drives\n"
-                    "\t -c command_dev -s skipper_dev\n",
-                    argv[0]);
-        exit(0);
+void crash(const char* fmt, ...) {
+  va_list ap;
+  char buf[1000];
+  va_start(ap, fmt);
+  vsnprintf(buf, sizeof(buf), fmt, ap);
+  if (debug)
+    fprintf(stderr, "%s:%s%s%s\n", argv0, buf,
+	    (errno) ? ": " : "",
+	    (errno) ? strerror(errno):"" );
+  else
+    syslog(LOG_CRIT, "%s%s%s\n", buf,
+	   (errno) ? ": " : "",
+	   (errno) ? strerror(errno):"" );
+  exit(1);
+  va_end(ap);
+  return;
+}
+
+void usage(void) {
+  fprintf(stderr,
+	  "usage: %s [options]\n"
+	  "options:\n"
+	  "\t-C /working/dir     (default /var/run)\n"
+	  "\t-S /path/to/socket  (default /working/dir/%s\n"
+	  "\t-W /path/to/wind    (default /working/dir/wind\n"
+	  "\t-I /path/to/imud    (default /working/dir/imud\n"
+	  "\t-R /path/to/rudderd (default /working/dir/rudderd\n"		
+	  "\t-f forward wind/imu/rudderd messages to clients\n"
+	  "\t-d debug (don't go daemon, don't syslog)\n"
+	  , argv0, argv0);
+  exit(2);
+}
+
+// -----------------------------------------------------------------------------
+//  Linked list of clients.
+// -----------------------------------------------------------------------------
+class Client {
+public:
+
+  // Accept a new connection from sck, and tie to a client.  Returns NULL
+  // if the accept fails.  The new client will be put in the internal list.
+  static Client* New(int sck);
+
+  // Delete all clients who's files have been closed.
+  static void Reap();
+
+  // Tell select about all client's fd's
+  static void SetFds(fd_set* rfds, fd_set* wfds, int* max_fd);
+
+  // Read from and write to all clients whos fd was set.
+  // Returns pointer to the last line of any client that got a complete input.
+  static const char* Handle(fd_set* rfds, fd_set* wfds);
+
+  // Send line to all clients
+  static void Puts(char* line);
+
+private:
+  Client* next_;
+  FILE* in_;	// NULL if accept failed or closed
+  FILE* out_;
+  struct sockaddr_un addr_;
+  socklen_t addrlen_;
+  bool pending_;  // possibly unflushed data in out buffer
+  char line_[1024];  // last read line from in
+
+  // List of all clients, linked on next_
+  static Client* clients;
+
+  Client(Client*, int);
+  void puts(char* line);
+  void flush();
+};
+
+Client* Client::clients = NULL;
+
+Client::Client(Client* next, int sck) :
+  next_(next), in_(NULL), out_(NULL), addrlen_(sizeof addr_), pending_(false)
+{
+  memset(line_, 0, sizeof line_);
+  int fd = accept(sck, (struct sockaddr*)&addr_, &addrlen_);
+  if (fd < 0) {
+    fprintf(stderr, "accept:%s\n", strerror(errno));  // not fatal
+    return;
+  }
+  in_  = fdopen(fd, "r");
+  out_ = fdopen(dup(fd), "w");
+  if (fcntl(fileno(in_),  F_SETFL, O_NONBLOCK) < 0) crash("fcntl(in)");
+  if (fcntl(fileno(out_), F_SETFL, O_NONBLOCK) < 0) crash("fcntl(out)");
+  setbuffer(out_, NULL, 64<<10); // 64k out buffer
+}
+
+Client* Client::New(int sck) {
+  Client* cl = new Client(clients, sck);
+  if (!cl->in_) {
+    delete cl;
+    return NULL;
+  }
+  clients = cl;
+  return cl;
+}
+
+void Client::Reap() {
+  Client** prevp = &clients;
+  while (*prevp) {
+    Client* curr = *prevp;
+    if(!curr->in_) {
+      *prevp = curr->next_;
+      delete curr;
+    } else {
+      prevp = &curr->next_;
     }
   }
 }
 
-long long NowMicros() {
-  return StopWatch::GetTimestampMicros();
+void Client::Puts(char* line) {
+  for (Client* cl = clients; cl; cl = cl->next_) 
+    cl->puts(line);
 }
 
-long long WaitUntil(long long next, long long period) {
-  long long now = NowMicros();
-  if (next > now) {
-    timespec spec;
-    timespec remainder;
-    spec.tv_sec = 0;
-    spec.tv_nsec = 1000 * (next - now);
-    nanosleep(&spec, &remainder);
-  } else {
-    FM_LOG_INFO("Helmsman: to late %lld micros", now - next);
-  }
-  return next + period;
+void Client::puts(char* line) {
+        if (!out_) return;
+        pending_ = true;
+        if (fputs(line, out_) >= 0) return;
+        if (feof(out_)) {
+                pending_ = false;
+                fclose(out_);
+                out_ = NULL;
+        }
 }
 
+void Client::flush() {
+        if (!out_) return;
+        if (fflush(out_) == 0) pending_ = false;
+        if (feof(out_)) {
+                pending_ = false;
+                fclose(out_);
+                out_ = NULL;
+        }
+}
 
-int main(int argc, char** argv) {
-  FM::Init(argc, argv);
-  Init(argc, argv);
+void set_fd(fd_set* s, int* maxfd, FILE* f) {
+        int fd = fileno(f);
+        FD_SET(fd, s);
+        if (*maxfd < fd) *maxfd = fd;
+}
 
-  FM_LOG_INFO("Helmsman: Using IO files: %s and wind sensor: %s "
-              "drives_file %s command_file %s skipper_file%s\n",
-              imu_file, wind_file, drives_file, command_file, skipper_file);
-  if (strlen(imu_file) == 0) {
-    FM_LOG_FATAL("No imu_file specified.");
+void Client::SetFds(fd_set* rfds, fd_set* wfds, int* max_fd) {
+  for (Client* cl = clients; cl; cl = cl->next_) {
+    if (cl->in_) set_fd(rfds, max_fd, cl->in_);
+    if (cl->out_ && cl->pending_) set_fd(wfds, max_fd, cl->out_);
   }
-  if (strlen(wind_file) == 0) {
-    FM_LOG_FATAL("No wind_file specified.");
-  }
-  if (strlen(drives_file) == 0) {
-    FM_LOG_FATAL("No drives_file specified.");
-  }
-  if (strlen(command_file) == 0) {
-    FM_LOG_FATAL("No command_file specified.");
-  }
-  if (strlen(skipper_file) == 0) {
-    FM_LOG_FATAL("No skipper_file specified.");
-  }
+}
 
-  ShipControl m;
-  Consumer imu_consumer(imu_file);
-  Consumer wind_consumer(wind_file);
-  Consumer command_consumer(command_file);
-  Consumer skipper_consumer(skipper_file);
-  ProducerConsumer drive(drives_file);
-  //Producer skipper_producer(true_wind_file);
-
-  string imu_raw, wind_raw, drives_raw, command_raw, skipper_raw;
-  Imu imu;
-  WindRad wind;
-
-  if (imu_consumer.Consume(&imu_raw)) {
-    FM_LOG_INFO("Found imu data: %s \n", imu_raw.c_str());
-    FillImu(imu_raw, &imu);
+// Returns the last line read from any client with input.
+const char* Client::Handle(fd_set* rfds, fd_set* wfds) {
+  const char* line = NULL;
+  for (Client* cl = clients; cl; cl = cl->next_) {
+    if (cl->out_ && FD_ISSET(fileno(cl->out_), wfds)) cl->flush();
+     if (cl->in_ && FD_ISSET(fileno(cl->in_), rfds)) {
+      while(fgets(cl->line_, sizeof(cl->line_), cl->in_)) {  // will read until EAGAIN
+	line = cl->line_;
+      }
+    }
   }
-  if (wind_consumer.Consume(&wind_raw)) {
-    FM_LOG_INFO("Found wind data: %s \n", wind_raw.c_str());
-    FillWind(wind_raw, &wind);
-  }
-  if (command_consumer.Consume(&command_raw)) {
-    FM_LOG_INFO("Found command data: %s \n", command_raw.c_str());
-  }
-  if (skipper_consumer.Consume(&skipper_raw)) {
-    FM_LOG_INFO("Found skipper data: %s \n", skipper_raw.c_str());
-  }
+  return line;
+}
+// -----------------------------------------------------------------------------
 
-  DriveReferenceValuesRad drive_reference;
+int svrsockopen(const char* path) {
+  unlink(path);
+  int fd = socket(AF_LOCAL, SOCK_STREAM, 0);
+  if (fd < 0) crash("socket");
+  struct sockaddr_un addr = { AF_LOCAL, 0 };
+  strncpy(addr.sun_path, path, sizeof addr.sun_path );
+  if (bind(fd, (struct sockaddr*) &addr, sizeof addr) < 0) crash("bind(%s)", path);
+  if (listen(fd, 8) < 0) crash("listen(%s)", path);
+  return fd;
+}
 
-  int rounds = 0;
-  long long next_micros = NowMicros() + kSamplingPeriod * 1E6;
-  // wait until the next tick passed.
-  next_micros = WaitUntil(next_micros, kSamplingPeriod * 1E6);
-  long long start_time = NowMicros();
-  FM_LOG_INFO("start_time: %f s since the epoch\n", start_time / 1E6); 
-  while (true) {
+int clsockopen(const char* path) {
+  int fd = socket(AF_LOCAL, SOCK_STREAM, 0);
+  if (fd < 0) crash("socket");
+  struct sockaddr_un addr = { AF_LOCAL, 0 };
+  strncpy(addr.sun_path, path, sizeof(addr.sun_path));
+  if (connect(fd, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
+    close(fd);
+    return 0;
+  }
+  if (fcntl(fd,  F_SETFL, O_NONBLOCK) < 0) crash("fcntl(%s)", path);
+  return fd;
+}
+
+int clsockopen_wait(const char* path) {
+  int s;
+  for (int i = 0; ; i++) {
+    s = clsockopen(path);
+    if (s) break;
+    fprintf(stderr, "Waiting for %s...%c\r", path, "-\\|/"[i++%4]);
+    sleep(1);
+  }
+  fprintf(stderr, "Waiting for %s...bingo!\n", path);
+  return s;
+}
+
+// -----------------------------------------------------------------------------
+//   I/O parsing and printing
+// All return false on garbage
+// -----------------------------------------------------------------------------
+
+int sscan_rudd(const char *line, DriveActualValuesRad* s) {
+  s->Reset();
+  while (*line) {
+    char key[16];
+    double value;
+
+    int skip = 0;
+    int n = sscanf(line, "%16[a-z_]:%lf %n", key, &value, &skip);
+    if (n < 2) return 0;
+    if (skip == 0) return 0;
+    line += skip;
+
+    if (!strcmp(key, "rudder_l_deg") && !isnan(value))  { s->gamma_rudder_left_rad  = Deg2Rad(value); s->homed_rudder_left  = true; continue; }
+    if (!strcmp(key, "rudder_r_deg") && !isnan(value))  { s->gamma_rudder_right_rad = Deg2Rad(value); s->homed_rudder_right = true; continue; }
+    if (!strcmp(key, "sail_deg")     && !isnan(value))  { s->gamma_sail_rad         = Deg2Rad(value); s->homed_sail         = true; continue; }
+    if (!strcmp(key, "timestamp_ms"))  continue;
+
+    return 0;
+  }
+  return 1;
+}
+
+int sscan_wind(const char *line, WindSensor* s) {
+  s->Reset();
+  while (*line) {
+    char key[16];
+    double value;
+
+    int skip = 0;
+    int n = sscanf(line, "%16[a-z_]:%lf %n", key, &value, &skip);
+    if (n < 2) return 0;
+    if (skip == 0) return 0;
+    line += skip;
+
+    if (!strcmp(key, "angle_deg") && !isnan(value))  { s->alpha_deg = Deg2Rad(value); continue; }
+    if (!strcmp(key, "speed_m_s") && !isnan(value))  { s->mag_kn = MeterPerSecondToKnots(value); continue; }
+    if (!strcmp(key, "timestamp_ms"))  continue;
     
-    if (imu_consumer.Consume(&imu_raw)) {
-      FM_LOG_INFO("Found imu data: %s \n", imu_raw.c_str());
-      FillImu(imu_raw, &imu);
-    }
-
-    string line;
-    drive.Consume(&line);
-    DriveActualValuesRad drive_actual(line);
-    FM_LOG_INFO("d actual: l %6.4f r %6.4f s %6.4f\n",
-        drive_actual.homed_rudder_left  ? Rad2Deg(drive_actual.gamma_rudder_left_rad)  : -999,
-        drive_actual.homed_rudder_right ? Rad2Deg(drive_actual.gamma_rudder_right_rad) : -999,
-        drive_actual.homed_sail         ? Rad2Deg(drive_actual.gamma_sail_rad)         : -999);
-
-    drive_reference.Reset();
-
-    // A few steps in the reference values as test signal to measure max rotation speeds    
-    int phase = (rounds % 600) / 100;  // 1 cycle / minute, each phase has 10s
-    drive_reference.gamma_rudder_star_left_rad  = phase == 0 ? Deg2Rad(15) : -Deg2Rad(15);
-    drive_reference.gamma_rudder_star_right_rad = phase == 2 ? Deg2Rad(15) : -Deg2Rad(15);
-    drive_reference.gamma_sail_star_rad =         phase == 4 ? Deg2Rad(20) : -Deg2Rad(20);
-
-    {
-      DriveReferenceValues out(drive_reference);
-      drive.Produce(out.ToString());
-      FM_LOG_INFO("d ref: t %6.5f l %6.4f r %6.4f s %6.4f\n",
-          (NowMicros() - start_time) / 1.0E6,
-          out.gamma_rudder_star_left_deg,
-          out.gamma_rudder_star_right_deg,
-          out.gamma_sail_star_deg);
-    }
-
-    FM::Keepalive();
-
-    next_micros = WaitUntil(next_micros, kSamplingPeriod * 1E6);
-    ++rounds;
+    return 0;
   }
+  return 1;
+}
+
+int sscan_imud(const char *line, Imu* s) {
+  s->Reset();
+  while (*line) {
+    char key[16];
+    double value;
+
+    int skip = 0;
+    int n = sscanf(line, "%16[a-z_]:%lf %n", key, &value, &skip);
+    if (n < 2) return 0;
+    if (skip == 0) return 0;
+    line += skip;
+
+    if (!strcmp(key, "temp_c"))      { s->temperature_c       = value; continue; }
+
+    if (!strcmp(key, "acc_x_m_s2"))  { s->acceleration.x_m_s2 = value; continue; }
+    if (!strcmp(key, "acc_y_m_s2"))  { s->acceleration.y_m_s2 = value; continue; }
+    if (!strcmp(key, "acc_z_m_s2"))  { s->acceleration.z_m_s2 = value; continue; }
+
+    if (!strcmp(key, "gyr_x_rad_s"))  { s->gyro.omega_x_rad_s = value; continue; }
+    if (!strcmp(key, "gyr_y_rad_s"))  { s->gyro.omega_y_rad_s = value; continue; }
+    if (!strcmp(key, "gyr_z_rad_s"))  { s->gyro.omega_z_rad_s = value; continue; }
+
+    if (!strcmp(key, "mag_x_au"))  { continue; }
+    if (!strcmp(key, "mag_y_au"))  { continue; }
+    if (!strcmp(key, "mag_z_au"))  { continue; }
+
+    if (!strcmp(key, "roll_deg"))   { s->attitude.phi_x_rad = Deg2Rad(value); continue; }
+    if (!strcmp(key, "pitch_deg"))  { s->attitude.phi_y_rad = Deg2Rad(value); continue; }
+    if (!strcmp(key, "yaw_deg"))    { s->attitude.phi_z_rad = Deg2Rad(value); continue; }
+
+    if (!strcmp(key, "lat_deg"))  { s->position.latitude_deg  = value; continue; }
+    if (!strcmp(key, "lng_deg"))  { s->position.longitude_deg = value; continue; }
+    if (!strcmp(key, "alt_m"))    { s->position.altitude_m    = value; continue; }
+
+    if (!strcmp(key, "vel_x_m_s"))  { s->velocity.x_m_s = value; continue; }
+    if (!strcmp(key, "vel_y_m_s"))  { s->velocity.y_m_s = value; continue; }
+    if (!strcmp(key, "vel_z_m_s"))  { s->velocity.z_m_s = value; continue; }
+
+    if (!strcmp(key, "timestamp_ms"))  continue;
+    
+    return 0;
+  }
+  return 1;
+}
+
+uint64_t now_ms() {
+  timeval tv;
+  if (gettimeofday(&tv, NULL) < 0) crash("gettimeofday");
+  uint64_t ms1 = tv.tv_sec;  ms1 *= 1000;
+  uint64_t ms2 = tv.tv_usec; ms2 /= 1000;
+  return ms1 + ms2;
+}
+
+int snprint_rudd(char *line, int size, const DriveReferenceValuesRad& s) {
+  return snprintf(line, size,
+		  "timestamp_ms:%lld rudder_l_deg:%.3f rudder_r_deg:%.3f sail_deg:%.3f\n",
+		  now_ms(), s.gamma_rudder_star_left_rad, s.gamma_rudder_star_right_rad,  s.gamma_sail_star_rad);
+}
+
+int snprint_helmsmanout(char *line, int size, const SkipperInput& s) {
+    return snprintf(line, size,
+		    "timestamp_ms:%lld lat_deg:%f lng_deg:%f wind_angle_deg:%f wind_speed_m_s:%f\n" ,
+		    now_ms(), s.latitude_deg, s.longitude_deg,  s.angle_true_deg, KnotsToMeterPerSecond(s.mag_true_kn));
+}
+
+} // namespace
+
+// -----------------------------------------------------------------------------
+//   Main.
+// -----------------------------------------------------------------------------
+int main(int argc, char* argv[]) {
+
+  const char* cwd = "/var/run";
+  const char* path_to_socket = NULL;
+  const char* path_to_imud = "imud";
+  const char* path_to_wind = "wind";
+  const char* path_to_rudderd = "rudderd";
+  
+  int ch;
+  int forward = 0;
+
+  argv0 = strrchr(argv[0], '/');
+  if (argv0) ++argv0; else argv0 = argv[0];
+
+  while ((ch = getopt(argc, argv, "C:I:R:S:W:dfhv")) != -1){
+      switch (ch) {
+      case 'C': cwd = optarg; break;
+      case 'S': path_to_socket  = optarg; break;
+      case 'I': path_to_imud    = optarg; break;
+      case 'W': path_to_wind    = optarg; break;
+      case 'R': path_to_rudderd = optarg; break;
+      case 'd': ++debug; break;
+      case 'f': ++forward; break;
+      case 'v': ++verbose; break;
+      case 'h':
+      default:
+	  usage();
+      }
+  }
+
+  if (argc != optind) usage();
+
+  if (!debug) openlog(argv0, LOG_PERROR, LOG_DAEMON);
+
+  if (strcmp(cwd, ".") && chdir(cwd) < 0) crash("chdir(%s)", cwd);
+  cwd = getcwd(NULL, 0);
+
+  // Open client sockets.  Wait until they're all there so you can start up in any order.
+  FILE* imud = fdopen(clsockopen_wait(path_to_imud), "r");
+  FILE* wind = fdopen(clsockopen_wait(path_to_wind), "r");
+  FILE* rudd = fdopen(clsockopen_wait(path_to_rudderd), "r+");
+  setlinebuf(rudd);
+  bool rudd_cmd_pending = false;
+
+  // Set up server socket.
+  if (!path_to_socket) path_to_socket = argv0;
+  int sck = svrsockopen(path_to_socket);
+  
+  // clients that hang up should not make us crash.
+  if (signal(SIGPIPE, SIG_IGN) == -1) crash("signal");
+
+  if (debug)
+    fprintf(stderr, "created socket:%s\n", path_to_socket);
+  else
+    syslog(LOG_INFO, "Helmsman version %s working dir %s listening on %s", version, cwd, path_to_socket);
+
+  // Go daemon and write pidfile.
+  if (!debug) {
+    daemon(0,0);
+    
+    char* path_to_pidfile = NULL;
+    asprintf(&path_to_pidfile, "%s.pid", path_to_socket);
+    FILE* pidfile = fopen(path_to_pidfile, "w");
+    if(!pidfile) crash("writing pidfile");
+    fprintf(pidfile, "%d\n", getpid());
+    fclose(pidfile);
+    free(path_to_pidfile);
+  }
+
+  ControllerInput ctrl_in;
+
+  // Main loop
+  for (;;) {
+    timespec timeout = { 0, 250*1000*1000 }; // wake up at least 4/second
+    fd_set rfds;
+    fd_set wfds;
+    FD_ZERO(&rfds);
+    FD_ZERO(&wfds);
+
+    FD_SET(sck, &rfds);
+    int max_fd = sck;
+
+    Client::SetFds(&rfds, &wfds, &max_fd);
+
+    set_fd(&rfds, &max_fd, wind);
+    set_fd(&rfds, &max_fd, imud);
+    set_fd(&rfds, &max_fd, rudd);
+
+    if (rudd_cmd_pending) set_fd(&wfds, &max_fd, rudd);
+
+    sigset_t empty_mask;
+    sigemptyset(&empty_mask);
+    int r = pselect(max_fd + 1, &rfds, &wfds, NULL, &timeout, &empty_mask);
+    if (r == -1 && errno != EINTR) crash("pselect");
+
+    if (FD_ISSET(sck, &rfds)) Client::New(sck);
+
+    if (FD_ISSET(fileno(rudd), &wfds)) fflush(rudd);
+
+    if (FD_ISSET(fileno(rudd), &rfds)) {
+      char line[1024];
+      while (fgets(line, sizeof line, rudd)) {
+	int n = sscan_rudd(line, &ctrl_in.drives);
+	if (!n && debug) fprintf(stderr, "Ignoring garbage from rudderd: %s\n", line);
+      }
+      if (forward) Client::Puts(line);
+    }
+
+    if (FD_ISSET(fileno(wind), &rfds)) {
+      char line[1024];
+      while (fgets(line, sizeof line, wind)) {
+	int n = sscan_wind(line, &ctrl_in.wind);
+	if (!n && debug) fprintf(stderr, "Ignoring garbage from wind: %s\n", line);
+      }
+      if (forward) Client::Puts(line);
+    }
+
+    if (FD_ISSET(fileno(imud), &rfds)) {
+      char line[1024];
+      while (fgets(line, sizeof line, wind)) {
+	int n = sscan_imud(line, &ctrl_in.imu);
+	if (!n && debug) fprintf(stderr, "Ignoring garbage from imud: %s\n", line);
+      }
+      if (forward) Client::Puts(line);
+    }
+
+    { // see if anyone sent us a command
+      const char* line = Client::Handle(&rfds, &wfds);
+      if (line) {
+	if (strstr(line, "brake")) ShipControl::Brake("");
+	else if(strstr(line, "dock")) ShipControl::Docking("");
+	else if(sscanf(line, "alpha_star_deg:%lf", &ctrl_in.alpha_star) == 1) {
+	  ShipControl::Normal("");
+	} else if(sscanf(line, "%lf", &ctrl_in.alpha_star) == 1) {  // nice for manual control
+	  ShipControl::Normal("");
+	} else {
+	  ctrl_in.alpha_star = 0;
+	}
+      }
+    }
+
+    ControllerOutput ctrl_out;
+    ShipControl::Run(ctrl_in, &ctrl_out);
+
+    // send rudder command
+    if (1) { // always?
+      char line[1024];
+      int n = snprint_rudd(line, sizeof line, ctrl_out.drives_reference);
+      if (n <= 0 || n > sizeof line) crash("printing rudder command line");
+      if (fputs(line, rudd) == EOF) crash("Could not send ruddercommand");  // TODO allow for a couple of EAGAINS
+      rudd_cmd_pending = true;
+    }
+
+    // write the helmsman output
+    if (1) {  // always?
+      char line[1024];
+      int n = snprint_helmsmanout(line, sizeof line, ctrl_out.skipper_input);
+      if (n <= 0 || n > sizeof line) crash("printing state line");
+      Client::Puts(line);
+    }
+
+  }  // for ever
+
+  crash("Main loop exit");
+
+  return 0;
 }
