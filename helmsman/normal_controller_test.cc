@@ -62,7 +62,7 @@ TEST(NormalController, All) {
   EXPECT_FLOAT_EQ(0, Rad2Deg(out.drives_reference.gamma_rudder_star_right_rad));
   // Sail in spinakker mode
   EXPECT_FLOAT_EQ(-93, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
-  in.alpha_star = 0.01;
+  in.alpha_star_rad = 0.01;
 
   c.Run(in, filtered, &out);
   // Values depend on the control amplification coefficients, so we have to
@@ -72,7 +72,7 @@ TEST(NormalController, All) {
   // Sail in spinakker mode
   EXPECT_FLOAT_EQ(-93, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
 
-  in.alpha_star = 0.0;
+  in.alpha_star_rad = 0.0;
   c.Run(in, filtered, &out);
   EXPECT_FLOAT_EQ(-0.0208339, Rad2Deg(out.drives_reference.gamma_rudder_star_left_rad));
   EXPECT_FLOAT_EQ(-0.0208339, Rad2Deg(out.drives_reference.gamma_rudder_star_right_rad));
@@ -80,10 +80,10 @@ TEST(NormalController, All) {
   EXPECT_FLOAT_EQ(-93, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
   c.Run(in, filtered, &out);
   EXPECT_FLOAT_EQ(-0.0208339, Rad2Deg(out.drives_reference.gamma_rudder_star_left_rad));
-  in.alpha_star = -0.01;
+  in.alpha_star_rad = -0.01;
   c.Run(in, filtered, &out);
   EXPECT_FLOAT_EQ(0.402631, Rad2Deg(out.drives_reference.gamma_rudder_star_left_rad));
-  in.alpha_star = 0;
+  in.alpha_star_rad = 0;
   c.Run(in, filtered, &out);
   EXPECT_FLOAT_EQ(0.0, Rad2Deg(out.drives_reference.gamma_rudder_star_left_rad));
 
