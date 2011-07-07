@@ -33,7 +33,7 @@ void InitialControllerTest(double wind_direction_deg,
   Polar true_wind(Deg2Rad(wind_direction_deg), 10);  // forward wind, 10m/s
   ControllerInput in;
   ControllerOutput out;
-  in.alpha_star = Deg2Rad(90);         // want to go east
+  in.alpha_star_rad = Deg2Rad(90);         // want to go east
   
   ShipControl::Reset();
   ShipControl::Docking();              // The consequential Entry into the

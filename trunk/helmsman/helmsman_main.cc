@@ -28,7 +28,10 @@
 #include <unistd.h>
 
 #include "common/convert.h"
+#include "common/unknown.h"
+#include "sampling_period.h"
 #include "ship_control.h"
+
 
 // -----------------------------------------------------------------------------
 namespace {
@@ -49,12 +52,12 @@ void crash(const char* fmt, ...) {
   vsnprintf(buf, sizeof(buf), fmt, ap);
   if (debug)
     fprintf(stderr, "%s:%s%s%s\n", argv0, buf,
-	    (errno) ? ": " : "",
-	    (errno) ? strerror(errno):"" );
+           (errno) ? ": " : "",
+           (errno) ? strerror(errno):"" );
   else
     syslog(LOG_CRIT, "%s%s%s\n", buf,
-	   (errno) ? ": " : "",
-	   (errno) ? strerror(errno):"" );
+          (errno) ? ": " : "",
+          (errno) ? strerror(errno):"" );
   exit(1);
   va_end(ap);
   return;
@@ -62,16 +65,16 @@ void crash(const char* fmt, ...) {
 
 void usage(void) {
   fprintf(stderr,
-	  "usage: %s [options]\n"
-	  "options:\n"
-	  "\t-C /working/dir     (default /var/run)\n"
-	  "\t-S /path/to/socket  (default /working/dir/%s\n"
-	  "\t-W /path/to/wind    (default /working/dir/wind\n"
-	  "\t-I /path/to/imud    (default /working/dir/imud\n"
-	  "\t-R /path/to/rudderd (default /working/dir/rudderd\n"		
-	  "\t-f forward wind/imu/rudderd messages to clients\n"
-	  "\t-d debug (don't go daemon, don't syslog)\n"
-	  , argv0, argv0);
+         "usage: %s [options]\n"
+         "options:\n"
+         "\t-C /working/dir     (default /var/run)\n"
+         "\t-S /path/to/socket  (default /working/dir/%s\n"
+         "\t-W /path/to/wind    (default /working/dir/wind\n"
+         "\t-I /path/to/imud    (default /working/dir/imud\n"
+         "\t-R /path/to/rudderd (default /working/dir/rudderd\n"              
+         "\t-f forward wind/imu/rudderd messages to clients\n"
+         "\t-d debug (don't go daemon, don't syslog)\n"
+         , argv0, argv0);
   exit(2);
 }
 
@@ -100,7 +103,7 @@ public:
 
 private:
   Client* next_;
-  FILE* in_;	// NULL if accept failed or closed
+  FILE* in_;       // NULL if accept failed or closed
   FILE* out_;
   struct sockaddr_un addr_;
   socklen_t addrlen_;
@@ -202,7 +205,7 @@ const char* Client::Handle(fd_set* rfds, fd_set* wfds) {
     if (cl->out_ && FD_ISSET(fileno(cl->out_), wfds)) cl->flush();
      if (cl->in_ && FD_ISSET(fileno(cl->in_), rfds)) {
       while(fgets(cl->line_, sizeof(cl->line_), cl->in_)) {  // will read until EAGAIN
-	line = cl->line_;
+       line = cl->line_;
       }
     }
   }
@@ -349,14 +352,14 @@ uint64_t now_ms() {
 
 int snprint_rudd(char *line, int size, const DriveReferenceValuesRad& s) {
   return snprintf(line, size,
-		  "timestamp_ms:%lld rudder_l_deg:%.3f rudder_r_deg:%.3f sail_deg:%.3f\n",
-		  now_ms(), s.gamma_rudder_star_left_rad, s.gamma_rudder_star_right_rad,  s.gamma_sail_star_rad);
+                "timestamp_ms:%lld rudder_l_deg:%.3f rudder_r_deg:%.3f sail_deg:%.3f\n",
+                now_ms(), s.gamma_rudder_star_left_rad, s.gamma_rudder_star_right_rad,  s.gamma_sail_star_rad);
 }
 
 int snprint_helmsmanout(char *line, int size, const SkipperInput& s) {
     return snprintf(line, size,
-		    "timestamp_ms:%lld lat_deg:%f lng_deg:%f wind_angle_deg:%f wind_speed_m_s:%f\n" ,
-		    now_ms(), s.latitude_deg, s.longitude_deg,  s.angle_true_deg, KnotsToMeterPerSecond(s.mag_true_kn));
+                  "timestamp_ms:%lld lat_deg:%f lng_deg:%f wind_angle_deg:%f wind_speed_m_s:%f\n" ,
+                  now_ms(), s.latitude_deg, s.longitude_deg,  s.angle_true_deg, KnotsToMeterPerSecond(s.mag_true_kn));
 }
 
 } // namespace
@@ -374,7 +377,8 @@ int main(int argc, char* argv[]) {
   
   int ch;
   int forward = 0;
-
+  int skipper_update_downsample = 0;
+  
   argv0 = strrchr(argv[0], '/');
   if (argv0) ++argv0; else argv0 = argv[0];
 
@@ -390,7 +394,7 @@ int main(int argc, char* argv[]) {
       case 'v': ++verbose; break;
       case 'h':
       default:
-	  usage();
+         usage();
       }
   }
 
@@ -413,7 +417,7 @@ int main(int argc, char* argv[]) {
   int sck = svrsockopen(path_to_socket);
   
   // clients that hang up should not make us crash.
-  if (signal(SIGPIPE, SIG_IGN) == -1) crash("signal");
+  if (signal(SIGPIPE, SIG_IGN) == SIG_ERR) crash("signal");
 
   if (debug)
     fprintf(stderr, "created socket:%s\n", path_to_socket);
@@ -437,7 +441,8 @@ int main(int argc, char* argv[]) {
 
   // Main loop
   for (;;) {
-    timespec timeout = { 0, 250*1000*1000 }; // wake up at least 4/second
+    // wake up every kSamplingPeriod second
+    timespec timeout = { 0, kSamplingPeriod*1000*1000*1000 };
     fd_set rfds;
     fd_set wfds;
     FD_ZERO(&rfds);
@@ -466,8 +471,8 @@ int main(int argc, char* argv[]) {
     if (FD_ISSET(fileno(rudd), &rfds)) {
       char line[1024];
       while (fgets(line, sizeof line, rudd)) {
-	int n = sscan_rudd(line, &ctrl_in.drives);
-	if (!n && debug) fprintf(stderr, "Ignoring garbage from rudderd: %s\n", line);
+       int n = sscan_rudd(line, &ctrl_in.drives);
+       if (!n && debug) fprintf(stderr, "Ignoring garbage from rudderd: %s\n", line);
       }
       if (forward) Client::Puts(line);
     }
@@ -475,8 +480,8 @@ int main(int argc, char* argv[]) {
     if (FD_ISSET(fileno(wind), &rfds)) {
       char line[1024];
       while (fgets(line, sizeof line, wind)) {
-	int n = sscan_wind(line, &ctrl_in.wind);
-	if (!n && debug) fprintf(stderr, "Ignoring garbage from wind: %s\n", line);
+       int n = sscan_wind(line, &ctrl_in.wind);
+       if (!n && debug) fprintf(stderr, "Ignoring garbage from wind: %s\n", line);
       }
       if (forward) Client::Puts(line);
     }
@@ -484,24 +489,28 @@ int main(int argc, char* argv[]) {
     if (FD_ISSET(fileno(imud), &rfds)) {
       char line[1024];
       while (fgets(line, sizeof line, wind)) {
-	int n = sscan_imud(line, &ctrl_in.imu);
-	if (!n && debug) fprintf(stderr, "Ignoring garbage from imud: %s\n", line);
+       int n = sscan_imud(line, &ctrl_in.imu);
+       if (!n && debug) fprintf(stderr, "Ignoring garbage from imud: %s\n", line);
       }
       if (forward) Client::Puts(line);
     }
 
     { // see if anyone sent us a command
       const char* line = Client::Handle(&rfds, &wfds);
+      double alpha_star_deg;
       if (line) {
-	if (strstr(line, "brake")) ShipControl::Brake("");
-	else if(strstr(line, "dock")) ShipControl::Docking("");
-	else if(sscanf(line, "alpha_star_deg:%lf", &ctrl_in.alpha_star) == 1) {
-	  ShipControl::Normal("");
-	} else if(sscanf(line, "%lf", &ctrl_in.alpha_star) == 1) {  // nice for manual control
-	  ShipControl::Normal("");
-	} else {
-	  ctrl_in.alpha_star = 0;
-	}
+        // Short SMS commands: b, d, h37 or just 37
+        if (strstr(line, "b")) ShipControl::Brake();
+        else if(strstr(line, "d")) ShipControl::Docking();
+        else if(sscanf(line, "h%lf", &alpha_star_deg) == 1) {
+          ctrl_in.alpha_star_rad = Deg2Rad(alpha_star_deg);
+          ShipControl::Normal();
+        } else if(sscanf(line, "%lf", &alpha_star_deg) == 1) {  // nice for manual control
+          ctrl_in.alpha_star_rad = Deg2Rad(alpha_star_deg);
+          ShipControl::Normal();
+        } else {
+          ctrl_in.alpha_star_rad = 0;
+        }
       }
     }
 
@@ -509,7 +518,7 @@ int main(int argc, char* argv[]) {
     ShipControl::Run(ctrl_in, &ctrl_out);
 
     // send rudder command
-    if (1) { // always?
+    if (1) { // always
       char line[1024];
       int n = snprint_rudd(line, sizeof line, ctrl_out.drives_reference);
       if (n <= 0 || n > sizeof line) crash("printing rudder command line");
@@ -517,8 +526,11 @@ int main(int argc, char* argv[]) {
       rudd_cmd_pending = true;
     }
 
-    // write the helmsman output
-    if (1) {  // always?
+    // Write the helmsman output for the skipper, which should be happy with an
+    // occasional update.
+    if (ctrl_out.skipper_input.angle_true_deg != kUnknown &&
+        skipper_update_downsample++ %
+            static_cast<int>(kSkipperUpdatePeriod / kSamplingPeriod) == 0) {
       char line[1024];
       int n = snprint_helmsmanout(line, sizeof line, ctrl_out.skipper_input);
       if (n <= 0 || n > sizeof line) crash("printing state line");

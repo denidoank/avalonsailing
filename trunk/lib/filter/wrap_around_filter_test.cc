@@ -169,10 +169,10 @@ TEST(WrapAroundFilter, AllFilterRamp) {
     EXPECT_IN_INTERVAL(0, out4, 2 * M_PI);
     // In steady state, the output follows the input with the same gradient.
     if (cnt > 200) {
-      EXPECT_FLOAT_EQ(increment, DeltaRad(prev1, out1));
-      EXPECT_FLOAT_EQ(increment, DeltaRad(prev2, out2));
-      EXPECT_FLOAT_EQ(increment, DeltaRad(prev3, out3));
-      EXPECT_FLOAT_EQ(increment, DeltaRad(prev4, out4));
+      EXPECT_FLOAT_EQ(increment, DeltaOldNewRad(prev1, out1));
+      EXPECT_FLOAT_EQ(increment, DeltaOldNewRad(prev2, out2));
+      EXPECT_FLOAT_EQ(increment, DeltaOldNewRad(prev3, out3));
+      EXPECT_FLOAT_EQ(increment, DeltaOldNewRad(prev4, out4));
     }
     prev1 = out1;
     prev2 = out2;
@@ -210,10 +210,10 @@ TEST(WrapAroundFilter, AllFilterRamp2) {
       EXPECT_TRUE(f1.ValidOutput());
     // In steady state, the output follows the input with the same gradient.
     if (cnt > 200) {
-      EXPECT_FLOAT_EQ(increment, DeltaRad(prev1, out1));
-      EXPECT_FLOAT_EQ(increment, DeltaRad(prev2, out2));
-      EXPECT_FLOAT_EQ(increment, DeltaRad(prev3, out3));
-      EXPECT_FLOAT_EQ(increment, DeltaRad(prev4, out4));
+      EXPECT_FLOAT_EQ(increment, DeltaOldNewRad(prev1, out1));
+      EXPECT_FLOAT_EQ(increment, DeltaOldNewRad(prev2, out2));
+      EXPECT_FLOAT_EQ(increment, DeltaOldNewRad(prev3, out3));
+      EXPECT_FLOAT_EQ(increment, DeltaOldNewRad(prev4, out4));
     }
     prev1 = out1;
     prev2 = out2;
@@ -269,11 +269,11 @@ TEST(WrapAroundFilter, AllFilterTiming) {
 
     // In steady state, the output follows the input with the same gradient.
     if (cnt > 200) {
-      EXPECT_FLOAT_EQ(increment, DeltaRad(prev1, out1));
-      EXPECT_FLOAT_EQ(increment, DeltaRad(prev2, out2));
-      EXPECT_FLOAT_EQ(increment, DeltaRad(prev3, out3));
-      EXPECT_FLOAT_EQ(increment, DeltaRad(prev4, out4));
-      EXPECT_FLOAT_EQ(increment, DeltaRad(prev5, out5));
+      EXPECT_FLOAT_EQ(increment, DeltaOldNewRad(prev1, out1));
+      EXPECT_FLOAT_EQ(increment, DeltaOldNewRad(prev2, out2));
+      EXPECT_FLOAT_EQ(increment, DeltaOldNewRad(prev3, out3));
+      EXPECT_FLOAT_EQ(increment, DeltaOldNewRad(prev4, out4));
+      EXPECT_FLOAT_EQ(increment, DeltaOldNewRad(prev5, out5));
     }
     if (cnt < 99)
       EXPECT_FALSE(f5.ValidOutput());

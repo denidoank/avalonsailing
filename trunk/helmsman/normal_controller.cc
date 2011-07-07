@@ -36,7 +36,7 @@ void NormalController::Entry(const ControllerInput& in,
 void NormalController::Run(const ControllerInput& in,
                            const FilteredMeasurements& filtered,
                            ControllerOutput* out) {
-  FM_LOG_DEBUG("Ref: %6.4f", Rad2Deg(in.alpha_star));
+  FM_LOG_DEBUG("Ref: %6.4f", Rad2Deg(in.alpha_star_rad));
   FM_LOG_DEBUG("Actuals: True %6.4f deg %6.4f m/s",
                Rad2Deg(filtered.alpha_true), filtered.mag_true);
   FM_LOG_DEBUG("Actuals: Boat %6.4f deg %6.4f m/s",
@@ -47,7 +47,7 @@ void NormalController::Run(const ControllerInput& in,
   double phi_star;
   double omega_star;
   double gamma_sail_star;
-  ReferenceValueSwitch(SymmetricRad(in.alpha_star),
+  ReferenceValueSwitch(SymmetricRad(in.alpha_star_rad),
                        SymmetricRad(filtered.alpha_true), filtered.mag_true,
                        SymmetricRad(filtered.phi_z_boat), filtered.mag_boat,
                        SymmetricRad(filtered.angle_app),  filtered.mag_app,

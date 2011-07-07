@@ -19,13 +19,13 @@ struct ControllerInput {
     imu.Reset();
     wind.Reset();
     drives.Reset();
-    alpha_star = 0;  // natural
+    alpha_star_rad = 0;  // natural
   }
 
   Imu imu;
   WindSensor wind;
   DriveActualValuesRad drives;  // Actual positions and Ready flags
-  double alpha_star;            // from Skipper
+  double alpha_star_rad;            // from Skipper
 };
 
 // Output definition
