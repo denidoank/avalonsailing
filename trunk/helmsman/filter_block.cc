@@ -35,12 +35,7 @@ void FilterBlock::Filter(const ControllerInput& in,
                          FilteredMeasurements* fil) {
   double zz[kChannels];
   double mag_wind_m_s = KnotsToMeterPerSecond(in.wind.mag_kn);
-  double alpha_wind_rad = Deg2Rad(in.wind.alpha_deg);
-
-
-
-
-
+  double alpha_wind_rad = NormalizeRad(Deg2Rad(in.wind.alpha_deg));
 
   FilterElement in_block[kChannels] = {
       {median_ + 0,  &in.imu.speed_m_s,              zz + 0},  // in m/s
@@ -136,6 +131,3 @@ FilterBlock::FilterBlock()
 bool FilterBlock::ValidTrueWind() {
   return wrap_3_.ValidOutput();
 }
-
-
-
