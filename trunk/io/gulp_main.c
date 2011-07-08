@@ -182,13 +182,13 @@ int main(int argc, char* argv[]) {
 	argc -= optind;
 
 	if (argc != 1) usage();
-	
+
 	argv0 = strrchr(argv[0], '/');
 	if (argv0) ++argv0; else argv0 = argv[0];
 
 	if (!debug) openlog(argv0, LOG_PERROR, LOG_DAEMON);
 
-	if (fcntl(fileno(stdin), F_SETFL, O_NONBLOCK) < 0) crash("fcntl(stdin)");	
+	if (fcntl(fileno(stdin), F_SETFL, O_NONBLOCK) < 0) crash("fcntl(stdin)");
 
 	// Set up socket.
 	unlink(argv[0]);
@@ -204,7 +204,7 @@ int main(int argc, char* argv[]) {
 	// Go daemon and write pidfile.
 	if (!debug) {
 		daemon(0,1);
-		
+
 		char* path_to_pidfile = NULL;
 		asprintf(&path_to_pidfile, "%s.pid", argv[0]);
 		FILE* pidfile = fopen(path_to_pidfile, "w");

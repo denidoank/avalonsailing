@@ -71,7 +71,7 @@ void usage(void) {
          "\t-S /path/to/socket  (default /working/dir/%s\n"
          "\t-W /path/to/wind    (default /working/dir/wind\n"
          "\t-I /path/to/imud    (default /working/dir/imud\n"
-         "\t-R /path/to/rudderd (default /working/dir/rudderd\n"              
+         "\t-R /path/to/rudderd (default /working/dir/rudderd\n"
          "\t-f forward wind/imu/rudderd messages to clients\n"
          "\t-d debug (don't go daemon, don't syslog)\n"
          , argv0, argv0);
@@ -336,7 +336,7 @@ int sscan_imud(const char *line, Imu* s) {
     if (!strcmp(key, "vel_z_m_s"))  { s->velocity.z_m_s = value; continue; }
 
     if (!strcmp(key, "timestamp_ms"))  continue;
-    
+
     return 0;
   }
   return 1;
@@ -352,7 +352,7 @@ uint64_t now_ms() {
 
 int snprint_rudd(char *line, int size, const DriveReferenceValuesRad& s) {
   return snprintf(line, size,
-                "timestamp_ms:%lld rudder_l_deg:%.3f rudder_r_deg:%.3f sail_deg:%.3f\n",
+                "timestamp_ms:%lld  rudder_l_deg:%.3f rudder_r_deg:%.3f sail_deg:%.3f\n",
                 now_ms(), s.gamma_rudder_star_left_rad, s.gamma_rudder_star_right_rad,  s.gamma_sail_star_rad);
 }
 
@@ -374,11 +374,11 @@ int main(int argc, char* argv[]) {
   const char* path_to_imud = "imud";
   const char* path_to_wind = "wind";
   const char* path_to_rudderd = "rudderd";
-  
+
   int ch;
   int forward = 0;
   int skipper_update_downsample = 0;
-  
+
   argv0 = strrchr(argv[0], '/');
   if (argv0) ++argv0; else argv0 = argv[0];
 
@@ -415,7 +415,7 @@ int main(int argc, char* argv[]) {
   // Set up server socket.
   if (!path_to_socket) path_to_socket = argv0;
   int sck = svrsockopen(path_to_socket);
-  
+
   // clients that hang up should not make us crash.
   if (signal(SIGPIPE, SIG_IGN) == SIG_ERR) crash("signal");
 
@@ -427,7 +427,7 @@ int main(int argc, char* argv[]) {
   // Go daemon and write pidfile.
   if (!debug) {
     daemon(0,0);
-    
+
     char* path_to_pidfile = NULL;
     asprintf(&path_to_pidfile, "%s.pid", path_to_socket);
     FILE* pidfile = fopen(path_to_pidfile, "w");
@@ -524,6 +524,9 @@ int main(int argc, char* argv[]) {
       if (n <= 0 || n > sizeof line) crash("printing rudder command line");
       if (fputs(line, rudd) == EOF) crash("Could not send ruddercommand");  // TODO allow for a couple of EAGAINS
       rudd_cmd_pending = true;
+
+      // nice for debugging
+      if (forward) Client::Puts(line);
     }
 
     // Write the helmsman output for the skipper, which should be happy with an
