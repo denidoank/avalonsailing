@@ -391,7 +391,11 @@ int sail_control(Device* motor, Device* bmmh,
 
         if (!(status & STATUS_TARGETREACHED)) {
                 VLOGF("sail_control: Status not reached, going to %d", new_targ_qc);
-                device_set_register(motor, REGISTER(0x2078, 1), 0); // brake off
+                if (!device_set_register(motor, REGISTER(0x2078, 1), 0)) {
+                        VLOGF("sail_control: wait for break off");
+                        return TARGETTING;
+                }
+                VLOGF("sail_control: break off confirmed");
 
                 switch(control) {
                 case CONTROL_SHUTDOWN:

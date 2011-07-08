@@ -43,19 +43,25 @@ static const char* argv0;
 static int verbose = 0;
 static int debug = 0;
 
+
 static void
 crash(const char* fmt, ...)
 {
-        va_list ap;
-        char buf[1000];
-        va_start(ap, fmt);
-        vsnprintf(buf, sizeof(buf), fmt, ap);
-        fprintf(stderr, "%s:%s%s%s\n", argv0, buf,
-                (errno) ? ": " : "",
-                (errno) ? strerror(errno):"" );
-        exit(1);
-        va_end(ap);
-        return;
+	va_list ap;
+	char buf[1000];
+	va_start(ap, fmt);
+	vsnprintf(buf, sizeof(buf), fmt, ap);
+	if (debug)
+		fprintf(stderr, "%s:%s%s%s\n", argv0, buf,
+			(errno) ? ": " : "",
+			(errno) ? strerror(errno):"" );
+	else
+		syslog(LOG_CRIT, "%s%s%s\n", buf,
+		       (errno) ? ": " : "",
+		       (errno) ? strerror(errno):"" );
+	exit(1);
+	va_end(ap);
+	return;
 }
 
 static void
@@ -121,7 +127,7 @@ new_client(int sck)
         cl->addrlen = sizeof(cl->addr);
         int fd = accept(sck, (struct sockaddr*)&cl->addr, &cl->addrlen);
         if (fd < 0) {
-                fprintf(stderr, "accept:%s\n", strerror(errno));
+		if (debug) fprintf(stderr, "accept:%s\n", strerror(errno));
                 free(cl);
                 return NULL;
         }
@@ -132,7 +138,7 @@ new_client(int sck)
         setbuffer(cl->out, NULL, 64<<10); // 64k out buffer
         cl->pending = 0;
         clients = cl;
-        fprintf(stderr, "new client %d\n", fd);
+        if (debug) fprintf(stderr, "new client %d\n", fd);
         return cl;
 }
 
@@ -197,6 +203,8 @@ int main(int argc, char* argv[]) {
 
 	if (argc != 1) usage();
 
+	if (!debug) openlog(argv0, LOG_PERROR, LOG_DAEMON);
+
 	if (signal(SIGPIPE, SIG_IGN) == -1) crash("signal");
 
         // Set up socket
@@ -210,7 +218,7 @@ int main(int argc, char* argv[]) {
                 crash("bind");
 	if (listen(sck, 8) < 0) crash("listen");
 
-        fprintf(stderr, "created socket:%s\n", path_to_socket);
+        if (debug) fprintf(stderr, "created socket:%s\n", path_to_socket);
 
 	Bus* bus = NULL;
 	if (!strncmp("/dev/tty", argv[0], 8)) {
@@ -237,11 +245,29 @@ int main(int argc, char* argv[]) {
 	// todo: actually probe device and close, null on failure.
 
 	for (i = LEFT; i <= BMMH; ++i)
-		if (!dev[i])
-			fprintf(stderr, "Error opening %s device (0x%x)\n",
-				motor_params[i].label, motor_params[i].serial_number);
+		if (!dev[i]) {
+			if (debug) 
+				fprintf(stderr, "Error opening %s device (0x%x)\n", motor_params[i].label, motor_params[i].serial_number);
+			else
+				syslog(LOG_ERROR, "Error opening %s device (0x%x)\n", motor_params[i].label, motor_params[i].serial_number);
+		}
 
 	if (!(dev[LEFT] || dev[RIGHT] || (dev[SAIL] && dev[BMMH]))) crash("Nothing to control.");
+
+	// Go daemon and write pidfile.
+	if (!debug) {
+		daemon(0,0);
+		
+		char* path_to_pidfile = NULL;
+		asprintf(&path_to_pidfile, "%s.pid", argv[0]);
+		FILE* pidfile = fopen(path_to_pidfile, "w");
+		if(!pidfile) crash("writing pidfile");
+		fprintf(pidfile, "%d\n", getpid());
+		fclose(pidfile);
+		free(path_to_pidfile);
+
+		syslog(LOG_INFO, "Started.");
+	}
 
 	double target_angles_deg[3] = { NAN, NAN, NAN };
 	double actual_angles_deg[3] = { NAN, NAN, NAN };
@@ -259,10 +285,8 @@ int main(int argc, char* argv[]) {
 		FD_SET(sck, &rfds);
 		max_fd = sck;
 
-		if (bus_set_fds(bus, &rfds, &wfds, &max_fd)) {
-                        fprintf(stderr, "Bus closed.\n");
-                        break;
-                }
+		if (bus_set_fds(bus, &rfds, &wfds, &max_fd))
+                        crash("Epos bus closed.\n");
 
                 struct Client* cl;
                 for (cl = clients; cl; cl = cl->next)
