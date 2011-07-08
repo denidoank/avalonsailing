@@ -32,11 +32,15 @@ epos_sequence(int fd, uint8_t nodeid, struct EposCmd** cmd)
         return err;
 }
 
-
-static long long int gettime_ms() {
+static int64_t
+now_ms() 
+{
         struct timeval tv;
-        if(gettimeofday( &tv, NULL ) != 0) return -1;
-        return tv.tv_sec * 1000 + (tv.tv_usec/1000);
+        if (gettimeofday(&tv, NULL) < 0) crash("no working clock");
+
+        int64_t ms1 = tv.tv_sec;  ms1 *= 1000;
+        int64_t ms2 = tv.tv_usec; ms2 /= 1000;
+        return ms1 + ms2;
 }
 
 uint32_t
@@ -44,7 +48,7 @@ epos_waitobject(int fd, int timeout_ms,
                 uint16_t index, uint8_t subindex, uint8_t nodeid,
                 uint32_t mask, uint32_t* value)
 {
-        long long int now = gettime_ms();
+        long long int now = now_ms();
         if (now < 0) return 0x08000000;  // general error
         long long int deadline = now + timeout_ms;
         uint32_t err = 0;
@@ -65,7 +69,7 @@ epos_waitobject(int fd, int timeout_ms,
                         return 0;
                 }
 
-                if (deadline < gettime_ms()) return EPOS_ERR_TIMEOUT;
+                if (deadline < now_ms()) return EPOS_ERR_TIMEOUT;
                 usleep(delay2_us);
                 delay1_us <<=1;
                 if (delay2_us > 1000*1000) delay1_us = 1000*1000;

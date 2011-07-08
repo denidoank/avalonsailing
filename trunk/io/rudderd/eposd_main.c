@@ -48,16 +48,21 @@ static int debug = 0;
 static void
 crash(const char* fmt, ...)
 {
-        va_list ap;
-        char buf[1000];
-        va_start(ap, fmt);
-        vsnprintf(buf, sizeof(buf), fmt, ap);
-        fprintf(stderr, "%s:%s%s%s\n", argv0, buf,
-                (errno) ? ": " : "",
-                (errno) ? strerror(errno):"" );
-        exit(1);
-        va_end(ap);
-        return;
+	va_list ap;
+	char buf[1000];
+	va_start(ap, fmt);
+	vsnprintf(buf, sizeof(buf), fmt, ap);
+	if (debug)
+		fprintf(stderr, "%s:%s%s%s\n", argv0, buf,
+			(errno) ? ": " : "",
+			(errno) ? strerror(errno):"" );
+	else
+		syslog(LOG_CRIT, "%s%s%s\n", buf,
+		       (errno) ? ": " : "",
+		       (errno) ? strerror(errno):"" );
+	exit(1);
+	va_end(ap);
+	return;
 }
 
 static void
@@ -212,7 +217,7 @@ new_client(int sck)
         cl->addrlen = sizeof(cl->addr);
         int fd = accept(sck, (struct sockaddr*)&cl->addr, &cl->addrlen);
         if (fd < 0) {
-                fprintf(stderr, "accept:%s\n", strerror(errno));
+                if (debug) fprintf(stderr, "accept:%s\n", strerror(errno));
                 free(cl);
                 return NULL;
         }
@@ -224,7 +229,7 @@ new_client(int sck)
         cl->pending = 0;
         cl->slave = 0;
         clients = cl;
-        fprintf(stderr, "new client %d\n", fd);
+        if (debug) fprintf(stderr, "new client %d\n", fd);
         return cl;
 }
 
@@ -287,6 +292,8 @@ int main(int argc, char* argv[]) {
 	argv += optind;
 	argc -= optind;
 
+	if (!debug) openlog(argv0, LOG_PERROR, LOG_DAEMON);
+
         // Set up socket
 	unlink(path_to_socket);
 
@@ -298,7 +305,7 @@ int main(int argc, char* argv[]) {
                 crash("bind");
 	if (listen(sck, 8) < 0) crash("listen");
 
-        fprintf(stderr, "created socket:%s\n", path_to_socket);
+        if (debug) fprintf(stderr, "created socket:%s\n", path_to_socket);
 
         // Fork of slaves
 	nslaves = argc;
@@ -321,8 +328,11 @@ int main(int argc, char* argv[]) {
 	}
 
 	for (i = 0; i<ndevices; ++i)
-		printf("%d 0x%x %s\n", i, devices[i].serial, devices[i].slave->port);
-
+		if (debug)
+			fprintf(stderr, "%s: Found device 0x%x on port %s\n", argv0, devices[i].serial, devices[i].slave->port);
+		else
+			syslog(LOG_INFO, "Found device 0x%x on port %s\n", devices[i].serial, devices[i].slave->port);
+	
         // Reap any dead children (couldn't open serial or probe)
         reap_children();
 
@@ -330,9 +340,6 @@ int main(int argc, char* argv[]) {
 	for (i = 0; i < nslaves; ++i)
                 if (slaves[i].pid)
                         slave_set_nonblocking(slaves+i);
-
-        // Set up sysmon client socket
-        //TODO
 
         // Set up sigchld handling
         sigset_t sigmask;
@@ -347,8 +354,20 @@ int main(int argc, char* argv[]) {
         sigemptyset(&sa.sa_mask);
         if (sigaction(SIGCHLD, &sa, NULL) == -1) crash("sigaction");
 
-        // Go Daemon
-        //TODO
+	// Go daemon and write pidfile.
+	if (!debug) {
+		daemon(0,0);
+		
+		char* path_to_pidfile = NULL;
+		asprintf(&path_to_pidfile, "%s.pid", argv[0]);
+		FILE* pidfile = fopen(path_to_pidfile, "w");
+		if(!pidfile) crash("writing pidfile");
+		fprintf(pidfile, "%d\n", getpid());
+		fclose(pidfile);
+		free(path_to_pidfile);
+
+		syslog(LOG_INFO, "Started.");
+	}
 
         // Main Loop
 	for (;;) {
