@@ -30,7 +30,8 @@ enum MetaState {
 
 class ShipControl {
  public:
-  static void Run(const ControllerInput& in, ControllerOutput* out);
+  // Returns true if the ControllerOutput changed.
+  static bool Run(const ControllerInput& in, ControllerOutput* out);
   static bool Brake();
   static bool Docking();
   static bool Normal();
@@ -57,6 +58,10 @@ class ShipControl {
   static BrakeController brake_controller_;
   static DockingController docking_controller_;
   static NormalController normal_controller_;
+  static bool OutputChanges(
+      const DriveReferenceValuesRad& prev_out,
+      const DriveReferenceValuesRad& out);
+
 };
 
 #endif  // HELMSMAN_SHIP_CONTROL_H

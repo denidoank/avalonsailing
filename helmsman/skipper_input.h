@@ -12,6 +12,7 @@ struct SkipperInput {
   SkipperInput(const std::string& kvline);
   void Reset();
   std::string ToString() const;
+  bool operator!=(const SkipperInput r);
   // GPS data in degrees
   // Both values are 0 initially.
   double longitude_deg;

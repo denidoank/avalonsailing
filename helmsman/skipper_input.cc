@@ -50,3 +50,10 @@ std::string SkipperInput::ToString() const {
   return std::string(line, s);
 }
 
+bool SkipperInput::operator!=(const SkipperInput r) {
+  return longitude_deg != r.longitude_deg  ||
+         latitude_deg != r.latitude_deg  ||
+         angle_true_deg != r.angle_true_deg  ||
+         mag_true_kn != r.mag_true_kn;
+}
+
