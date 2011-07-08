@@ -332,7 +332,7 @@ int main(int argc, char* argv[]) {
 			fprintf(stderr, "%s: Found device 0x%x on port %s\n", argv0, devices[i].serial, devices[i].slave->port);
 		else
 			syslog(LOG_INFO, "Found device 0x%x on port %s\n", devices[i].serial, devices[i].slave->port);
-	
+
         // Reap any dead children (couldn't open serial or probe)
         reap_children();
 
@@ -357,9 +357,9 @@ int main(int argc, char* argv[]) {
 	// Go daemon and write pidfile.
 	if (!debug) {
 		daemon(0,0);
-		
+
 		char* path_to_pidfile = NULL;
-		asprintf(&path_to_pidfile, "%s.pid", argv[0]);
+		asprintf(&path_to_pidfile, "%s.pid", path_to_socket);
 		FILE* pidfile = fopen(path_to_pidfile, "w");
 		if(!pidfile) crash("writing pidfile");
 		fprintf(pidfile, "%d\n", getpid());
