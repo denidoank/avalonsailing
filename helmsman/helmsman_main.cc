@@ -291,7 +291,8 @@ int sscan_wind(const char *line, WindSensor* s) {
     if (!strcmp(key, "angle_deg") && !isnan(value))  { s->alpha_deg = Deg2Rad(value); continue; }
     if (!strcmp(key, "speed_m_s") && !isnan(value))  { s->mag_kn = MeterPerSecondToKnots(value); continue; }
     if (!strcmp(key, "timestamp_ms"))  continue;
-    
+    if (!strcmp(key, "valid"))  continue; // TODO
+
     return 0;
   }
   return 1;
@@ -303,8 +304,8 @@ int sscan_imud(const char *line, Imu* s) {
     char key[16];
     double value;
 
-    int skip = 0;
-    int n = sscanf(line, "%16[a-z_]:%lf %n", key, &value, &skip);
+    int skip = 0;  // note: accelleration has a 2 in the label.
+    int n = sscanf(line, "%16[a-z_2]:%lf %n", key, &value, &skip);
     if (n < 2) return 0;
     if (skip == 0) return 0;
     line += skip;
@@ -353,7 +354,10 @@ uint64_t now_ms() {
 int snprint_rudd(char *line, int size, const DriveReferenceValuesRad& s) {
   return snprintf(line, size,
                 "timestamp_ms:%lld  rudder_l_deg:%.3f rudder_r_deg:%.3f sail_deg:%.3f\n",
-                now_ms(), s.gamma_rudder_star_left_rad, s.gamma_rudder_star_right_rad,  s.gamma_sail_star_rad);
+                  now_ms(),
+                  Rad2Deg(s.gamma_rudder_star_left_rad),
+                  Rad2Deg(s.gamma_rudder_star_right_rad),
+                  Rad2Deg(s.gamma_sail_star_rad));
 }
 
 int snprint_helmsmanout(char *line, int size, const SkipperInput& s) {
@@ -406,6 +410,7 @@ int main(int argc, char* argv[]) {
   cwd = getcwd(NULL, 0);
 
   // Open client sockets.  Wait until they're all there so you can start up in any order.
+  // TODO: crash on close
   FILE* imud = fdopen(clsockopen_wait(path_to_imud), "r");
   FILE* wind = fdopen(clsockopen_wait(path_to_wind), "r");
   FILE* rudd = fdopen(clsockopen_wait(path_to_rudderd), "r+");
@@ -423,6 +428,9 @@ int main(int argc, char* argv[]) {
     fprintf(stderr, "created socket:%s\n", path_to_socket);
   else
     syslog(LOG_INFO, "Helmsman version %s working dir %s listening on %s", version, cwd, path_to_socket);
+
+
+  char prevcmd[1024] = { 0 };
 
   // Go daemon and write pidfile.
   if (!debug) {
@@ -442,7 +450,7 @@ int main(int argc, char* argv[]) {
   // Main loop
   for (;;) {
     // wake up every kSamplingPeriod second
-    timespec timeout = { 0, kSamplingPeriod*1000*1000*1000 };
+    timespec timeout = { 0, 1E8 };  //TODO
     fd_set rfds;
     fd_set wfds;
     FD_ZERO(&rfds);
@@ -464,9 +472,15 @@ int main(int argc, char* argv[]) {
     int r = pselect(max_fd + 1, &rfds, &wfds, NULL, &timeout, &empty_mask);
     if (r == -1 && errno != EINTR) crash("pselect");
 
-    if (FD_ISSET(sck, &rfds)) Client::New(sck);
+    if (FD_ISSET(sck, &rfds)) {
+      fprintf(stderr, "new client\n");
+      Client::New(sck);
+    }
 
-    if (FD_ISSET(fileno(rudd), &wfds)) fflush(rudd);
+    if (FD_ISSET(fileno(rudd), &wfds)) {
+      fflush(rudd);
+      rudd_cmd_pending = false;
+    }
 
     if (FD_ISSET(fileno(rudd), &rfds)) {
       char line[1024];
@@ -474,6 +488,7 @@ int main(int argc, char* argv[]) {
        int n = sscan_rudd(line, &ctrl_in.drives);
        if (!n && debug) fprintf(stderr, "Ignoring garbage from rudderd: %s\n", line);
       }
+      if (feof(rudd) || (ferror(rudd) && errno!= EAGAIN)) crash("reading from rudderd");
       if (forward) Client::Puts(line);
     }
 
@@ -483,15 +498,17 @@ int main(int argc, char* argv[]) {
        int n = sscan_wind(line, &ctrl_in.wind);
        if (!n && debug) fprintf(stderr, "Ignoring garbage from wind: %s\n", line);
       }
+      if (feof(wind) || (ferror(wind) && errno!= EAGAIN)) crash("reading from wind");
       if (forward) Client::Puts(line);
     }
 
     if (FD_ISSET(fileno(imud), &rfds)) {
       char line[1024];
-      while (fgets(line, sizeof line, wind)) {
+      while (fgets(line, sizeof line, imud)) {
        int n = sscan_imud(line, &ctrl_in.imu);
        if (!n && debug) fprintf(stderr, "Ignoring garbage from imud: %s\n", line);
       }
+      if (feof(imud) || (ferror(imud) && errno!= EAGAIN)) crash("reading from imud");
       if (forward) Client::Puts(line);
     }
 
@@ -518,15 +535,19 @@ int main(int argc, char* argv[]) {
     ShipControl::Run(ctrl_in, &ctrl_out);
 
     // send rudder command
-    if (1) { // always
-      char line[1024];
-      int n = snprint_rudd(line, sizeof line, ctrl_out.drives_reference);
-      if (n <= 0 || n > sizeof line) crash("printing rudder command line");
-      if (fputs(line, rudd) == EOF) crash("Could not send ruddercommand");  // TODO allow for a couple of EAGAINS
-      rudd_cmd_pending = true;
+    {
+      char rudcmd[1024];
+      int n = snprint_rudd(rudcmd, sizeof rudcmd, ctrl_out.drives_reference);
+      if (n <= 0 || n > sizeof rudcmd) crash("printing rudder command line");
 
+      if (strcmp(rudcmd+26, prevcmd+26) != 0) {
+        if (fputs(rudcmd, rudd) == EOF) crash("Could not send ruddercommand");  // TODO allow for a couple of EAGAINS
+        rudd_cmd_pending = true;
       // nice for debugging
-      if (forward) Client::Puts(line);
+        if (forward) Client::Puts(rudcmd);
+        strcpy(prevcmd, rudcmd);  // TODO
+      }
+
     }
 
     // Write the helmsman output for the skipper, which should be happy with an

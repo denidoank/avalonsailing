@@ -26,13 +26,6 @@
 #include <unistd.h>
 
 // -----------------------------------------------------------------------------
-//   Avalon-specific tweaks
-// -----------------------------------------------------------------------------
-
-// the windsensor ($WIMVX) is mounted under an angle to the sail on the mast.
-const double AVALON_WINDSENSOR_OFFSET = -27.0; 
-
-// -----------------------------------------------------------------------------
 //   Together with getopt in main, this is our minimalistic UI
 // -----------------------------------------------------------------------------
 // static const char* version = "$Id: $";
@@ -117,8 +110,8 @@ struct WindProto {
 
 // For use in printf and friends.
 #define OFMT_WINDPROTO(x, n) \
-	"timestamp_ms:%lld angle_deg:%.3lf speed_m_s:%.2lf relative:%d valid:%d%n", \
-	(x).timestamp_ms, (x).angle_deg, (x).speed_m_s, (x).relative, (x).valid, (n)
+	"timestamp_ms:%lld angle_deg:%.3lf speed_m_s:%.2lf valid:%d%n", \
+	(x).timestamp_ms, (x).angle_deg, (x).speed_m_s, (x).valid, (n)
 
 int parse_wimvx(char* sentence, struct WindProto* wp) {
 	char* flde;
@@ -127,7 +120,7 @@ int parse_wimvx(char* sentence, struct WindProto* wp) {
 
 	fld = strsep(&sentence, ",");   // field 1: angle in degrees
 	if (!fld) return 0;
-	wp->angle_deg = strtod(fld, &flde) + AVALON_WINDSENSOR_OFFSET;
+	wp->angle_deg = strtod(fld, &flde);
 	if (*flde) return 0;
 
 	fld = strsep(&sentence, ",");  // field 2: "R" for relative
