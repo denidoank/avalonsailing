@@ -249,7 +249,7 @@ int main(int argc, char* argv[]) {
 			if (debug) 
 				fprintf(stderr, "Error opening %s device (0x%x)\n", motor_params[i].label, motor_params[i].serial_number);
 			else
-				syslog(LOG_ERROR, "Error opening %s device (0x%x)\n", motor_params[i].label, motor_params[i].serial_number);
+				syslog(LOG_ERR, "Error opening %s device (0x%x)\n", motor_params[i].label, motor_params[i].serial_number);
 		}
 
 	if (!(dev[LEFT] || dev[RIGHT] || (dev[SAIL] && dev[BMMH]))) crash("Nothing to control.");
@@ -257,9 +257,9 @@ int main(int argc, char* argv[]) {
 	// Go daemon and write pidfile.
 	if (!debug) {
 		daemon(0,0);
-		
+
 		char* path_to_pidfile = NULL;
-		asprintf(&path_to_pidfile, "%s.pid", argv[0]);
+		asprintf(&path_to_pidfile, "%s.pid", path_to_socket);
 		FILE* pidfile = fopen(path_to_pidfile, "w");
 		if(!pidfile) crash("writing pidfile");
 		fprintf(pidfile, "%d\n", getpid());
