@@ -103,6 +103,12 @@ void DriveReferenceValuesRad::Reset() {
   gamma_sail_star_rad = 0;
 }
 
+bool DriveReferenceValuesRad::operator!=(const DriveReferenceValuesRad& r) {
+  return gamma_rudder_star_left_rad !=  r.gamma_rudder_star_left_rad ||
+         gamma_rudder_star_right_rad != r.gamma_rudder_star_right_rad ||
+         gamma_sail_star_rad !=         r.gamma_sail_star_rad;
+}  
+
 DriveActualValuesRad::DriveActualValuesRad(const std::string& kvline) {
   Reset();
   const char* line = kvline.c_str();

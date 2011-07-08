@@ -32,14 +32,14 @@ TEST(WindStrength, Hysteresis)  {
   EXPECT_EQ(kNormalWind, w);
   w = WindStrength(w, 20);
   EXPECT_EQ(kNormalWind, w);
-  w = WindStrength(w, 24.5);
+  w = WindStrength(w, 22.5);
   EXPECT_EQ(kStormWind, w);
 
   w = WindStrength(w, 20);
   EXPECT_EQ(kStormWind, w);
   w = WindStrength(w, 20);
   EXPECT_EQ(kStormWind, w);
-  w = WindStrength(w, 15);
+  w = WindStrength(w, 17);
   EXPECT_EQ(kNormalWind, w);
 
   w = WindStrength(w, 0.1);

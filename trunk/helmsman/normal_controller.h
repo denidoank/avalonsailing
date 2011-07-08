@@ -41,6 +41,13 @@ class NormalController : public Controller {
                             double* phi_z_star,
                             double* omega_z_star,
                             double* gamma_sail_star);
+
+  double BestSailableHeading(double alpha_star, double alpha_true);
+
+  bool OutputChanges(const DriveReferenceValuesRad& out,
+                     double gamma_rudder_star,
+                     double gamma_sail_star);
+
   RudderController* rudder_controller_;
   SailController* sail_controller_;
   double prev_alpha_star_limited_;

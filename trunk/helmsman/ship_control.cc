@@ -110,7 +110,8 @@ void ShipControl::StateMachine(const ControllerInput& in) {
 }
 
 // This needs to run with the sampling period.
-void ShipControl::Run(const ControllerInput& in, ControllerOutput* out) {
+bool ShipControl::Run(const ControllerInput& in, ControllerOutput* out) {
+  ControllerOutput prev_out = *out;
   // Get wind speed and all other actual measurement values
   // Figure out apparent and true wind
   filter_block_->Filter(in, &filtered_);
@@ -125,6 +126,9 @@ void ShipControl::Run(const ControllerInput& in, ControllerOutput* out) {
   StateMachine(in);
   // call specialized controller
   controller_->Run(in, filtered_, out);
+  bool changed = prev_out != *out;
+  prev_out = *out;
+  return changed;
 }
 
 // Needed for tests only
@@ -137,3 +141,4 @@ void ShipControl::Reset() {
   sail_controller_.Reset();
   controller_ = &initial_controller_; 
 }
+

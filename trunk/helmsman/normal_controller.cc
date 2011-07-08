@@ -29,9 +29,9 @@ void NormalController::Entry(const ControllerInput& in,
                              const FilteredMeasurements& filtered){
   // Make sure we get the right idea of the direction change when we come
   // from another state.
-  prev_alpha_star_limited_ = SymmetricRad(filtered.phi_z_boat); 
+  prev_alpha_star_limited_ = SymmetricRad(filtered.phi_z_boat);
   ref_.SetReferenceValues(prev_alpha_star_limited_, in.drives.gamma_sail_rad);
-}     
+}
 
 void NormalController::Run(const ControllerInput& in,
                            const FilteredMeasurements& filtered,
@@ -68,14 +68,12 @@ void NormalController::Run(const ControllerInput& in,
 
   out->drives_reference.gamma_rudder_star_left_rad  = gamma_rudder_star;
   out->drives_reference.gamma_rudder_star_right_rad = gamma_rudder_star;
-  out->drives_reference.gamma_sail_star_rad = gamma_sail_star;                           
+  out->drives_reference.gamma_sail_star_rad = gamma_sail_star;
   FM_LOG_DEBUG("Controls: %6.4f %6.4f",
                Rad2Deg(gamma_rudder_star), Rad2Deg(gamma_sail_star));
 }
 
 void NormalController::Exit() {}
-
-
 
 void NormalController::ReferenceValueSwitch(double alpha_star,
                                             double alpha_true, double mag_true,
@@ -87,12 +85,7 @@ void NormalController::ReferenceValueSwitch(double alpha_star,
                                             double* gamma_sail_star) {
 
   // Stay in sailable zone
-  double angle_from_wind = SymmetricRad(alpha_star - alpha_true - M_PI);
-  double alpha_star_limited = alpha_star;
-  if (angle_from_wind < 0 && angle_from_wind > -TackZoneRad())
-    alpha_star_limited = SymmetricRad(alpha_true - M_PI - TackZoneRad());  
-  else if (angle_from_wind >= 0 && angle_from_wind < TackZoneRad())
-    alpha_star_limited = SymmetricRad(alpha_true - M_PI + TackZoneRad());
+  double alpha_star_limited = BestSailableHeading(alpha_star, alpha_true);
 
   if (!ref_.RunningPlan() &&
       fabs(DeltaOldNewRad(alpha_star_limited, prev_alpha_star_limited_)) >
@@ -116,18 +109,18 @@ void NormalController::ReferenceValueSwitch(double alpha_star,
       ref_.NewPlan(alpha_star_limited,
                    delta_gamma_sail,
                    mag_boat);
-    }               
+    }
     prev_alpha_star_limited_ = alpha_star_limited;
-    ref_.GetReferenceValues(phi_z_star, omega_z_star, gamma_sail_star);  
+    ref_.GetReferenceValues(phi_z_star, omega_z_star, gamma_sail_star);
   } else if (ref_.RunningPlan()) {
-    ref_.GetReferenceValues(phi_z_star, omega_z_star, gamma_sail_star);  
+    ref_.GetReferenceValues(phi_z_star, omega_z_star, gamma_sail_star);
     // We don't accept new reference values here, so we also don't follow up
     // with the previous one.
   } else {
     // Normal case, minor changes of the desired heading.
     *phi_z_star = alpha_star_limited;
     *omega_z_star = 0;
-    *gamma_sail_star = 
+    *gamma_sail_star =
         sail_controller_->BestStabilizedGammaSail(angle_app, mag_app);
     prev_alpha_star_limited_ = alpha_star_limited;
   }
@@ -136,3 +129,19 @@ void NormalController::ReferenceValueSwitch(double alpha_star,
 bool NormalController::Tacking() {
   return ref_.RunningPlan();
 }
+
+double NormalController::BestSailableHeading(double alpha_star,
+                                             double alpha_true) {
+  // Stay in sailable zone
+  double tack_zone_min = Reverse(alpha_true) - TackZoneRad();
+  double tack_zone_max = Reverse(alpha_true) + TackZoneRad();
+  double alpha_star_limited = alpha_star;
+
+  // Modify if in the non-sailable range.
+  if (DeltaOldNewRad(tack_zone_min, alpha_star) > 0 &&
+      DeltaOldNewRad(tack_zone_max, alpha_star) < 0) {
+    alpha_star_limited = NearerRad(alpha_star, tack_zone_min, tack_zone_max);
+  }
+  return alpha_star_limited;
+}
+

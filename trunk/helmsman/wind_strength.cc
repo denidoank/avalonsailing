@@ -22,13 +22,25 @@
 //   - overloading the sail and of
 //   - getting the solar panels on deck or the boat hull damaged
 //   is big.
+// References: Endbericht, Introduction (p. 3):
+// "Bis zum Erstellen dieses Berichts wurde das gesamte System erfolgreich uber
+// eine Woche lang in Winden von 0 bis 25 Knoten getestet."
+// p. 35
+// "Navigationsf ̈higkeit: Aufgrund der Wetter- und Routenanalyse wurde
+// bei der Konstruktion eine Navigationsf ̈higkeit bis zu Windst ̈rke 7
+// angestrebt."
+// p. 37
+// Wind maximal 48knots
+
+
 
 namespace {
 const double kCalmLimit_m_s = 0.5;
 const double kCalmLimitHysteresis_m_s = 0.15;
-
-const double kStormLimit_m_s = 20;
-const double kStormLimitHysteresis_m_s = 4;
+                                             // 4 knots margin to the design
+                                             // limit.
+const double kStormLimit_m_s = 20;           // 40 knots would be 20.578 .
+const double kStormLimitHysteresis_m_s = 2;  // 44 knots on, 36 off point.
 }  // namespace
 
 WindStrengthRange WindStrength(WindStrengthRange previous_range,
