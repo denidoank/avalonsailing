@@ -410,7 +410,6 @@ int main(int argc, char* argv[]) {
   cwd = getcwd(NULL, 0);
 
   // Open client sockets.  Wait until they're all there so you can start up in any order.
-  // TODO: crash on close
   FILE* imud = fdopen(clsockopen_wait(path_to_imud), "r");
   FILE* wind = fdopen(clsockopen_wait(path_to_wind), "r");
   FILE* rudd = fdopen(clsockopen_wait(path_to_rudderd), "r+");
@@ -428,9 +427,6 @@ int main(int argc, char* argv[]) {
     fprintf(stderr, "created socket:%s\n", path_to_socket);
   else
     syslog(LOG_INFO, "Helmsman version %s working dir %s listening on %s", version, cwd, path_to_socket);
-
-
-  char prevcmd[1024] = { 0 };
 
   // Go daemon and write pidfile.
   if (!debug) {
@@ -532,22 +528,13 @@ int main(int argc, char* argv[]) {
     }
 
     ControllerOutput ctrl_out;
-    ShipControl::Run(ctrl_in, &ctrl_out);
-
-    // send rudder command
-    {
+    if (ShipControl::Run(ctrl_in, &ctrl_out)) {    // send rudder command
       char rudcmd[1024];
       int n = snprint_rudd(rudcmd, sizeof rudcmd, ctrl_out.drives_reference);
       if (n <= 0 || n > sizeof rudcmd) crash("printing rudder command line");
-
-      if (strcmp(rudcmd+26, prevcmd+26) != 0) {
-        if (fputs(rudcmd, rudd) == EOF) crash("Could not send ruddercommand");  // TODO allow for a couple of EAGAINS
-        rudd_cmd_pending = true;
-      // nice for debugging
-        if (forward) Client::Puts(rudcmd);
-        strcpy(prevcmd, rudcmd);  // TODO
-      }
-
+      if (fputs(rudcmd, rudd) == EOF) crash("Could not send ruddercommand");  // TODO allow for a couple of EAGAINS
+      rudd_cmd_pending = true;
+      if (forward) Client::Puts(rudcmd);       // nice for debugging
     }
 
     // Write the helmsman output for the skipper, which should be happy with an
