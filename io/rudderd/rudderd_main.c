@@ -206,7 +206,7 @@ int main(int argc, char* argv[]) {
 
 	if (!debug) openlog(argv0, LOG_PERROR, LOG_DAEMON);
 
-	if (signal(SIGPIPE, SIG_IGN) == -1) crash("signal");
+	if (signal(SIGPIPE, SIG_IGN) == SIG_ERR) crash("signal");
 
         // Set up socket
 	unlink(path_to_socket);
