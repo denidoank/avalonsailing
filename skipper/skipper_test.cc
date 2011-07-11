@@ -37,7 +37,7 @@ TEST(Skipper, All) {
 
   // Thalwil test, with south wind
   double x0 = 47.2962-0.008;
-  double y0 = 8.5812-0.008;   // 1000m SW of the target
+  double y0 = 8.5812-0.008;   // 1000m exactly SW of the target
   double v = 2 / to_cartesian_meters;  // v is speed in degree/s
   in.latitude_deg = x0;
   in.longitude_deg = y0;
@@ -50,13 +50,12 @@ TEST(Skipper, All) {
     in.latitude_deg = x0;
     in.longitude_deg = y0;
     Skipper::Run(in, ais, &alpha_star);
-    if (!Skipper::TargetReached(LatLon(x0, y0))) {
-      EXPECT_FLOAT_EQ(45, alpha_star);
-    } else {
-      if (end_time == 0)
-        end_time = t;
+    if (Skipper::TargetReached(LatLon(x0, y0))) {
+      end_time = t;
       EXPECT_TRUE(thalwil.In(x0, y0));
-    }
+      break;
+    }  
+    EXPECT_FLOAT_EQ(45, alpha_star);
     double phi_rad = Deg2Rad(alpha_star);
     x0 += v * cos(phi_rad) * time_step;
     y0 += v * sin(phi_rad) * time_step;
@@ -115,6 +114,7 @@ TEST(Skipper, ThalwilOpposingWind) {
 
   // Thalwil test, with bad opposing wind
   in.angle_true_deg = 225;  // so we cannot sail south
+  in.mag_true_kn = 2;
   double x0 = 47.2962-0.008;
   double y0 = 8.5812-0.008;   // 1000m SW of the target
   double v = 2 / to_cartesian_meters;
@@ -152,6 +152,7 @@ TEST(Skipper, Atlantic) {
   double alpha_star;
   // Atlantic test, with constantly bad opposing wind
   in.angle_true_deg = 45;  // so we cannot sail south-west directly
+  in.mag_true_kn = 2;
   double x0 = 48.2;
   double y0 = -5;
   // speed 2m/s or 4 knots constantly
@@ -197,6 +198,7 @@ TEST(Skipper, ChangingAtlantic) {
   // Atlantic test, with changing winds and erratic storms throwing us off
   // track.
   in.angle_true_deg = 45;
+  in.mag_true_kn = 2;
   double x0 = 48.2;
   double y0 = -5;
   // speed 2m/s or 4 knots constantly
@@ -249,6 +251,7 @@ TEST(Skipper, StormyAtlantic) {
   // Stormy Atlantic test, with changing winds and erratic storms throwing us
   // off track.
   in.angle_true_deg = 45;
+  in.mag_true_kn = 2;
   double x0 = 48.2;
   double y0 = -5;
   // speed 2m/s or 4 knots constantly
@@ -292,11 +295,11 @@ TEST(Skipper, StormyAtlantic) {
 }
 
 int main(int argc, char* argv[]) {
-  //Skipper_All();
+  Skipper_All();
   Skipper_SukkulentenhausPlan();
-  /*Skipper_ThalwilOpposingWind();
+  Skipper_ThalwilOpposingWind();
   Skipper_Atlantic();
   Skipper_ChangingAtlantic();
-  Skipper_StormyAtlantic();*/
+  Skipper_StormyAtlantic();
   return 0;
 }
