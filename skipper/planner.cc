@@ -4,6 +4,7 @@
 // Steffen Grundmann, May 2011
 
 #include "skipper/planner.h"
+#include <stdio.h>
 
 #include "helmsman/normal_controller.h"
 #include "lib/fm/log.h"
