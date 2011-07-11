@@ -32,7 +32,13 @@ double Planner:: last_turn_time_ = 0;
 // sail criss-cross.
 
 void Planner::Init(const LatLon& lat_lon) {
-  if (kilchberg.In(lat_lon)) {
+  if (sukku.In(lat_lon)) {
+    printf("sukku plan\n");
+    FM_LOG_INFO("sukku plan");
+    plan_.Build(sukku_plan);
+  } else if (kilchberg.In(lat_lon)) {
+    printf("kilchberg plan\n");
+    FM_LOG_INFO("kilchberg plan");
     plan_.Build(kilchberg_plan);
   } else if (thalwil.In(lat_lon)) {
     printf("thalwil plan\n");
@@ -75,9 +81,11 @@ double Planner::ToDeg(double lat_deg, double lon_deg) {
   if (!initialized_) {
     Init(lat_lon);
     initialized_ = true;
+    printf("initialized\n");
   }
   if (plan_.TargetReached(lat_lon)) {
     FM_LOG_WARN("Hurray! Target Reached! CrissCrossing now.");
+    printf("On Target\n");
     if (NowSeconds() > last_turn_time_ + 120) {
       last_turn_time_ = NowSeconds();
       alpha_star_ = NormalizeDeg(alpha_star_ + 165);
@@ -85,8 +93,9 @@ double Planner::ToDeg(double lat_deg, double lon_deg) {
     } else {
       FM_LOG_INFO("Not turning.");
     }
-  }
-  alpha_star_ = plan_.ToDeg(lat_deg, lon_deg);
+  } else {
+    alpha_star_ = plan_.ToDeg(lat_deg, lon_deg);
+  }  
   return alpha_star_;
 }
 

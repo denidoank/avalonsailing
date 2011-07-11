@@ -114,8 +114,13 @@ const TargetCirclePoint caribbean_plan[] = {
 const TargetCircle caribbean_final(caribbean_plan[0].lat_lon, 0.09);
 
 
-// Lake Zuerich plans, r = 550m for the plan, r=2000m to find the correct location
-// kilchbarg thalwil horgen au waedenswil wollerau
+// Lake Zuerich plans, r = 550m for the plan, r=2000m to find the correct location initially
+// kilchberg thalwil horgen au waedenswil wollerau
+
+const TargetCirclePoint sukku_plan[] = {
+{{ 47.3477, 8.5431}, 0.005},
+{{0, 0}, 0}}; // end marker
+const TargetCircle sukku(sukku_plan[0].lat_lon, 0.02);
 
 const TargetCirclePoint kilchberg_plan[] = {
 {{ 47.3250, 8.5623}, 0.005},
