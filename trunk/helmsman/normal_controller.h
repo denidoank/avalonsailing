@@ -42,8 +42,6 @@ class NormalController : public Controller {
                             double* omega_z_star,
                             double* gamma_sail_star);
 
-  double BestSailableHeading(double alpha_star, double alpha_true);
-
   bool OutputChanges(const DriveReferenceValuesRad& out,
                      double gamma_rudder_star,
                      double gamma_sail_star);

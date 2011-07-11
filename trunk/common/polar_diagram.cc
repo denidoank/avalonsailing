@@ -6,6 +6,7 @@
 
 #include "common/check.h"
 #include "common/convert.h"
+#include "common/delta_angle.h"
 #include "common/normalize.h"
 
 namespace {
@@ -94,5 +95,24 @@ double TackZoneRad() {
 
 double JibeZoneRad() {
   return Deg2Rad(kJibeZoneDeg);
+}
+
+double BestSailableHeading(double alpha_star,double alpha_true) {
+  // Stay in sailable zone
+  double tack_zone_min = Reverse(alpha_true) - TackZoneRad();
+  double tack_zone_max = Reverse(alpha_true) + TackZoneRad();
+  double alpha_star_limited = alpha_star;
+
+  // Modify if in the non-sailable range.
+  if (DeltaOldNewRad(tack_zone_min, alpha_star) > 0 &&
+      DeltaOldNewRad(tack_zone_max, alpha_star) < 0) {
+    alpha_star_limited = NearerRad(alpha_star, tack_zone_min, tack_zone_max);
+  }
+  return alpha_star_limited;
+}
+
+double BestSailableHeadingDeg(double alpha_star_deg, double alpha_true_deg){
+  return Rad2Deg(BestSailableHeading(Deg2Rad(alpha_star_deg),
+                                     Deg2Rad(alpha_true_deg)));
 }
 

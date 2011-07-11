@@ -22,7 +22,7 @@
     << "\nTest condition failed with actual:\n"; \
     std::cout << (cond) << "\n"; \
     exit(1); \
-  } 
+  }
 
 #define EXPECT_EQ(a, b) \
   do { \
@@ -64,7 +64,7 @@
       std::cout << #b " which is " << (b) << "\n"; \
       exit(1); \
     } \
-  } while(0) 
+  } while(0)
 
 #define EXPECT_LT(a, b) \
   do { \
@@ -76,7 +76,7 @@
       std::cout << #b " which is " << (b) << "\n"; \
       exit(1); \
     } \
-  } while(0) 
+  } while(0)
 
 #define EXPECT_LE(a, b) \
   do { \
@@ -88,7 +88,7 @@
       std::cout << #b " which is " << (b) << "\n"; \
       exit(1); \
     } \
-  } while(0) 
+  } while(0)
 
 #define EXPECT_GE(a, b) \
   do { \
@@ -112,7 +112,7 @@
       std::cout << #b " which is " << (b) << "\n"; \
       exit(1); \
     } \
-  } while(0) 
+  } while(0)
 
 #define EXPECT_IN_INTERVAL(a, x, b) \
   do { \
@@ -126,6 +126,6 @@
       std::cout << (x) << "\n"; \
       exit(1); \
     } \
-  } while(0) 
+  } while(0)
 
 #endif  // LIB_TESTING_TESTING_H
