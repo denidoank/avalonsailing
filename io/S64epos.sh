@@ -5,6 +5,10 @@ set -e
 DESC="avalon Epos controllers"
 DIR=/usr/bin
 
+# make sure udev has finished
+# TODO: Could do this in the daemons instead
+udevsettle --timeout 10
+
 case "$1" in
   start)
         echo -n "Starting $DESC: "

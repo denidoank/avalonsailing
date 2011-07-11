@@ -41,6 +41,7 @@ install_packages_if_necessary bison flex dropbear texinfo unzip gettext
 
 # create an avalonsailing tarball
 pushd $START/..
+mkdir -p $BUILDROOT_DL_DIR
 make OUTDIR=$BUILDROOT_DL_DIR DATE=$DATE tarball
 popd
 

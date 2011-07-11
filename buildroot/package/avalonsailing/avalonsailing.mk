@@ -13,11 +13,12 @@ define AVALONSAILING_BUILD_CMDS
 endef
 
 define AVALONSAILING_INSTALL_TARGET_CMDS
-	$(MAKE) DESTDIR=$(TARGET_DIR)/usr/bin install -C $(@D)
-	$(MAKE) DESTDIR=$(TARGET_DIR)/etc installconf -C $(@D)
-	test -f $(TARGET_DIR)/etc/init.d/S70avalonsailing || \
-		$(INSTALL) -D -m 755 package/avalonsailing/avalonsailing.init \
-		$(TARGET_DIR)/etc/init.d/S70avalonsailing
+	$(MAKE) DESTDIR=$(TARGET_DIR) install -C $(@D)
+	$(MAKE) DESTDIR=$(TARGET_DIR) installconf -C $(@D)
+	$(MAKE) DESTDIR=$(TARGET_DIR) installinit -C $(@D)
+	test -f $(TARGET_DIR)/etc/udev/rules.d/10-avalonsailing.rules || \
+		$(INSTALL) -D -m 755 package/avalonsailing/avalonsailing.udev \
+		$(TARGET_DIR)/etc/udev/rules.d/10-avalonsailing.rules
 endef
 
 AVALONSAILING_INSTALL_STAGING = NO
