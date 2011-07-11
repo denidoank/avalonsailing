@@ -27,4 +27,8 @@ double JibeZoneDeg();
 double TackZoneRad();
 double JibeZoneRad();
 
+double BestSailableHeading(double alpha_star, double alpha_true);
+double BestSailableHeadingDeg(double alpha_star_deg, double alpha_true_deg);
+
+
 #endif  // COMMON_POLAR_DIAGRAM_H_
