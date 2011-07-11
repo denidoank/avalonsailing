@@ -66,6 +66,47 @@ TEST(Skipper, All) {
   EXPECT_GT(60 * kDays, end_time);
 }
 
+TEST(Skipper, SukkulentenhausPlan) {
+  double end_time = 0;
+  SkipperInput in;
+  std::vector<AISInfo> ais;
+  double alpha_star;
+
+  in.angle_true_deg = 120;  // so we cannot sail south
+  in.mag_true_kn = 2;
+  double x0 = 47.3557;
+  double y0 = 8.5368;       // Mythenquai, Shore
+  double v = 2 / to_cartesian_meters;
+  in.latitude_deg = x0;
+  in.longitude_deg = y0;
+  Skipper::Init(in);
+  end_time = 0;
+
+  printf("t/s, x0, y0, alpha_star\n");
+  double time_step = 60;
+  for (double t = 0; t < 5000; t += time_step) {
+    in.latitude_deg = x0;
+    in.longitude_deg = y0;
+    Skipper::Run(in, ais, &alpha_star);
+    if (Skipper::TargetReached(LatLon(x0, y0))) {
+      EXPECT_TRUE(sukku.In(x0, y0));
+      if (end_time == 0)
+        end_time = t;
+    }
+
+    // Simulate the motion
+    double phi_rad = Deg2Rad(alpha_star);
+    x0 += v * cos(phi_rad) * time_step;
+    y0 += v * sin(phi_rad) * time_step;
+    printf("%8.6f %8.6f %8.6f %6.4f\n", t, x0, y0, alpha_star);
+  }
+  printf("end time: %8.6f days.\n", end_time / kDays);
+  EXPECT_GT(60 * kDays, end_time);
+}
+
+
+
+
 TEST(Skipper, ThalwilOpposingWind) {
   double end_time = 0;
   SkipperInput in;
@@ -102,8 +143,6 @@ TEST(Skipper, ThalwilOpposingWind) {
   }
   printf("end time: %8.6f days.\n", end_time / kDays);
   EXPECT_GT(60 * kDays, end_time);
-
-
 }
 
 TEST(Skipper, Atlantic) {
@@ -253,10 +292,11 @@ TEST(Skipper, StormyAtlantic) {
 }
 
 int main(int argc, char* argv[]) {
-  Skipper_All();
-  Skipper_ThalwilOpposingWind();
+  //Skipper_All();
+  Skipper_SukkulentenhausPlan();
+  /*Skipper_ThalwilOpposingWind();
   Skipper_Atlantic();
   Skipper_ChangingAtlantic();
-  Skipper_StormyAtlantic();
+  Skipper_StormyAtlantic();*/
   return 0;
 }

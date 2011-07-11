@@ -4,6 +4,7 @@
 // Steffen Grundmann, July 2011
 
 #include <math.h>
+#include <stdio.h>
 
 #include "skipper/target_circle.h"
 #include "common/convert.h"
@@ -29,6 +30,7 @@ double TargetCircle::DistanceSquared(double x, double y) const {
 }
 
 bool TargetCircle::In(double x, double y, double expansion) const {
+  //printf("dist %g deg\n", sqrt(DistanceSquared(x, y)));
   return DistanceSquared(x, y) <=
          radius_squared_ * expansion * expansion;
 }
