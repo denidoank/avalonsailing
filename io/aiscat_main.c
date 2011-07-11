@@ -2,8 +2,7 @@
 // Use of this source code is governed by the Apache License 2.0
 // that can be found in the LICENSE file.
 //
-// Open serial port and decode NMEA messages
-// 
+// Open serial port and decode NMEA messages with AIS messages inside them.
 //
 // NMEA 0183 official page:
 // http://www.nmea.org/content/nmea_standards/nmea_083_v_400.asp
@@ -60,7 +59,7 @@ usage(void)
 		"usage: %s [options] /dev/ttyXX\n"
 		"options:\n"
 		"\t-b baudrate         (default unchanged)\n"
-		"\t-d debug            (don't syslog, -dd is open serial as plain file)\n"
+		"\t-d debug            (don't syslog, -dd opens port as plain file)\n"
 		, argv0);
 	exit(2);
 }
@@ -81,7 +80,7 @@ now_ms()
 // -----------------------------------------------------------------------------
 // Return NULL if not valid, or a pointer to the 2+3 sender/message type field
 char* valid_nmea(char* line) {
-	char* start = strchr(line, '$');
+	char* start = strcspn(line, "!$");
 	if (!start) return NULL;
 	char* chk = strchr(start, '*');
 	if (!chk) return NULL;
@@ -100,51 +99,52 @@ char* valid_nmea(char* line) {
 	return start + 1;
 }
 
-struct WindProto {
-	uint64_t timestamp_ms;
-	double angle_deg;
-	int relative;
-	double speed_m_s;
-	int valid;
+struct RawAISProto {
+	int frag_count;
+	int frag_index;
+	int msg_seq;
+	char chan;   // A or B
+	char raw_bitvector[80];  // 6 bits/char, terminated with 0xff
 };
 
-// For use in printf and friends.
-#define OFMT_WINDPROTO(x, n) \
-	"timestamp_ms:%lld angle_deg:%.3lf speed_m_s:%.2lf valid:%d%n", \
-	(x).timestamp_ms, (x).angle_deg, (x).speed_m_s, (x).valid, (n)
-
-int parse_wimvx(char* sentence, struct WindProto* wp) {
+int parse_aivdm(char* sentence, struct RawAISProto* ap) {
 	char* flde;
-	char* fld = strsep(&sentence, ",");   // field 0: sender and message type
+	char* fld = strsep(&sentence, ",");   // field 0: sender and message type AIVDM
 	if (!fld) return 0;
 
-	fld = strsep(&sentence, ",");   // field 1: angle in degrees
+	fld = strsep(&sentence, ",");   // field 1:  fragment count
 	if (!fld) return 0;
-	wp->angle_deg = strtod(fld, &flde);
+	ap->frag_count = strtol(fld, &flde, 10);
 	if (*flde) return 0;
 
-	fld = strsep(&sentence, ",");  // field 2: "R" for relative
+	fld = strsep(&sentence, ",");   // field 2:  fragment index
 	if (!fld) return 0;
-	wp->relative = (*fld == 'R');
-
-	fld = strsep(&sentence, ",");  // field 3: speed
-	if (!fld) return 0;
-	double speed = strtod(fld, &flde);
+	ap->frag_index = strtol(fld, &flde, 10);
 	if (*flde) return 0;
 
-	fld = strsep(&sentence, ",");  // field 4: units
+	fld = strsep(&sentence, ",");   // field 3:  message sequence number
 	if (!fld) return 0;
-	switch(fld[0]) {
-	case 'K': wp->speed_m_s = speed * (1000.0/3600.0); break;// 1 km/h == 1000m / 3600s
-	case 'M': wp->speed_m_s = speed; break;
-	case 'N': wp->speed_m_s = speed * (1852.0/3600.0); break; // 1 knot == 1852m / 3600s
-	default: return 0;
+	if (*fld) {
+		ap->msg_seq = strtol(fld, &flde, 10);
+		if (*flde) return 0;
 	}
 
-	fld = strsep(&sentence, ",");  // field 5: 'A' for valid
+	fld = strsep(&sentence, ",");   // field 4:  ais channel
 	if (!fld) return 0;
+	if (*fld) {
+		ap->chan = *fld;
+	}
 
-	wp->valid = *fld == 'A';
+	fld = strsep(&sentence, ",");   // field 4:  ais channel
+	if (!fld) return 0;
+	char *dst = ap->raw_bitvector;
+	for ( ; *fld; ++fld,++dst) {
+		char bits = *fld;
+		bits -= 0x30;
+		if (bits > 0x28) bits -= 8;
+		*dst = bits;
+	}
+	*dst = 0xff;
 
 	return 1;
 }
@@ -239,23 +239,28 @@ int main(int argc, char* argv[]) {
 
 		garbage = 0;
 
-		if (strncmp(start, "WIMWV", 5) == 0) {
-			struct WindProto vars = { now_ms(), 0, 0, 0 };
-			if (!parse_wimvx(start, &vars)) {
-				if (debug) fprintf(stderr, "Invalid WIMWV sentence: '%s'\n", line);
+		if (strncmp(start, "AIVDM", 5) == 0) {
+			struct RawAISProto ais;
+			if (!parse_aivdm(start, &ais)) {
+				if (debug) fprintf(stderr, "Invalid AIVDM NMEA sentence: '%s'\n", line);
 				continue;
 			}
-			int n = 0;
-			snprintf(out, sizeof out, OFMT_WINDPROTO(vars, &n));
-			if (n > sizeof out) crash("wind proto bufer too small");
-			puts(out);
-			continue;
-		}
+		  
+#if 0
+			struct AISProto vars;
+			if (!parse_ais(&ais, &vars)) {
+				if (debug) fprintf(stderr, "Invalid AIS bitvector: '%s'\n", line);
+				continue;
+			}
 
-		if (strncmp(start, "WIXDR", 5) == 0) {
-			// ignore: temperature and voltages
+			int n = 0;
+			snprintf(out, sizeof line, OFMT_AISPROTO(vars, &n));
+			if (n > sizeof out) crash("ais proto bufer too small");
+			puts(out);
+#endif
 			continue;
 		}
+		
 
 		if (debug) fprintf(stderr, "Ignoring NMEA sentence: '%s'\n", line);
 	}
