@@ -90,7 +90,7 @@ char* valid_nmea(char* line) {
 	char x = 0;
 	for (p = start + 1; p < chk; p++) x ^= *p;
 	char chkstr[3];
-	snprintf(chkstr, sizeof chkstr, "%0X", x);
+	snprintf(chkstr, sizeof chkstr, "%02X", x);
 	if (chk[1] != chkstr[0]) return 0;
 	if (chk[2] != chkstr[1]) return 0;
 
@@ -246,8 +246,8 @@ int main(int argc, char* argv[]) {
 				continue;
 			}
 			int n = 0;
-			snprintf(out, sizeof line, OFMT_WINDPROTO(vars, &n));
-			if (n > sizeof out) crash("imu proto bufer too small");
+			snprintf(out, sizeof out, OFMT_WINDPROTO(vars, &n));
+			if (n > sizeof out) crash("wind proto bufer too small");
 			puts(out);
 			continue;
 		}
