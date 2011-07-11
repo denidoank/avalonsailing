@@ -10,7 +10,7 @@ OUTDIR = ..
 
 default: all
 
-all clean test test.run install installconf:
+all clean test test.run install installconf installinit:
 	@for d in $(SUBDIRS); do $(MAKE) -C $$d $@; done
 
 tarball: clean

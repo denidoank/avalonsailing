@@ -32,6 +32,9 @@ TEST_CONF_SRCS = $(wildcard *_test.conf)
 
 CONF_FILES = $(filter-out $(TEST_CONF_SRCS), $(CONF_SRCS))
 
+# Initscripts files
+INIT_FILES = $(wildcard S*.sh)
+
 # All the binaries we've found
 BINARIES = $(BIN_CCSRCS:_main.cc=) $(BIN_CSRCS:_main.c=)
 
@@ -61,12 +64,17 @@ test: $(TST_CCSRCS:.cc=) $(TST_CSRCS:.c=)
 
 install: $(BINARIES)
 ifneq ($(strip $(BINARIES)),)
-	$(INSTALL) $+ $(DESTDIR)
+	$(INSTALL) $+ $(DESTDIR)/usr/bin
 endif
 
 installconf: $(CONF_FILES)
 ifneq ($(strip $(CONF_FILES)),)
-	$(INSTALL) $+ $(DESTDIR)
+	$(INSTALL) $+ $(DESTDIR)/etc
+endif
+
+installinit: $(INIT_FILES)
+ifneq ($(strip $(INIT_FILES)),)
+	$(INSTALL) $+ $(DESTDIR)/etc/init.d
 endif
 
 test.run: $(TST_CCSRCS:.cc=.run) $(TST_CSRCS:.c=.run)

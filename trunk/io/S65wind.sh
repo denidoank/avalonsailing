@@ -8,7 +8,7 @@ DIR=/usr/bin
 case "$1" in
   start)
         echo -n "Starting $DESC: "
-	$DIR/windcat /dev/ttyUSB1 | $DIR/gulp /var/run/wind >/dev/null 2>&1 &
+	$DIR/windcat -b4800 /dev/windsensor | $DIR/gulp /var/run/wind >/dev/null 2>&1 &
         echo "OK"
         ;;
   stop)
