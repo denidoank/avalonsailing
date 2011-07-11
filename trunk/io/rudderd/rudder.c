@@ -80,6 +80,10 @@ enum {
         REG_OPMODE  = REGISTER(0x6060, 0),
                 OPMODE_HOMING = 6,
                 OPMODE_PPM = 1,
+
+	REG_ERROR = REGISTER(0x1001, 0),
+	REG_ERRHISTCOUNT = REGISTER(0x1003, 0),
+
         REG_TARGPOS = REGISTER(0x607A, 0),
         REG_CURRPOS = REGISTER(0x6064, 0),
 
@@ -297,8 +301,9 @@ int sail_control(Device* motor, Device* bmmh,
 		 MotorParams* motor_params, MotorParams* bmmh_params,
 		 double target_angle_deg, double* actual_angle_deg) {
 
-        int r;
+        int r, i;
         uint32_t status;
+        uint32_t error;
         uint32_t control;
         uint32_t opmode;
         int32_t curr_pos_qc;
@@ -310,11 +315,19 @@ int sail_control(Device* motor, Device* bmmh,
         if (!device_get_register(motor, REG_STATUS, &status))
                 return DEFUNCT;
 
+        if (!device_get_register(motor, REG_ERROR, &error))
+                return DEFUNCT;
+
+        VLOGF("sail_control(%f) status 0x%x", target_angle_deg, status);
+	if (error)
+		VLOGF("sail_control: Error %d: 0x%x", i, error);
+
         if (status & STATUS_FAULT) {
                 VLOGF("sail_control: clearing fault");
                 device_invalidate_register(motor, REG_CONTROL);   // force re-issue
                 device_set_register(motor, REG_CONTROL, CONTROL_CLEARFAULT);
                 device_invalidate_register(motor, REG_STATUS);
+                device_invalidate_register(motor, REG_ERROR);
                 return DEFUNCT;
         }
 
@@ -340,8 +353,8 @@ int sail_control(Device* motor, Device* bmmh,
 
         r = device_set_register(motor, REG_OPMODE, OPMODE_PPM);
 
-        r &= device_set_register(motor, REGISTER(0x2080, 0), 2000); // current_threshold       User specific [500 mA]
-        r &= device_set_register(motor, REGISTER(0x6065, 0), 2000); // max_following_error User specific [2000 qc]
+        r &= device_set_register(motor, REGISTER(0x2080, 0), 3000); // current_threshold       User specific [500 mA]
+        r &= device_set_register(motor, REGISTER(0x6065, 0), 0xffffffff); // max_following_error User specific [2000 qc]
         r &= device_set_register(motor, REGISTER(0x6067, 0), 2000);   // position window [qc], see 14.66
         r &= device_set_register(motor, REGISTER(0x6068, 0), 50);      // position time window [ms], see 14.66
         r &= device_set_register(motor, REGISTER(0x607D, 1), 0x80000000); // min_position_limit [-2147483648 qc]
@@ -426,5 +439,6 @@ int sail_control(Device* motor, Device* bmmh,
         device_invalidate_register(bmmh,  REG_BMMHPOS);
         device_invalidate_register(motor, REG_CURRPOS);
         device_invalidate_register(motor, REG_STATUS);
+	device_invalidate_register(motor, REG_ERROR);
         return (status & STATUS_TARGETREACHED) ? REACHED : TARGETTING;
 }
