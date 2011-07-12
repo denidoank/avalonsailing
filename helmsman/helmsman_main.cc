@@ -510,7 +510,8 @@ int main(int argc, char* argv[]) {
 
     { // see if anyone sent us a command
       const char* line = Client::Handle(&rfds, &wfds);
-      double alpha_star_deg;
+      double alpha_star_deg = 226;
+      uint64_t timestamp = 0;
       if (line) {
         // Short SMS commands: b, d, h37 or just 37
         if (strstr(line, "b")) ShipControl::Brake();
@@ -521,6 +522,9 @@ int main(int argc, char* argv[]) {
         } else if(sscanf(line, "%lf", &alpha_star_deg) == 1) {  // nice for manual control
           ctrl_in.alpha_star_rad = Deg2Rad(alpha_star_deg);
           ShipControl::Normal();
+        } else if(sscanf(line, "timestamp_ms:%lld alpha_star_deg:%lf",
+                  &timestamp, &alpha_star_deg) == 1) {
+          ctrl_in.alpha_star_rad = Deg2Rad(alpha_star_deg);
         } else {
           ctrl_in.alpha_star_rad = 0;
         }

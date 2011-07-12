@@ -5,6 +5,7 @@
 #ifndef HELMSMAN_CONTROLLER_IO_H
 #define HELMSMAN_CONTROLLER_IO_H
 
+#include "common/unknown.h"
 #include "helmsman/imu.h"
 #include "helmsman/wind.h"
 #include "helmsman/drive_data.h"
@@ -19,7 +20,7 @@ struct ControllerInput {
     imu.Reset();
     wind.Reset();
     drives.Reset();
-    alpha_star_rad = 0;  // natural
+    alpha_star_rad = kUnknown;  // natural
   }
 
   Imu imu;
