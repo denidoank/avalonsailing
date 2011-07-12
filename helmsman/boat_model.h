@@ -17,6 +17,12 @@
 #include "helmsman/boat.h" 
 #include "helmsman/controller_io.h"
 
+enum Location {
+  kBrest,
+  kSukku
+};
+
+
 class BoatModel {
  public:
   // everything in radians and meter per second.
@@ -26,7 +32,8 @@ class BoatModel {
             double v_x_ = 0.,
             double gamma_sail_ = 0.2,
             double gamma_rudder_left_ = 0.03,
-            double gamma_rudder_right_ = -0.05);
+            double gamma_rudder_right_ = -0.05,
+            Location = kBrest);
   // N.B. braking is not simulated correctly!
   // (The drag force is not considered in the rudder force model)
   void Simulate(const DriveReferenceValuesRad& drives_reference, 
@@ -52,6 +59,7 @@ class BoatModel {
 
   void SimDrives(const DriveReferenceValuesRad& drives_reference,
                  DriveActualValuesRad* drives);
+  void SetStartPoint(Location start_location);
 
   double period_;
   double omega_;
@@ -64,8 +72,8 @@ class BoatModel {
   int homing_counter_left_;
   int homing_counter_right_;
   
-  double north_;
-  double east_;
+  double north_deg_;
+  double east_deg_;
   Polar apparent_;  // apparent wind in the boat frame
 };
 #endif  // HELMSMAN_BOAT_MODEL_H

@@ -12,6 +12,7 @@
 
 #include <stdio.h>
 
+// TODO(grundmann): Clean this up, make nicer with Polar.
 void NewGammaSail(double alpha_true, double mag_true,
                   double alpha_boat, double mag_boat,
                   double new_alpha_boat,
@@ -24,13 +25,13 @@ void NewGammaSail(double alpha_true, double mag_true,
   double new_mag_boat = 1.0 * mag_boat;
   double alpha_app;
   double mag_app;
-  Apparent(alpha_true, mag_true, alpha_boat, mag_boat, &alpha_app, &mag_app);
+  Apparent(alpha_true, mag_true, alpha_boat, mag_boat, alpha_boat, &alpha_app, &mag_app);
   // apparent.Print("\nold_apparent");
   double old_gamma_sail = sail_controller->BestGammaSail(alpha_app, mag_app);
   // printf("old gamma: %6.2g deg\n", Rad2Deg(old_gamma_sail));   
   double new_alpha_app;
   double new_mag_app;
-  Apparent(alpha_true, mag_true, new_alpha_boat, new_mag_boat, &new_alpha_app, &new_mag_app);
+  Apparent(alpha_true, mag_true, new_alpha_boat, new_mag_boat, new_alpha_boat, &new_alpha_app, &new_mag_app);
 
   // printf("alpha_app %6.2f deg , new_alpha_app %6.2f\n", Rad2Deg(alpha_app), Rad2Deg(new_alpha_app));   
  
@@ -62,12 +63,12 @@ void NewGammaSailWithOldGammaSail(
   double new_mag_boat = 1.0 * mag_boat;
   double alpha_app;
   double mag_app;
-  Apparent(alpha_true, mag_true, alpha_boat, mag_boat, &alpha_app, &mag_app);
+  Apparent(alpha_true, mag_true, alpha_boat, mag_boat, alpha_boat, &alpha_app, &mag_app);
   // apparent.Print("\nold_apparent");
   // printf("old gamma: %6.2g deg\n", Rad2Deg(old_gamma_sail));   
   double new_alpha_app;
   double new_mag_app;
-  Apparent(alpha_true, mag_true, new_alpha_boat, new_mag_boat, &new_alpha_app, &new_mag_app);
+  Apparent(alpha_true, mag_true, new_alpha_boat, new_mag_boat, new_alpha_boat, &new_alpha_app, &new_mag_app);
 
   // printf("alpha_app %6.2f deg , new_alpha_app %6.2f\n", Rad2Deg(alpha_app), Rad2Deg(new_alpha_app));   
  

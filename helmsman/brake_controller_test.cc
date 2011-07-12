@@ -30,9 +30,13 @@ void SetEnv(const Polar& wind_true,
   filtered->alpha_true = wind_true.AngleRad();
   filtered->mag_true = wind_true.Mag();
 
-  Apparent(filtered->alpha_true, filtered->mag_true,
-           filtered->phi_z_boat, filtered->mag_boat,
-           &filtered->angle_app, &filtered->mag_app);
+  Polar app(0, 0);
+  ApparentPolar(Polar(filtered->alpha_true, filtered->mag_true),
+                Polar(filtered->phi_z_boat, filtered->mag_boat),
+                filtered->phi_z_boat,
+                &app);
+  filtered->angle_app = app.AngleRad();
+  filtered->mag_app = app.Mag();        
 }
 
 TEST(BrakeController, All) {

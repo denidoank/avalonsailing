@@ -13,7 +13,8 @@ BoatModel::BoatModel(double sampling_period,
                      double v_x,
                      double gamma_sail,
                      double gamma_rudder_left,
-                     double gamma_rudder_right) 
+                     double gamma_rudder_right,
+                     Location start_location) 
     : period_(sampling_period),
       omega_(omega),
       phi_z_(phi_z), 
@@ -24,9 +25,11 @@ BoatModel::BoatModel(double sampling_period,
       // The following are not settable for lazyness.   
       homing_counter_left_(50),
       homing_counter_right_(20),
-      north_(0),
-      east_(0),
-      apparent_(0, 0) {}
+      north_deg_(0),
+      east_deg_(0),
+      apparent_(0, 0) {
+  SetStartPoint(start_location);
+}
 
 // The x-component of the sail force, very roughly.
 double BoatModel::ForceSail(Polar apparent, double gamma_sail) {
@@ -91,9 +94,6 @@ void BoatModel::FollowRateLimitedRadWrap(double in, double max_rate, double* fol
   *follows = SymmetricRad(*follows);
 }
 
-
-
-
 void BoatModel::SimDrives(const DriveReferenceValuesRad& drives_reference,
                           DriveActualValuesRad* drives) {
   const double kOmegaMaxRudder = Deg2Rad(30);
@@ -135,7 +135,7 @@ void BoatModel::Simulate(const DriveReferenceValuesRad& drives_reference,
   // alpha_star remains
  
   apparent_ = Polar (0, 0);  // apparent wind in the boat frame
-  ApparentPolar(true_wind, Polar(phi_z_, v_x_), &apparent_);
+  ApparentPolar(true_wind, Polar(phi_z_, v_x_), phi_z_, &apparent_);
 
   // Euler integration, acc turns clockwise
   // Homing is symmetric and does not produce much rotation.
@@ -148,8 +148,11 @@ void BoatModel::Simulate(const DriveReferenceValuesRad& drives_reference,
   v_x_ += period_ / 535.0 * (ForceSail(apparent_, gamma_sail_) +
                              0.2 * v_x_ * v_x_ * -Sign(v_x_) * 1030/2);  // eqiv. area 0.2m^2
 
-  north_ += v_x_ * cos(phi_z_) * period_;
-  east_  += v_x_ * sin(phi_z_) * period_;
+  // Produce GPS info.
+  // Convert a meter of way into the change of latitude, roughly.
+  const double MeterToDegree = Rad2Deg(1/6378100.0); 
+  north_deg_ += v_x_ * cos(phi_z_) * period_ * MeterToDegree;
+  east_deg_  += v_x_ * sin(phi_z_) * period_ * MeterToDegree;
   
   // Sensor signal is:
   // The true wind vector direction - (all the angles our sensor is turned by),
@@ -169,8 +172,8 @@ void BoatModel::Simulate(const DriveReferenceValuesRad& drives_reference,
   in->wind.mag_kn = MeterPerSecondToKnots(apparent_.Mag());
   SimDrives(drives_reference, &in->drives);
   in->imu.speed_m_s = v_x_;
-  in->imu.position.longitude_deg = east_;
-  in->imu.position.latitude_deg = north_;
+  in->imu.position.longitude_deg = east_deg_;
+  in->imu.position.latitude_deg = north_deg_;
   in->imu.position.altitude_m = 0;
   in->imu.attitude.phi_x_rad = 0;
   in->imu.attitude.phi_y_rad = 0;
@@ -189,7 +192,7 @@ void BoatModel::Simulate(const DriveReferenceValuesRad& drives_reference,
 
 void BoatModel::Print(double t) {
  printf("%6.3f %8.3f %8.3f %8.3f %8.3f %8.3f %8.3f (%8.3f)\n",
-        t, north_, east_, Rad2Deg(SymmetricRad(phi_z_)), v_x_,
+        t, north_deg_, east_deg_, Rad2Deg(SymmetricRad(phi_z_)), v_x_,
         Rad2Deg(gamma_sail_), Rad2Deg(gamma_rudder_right_), Rad2Deg(apparent_.AngleRad()));
 }
 
@@ -219,3 +222,21 @@ double BoatModel::GetSpeed() {
 double BoatModel::GetPhiZ() {
   return phi_z_;
 }
+
+
+void BoatModel::SetStartPoint(Location start_location) {
+  switch(start_location) {
+    case kBrest:
+      north_deg_ = 48.2390;
+      east_deg_ = -4.7698;
+      break;
+    case kSukku:
+      north_deg_ = 47.2962-0.008;
+      east_deg_ = 8.5812-0.008;
+      break;
+    default:
+      assert(0);  
+  }
+}
+
+

@@ -19,7 +19,7 @@ struct SkipperInput {
   double latitude_deg;
 
   // true wind, global frame
-  // Both values are kUnknown initially. NAN does not parse.
+  // Both values are 0 initially.
   double angle_true_deg;
   double mag_true_kn;
 };

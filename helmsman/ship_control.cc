@@ -127,8 +127,13 @@ bool ShipControl::Run(const ControllerInput& in, ControllerOutput* out) {
   // Get wind speed and all other actual measurement values
   // Figure out apparent and true wind
   filter_block_->Filter(in, &filtered_);
-  if (filter_block_->ValidTrueWind())
+  if (filter_block_->ValidTrueWind()) {
     wind_strength_ = WindStrength(wind_strength_, filtered_.mag_true);
+    out->skipper_input.longitude_deg = filtered_.longitude_deg;
+    out->skipper_input.latitude_deg =  filtered_.latitude_deg;
+    out->skipper_input.angle_true_deg = NormalizeDeg(Rad2Deg(filtered_.alpha_true));
+    out->skipper_input.mag_true_kn =    MeterPerSecondToKnots(filtered_.mag_true);
+  }  
   wind_strength_apparent_ =
       WindStrength(wind_strength_apparent_, filtered_.mag_app);
 
@@ -138,6 +143,8 @@ bool ShipControl::Run(const ControllerInput& in, ControllerOutput* out) {
   StateMachine(in);
   // call specialized controller
   controller_->Run(in, filtered_, out);
+  
+  
   bool changed = prev_out != *out;
   prev_out = *out;
   return changed;
