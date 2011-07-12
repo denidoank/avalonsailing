@@ -362,8 +362,8 @@ int snprint_rudd(char *line, int size, const DriveReferenceValuesRad& s) {
 
 int snprint_helmsmanout(char *line, int size, const SkipperInput& s) {
     return snprintf(line, size,
-                  "timestamp_ms:%lld lat_deg:%f lng_deg:%f wind_angle_deg:%f wind_speed_m_s:%f\n" ,
-                  now_ms(), s.latitude_deg, s.longitude_deg,  s.angle_true_deg, KnotsToMeterPerSecond(s.mag_true_kn));
+                  "timestamp_ms:%lld lat_deg:%f lng_deg:%f wind_angle_deg:%f wind_speed_kn:%f\n" ,
+                  now_ms(), s.latitude_deg, s.longitude_deg,  s.angle_true_deg, s.mag_true_kn);
 }
 
 } // namespace
