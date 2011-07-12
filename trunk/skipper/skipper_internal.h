@@ -2,8 +2,8 @@
 // Use of this source code is governed by the Apache License 2.0
 // that can be found in the LICENSE file.
 // Steffen Grundmann, May 2011
-#ifndef SKIPPER_SKIPPER_H
-#define SKIPPER_SKIPPER_H
+#ifndef SKIPPER_SKIPPER_INTERNAL_H
+#define SKIPPER_SKIPPER_INTERNAL_H
 
 #include <vector>
 
@@ -11,7 +11,7 @@
 #include "skipper/ais.h"
 #include "skipper/lat_lon.h"
 
-class Skipper {
+class SkipperInternal {
  public:
   // Run this occasionally, when new skipper input or AIS information is available.
   static void Run(const SkipperInput& in,
@@ -22,4 +22,4 @@ class Skipper {
 
 };
 
-#endif  // SKIPPER_SKIPPER_H
+#endif  // SKIPPER_SKIPPER_INTERNAL_H
