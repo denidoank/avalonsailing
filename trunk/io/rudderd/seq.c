@@ -10,6 +10,7 @@
 #include "seq.h"
 #include "com.h"
 
+#include <stdio.h>
 #include <unistd.h>
 #include <sys/time.h>
 
@@ -36,7 +37,7 @@ static int64_t
 now_ms() 
 {
         struct timeval tv;
-        if (gettimeofday(&tv, NULL) < 0) crash("no working clock");
+        if (gettimeofday(&tv, NULL) < 0) fprintf(stderr, "no working clock");
 
         int64_t ms1 = tv.tv_sec;  ms1 *= 1000;
         int64_t ms2 = tv.tv_usec; ms2 /= 1000;
