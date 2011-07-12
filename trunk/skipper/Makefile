@@ -3,6 +3,7 @@ DEPS+=lib/fm
 DEPS+=lib/util
 DEPS+=io/ipc
 DEPS+=helmsman
+
 TARGET_ARCH=-m32
 LDFLAGS+=-static
 
