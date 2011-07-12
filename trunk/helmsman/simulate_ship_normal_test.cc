@@ -64,11 +64,8 @@ TEST(SimShip, Wind_0) {
 
   // all initial wind directions are handled correctly.
   for (double wind_direction = -180; wind_direction < 180; wind_direction += 1) {
-    //
-    if (fabs(wind_direction - 154) < 0.1) continue;
-    if (fabs(wind_direction - 155) < 0.1) continue;
-
-    if (fabs(wind_direction - -90) < 20) continue;
+    if (fabs(wind_direction - -90) < 20)  // Not sailable.
+      continue;
     NormalControllerTest(wind_direction, 1.0);  // speeds vary from 1.0 to 2.1 m/s
   }  
   

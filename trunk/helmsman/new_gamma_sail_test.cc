@@ -20,6 +20,7 @@ TEST(NewGammaSail, Tack) {
   SailController sail_controller;
   Apparent(alpha_true, mag_true,
            alpha_boat, mag_boat,
+           alpha_boat,
            &angle_app, &mag_app);
   double old_gamma_sail = sail_controller.BestGammaSail(angle_app, mag_app);
 
@@ -65,6 +66,7 @@ TEST(NewGammaSail, Jibe) {
   SailController sail_controller;
   Apparent(alpha_true, mag_true,
            alpha_boat, mag_boat,
+           alpha_boat,
            &angle_app, &mag_app);
   double old_gamma_sail = sail_controller.BestGammaSail(angle_app, mag_app);
 
@@ -105,6 +107,7 @@ TEST(NewGammaSail, Jibe) {
   new_alpha_boat = alpha_boat - Deg2Rad(140);
   Apparent(alpha_true, mag_true,
            alpha_boat, mag_boat,
+           alpha_boat,
            &angle_app, &mag_app);
   old_gamma_sail = sail_controller.BestGammaSail(angle_app, mag_app);
 
@@ -137,6 +140,7 @@ TEST(NewGammaSail, Jibe) {
   new_alpha_boat = alpha_boat - Deg2Rad(2);
   Apparent(alpha_true, mag_true,
            alpha_boat, mag_boat,
+           alpha_boat,
            &angle_app, &mag_app);
   old_gamma_sail = sail_controller.BestGammaSail(angle_app, mag_app);
   NewGammaSailWithOldGammaSail(alpha_true, mag_true,
@@ -162,6 +166,7 @@ TEST(NewGammaSail, Jibe) {
   new_alpha_boat = Deg2Rad(-180);
   Apparent(alpha_true, mag_true,
            alpha_boat, mag_boat,
+           alpha_boat,
            &angle_app, &mag_app);
   old_gamma_sail = sail_controller.BestGammaSail(angle_app, mag_app);
   NewGammaSailWithOldGammaSail(alpha_true, mag_true,
@@ -187,6 +192,7 @@ TEST(NewGammaSail, Jibe) {
   new_alpha_boat = Deg2Rad(-179);
   Apparent(alpha_true, mag_true,
            alpha_boat, mag_boat,
+           alpha_boat,
            &angle_app, &mag_app);
   old_gamma_sail = sail_controller.BestGammaSail(angle_app, mag_app);
   
@@ -208,6 +214,7 @@ TEST(NewGammaSail, Jibe) {
   new_alpha_boat = Deg2Rad(-181);
   Apparent(alpha_true, mag_true,
            alpha_boat, mag_boat,
+           alpha_boat,
            &angle_app, &mag_app);
   old_gamma_sail = sail_controller.BestGammaSail(angle_app, mag_app);
   NewGammaSailWithOldGammaSail(alpha_true, mag_true,
@@ -233,6 +240,7 @@ TEST(NewGammaSail, Change) {
   SailController sail_controller;
   Apparent(alpha_true, mag_true,
            alpha_boat, mag_boat,
+           alpha_boat,
            &angle_app, &mag_app);
   double old_gamma_sail = sail_controller.BestGammaSail(angle_app, mag_app);
 
@@ -305,6 +313,7 @@ void LogNewGammaSail() {
 
     Apparent(alpha_true, mag_true,
              alpha_boat, mag_boat,
+             alpha_boat,
              &angle_app, &mag_app);
     double old_gamma_sail = sail_controller.BestGammaSail(angle_app, mag_app);
 

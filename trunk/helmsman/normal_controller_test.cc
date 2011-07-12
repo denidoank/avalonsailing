@@ -32,6 +32,7 @@ void SetEnv(const Polar& wind_true,
 
   Apparent(filtered->alpha_true, filtered->mag_true,
            filtered->phi_z_boat, filtered->mag_boat,
+           filtered->phi_z_boat,
            &filtered->angle_app, &filtered->mag_app);
 }
 
@@ -49,6 +50,7 @@ TEST(NormalController, All) {
                           // the boats x-axis, 1m/s magnitude.
   SetEnv(wind_true, boat, &in, &filtered, &out);
   // straight ahead
+  in.alpha_star_rad = 0;
   c.Run(in, filtered, &out);
 
   EXPECT_FLOAT_EQ(0, Rad2Deg(out.drives_reference.gamma_rudder_star_left_rad));
