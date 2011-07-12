@@ -3,7 +3,7 @@
 // that can be found in the LICENSE file.
 // Steffen Grundmann, June 2011
 
-#include "skipper/skipper.h"
+#include "skipper/skipper_internal.h"
 
 #include <vector>
 #include <stdlib.h>
@@ -19,18 +19,18 @@
 
 const static double kDays = 3600 * 24;
 
-TEST(Skipper, All) {
+TEST(SkipperInternal, All) {
   double end_time = 0;
   SkipperInput in;
   std::vector<AISInfo> ais;
   double alpha_star;
 
   // no wind, default direction
-  Skipper::Run(in, ais, &alpha_star);
+  SkipperInternal::Run(in, ais, &alpha_star);
   EXPECT_FLOAT_EQ(225, alpha_star);
   in.mag_true_kn = kUnknown;
   in.angle_true_deg = kUnknown;
-  Skipper::Run(in, ais, &alpha_star);
+  SkipperInternal::Run(in, ais, &alpha_star);
   EXPECT_FLOAT_EQ(225, alpha_star);
   in.mag_true_kn = 2;
   in.angle_true_deg = 0;  // so we cannot sail south
@@ -41,7 +41,7 @@ TEST(Skipper, All) {
   double v = 2 / to_cartesian_meters;  // v is speed in degree/s
   in.latitude_deg = x0;
   in.longitude_deg = y0;
-  Skipper::Init(in);
+  SkipperInternal::Init(in);
   end_time = 0;
 
   printf("t/s, x0, y0, alpha_star\n");
@@ -49,8 +49,8 @@ TEST(Skipper, All) {
   for (double t = 0; t < 500; t += time_step ) {
     in.latitude_deg = x0;
     in.longitude_deg = y0;
-    Skipper::Run(in, ais, &alpha_star);
-    if (Skipper::TargetReached(LatLon(x0, y0))) {
+    SkipperInternal::Run(in, ais, &alpha_star);
+    if (SkipperInternal::TargetReached(LatLon(x0, y0))) {
       end_time = t;
       EXPECT_TRUE(thalwil.In(x0, y0));
       break;
@@ -65,7 +65,7 @@ TEST(Skipper, All) {
   EXPECT_GT(60 * kDays, end_time);
 }
 
-TEST(Skipper, SukkulentenhausPlan) {
+TEST(SkipperInternal, SukkulentenhausPlan) {
   double end_time = 0;
   SkipperInput in;
   std::vector<AISInfo> ais;
@@ -78,7 +78,7 @@ TEST(Skipper, SukkulentenhausPlan) {
   double v = 2 / to_cartesian_meters;
   in.latitude_deg = x0;
   in.longitude_deg = y0;
-  Skipper::Init(in);
+  SkipperInternal::Init(in);
   end_time = 0;
 
   printf("t/s, x0, y0, alpha_star\n");
@@ -86,8 +86,8 @@ TEST(Skipper, SukkulentenhausPlan) {
   for (double t = 0; t < 5000; t += time_step) {
     in.latitude_deg = x0;
     in.longitude_deg = y0;
-    Skipper::Run(in, ais, &alpha_star);
-    if (Skipper::TargetReached(LatLon(x0, y0))) {
+    SkipperInternal::Run(in, ais, &alpha_star);
+    if (SkipperInternal::TargetReached(LatLon(x0, y0))) {
       EXPECT_TRUE(sukku.In(x0, y0));
       if (end_time == 0)
         end_time = t;
@@ -106,7 +106,7 @@ TEST(Skipper, SukkulentenhausPlan) {
 
 
 
-TEST(Skipper, ThalwilOpposingWind) {
+TEST(SkipperInternal, ThalwilOpposingWind) {
   double end_time = 0;
   SkipperInput in;
   std::vector<AISInfo> ais;
@@ -120,7 +120,7 @@ TEST(Skipper, ThalwilOpposingWind) {
   double v = 2 / to_cartesian_meters;
   in.latitude_deg = x0;
   in.longitude_deg = y0;
-  Skipper::Init(in);
+  SkipperInternal::Init(in);
   end_time = 0;
 
   printf("t/s, x0, y0, alpha_star\n");
@@ -128,8 +128,8 @@ TEST(Skipper, ThalwilOpposingWind) {
   for (double t = 0; t < 5000; t += time_step) {
     in.latitude_deg = x0;
     in.longitude_deg = y0;
-    Skipper::Run(in, ais, &alpha_star);
-    if (Skipper::TargetReached(LatLon(x0, y0))) {
+    SkipperInternal::Run(in, ais, &alpha_star);
+    if (SkipperInternal::TargetReached(LatLon(x0, y0))) {
       EXPECT_TRUE(thalwil.In(x0, y0));
       if (end_time == 0)
         end_time = t;
@@ -145,7 +145,7 @@ TEST(Skipper, ThalwilOpposingWind) {
   EXPECT_GT(60 * kDays, end_time);
 }
 
-TEST(Skipper, Atlantic) {
+TEST(SkipperInternal, Atlantic) {
   double end_time = 0;
   SkipperInput in;
   std::vector<AISInfo> ais;
@@ -159,7 +159,7 @@ TEST(Skipper, Atlantic) {
   double v = 2 / to_cartesian_meters;
   in.latitude_deg = x0;
   in.longitude_deg = y0;
-  Skipper::Init(in);
+  SkipperInternal::Init(in);
   end_time = 0;
 
   printf("t/days, x0, y0, alpha_star\n");
@@ -170,9 +170,9 @@ TEST(Skipper, Atlantic) {
        t += time_step ) {
     in.latitude_deg = x0;
     in.longitude_deg = y0;
-    Skipper::Run(in, ais, &alpha_star);
+    SkipperInternal::Run(in, ais, &alpha_star);
 
-    if (Skipper::TargetReached(LatLon(x0, y0))) {
+    if (SkipperInternal::TargetReached(LatLon(x0, y0))) {
       EXPECT_TRUE(caribbean_final.In(x0, y0));
       if (end_time == 0)
         end_time = t;
@@ -190,7 +190,7 @@ TEST(Skipper, Atlantic) {
 
 }
 
-TEST(Skipper, ChangingAtlantic) {
+TEST(SkipperInternal, ChangingAtlantic) {
   double end_time = 0;
   SkipperInput in;
   std::vector<AISInfo> ais;
@@ -205,7 +205,7 @@ TEST(Skipper, ChangingAtlantic) {
   double v = 2 / to_cartesian_meters;
   in.latitude_deg = x0;
   in.longitude_deg = y0;
-  Skipper::Init(in);
+  SkipperInternal::Init(in);
   end_time = 0;
 
   printf("t/days, x0, y0, alpha_star\n");
@@ -218,9 +218,9 @@ TEST(Skipper, ChangingAtlantic) {
     in.mag_true_kn = rand() % 40;
     in.latitude_deg = x0;
     in.longitude_deg = y0;
-    Skipper::Run(in, ais, &alpha_star);
+    SkipperInternal::Run(in, ais, &alpha_star);
 
-    if (Skipper::TargetReached(LatLon(x0, y0))) {
+    if (SkipperInternal::TargetReached(LatLon(x0, y0))) {
       printf(" ");
       EXPECT_TRUE(caribbean_final.In(x0, y0));
       if (end_time == 0)
@@ -242,7 +242,7 @@ TEST(Skipper, ChangingAtlantic) {
   EXPECT_GT(63 * kDays, end_time);
 }
 
-TEST(Skipper, StormyAtlantic) {
+TEST(SkipperInternal, StormyAtlantic) {
   double end_time = 0;
   SkipperInput in;
   std::vector<AISInfo> ais;
@@ -258,7 +258,7 @@ TEST(Skipper, StormyAtlantic) {
   double v = 2 / to_cartesian_meters;
   in.latitude_deg = x0;
   in.longitude_deg = y0;
-  Skipper::Init(in);
+  SkipperInternal::Init(in);
   end_time = 0;
 
   printf("t/days, x0, y0, alpha_star\n");
@@ -271,9 +271,9 @@ TEST(Skipper, StormyAtlantic) {
     in.mag_true_kn = rand() % 40;
     in.latitude_deg = x0;
     in.longitude_deg = y0;
-    Skipper::Run(in, ais, &alpha_star);
+    SkipperInternal::Run(in, ais, &alpha_star);
 
-    if (Skipper::TargetReached(LatLon(x0, y0))) {
+    if (SkipperInternal::TargetReached(LatLon(x0, y0))) {
       printf(" ");
       EXPECT_TRUE(caribbean_final.In(x0, y0));
       if (end_time == 0)
@@ -295,11 +295,11 @@ TEST(Skipper, StormyAtlantic) {
 }
 
 int main(int argc, char* argv[]) {
-  Skipper_All();
-  Skipper_SukkulentenhausPlan();
-  Skipper_ThalwilOpposingWind();
-  Skipper_Atlantic();
-  Skipper_ChangingAtlantic();
-  Skipper_StormyAtlantic();
+  SkipperInternal_All();
+  SkipperInternal_SukkulentenhausPlan();
+  SkipperInternal_ThalwilOpposingWind();
+  SkipperInternal_Atlantic();
+  SkipperInternal_ChangingAtlantic();
+  SkipperInternal_StormyAtlantic();
   return 0;
 }

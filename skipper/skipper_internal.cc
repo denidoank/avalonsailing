@@ -3,16 +3,15 @@
 // that can be found in the LICENSE file.
 // Steffen Grundmann, July 2011
 
+#include "skipper/skipper_internal.h"
 
 #include "common/unknown.h"
 #include "common/polar_diagram.h"
 #include "helmsman/normal_controller.h"
 #include "lib/fm/log.h"
 #include "skipper/planner.h"
-#include "skipper/skipper.h"
 
-
-void Skipper::Run(const SkipperInput& in,
+void SkipperInternal::Run(const SkipperInput& in,
                   const vector<AISInfo>& ais,
                   double* alpha_star_deg) {
   double alpha_planner = Planner::ToDeg(in.latitude_deg, in.longitude_deg);
@@ -25,11 +24,11 @@ void Skipper::Run(const SkipperInput& in,
   *alpha_star_deg = feasible;
 }
 
-void Skipper::Init(const SkipperInput& in) {
+void SkipperInternal::Init(const SkipperInput& in) {
   Planner::Init(LatLon(in.latitude_deg, in.longitude_deg));
 }
 
-bool Skipper::TargetReached(const LatLon& lat_lon){
+bool SkipperInternal::TargetReached(const LatLon& lat_lon){
   return Planner::TargetReached(lat_lon);
 }
 
