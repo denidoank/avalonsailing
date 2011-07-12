@@ -101,11 +101,23 @@ void ShipControl::StateMachine(const ControllerInput& in) {
     */
     if (controller_->Done() &&
         wind_strength_ == kNormalWind &&
-        filter_block_->ValidTrueWind()) {
+        filter_block_->ValidTrueWind() &&
+        in.alpha_star_rad != kUnknown) {
       Transition(&normal_controller_, in);
       return;
+    } else {
+      static int log_count = 0;
+      if (++log_count % 10 == 0) {
+        if (!controller_->Done())                  
+          FM_LOG_INFO("Initial not Done.");
+        else if (!wind_strength_ == kNormalWind)   
+          FM_LOG_INFO("Wind not normal");
+        else if (!filter_block_->ValidTrueWind())  
+          FM_LOG_INFO("True wind filter not valid");
+        else if (!in.alpha_star_rad != kUnknown) 
+          FM_LOG_INFO("alpha_star unknown"); 
+      }  
     }
-
   }
 }
 

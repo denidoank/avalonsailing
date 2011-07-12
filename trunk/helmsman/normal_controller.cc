@@ -11,6 +11,7 @@
 #include "common/delta_angle.h"
 #include "common/normalize.h"
 #include "common/polar_diagram.h"
+#include "common/unknown.h"
 #include "helmsman/apparent.h"
 #include "helmsman/new_gamma_sail.h"
 #include "lib/fm/log.h"
