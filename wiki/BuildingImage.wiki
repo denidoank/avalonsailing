@@ -14,6 +14,11 @@ an image of the avalon sailing system.
   * `make image [ IMAGE_DIR=/tmp/avalon ]`
     * runs buildroot/build.sh (optionally persisting the output in $(IMAGE_DIR)
 
+==Steps to build with uclibc locally on ubuntu machines==
+buildroot/build.sh -d /usr/local/google/buildroot
+export PATH=/usr/local/google/buildroot/buildroot-2011.05/output/host/usr/bin/:$PATH
+make CC=i586-linux-gcc CXX=i586-linux-g++ LD=i586-linux-ld AR=i586-linux-ar
+
 ==Steps to build an image:==
   * checkout the source code (or svn up if you already have it)
   * [#Prepare_CF Prepare] a CF card 
