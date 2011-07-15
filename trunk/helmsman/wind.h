@@ -6,6 +6,9 @@
 #ifndef HELMSMAN_WIND_H
 #define HELMSMAN_WIND_H
 
+#include <stdio.h>
+#include <string>
+
 #include "common/check.h"
 #include "common/convert.h"
 #include "common/normalize.h"
@@ -19,6 +22,13 @@ struct WindSensor {
     mag_kn = 0;  
     alpha_deg = 0;
   }
+  std::string ToString() const {
+  char line[1024];
+  int s = snprintf(line, sizeof line, "mag_kn:%f alpha_deg:%f \n",
+                   mag_kn, alpha_deg);
+  return std::string(line, s);
+}
+  
   double mag_kn;     // in knots
   double alpha_deg;  // [0, 360]
 };
