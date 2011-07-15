@@ -221,9 +221,8 @@ B.W = [...
   2.25+axis_to_mast_nose+mast_diameter/2;
   0; 
   deck_to_leech+B.height_S] - cog;
-% The wind sensor is not mounted straight, but twisted to the portside (about 30 gegees)
 
-B.offset_rad_W = -31.3 / 180 * pi;   
+B.offset_rad_W = 0;   
 
 % Derived lambda factor constants
 lambda = 2 * B.area_K / (B.length_K + B.diameter_B)^2; 
