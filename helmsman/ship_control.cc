@@ -99,7 +99,8 @@ void ShipControl::StateMachine(const ControllerInput& in) {
       return;
     }
     */
-    if (controller_->Done() &&
+    if (0 &&   // FOR TESTS stay in INitial Controller
+        controller_->Done() &&
         wind_strength_ == kNormalWind &&
         filter_block_->ValidTrueWind() &&
         in.alpha_star_rad != kUnknown) {
@@ -108,6 +109,7 @@ void ShipControl::StateMachine(const ControllerInput& in) {
     } else {
       static int log_count = 0;
       if (++log_count % 10 == 0) {
+        // Log reason why we are not progressing to normal operation
         if (!controller_->Done())                  
           FM_LOG_INFO("Initial not Done.");
         else if (!wind_strength_ == kNormalWind)   
@@ -115,7 +117,11 @@ void ShipControl::StateMachine(const ControllerInput& in) {
         else if (!filter_block_->ValidTrueWind())  
           FM_LOG_INFO("True wind filter not valid");
         else if (!in.alpha_star_rad != kUnknown) 
-          FM_LOG_INFO("alpha_star unknown"); 
+          FM_LOG_INFO("alpha_star unknown");
+        else {
+          FM_LOG_INFO("Take out the zero you STUPID!");
+          printf("Take out the zero you STUPID!\n");
+        }  
       }  
     }
   }

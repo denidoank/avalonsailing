@@ -16,6 +16,7 @@
 #include "common/sign.h"
 #include "helmsman/sampling_period.h"  
 #include "helmsman/wind_strength.h"
+#include "helmsman/wind.h"
 
 namespace {
 const double kReverseMotionSailAngle = Deg2Rad(90);
@@ -50,9 +51,25 @@ void InitialController::Run(const ControllerInput& in,
   }
   if (!in.drives.homed_sail ||
       (!in.drives.homed_rudder_left && !in.drives.homed_rudder_right)) {
-    FM_LOG_INFO("Drives not ready");
+    FM_LOG_INFO("Drives not ready\n %s %s %s",
+           in.drives.homed_rudder_left ? "" : "sail",
+           in.drives.homed_rudder_left ? "" : "left",
+           in.drives.homed_rudder_left ? "" : "right");
+    printf("Drives not ready\n %s %s %s",
+           in.drives.homed_rudder_left ? "" : "sail",
+           in.drives.homed_rudder_left ? "" : "left",
+           in.drives.homed_rudder_left ? "" : "right");
   }
-
+  
+  /* debug flag comes here
+  FM_LOG_INFO("WindSensor: %s", in.wind.ToString().c_str());
+  FM_LOG_INFO("DriveActuals: %s", in.drives.ToString().c_str());
+  FM_LOG_INFO("AppFiltered: %fdeg %fm/s", Rad2Deg(filtered.angle_app), filtered.mag_app);
+  printf("WindSensor: %s\n", in.wind.ToString().c_str());
+  printf("DriveActuals: %s\n", in.drives.ToString().c_str());
+  printf("AppFiltered: %fdeg %fm/s\n", Rad2Deg(filtered.angle_app), filtered.mag_app);
+  */
+  
   double angle_app = SymmetricRad(filtered.angle_app);
 
   switch (phase_) {

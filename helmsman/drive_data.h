@@ -48,6 +48,7 @@ struct DriveActualValuesRad {
   DriveActualValuesRad(const std::string& kvline);
   DriveActualValuesRad(const DriveActualValues& act_deg);
   void Reset();
+  std::string ToString() const;
   double gamma_rudder_left_rad;
   double gamma_rudder_right_rad;
   double gamma_sail_rad;

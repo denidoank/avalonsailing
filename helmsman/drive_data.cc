@@ -85,6 +85,18 @@ void DriveActualValuesRad::Reset() {
   homed_sail = false;
 }
 
+std::string DriveActualValuesRad::ToString() const {
+  // used for logging only.
+  char line[1024];
+  int s = snprintf(line, sizeof line,
+      "rudd_L_rad:%f rudd_R_rad:%f sail_rad:%f homed_L:%d homed_R:%d homed_S:%d\n",
+      gamma_rudder_left_rad, gamma_rudder_right_rad, gamma_sail_rad,
+      homed_rudder_left ? 1 : 0,
+      homed_rudder_right ? 1 : 0,
+      homed_sail ? 1 : 0);
+  return std::string(line, s);
+}
+
 
 DriveReferenceValuesRad::DriveReferenceValuesRad() {
   Reset();
