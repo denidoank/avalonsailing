@@ -4,13 +4,6 @@
 //
 // Open serial port and decode NMEA messages with AIS messages inside them.
 //
-// NMEA 0183 official page:
-// http://www.nmea.org/content/nmea_standards/nmea_083_v_400.asp
-//
-// Other unofficial and free sources:
-// NMEA protocol: http://www.serialmon.com/protocols/nmea0183.html
-// GPS NMEA messages: http://www.gpsinformation.org/dale/nmea.htm
-//
 #include <errno.h>
 #include <fcntl.h>
 #include <stdarg.h>
@@ -23,6 +16,8 @@
 #include <time.h>
 #include <sys/time.h>
 #include <unistd.h>
+
+#include "ais.h"
 
 // -----------------------------------------------------------------------------
 //   Together with getopt in main, this is our minimalistic UI
@@ -56,10 +51,11 @@ static void
 usage(void)
 {
 	fprintf(stderr,
-		"usage: %s [options] /dev/ttyXX\n"
+		"usage: %s [options] [/dev/ttyXX]\n"
 		"options:\n"
 		"\t-b baudrate         (default unchanged)\n"
 		"\t-d debug            (don't syslog, -dd opens port as plain file)\n"
+		"will read NMEA sentence from stdin with no arguments.\n"
 		, argv0);
 	exit(2);
 }
@@ -78,77 +74,28 @@ now_ms()
 
 
 // -----------------------------------------------------------------------------
-// Return NULL if not valid, or a pointer to the 2+3 sender/message type field
+// Return NULL if not valid, or a pointer to the end of the last field
 char* valid_nmea(char* line) {
-	char* start = strcspn(line, "!$");
-	if (!start) return NULL;
-	char* chk = strchr(start, '*');
+	if (line[0] != '!') return NULL;
+	char* chk = strchr(line, '*');
 	if (!chk) return NULL;
 
 	char* p;
 	char x = 0;
-	for (p = start + 1; p < chk; p++) x ^= *p;
+	for (p = line + 1; p < chk; p++) x ^= *p;
 	char chkstr[3];
 	snprintf(chkstr, sizeof chkstr, "%02X", x);
-	if (chk[1] != chkstr[0]) return 0;
-	if (chk[2] != chkstr[1]) return 0;
+	if (debug > 2) fprintf(stderr, "checksum:%s\n", chkstr);
 
+	if (chk[1] != chkstr[0]) return NULL;
+	if (chk[2] != chkstr[1]) return NULL;
+
+#if 0   // don't worry about trailing garbage
 	if (chk[3] != '\r' && chk[3] != '\n') return NULL;
-	if (chk[4] != '\n' && chk[3] != 0) return NULL;
-
-	return start + 1;
+	if (chk[4] != '\n' && chk[4] != 0) return NULL;
+#endif
+	return chk;
 }
-
-struct RawAISProto {
-	int frag_count;
-	int frag_index;
-	int msg_seq;
-	char chan;   // A or B
-	char raw_bitvector[80];  // 6 bits/char, terminated with 0xff
-};
-
-int parse_aivdm(char* sentence, struct RawAISProto* ap) {
-	char* flde;
-	char* fld = strsep(&sentence, ",");   // field 0: sender and message type AIVDM
-	if (!fld) return 0;
-
-	fld = strsep(&sentence, ",");   // field 1:  fragment count
-	if (!fld) return 0;
-	ap->frag_count = strtol(fld, &flde, 10);
-	if (*flde) return 0;
-
-	fld = strsep(&sentence, ",");   // field 2:  fragment index
-	if (!fld) return 0;
-	ap->frag_index = strtol(fld, &flde, 10);
-	if (*flde) return 0;
-
-	fld = strsep(&sentence, ",");   // field 3:  message sequence number
-	if (!fld) return 0;
-	if (*fld) {
-		ap->msg_seq = strtol(fld, &flde, 10);
-		if (*flde) return 0;
-	}
-
-	fld = strsep(&sentence, ",");   // field 4:  ais channel
-	if (!fld) return 0;
-	if (*fld) {
-		ap->chan = *fld;
-	}
-
-	fld = strsep(&sentence, ",");   // field 4:  ais channel
-	if (!fld) return 0;
-	char *dst = ap->raw_bitvector;
-	for ( ; *fld; ++fld,++dst) {
-		char bits = *fld;
-		bits -= 0x30;
-		if (bits > 0x28) bits -= 8;
-		*dst = bits;
-	}
-	*dst = 0xff;
-
-	return 1;
-}
-
 
 // -----------------------------------------------------------------------------
 
@@ -174,48 +121,55 @@ int main(int argc, char* argv[]) {
 	argv += optind;
 	argc -= optind;
 
-	if (argc != 1) usage();
+	if (argc > 1) usage();
 
 	setlinebuf(stdout);
 
 	if (!debug) openlog(argv0, LOG_PERROR, LOG_DAEMON);
 
-	// Open serial port.
-	int port = -1;
-	if ((port = open(argv[0], O_RDWR | O_NOCTTY)) == -1)
-		crash("open(%s, ...)", argv[0]);
 
-	// Set serial parameters.
-	if (debug < 2) {
-		struct termios t;
-		if (tcgetattr(port, &t) < 0) crash("tcgetattr(%s)", argv[0]);
-		cfmakeraw(&t);
+	FILE* nmea = NULL;
+	if (argc == 1) {
+		// Open serial port.
+		int port = -1;
+		if ((port = open(argv[0], O_RDWR | O_NOCTTY)) == -1)
+			crash("open(%s, ...)", argv[0]);
 
-		t.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
-		t.c_oflag &= ~OPOST;
-		t.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
-		t.c_cflag &= ~(CSIZE | PARENB);
-		t.c_cflag |= CLOCAL|CREAD|CS8;
+		// Set serial parameters.
+		if (debug < 2) {
+			struct termios t;
+			if (tcgetattr(port, &t) < 0) crash("tcgetattr(%s)", argv[0]);
+			cfmakeraw(&t);
 
-		switch (baudrate) {
-		case 0: break;
-		case 4800: cfsetspeed(&t, B4800); break;
-		case 9600: cfsetspeed(&t, B9600); break;
-		case 19200: cfsetspeed(&t, B19200); break;
-		case 38400: cfsetspeed(&t, B38400); break;
-		case 57600: cfsetspeed(&t, B57600); break;
-		case 115200: cfsetspeed(&t, B115200); break;
-		default: crash("Unsupported baudrate: %d", baudrate);
+			t.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
+			t.c_oflag &= ~OPOST;
+			t.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
+			t.c_cflag &= ~(CSIZE | PARENB);
+			t.c_cflag |= CLOCAL|CREAD|CS8;
+
+			switch (baudrate) {
+			case 0: break;
+			case 4800: cfsetspeed(&t, B4800); break;
+			case 9600: cfsetspeed(&t, B9600); break;
+			case 19200: cfsetspeed(&t, B19200); break;
+			case 38400: cfsetspeed(&t, B38400); break;
+			case 57600: cfsetspeed(&t, B57600); break;
+			case 115200: cfsetspeed(&t, B115200); break;
+			default: crash("Unsupported baudrate: %d", baudrate);
+			}
+
+			tcflush(port, TCIFLUSH);
+			if (tcsetattr(port, TCSANOW, &t) < 0) crash("tcsetattr(%s)", argv[0]);
 		}
-
-		tcflush(port, TCIFLUSH);
-		if (tcsetattr(port, TCSANOW, &t) < 0) crash("tcsetattr(%s)", argv[0]);
+		nmea = fdopen(port, "r");
+	} else {
+		nmea = stdin;
 	}
-
-	FILE* nmea = fdopen(port, "r");
+	
 
 	int garbage = 0;
-	char out[1024];
+
+	struct aivdm_context_t ais_contexts[AIVDM_CHANNELS];
 
 	while(!feof(nmea)) {
 		if (ferror(nmea)) {
@@ -231,33 +185,100 @@ int main(int argc, char* argv[]) {
 			continue;
 		}
 
-		char* start = valid_nmea(line);
-		if (!start) {
+		if (debug  && line[0] == '#') {
+			fprintf(stderr, "%s",line);
+			garbage--;
+			continue;
+		}
+
+		char* start = strchr(line, '!');
+		if (!start){
+			if (debug) fprintf(stderr, "Invalid NMEA sentence: '%s'\n", line);
+			continue;
+		}
+		char* end = valid_nmea(start);
+		if (!end) {
 			if (debug) fprintf(stderr, "Invalid NMEA sentence: '%s'\n", line);
 			continue;
 		}
 
 		garbage = 0;
 
-		if (strncmp(start, "AIVDM", 5) == 0) {
-			struct RawAISProto ais;
-			if (!parse_aivdm(start, &ais)) {
-				if (debug) fprintf(stderr, "Invalid AIVDM NMEA sentence: '%s'\n", line);
-				continue;
-			}
-		  
-#if 0
-			struct AISProto vars;
-			if (!parse_ais(&ais, &vars)) {
-				if (debug) fprintf(stderr, "Invalid AIS bitvector: '%s'\n", line);
+		if (strncmp(start, "!AIVDM", 6) == 0) {
+			struct ais_t ais;
+			if (!aivdm_decode(start, end-start, ais_contexts, &ais)) {
+				if (debug) fprintf(stderr, "Incomplete AIVDM NMEA sentence: '%s'\n", line);
 				continue;
 			}
 
-			int n = 0;
-			snprintf(out, sizeof line, OFMT_AISPROTO(vars, &n));
-			if (n > sizeof out) crash("ais proto bufer too small");
-			puts(out);
-#endif
+			if (debug)
+				fprintf(stderr, "#AIVDM:%s",line);
+		  
+			printf("timestamp_ms:%lld mmsi:%d msgtype:%d ", now_ms(), ais.mmsi, ais.type);
+
+			switch(ais.type) {
+			case 1: case 2: case 3:
+				if (ais.type1.status != 0)
+					printf("status:%d ", ais.type1.status);		/* navigation status */
+				if (ais.type1.turn != AIS_TURN_NOT_AVAILABLE)
+					printf("rot_deg_s:%3.1f ", ais.type1.turn *1.0);	/* rate of turn */
+				if (ais.type1.speed != AIS_SPEED_NOT_AVAILABLE)
+					printf("speed_m_s:%.1f ", ais.type1.speed *(1852.0/36000.0)); /* speed over ground in deciknots */
+				if (ais.type1.accuracy != 0)
+					printf("accuracy:%d ", ais.type1.accuracy); /* position accuracy */
+				if (ais.type1.lon != AIS_LON_NOT_AVAILABLE && ais.type1.lat != AIS_LAT_NOT_AVAILABLE)
+					printf("lat_deg:%.6f lng_deg:%.6f ",    /* longitude latitude */
+					       ais.type1.lon / AIS_LATLON_SCALE,
+					       ais.type1.lat /  AIS_LATLON_SCALE);
+				if (ais.type1.course != AIS_COURSE_NOT_AVAILABLE)
+					printf("cog_deg:%3.1f ", ais.type1.course*.1);  	/* course over ground */
+				if (ais.type1.heading != AIS_HEADING_NOT_AVAILABLE)
+					printf("heading_deg:%3.0f ",   ais.type1.heading*1.0); /* true heading */
+				break;
+
+			case 5:
+				printf("size_m:%d shipname:'%s' ", ais.type5.to_bow + ais.type5.to_stern, ais.type5.shipname);
+				break;
+
+			case 18:
+				printf("speed_m_s:%.1f ", ais.type18.speed *(1852.0/36000.0)); /* speed over ground in deciknots */
+				if (ais.type18.accuracy != 0)
+					printf("accuracy:%d ", ais.type18.accuracy); /* position accuracy */
+				if (ais.type18.lon != AIS_GNS_LON_NOT_AVAILABLE && ais.type18.lat != AIS_GNS_LAT_NOT_AVAILABLE)
+					printf("lat_deg:%.6f lng_deg:%.6f ",    /* longitude latitude */
+					       ais.type18.lon / AIS_LATLON_SCALE,
+					       ais.type18.lat /  AIS_LATLON_SCALE);
+				if (ais.type18.course != AIS_COURSE_NOT_AVAILABLE)
+					printf("cog_deg:%3.1f ", ais.type18.course*.1);  	/* course over ground */
+				if (ais.type18.heading != AIS_HEADING_NOT_AVAILABLE)
+					printf("heading_deg:%3.0f ",   ais.type18.heading*1.0); /* true heading */
+
+				break;
+
+			case 19:
+				printf("speed_m_s:%.1f ", ais.type19.speed *(1852.0/36000.0)); /* speed over ground in deciknots */
+				if (ais.type19.accuracy != 0)
+					printf("accuracy:%d ", ais.type19.accuracy); /* position accuracy */
+				if (ais.type19.lon != AIS_GNS_LON_NOT_AVAILABLE && ais.type19.lat != AIS_GNS_LAT_NOT_AVAILABLE)
+					printf("lat_deg:%.6f lng_deg:%.6f ",    /* longitude latitude */
+					       ais.type19.lon / AIS_LATLON_SCALE,
+					       ais.type19.lat /  AIS_LATLON_SCALE);
+				if (ais.type19.course != AIS_COURSE_NOT_AVAILABLE)
+					printf("cog_deg:%3.1f ", ais.type19.course*.1);  	/* course over ground */
+				if (ais.type19.heading != AIS_HEADING_NOT_AVAILABLE)
+					printf("heading_deg:%3.0f ",   ais.type19.heading*1.0); /* true heading */
+
+				printf("size_m:%d shipname:'%s' ", ais.type19.to_bow + ais.type19.to_stern, ais.type19.shipname);
+				break;
+				
+			case 24:
+				printf("size_m:%d shipname:'%s' ", ais.type24.dim.to_bow + ais.type24.dim.to_stern, ais.type24.shipname);
+				break;
+
+			}
+			puts("");
+
+
 			continue;
 		}
 		

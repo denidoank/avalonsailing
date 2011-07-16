@@ -95,7 +95,7 @@ char* valid_nmea(char* line) {
 	if (chk[2] != chkstr[1]) return 0;
 
 	if (chk[3] != '\r' && chk[3] != '\n') return NULL;
-	if (chk[4] != '\n' && chk[3] != 0) return NULL;
+	if (chk[4] != '\n' && chk[4] != 0) return NULL;
 
 	return start + 1;
 }
