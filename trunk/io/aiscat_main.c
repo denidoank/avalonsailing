@@ -228,8 +228,8 @@ int main(int argc, char* argv[]) {
 					printf("accuracy:%d ", ais.type1.accuracy); /* position accuracy */
 				if (ais.type1.lon != AIS_LON_NOT_AVAILABLE && ais.type1.lat != AIS_LAT_NOT_AVAILABLE)
 					printf("lat_deg:%.6f lng_deg:%.6f ",    /* longitude latitude */
-					       ais.type1.lon / AIS_LATLON_SCALE,
-					       ais.type1.lat /  AIS_LATLON_SCALE);
+					       ais.type1.lat / AIS_LATLON_SCALE,
+					       ais.type1.lon /  AIS_LATLON_SCALE);
 				if (ais.type1.course != AIS_COURSE_NOT_AVAILABLE)
 					printf("cog_deg:%3.1f ", ais.type1.course*.1);  	/* course over ground */
 				if (ais.type1.heading != AIS_HEADING_NOT_AVAILABLE)
@@ -246,8 +246,8 @@ int main(int argc, char* argv[]) {
 					printf("accuracy:%d ", ais.type18.accuracy); /* position accuracy */
 				if (ais.type18.lon != AIS_GNS_LON_NOT_AVAILABLE && ais.type18.lat != AIS_GNS_LAT_NOT_AVAILABLE)
 					printf("lat_deg:%.6f lng_deg:%.6f ",    /* longitude latitude */
-					       ais.type18.lon / AIS_LATLON_SCALE,
-					       ais.type18.lat /  AIS_LATLON_SCALE);
+					       ais.type18.lat / AIS_LATLON_SCALE,
+					       ais.type18.lon /  AIS_LATLON_SCALE);
 				if (ais.type18.course != AIS_COURSE_NOT_AVAILABLE)
 					printf("cog_deg:%3.1f ", ais.type18.course*.1);  	/* course over ground */
 				if (ais.type18.heading != AIS_HEADING_NOT_AVAILABLE)
@@ -261,8 +261,8 @@ int main(int argc, char* argv[]) {
 					printf("accuracy:%d ", ais.type19.accuracy); /* position accuracy */
 				if (ais.type19.lon != AIS_GNS_LON_NOT_AVAILABLE && ais.type19.lat != AIS_GNS_LAT_NOT_AVAILABLE)
 					printf("lat_deg:%.6f lng_deg:%.6f ",    /* longitude latitude */
-					       ais.type19.lon / AIS_LATLON_SCALE,
-					       ais.type19.lat /  AIS_LATLON_SCALE);
+					       ais.type19.lat / AIS_LATLON_SCALE,
+					       ais.type19.lon /  AIS_LATLON_SCALE);
 				if (ais.type19.course != AIS_COURSE_NOT_AVAILABLE)
 					printf("cog_deg:%3.1f ", ais.type19.course*.1);  	/* course over ground */
 				if (ais.type19.heading != AIS_HEADING_NOT_AVAILABLE)
