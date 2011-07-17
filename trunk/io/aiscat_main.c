@@ -193,12 +193,12 @@ int main(int argc, char* argv[]) {
 
 		char* start = strchr(line, '!');
 		if (!start){
-			if (debug) fprintf(stderr, "Invalid NMEA sentence: '%s'\n", line);
+			if (debug) fprintf(stderr, "No NMEA sentence:%s", line);
 			continue;
 		}
 		char* end = valid_nmea(start);
 		if (!end) {
-			if (debug) fprintf(stderr, "Invalid NMEA sentence: '%s'\n", line);
+			if (debug) fprintf(stderr, "Invalid NMEA sentence:%s", line);
 			continue;
 		}
 
@@ -207,7 +207,7 @@ int main(int argc, char* argv[]) {
 		if (strncmp(start, "!AIVDM", 6) == 0) {
 			struct ais_t ais;
 			if (!aivdm_decode(start, end-start, ais_contexts, &ais)) {
-				if (debug) fprintf(stderr, "Incomplete AIVDM NMEA sentence: '%s'\n", line);
+				if (debug) fprintf(stderr, "Incomplete AIVDM NMEA sentence:%s", line);
 				continue;
 			}
 
@@ -221,7 +221,7 @@ int main(int argc, char* argv[]) {
 				if (ais.type1.status != 0)
 					printf("status:%d ", ais.type1.status);		/* navigation status */
 				if (ais.type1.turn != AIS_TURN_NOT_AVAILABLE)
-					printf("rot_deg_s:%3.1f ", ais.type1.turn *1.0);	/* rate of turn */
+					printf("rot_deg_min:%d ", ais.type1.turn);	/* rate of turn in deg/minute*/
 				if (ais.type1.speed != AIS_SPEED_NOT_AVAILABLE)
 					printf("speed_m_s:%.1f ", ais.type1.speed *(1852.0/36000.0)); /* speed over ground in deciknots */
 				if (ais.type1.accuracy != 0)
@@ -283,7 +283,7 @@ int main(int argc, char* argv[]) {
 		}
 		
 
-		if (debug) fprintf(stderr, "Ignoring NMEA sentence: '%s'\n", line);
+		if (debug) fprintf(stderr, "Ignoring NMEA sentence:%s", line);
 	}
 
 	crash("Terminating.");
