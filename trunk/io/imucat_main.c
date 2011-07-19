@@ -138,7 +138,7 @@ struct IMUProto {
 	"acc_x_m_s2:%.3lf acc_y_m_s2:%.3lf acc_z_m_s2:%.3lf "	 \
 	"gyr_x_rad_s:%.3lf gyr_y_rad_s:%.3lf gyr_z_rad_s:%.3lf " \
 	"roll_deg:%.3lf pitch_deg:%.3lf yaw_deg:%.3lf "		 \
-	"lat_deg:%.3lf lng_deg:%.3lf alt_m:%.3lf "		 \
+	"lat_deg:%.6lf lng_deg:%.6lf alt_m:%.3lf "		 \
 	"vel_x_m_s:%.3lf vel_y_m_s:%.3lf vel_z_m_s:%.3lf "	 \
 	"%n"							 \
 	, (x).timestamp_ms, (x).temp_c			 \
@@ -150,18 +150,21 @@ struct IMUProto {
 	, (n)
 
 
-// decode an MTData message assuming mode and settings.
-// Returns 0 on success, -1 on error.
-
-
-static float decode_float(uint8_t** dd) {
+static float
+decode_float(uint8_t** dd)
+{
 	uint8_t* d = *dd;
 	uint8_t f[4] = { d[3], d[2], d[1], d[0] };
+	if(debug) fprintf(stderr, "decode float: %02x %02x %02x %02x  : %lf\n", d[0],d[1],d[2],d[3], *(float*)f);
 	(*dd) += 4;
 	return *(float*) f;
 }
 
-int imu_decode_variables(uint8_t* b, int len, uint16_t mode, uint32_t settings, struct IMUProto* vars) {
+// decode an MTData message assuming mode and settings.
+// Returns 0 on success, -1 on error.
+static int 
+imu_decode_variables(uint8_t* b, int len, uint16_t mode, uint32_t settings, struct IMUProto* vars)
+{
 	uint8_t *e = b + len;
 
 #define checklen(x, n)	\
@@ -267,10 +270,13 @@ int imu_decode_variables(uint8_t* b, int len, uint16_t mode, uint32_t settings, 
 				0,	//int tm_yday;        /* day in the year */
 				0,	//int tm_isdst;       /* daylight saving time */
 			};
-			int64_t time_s = timegm(&t);
 			if (debug) fprintf(stderr, "utc: %s\n", asctime(&t));
+			int64_t time_s = timegm(&t);
 			int64_t ns = (b[0]<<24) + (b[1]<<16) + (b[2]<<8) + b[3];
-			vars->timestamp_ms = time_s * 1000 + ns/1E6;
+ 			time_s *= 1000;
+			ns /= 1E6;
+			vars->timestamp_ms = time_s + ns;
+			
 		} else {
 			b += 12;
 		}

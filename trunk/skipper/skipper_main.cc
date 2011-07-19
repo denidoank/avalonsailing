@@ -191,7 +191,7 @@ int main(int argc, char* argv[]) {
   cwd = getcwd(NULL, 0);
 
   // Open client sockets.  Wait until they're all there so you can start up in any order.
-  FILE* aisd = fdopen(clsockopen_wait(path_to_aisd), "r");
+  FILE* aisd = NULL; // fdopen(clsockopen_wait(path_to_aisd), "r");
   FILE* held = fdopen(clsockopen_wait(path_to_helmsmand), "r+");
   setlinebuf(held);
 
