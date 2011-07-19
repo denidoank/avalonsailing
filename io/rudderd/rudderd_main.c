@@ -31,11 +31,11 @@
 #include "rudder.h"
 
 struct MotorParams motor_params[] = {
-        { "LEFT",  0x09011145,  90.0, -90.0, 0, -288000 },
+        { "LEFT",  0x09011145, 100.0, -80.0, 0, -288000 },
         { "RIGHT", 0x09010537, -90.0,  90.0, 0,  288000 },
 // sail and bmmh *must* be 360 degree ranges
-        { "SAIL",  0x09010506,  -180, 180.0, -615000, 615000 },
-	{ "BMMH",  0x00001227,  -180, 180.0, -2048, 2048 }, // 4096 tics for a complete rotation
+        { "SAIL",  0x09010506,  -180, 180.0, 615000, -615000 },
+	{ "BMMH",  0x00001227,  -180, 180.0, 2048, -2048 }, // 4096 tics for a complete rotation
 };
 
 static const char* version = "$Id: $";
