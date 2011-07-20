@@ -224,6 +224,8 @@ rudder_control(Device* dev,  MotorParams* params, double target_angle_deg, doubl
                 return TARGETTING;
         }
 
+	if (isnan(target_angle_deg)) return REACHED;
+
         // no matter where we are, if current target is away from new target angle, we're not there
         const double tolerance = (1.0/256.0); // imagine we have about 8 bits or resolution
         double targ_diff = target_angle_deg - qc_to_angle(params, curr_targ_qc);
@@ -375,6 +377,8 @@ int sail_control(Device* motor, Device* bmmh,
                 device_set_register(motor, REG_CONTROL, CONTROL_SHUTDOWN);
                 return DEFUNCT;
         }
+
+	if (isnan(target_angle_deg)) return REACHED;
 
         VLOGF("sail_control: configuration ok target %sreached",
               (status & STATUS_TARGETREACHED) ? "NOT ": "" );

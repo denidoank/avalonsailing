@@ -344,7 +344,7 @@ int main(int argc, char* argv[]) {
                 int changed = 0;
 
 		for (i = LEFT; i <= RIGHT; ++i)
-			if (dev[i] && !isnan(target_angles_deg[i])) {
+			if (dev[i]) {
                                 double before = actual_angles_deg[i];
 				dev_state[i] = rudder_control(dev[i], &motor_params[i],
 							      target_angles_deg[i],
@@ -352,7 +352,7 @@ int main(int argc, char* argv[]) {
                                 if (before != actual_angles_deg[i]) ++changed;
                         }
 
-		if (dev[SAIL] && dev[BMMH] && !isnan(target_angles_deg[SAIL])) {
+		if (dev[SAIL] && dev[BMMH]) {
                         double before = actual_angles_deg[SAIL];
 			dev_state[SAIL] = sail_control(dev[SAIL], dev[BMMH],
 						       &motor_params[SAIL], &motor_params[BMMH],
@@ -361,7 +361,7 @@ int main(int argc, char* argv[]) {
                         if (before != actual_angles_deg[SAIL]) ++changed;
                 }
 
-                if (changed) {
+                if (changed || (r == 0)) {
                         char line[1024];
                         char* l = line;
                         for (i = LEFT; i <= SAIL; ++i)
