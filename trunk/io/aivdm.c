@@ -210,7 +210,8 @@ aivdm_decode(const char *buf, size_t buflen,
 	}
 
 	/* extract packet fields */
-	strlcpy((char *)fieldcopy, buf, sizeof(fieldcopy));
+	memset(fieldcopy, 0, sizeof(fieldcopy));
+	strncpy(fieldcopy, buf, sizeof(fieldcopy)-1);
 	field[nfields++] = (uint8_t *)buf;
 	for (cp = fieldcopy; cp < fieldcopy + buflen; cp++)
 		if (*cp == ',') {
@@ -1063,8 +1064,8 @@ aivdm_decode(const char *buf, size_t buflen,
 						VLOGF("AIVDM message type 24 collision on channel %c: 24B sentence from %09u without 24A.\n", field[4][0], ais->mmsi);
 					return 0;
 				}
-
-				strlcpy(ais->type24.shipname, ais_context->shipname24, sizeof(ais_context->shipname24));
+				memset(ais->type24.shipname, 0, sizeof ais->type24.shipname);
+				strncpy(ais->type24.shipname, ais_context->shipname24, sizeof(ais->type24.shipname)-1);
 				ais->type24.shiptype = UBITS(40, 8);
 				UCHARS(48, ais->type24.vendorid);
 				UCHARS(90, ais->type24.callsign);
