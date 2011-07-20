@@ -13,10 +13,10 @@
 #include "common/convert.h"
 #include "common/delta_angle.h"
 #include "common/normalize.h"
-#include "lib/fm/log.h"
 #include "helmsman/boat.h"  // constants from simulation/boat.m, kMaxOmegaSail
 #include "helmsman/sampling_period.h"
 
+extern int debug;
 
 // General minimal time for a turn
 const double kDurationNormal = 2;
@@ -39,7 +39,7 @@ void ReferenceValues::SetReferenceValues(double phi_z_star,
   gamma_sail_final_ = gamma_sail_star;
   gamma_sail_ = gamma_sail_star;
   all_ticks_ = 0;
-  FM_LOG_INFO("SetRef:heading %6.2g deg Sail:%6.2g deg\n", Rad2Deg(phi_z_), Rad2Deg(gamma_sail_));
+  if (debug) fprintf(stderr, "SetRef:heading %6.2g deg Sail:%6.2g deg\n", Rad2Deg(phi_z_), Rad2Deg(gamma_sail_));
 }
 
 // Do a turn of the boat (a normal change of direction, a tack or a jibe)
@@ -83,8 +83,10 @@ void ReferenceValues::NewPlan(double phi_z_1,
 
   omega_sail_increment_ = delta_gamma_sail / duration * kSamplingPeriod;
   tick_ = 0;
-  FM_LOG_INFO("New Plan: delta_phi: %6.4f deg", Rad2Deg(delta_phi));
-  FM_LOG_INFO("delta_gamma_sail: %6.4f deg, duration %6.4f s", Rad2Deg(delta_gamma_sail), duration);
+  if (debug) {
+    fprintf(stderr, "New Plan: delta_phi: %6.4f deg\n", Rad2Deg(delta_phi));
+    fprintf(stderr, "delta_gamma_sail: %6.4f deg, duration %6.4f s\n", Rad2Deg(delta_gamma_sail), duration);
+  }
 }
 
 bool ReferenceValues::RunningPlan() {

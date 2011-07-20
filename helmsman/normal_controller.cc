@@ -14,7 +14,8 @@
 #include "common/unknown.h"
 #include "helmsman/apparent.h"
 #include "helmsman/new_gamma_sail.h"
-#include "lib/fm/log.h"
+
+extern int debug;
 
 // TODO(grundmann): Tack Overshoot.
 
@@ -32,18 +33,20 @@ void NormalController::Entry(const ControllerInput& in,
   // from another state.
   prev_alpha_star_limited_ = SymmetricRad(filtered.phi_z_boat);
   ref_.SetReferenceValues(prev_alpha_star_limited_, in.drives.gamma_sail_rad);
+  if (debug) fprintf(stderr, " NormalController::Entry alpha star_limited: %lf\n",  prev_alpha_star_limited_);
+
 }
 
 void NormalController::Run(const ControllerInput& in,
                            const FilteredMeasurements& filtered,
                            ControllerOutput* out) {
-  FM_LOG_DEBUG("Ref: %6.4f", Rad2Deg(in.alpha_star_rad));
-  FM_LOG_DEBUG("Actuals: True %6.4f deg %6.4f m/s",
-               Rad2Deg(filtered.alpha_true), filtered.mag_true);
-  FM_LOG_DEBUG("Actuals: Boat %6.4f deg %6.4f m/s",
-               Rad2Deg(filtered.phi_z_boat), filtered.mag_boat);
-  FM_LOG_DEBUG("Actuals: App  %6.4f deg %6.4f m/s",
-               Rad2Deg(filtered.angle_app),  filtered.mag_app);
+  if (debug) {
+    fprintf(stderr, "------------NormalController::Run----------\n");
+    fprintf(stderr, "Ref: %6.4f", Rad2Deg(in.alpha_star_rad));
+    fprintf(stderr, "Actuals: True %6.4f deg %6.4f m/s", Rad2Deg(filtered.alpha_true), filtered.mag_true);
+    fprintf(stderr, "Actuals: Boat %6.4f deg %6.4f m/s", Rad2Deg(filtered.phi_z_boat), filtered.mag_boat);
+    fprintf(stderr, "Actuals: App  %6.4f deg %6.4f m/s", Rad2Deg(filtered.angle_app),  filtered.mag_app);
+  }
 
   double phi_star;
   double omega_star;
@@ -56,8 +59,7 @@ void NormalController::Run(const ControllerInput& in,
                        &phi_star,
                        &omega_star,
                        &gamma_sail_star);
-  FM_LOG_DEBUG("IntRef: %6.4f %6.4f %6.4f", Rad2Deg(phi_star),
-               Rad2Deg(omega_star), Rad2Deg(gamma_sail_star));
+  if (debug) fprintf(stderr, "IntRef: %6.4f %6.4f %6.4f", Rad2Deg(phi_star), Rad2Deg(omega_star), Rad2Deg(gamma_sail_star));
 
   double gamma_rudder_star;
   rudder_controller_->Control(phi_star,
@@ -70,11 +72,12 @@ void NormalController::Run(const ControllerInput& in,
   out->drives_reference.gamma_rudder_star_left_rad  = gamma_rudder_star;
   out->drives_reference.gamma_rudder_star_right_rad = gamma_rudder_star;
   out->drives_reference.gamma_sail_star_rad = gamma_sail_star;
-  FM_LOG_DEBUG("Controls: %6.4f %6.4f",
-               Rad2Deg(gamma_rudder_star), Rad2Deg(gamma_sail_star));
+  if (debug) fprintf(stderr, "Controls: %6.4f %6.4f", Rad2Deg(gamma_rudder_star), Rad2Deg(gamma_sail_star));
 }
 
-void NormalController::Exit() {}
+void NormalController::Exit() {
+  if (debug) fprintf(stderr, " NormalController::Exit\n");
+}
 
 void NormalController::ReferenceValueSwitch(double alpha_star,
                                             double alpha_true, double mag_true,

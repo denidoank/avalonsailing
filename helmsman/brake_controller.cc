@@ -7,6 +7,8 @@
 
 #include "helmsman/brake_controller.h"  
 
+extern int debug;
+
 const double kRudderBrakeAngleRad = Deg2Rad(80);
 
 BrakeController::~BrakeController() {}
@@ -23,4 +25,7 @@ void BrakeController::Run(const ControllerInput& in,
   if (filtered.angle_app != kUnknown)
     gamma_sail_rad = SymmetricRad(filtered.angle_app - M_PI);
   out->drives_reference.gamma_sail_star_rad = gamma_sail_rad;
+
+  if (debug) fprintf(stderr, "BrakeController::Run: rudder braked and sail %lf\n", Rad2Deg(gamma_sail_rad));
+
 }

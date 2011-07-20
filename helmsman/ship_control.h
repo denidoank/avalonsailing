@@ -32,15 +32,16 @@ class ShipControl {
  public:
   // Returns true if the ControllerOutput changed.
   static bool Run(const ControllerInput& in, ControllerOutput* out);
-  static bool Brake();
-  static bool Docking();
-  static bool Normal();
+
+  static void Brake()    { meta_state_ = kBraking; }
+  static void Docking()  { meta_state_ = kDocking; }
+  static void Normal()   { meta_state_ = kNormal;  }
+
   static void Reset();  // for tests only
 
  private:
   static void StateMachine(const ControllerInput& in);
-  static void Transition(Controller* new_state,
-                         const ControllerInput& in);
+  static void Transition(Controller* new_state, const ControllerInput& in);
 
   static double alpha_star_;
   static WindStrengthRange wind_strength_;
@@ -58,9 +59,7 @@ class ShipControl {
   static BrakeController brake_controller_;
   static DockingController docking_controller_;
   static NormalController normal_controller_;
-  static bool OutputChanges(
-      const DriveReferenceValuesRad& prev_out,
-      const DriveReferenceValuesRad& out);
+  static bool OutputChanges(const DriveReferenceValuesRad& prev_out, const DriveReferenceValuesRad& out);
 
 };
 
