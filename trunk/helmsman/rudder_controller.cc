@@ -13,7 +13,7 @@
 #include "helmsman/sampling_period.h"
 #include "helmsman/rudder_controller_const.h"
 
-#include "lib/fm/log.h"
+extern int debug;
 
 // Clamping of waterflow angle. For small speeds the waterflow angle approaches
 // infinity, so we have to limit it. 12 degrees is an initial guess based on the
@@ -106,16 +106,14 @@ void RudderController::Control(double phi_star,
     // The rudder is used in a reversed position in this situation.
     gamma_0 = SymmetricRad(gamma_0 - M_PI);
   }
-  //printf("gamma0 %6.4f degree\n", Rad2Deg(gamma_0));
+
   if (gamma_0 > kLimitGamma0) {
     gamma_0 = kLimitGamma0;
-    FM_LOG_INFO("+limit gamma 0");
-    //printf("gamma_0 neg. limit\n");
+    if (debug) fprintf(stderr, "+limit gamma 0");
   }
   if (gamma_0 < -kLimitGamma0) {
     gamma_0 = -kLimitGamma0;
-    FM_LOG_INFO("-limit gamma 0");
-    //printf("gamma_0 neg. limit\n");
+    if (debug) fprintf(stderr, "-limit gamma 0");
   }
   
   // need negative gamma for positive torque

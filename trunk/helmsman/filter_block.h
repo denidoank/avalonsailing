@@ -31,10 +31,8 @@ static const int kChannels = 10;
 class FilterBlock {
  public:
   FilterBlock();
-  void Filter(const ControllerInput& in,
-              FilteredMeasurements* fil);
-  void MakeSkipperInput(const FilteredMeasurements& fil,
-                        SkipperInput* to_skipper);
+  void Filter(const ControllerInput& in, FilteredMeasurements* fil);
+  void MakeSkipperInput(const FilteredMeasurements& fil, SkipperInput* to_skipper);
   bool ValidTrueWind();
 
  private:

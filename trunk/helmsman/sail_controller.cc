@@ -9,7 +9,6 @@
 #include <math.h>
 #include <stdio.h>
 
-#include "lib/fm/log.h"
 #include "common/check.h"
 #include "common/sign.h"
 #include "common/normalize.h"
@@ -17,6 +16,7 @@
 #include "helmsman/sail_controller_const.h"
 #include "helmsman/sampling_period.h"  // kSamplingPeriod
 
+extern int debug;
 
 SailModeLogic::SailModeLogic()
     : mode_(WING),
@@ -39,7 +39,7 @@ SailMode SailModeLogic::BestStabilizedMode(double apparent) {
          ++delay_counter_ > delay)) {
       mode_ = SPINNAKER;
       delay_counter_ = 0;
-      FM_LOG_INFO("Switched to spinnaker."); 
+      if (debug) fprintf(stderr, "SailModeLogic::BestMode: Switched to spinnaker.\n"); 
     }
   } else {  // SPINNAKER
     if (apparent > kSwitchpoint + 2 * kHalfHysteresis ||
@@ -47,7 +47,7 @@ SailMode SailModeLogic::BestStabilizedMode(double apparent) {
          ++delay_counter_ > delay)) {
       mode_ = WING;
       delay_counter_ = 0;
-      FM_LOG_INFO("Switched to wing."); 
+      if (debug) fprintf(stderr, "SailModeLogic::BestMode: Switched to wing."); 
     }
   }
   return mode_;

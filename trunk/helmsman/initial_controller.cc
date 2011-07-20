@@ -3,20 +3,18 @@
 // that can be found in the LICENSE file.
 // Steffen Grundmann, May 2011
 
-
-
-
 #include "helmsman/initial_controller.h"  
 
 #include <stdio.h>
 
-#include "lib/fm/log.h"
 #include "common/delta_angle.h"
 #include "common/polar_diagram.h"
 #include "common/sign.h"
 #include "helmsman/sampling_period.h"  
 #include "helmsman/wind_strength.h"
 #include "helmsman/wind.h"
+
+extern int debug; // global shared
 
 namespace {
 const double kReverseMotionSailAngle = Deg2Rad(90);
@@ -43,6 +41,9 @@ void InitialController::InitialController::Reset() {
 void InitialController::Run(const ControllerInput& in,
                             const FilteredMeasurements& filtered,
                             ControllerOutput* out) {
+
+  if (debug) fprintf(stderr, "----InitialController::Run-------\n");
+
   double gamma_sail = 0;
   double gamma_rudder = 0;
   out->Reset();
@@ -51,29 +52,23 @@ void InitialController::Run(const ControllerInput& in,
   }
   if (!in.drives.homed_sail ||
       (!in.drives.homed_rudder_left && !in.drives.homed_rudder_right)) {
-    FM_LOG_INFO("Drives not ready\n %s %s %s",
-           in.drives.homed_rudder_left ? "" : "sail",
-           in.drives.homed_rudder_left ? "" : "left",
-           in.drives.homed_rudder_left ? "" : "right");
-    printf("Drives not ready\n %s %s %s",
-           in.drives.homed_rudder_left ? "" : "sail",
-           in.drives.homed_rudder_left ? "" : "left",
-           in.drives.homed_rudder_left ? "" : "right");
+    if (debug) fprintf(stderr, "Drives not ready\n %s %s %s",
+		      in.drives.homed_rudder_left ? "" : "sail",
+		      in.drives.homed_rudder_left ? "" : "left",
+		      in.drives.homed_rudder_left ? "" : "right");
   }
   
-  /* debug flag comes here
-  FM_LOG_INFO("WindSensor: %s", in.wind.ToString().c_str());
-  FM_LOG_INFO("DriveActuals: %s", in.drives.ToString().c_str());
-  FM_LOG_INFO("AppFiltered: %fdeg %fm/s", Rad2Deg(filtered.angle_app), filtered.mag_app);
-  printf("WindSensor: %s\n", in.wind.ToString().c_str());
-  printf("DriveActuals: %s\n", in.drives.ToString().c_str());
-  printf("AppFiltered: %fdeg %fm/s\n", Rad2Deg(filtered.angle_app), filtered.mag_app);
-  */
+  if (debug) {
+    fprintf(stderr, "WindSensor: %s\n", in.wind.ToString().c_str());
+    fprintf(stderr, "DriveActuals: %s\n", in.drives.ToString().c_str());
+    fprintf(stderr, "AppFiltered: %fdeg %fm/s\n", Rad2Deg(filtered.angle_app), filtered.mag_app);
+  }
   
   double angle_app = SymmetricRad(filtered.angle_app);
 
   switch (phase_) {
     case SLEEP:
+      if (debug) fprintf(stderr, "phase SLEEP\n");
       gamma_sail = 0;
       gamma_rudder = 0;
       // wait 10s for all filters to settle
@@ -85,22 +80,24 @@ void InitialController::Run(const ControllerInput& in,
         phase_ = TURTLE;
         // Decide which way to go.
         sign_ = SignNotZero(angle_app);
-        FM_LOG_INFO("SLEEP to TURTLE %d\n", sign_);
+        if (debug) fprintf(stderr, "SLEEP to TURTLE %d\n", sign_);
       }
       break;
     case TURTLE:
+      if (debug) fprintf(stderr, "phase TURTLE\n");
       // Turn into a sailable direction if necessary.
       if (fabs(angle_app) < kSailableLimit &&
           WindStrength(kCalmWind, filtered.mag_app) != kCalmWind) {
         phase_ = KOGGE;
         count_ = 0;
-        FM_LOG_INFO("TURTLE to KOGGE %d\n", sign_);
+	if (debug) fprintf(stderr, "TURTLE to KOGGE %d\n", sign_);
         break;
       }
       gamma_rudder = kReverseMotionRudderAngle * sign_;
       gamma_sail = -kReverseMotionSailAngle * sign_;
       break;
     case KOGGE:
+      if (debug) fprintf(stderr, "phase KOGGE\n");
       gamma_sail = sail_controller_->BestStabilizedGammaSail(angle_app, filtered.mag_app);
       // Force the apparent angle to 90 degrees (beam reach).
       if (fabs(angle_app) > kSailableLimit)
@@ -112,6 +109,12 @@ void InitialController::Run(const ControllerInput& in,
   out->drives_reference.gamma_sail_star_rad = gamma_sail;
   out->drives_reference.gamma_rudder_star_left_rad = gamma_rudder;
   out->drives_reference.gamma_rudder_star_right_rad = gamma_rudder;
+
+   if (debug) {
+     fprintf(stderr, "out gamma_sail:%lf deg\n", Rad2Deg(gamma_sail));
+     fprintf(stderr, "out gamma_rudder_star left/right:%lf deg\n", Rad2Deg(gamma_rudder));
+   }
+
 }
 
 
@@ -125,6 +128,7 @@ void InitialController::Entry(const ControllerInput& in,
 void InitialController::Exit() {}
 
 bool InitialController::Done() {
-  return phase_ == KOGGE && 
-         (++count_ >  10.0 / kSamplingPeriod);
+  const bool done = (phase_ == KOGGE) && (++count_ >  10.0 / kSamplingPeriod);
+  if (done && debug) fprintf(stderr, "InitialController::Done\n");
+  return done;
 }

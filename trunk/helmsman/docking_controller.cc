@@ -4,6 +4,8 @@
 // Steffen Grundmann, May 2011
 #include "helmsman/docking_controller.h"  
 
+extern int debug;
+
 DockingController::~DockingController() {}
 
 void DockingController::Run(const ControllerInput& in,
@@ -13,4 +15,6 @@ void DockingController::Run(const ControllerInput& in,
   out->drives_reference.gamma_rudder_star_left_rad  = 0;
   out->drives_reference.gamma_rudder_star_right_rad = 0;
   out->drives_reference.gamma_sail_star_rad = 0;
+
+  if (debug) fprintf(stderr, "DockingController::Run: everything zero\n");
 }

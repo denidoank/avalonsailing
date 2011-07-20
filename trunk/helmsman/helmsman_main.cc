@@ -32,6 +32,7 @@
 #include "sampling_period.h"
 #include "ship_control.h"
 
+extern int debug;
 
 // -----------------------------------------------------------------------------
 namespace {
@@ -43,7 +44,6 @@ namespace {
 const char* version = "$Id: $";
 const char* argv0;
 int verbose = 0;
-int debug = 0;
 
 void crash(const char* fmt, ...) {
   va_list ap;
@@ -203,11 +203,9 @@ const char* Client::Handle(fd_set* rfds, fd_set* wfds) {
   const char* line = NULL;
   for (Client* cl = clients; cl; cl = cl->next_) {
     if (cl->out_ && FD_ISSET(fileno(cl->out_), wfds)) cl->flush();
-     if (cl->in_ && FD_ISSET(fileno(cl->in_), rfds)) {
-      while(fgets(cl->line_, sizeof(cl->line_), cl->in_)) {  // will read until EAGAIN
-       line = cl->line_;
-      }
-    }
+    if (cl->in_  && FD_ISSET(fileno(cl->in_),  rfds))
+      while(fgets(cl->line_, sizeof(cl->line_), cl->in_))  // will read until EAGAIN
+	line = cl->line_;
   }
   return line;
 }
@@ -362,8 +360,8 @@ int snprint_rudd(char *line, int size, const DriveReferenceValuesRad& s) {
 
 int snprint_helmsmanout(char *line, int size, const SkipperInput& s) {
     return snprintf(line, size,
-                  "timestamp_ms:%lld lat_deg:%f lng_deg:%f wind_angle_deg:%f wind_speed_kn:%f\n" ,
-                  now_ms(), s.latitude_deg, s.longitude_deg,  s.angle_true_deg, s.mag_true_kn);
+		    "timestamp_ms:%lld lat_deg:%f lng_deg:%f wind_angle_deg:%f wind_speed_m_s:%f\n" ,
+		    now_ms(), s.latitude_deg, s.longitude_deg,  s.angle_true_deg, KnotsToMeterPerSecond(s.mag_true_kn));
 }
 
 } // namespace
@@ -543,9 +541,8 @@ int main(int argc, char* argv[]) {
 
     // Write the helmsman output for the skipper, which should be happy with an
     // occasional update.
-    if (ctrl_out.skipper_input.angle_true_deg != kUnknown &&
-        skipper_update_downsample++ %
-            static_cast<int>(kSkipperUpdatePeriod / kSamplingPeriod) == 0) {
+    const int skip = static_cast<int>(kSkipperUpdatePeriod / kSamplingPeriod);
+    if (ctrl_out.skipper_input.angle_true_deg != kUnknown && !(skipper_update_downsample++ % skip)) {
       char line[1024];
       int n = snprint_helmsmanout(line, sizeof line, ctrl_out.skipper_input);
       if (n <= 0 || n > sizeof line) crash("printing state line");
