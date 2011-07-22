@@ -8,7 +8,7 @@ DIR=/usr/bin
 case "$1" in
   start)
         echo -n "Starting $DESC: "
-	$DIR/imucat /dev/xsensIMU | $DIR/gulp /var/run/imud >/dev/null 2>&1 &
+	$DIR/imucat -b 115200 /dev/xsensIMU | $DIR/gulp /var/run/imud >/dev/null 2>&1 &
         echo "OK"
         ;;
   stop)
