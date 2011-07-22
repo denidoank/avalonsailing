@@ -60,9 +60,16 @@ double qc_to_angle(struct MotorParams* p, int32_t pos_qc) {
 
 int32_t normalize_qc(struct MotorParams* p, int32_t qc) {
         assert(p->extr_angle_deg - p->home_angle_deg == 360.0);
-        const int32_t r = p->extr_pos_qc - p->home_pos_qc;
-        while(qc < p->home_pos_qc) qc += r;
-        while(qc > p->extr_pos_qc) qc -= r;
+        int32_t r = p->extr_pos_qc - p->home_pos_qc;
+        if (r < 0) r = -r;
+        int32_t max, min;
+        if (p->home_pos_qc <  p->extr_pos_qc) {
+          min = p->home_pos_qc; max = p->extr_pos_qc;
+        } else {
+          max = p->home_pos_qc; min = p->extr_pos_qc;
+        }
+        while(qc < min) qc += r;
+        while(qc > max) qc -= r;
         return qc;
 }
 
