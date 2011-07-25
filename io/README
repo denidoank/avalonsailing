@@ -1,0 +1,57 @@
+How It Works.
+
+(note, i'm changing this a bit but for now this is how to start and stop and debug the subsystems.
+
+normally, subsystems start/stop with /etc/init.d/S6?*.sh start/stop
+
+all programs can be run manually with -d to prevent them from going daemon and make them log tostdout.
+
+the epos controllers are connected to ttyUSB{3,4,5}. the protocol is turned into something readable by 1 eposcom per tty.
+you don't need to start those by hand, they're managed by eposd:
+
+   /usr/bin/eposd /dev/ttyXXX ....
+
+will fire up an eposcom per tty and create a server socket /var/run/eposd.
+
+you can connect to it with
+   plug /var/run/eposd
+
+adn send a command like
+  0x1227:0x6004[0]
+
+to read register 6004 (abs pos) from device 01227 (the bmmh)
+
+the rudderd is a client of the eposd and started with
+
+   /usr/bin/rudderd /var/run/eposd
+
+this creates a server socket /var/run/rudderd which you can connect to with
+   plug /var/run/rudderd
+
+and send commands like "sail:0", "rudd:45" and "rudder_l_deg:0" etc.
+rudderd will home when neccesary and print a status update at least 1/second.
+
+wind and imu are debugged by
+
+   windcat -d /dev/windsensor
+   imucat -d /dev/xsensIMU
+
+optional argument -b baudrate  (windcat: -b 4800,  imucat: -b 115200)
+
+normal operation:  
+
+   windcat /dev/windsensor | gulp /var/run/wind
+   imucat /dev/xsensIMU | gulp /var/run/imud
+
+inspect with 
+
+    plug /var/run/wind 
+    plug /var/run/imud
+
+or 
+    logplug /var/run/wind /var/run/imud
+
+plug connects stdin/stdout to the serversocket , logplug just reads, but can handle multiple.
+
+note that only 1 program should have /dev/windsensor and /dev/xsensIMU open or half the bytes go to the other program. 
+
