@@ -131,7 +131,7 @@ int sscan_skipper_input(const char *line, SkipperInput* s) {
     if (!strcmp(key, "lat_deg")        && !isnan(value)) { s->longitude_deg  = value; continue; }
     if (!strcmp(key, "lng_deg")        && !isnan(value)) { s->latitude_deg   = value; continue; }
     if (!strcmp(key, "wind_angle_deg") && !isnan(value)) { s->angle_true_deg = value; continue; }
-    if (!strcmp(key, "wind_speed_kn")  && !isnan(value)) { s->mag_true_kn    = value; continue; }
+    if (!strcmp(key, "wind_speed_m_s")  && !isnan(value)) { s->mag_true_kn    = value; continue; }
     if (!strcmp(key, "timestamp_ms"))  continue;
 
     return 0;

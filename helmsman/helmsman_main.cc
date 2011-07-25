@@ -534,7 +534,7 @@ int main(int argc, char* argv[]) {
       char rudcmd[1024];
       int n = snprint_rudd(rudcmd, sizeof rudcmd, ctrl_out.drives_reference);
       if (n <= 0 || n > sizeof rudcmd) crash("printing rudder command line");
-      if (fputs(rudcmd, rudd) == EOF) crash("Could not send ruddercommand");  // TODO allow for a couple of EAGAINS
+      if (fputs(rudcmd, rudd) == EOF) clearerr(rudd);
       rudd_cmd_pending = true;
       if (forward) Client::Puts(rudcmd);       // nice for debugging
     }
