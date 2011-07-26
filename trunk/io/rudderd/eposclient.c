@@ -72,9 +72,9 @@ static Bus* bus_new(FILE* sts, FILE* ctl) {
 	Bus* bus = malloc(sizeof(*bus));
         bus->sts = sts; 
         bus->ctl = ctl;
-        if (fcntl(fileno(bus->sts),  F_SETFL, O_NONBLOCK) < 0) VLOGF("fcntl(in)");
-        if (fcntl(fileno(bus->ctl), F_SETFL, O_NONBLOCK) < 0) VLOGF("fcntl(out)");
-        setbuffer(bus->ctl, NULL, 64<<10); // 64k out buffer
+//        if (fcntl(fileno(bus->sts),  F_SETFL, O_NONBLOCK) < 0) VLOGF("fcntl(in)");
+//        if (fcntl(fileno(bus->ctl), F_SETFL, O_NONBLOCK) < 0) VLOGF("fcntl(out)");
+        setlinebuf(bus->ctl); // 64k out buffer
         bus->pending = 0;
 	bus->devices = NULL;
 	return bus;
