@@ -17,11 +17,11 @@ struct RudderProto {
 	, (x).timestamp_ms, (x).rudder_l_deg, (x).rudder_r_deg, (x).sail_deg
 
 #define OFMT_RUDDERPROTO_CTL(x,n) \
-	"ruddersts: timestamp_ms:%lld rudder_l_deg:%.1lf rudder_r_deg:%.1lf sail_deg:%.1lf " \
+	"rudderctl: timestamp_ms:%lld rudder_l_deg:%.1lf rudder_r_deg:%.1lf sail_deg:%.1lf " \
 	, (x).timestamp_ms, (x).rudder_l_deg, (x).rudder_r_deg, (x).sail_deg
 
 #define IFMT_RUDDERPROTO_STS(x,n) \
-	"rudderctl: timestamp_ms:%lld rudder_l_deg:%lf rudder_r_deg:%lf sail_deg:%lf " \
+	"ruddersts: timestamp_ms:%lld rudder_l_deg:%lf rudder_r_deg:%lf sail_deg:%lf " \
 	, &(x)->timestamp_ms, &(x)->rudder_l_deg, &(x)->rudder_r_deg, &(x)->sail_deg
 
 // CTL input is parsed by hand

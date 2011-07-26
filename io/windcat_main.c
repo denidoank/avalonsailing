@@ -25,6 +25,8 @@
 #include <sys/time.h>
 #include <unistd.h>
 
+#include "../proto/wind.h"
+
 // -----------------------------------------------------------------------------
 //   Together with getopt in main, this is our minimalistic UI
 // -----------------------------------------------------------------------------
@@ -99,19 +101,6 @@ char* valid_nmea(char* line) {
 
 	return start + 1;
 }
-
-struct WindProto {
-	uint64_t timestamp_ms;
-	double angle_deg;
-	int relative;
-	double speed_m_s;
-	int valid;
-};
-
-// For use in printf and friends.
-#define OFMT_WINDPROTO(x, n) \
-	"timestamp_ms:%lld angle_deg:%.3lf speed_m_s:%.2lf valid:%d%n", \
-	(x).timestamp_ms, (x).angle_deg, (x).speed_m_s, (x).valid, (n)
 
 int parse_wimvx(char* sentence, struct WindProto* wp) {
 	char* flde;
