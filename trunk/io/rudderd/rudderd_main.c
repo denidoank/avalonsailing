@@ -134,7 +134,7 @@ new_client(int sck)
         }
         cl->in  = fdopen(fd, "r");
         cl->out = fdopen(dup(fd), "w");
-//      if (fcntl(fileno(cl->in),  F_SETFL, O_NONBLOCK) < 0) crash("fcntl(in)");
+      if (fcntl(fileno(cl->in),  F_SETFL, O_NONBLOCK) < 0) crash("fcntl(in)");
 //      if (fcntl(fileno(cl->out), F_SETFL, O_NONBLOCK) < 0) crash("fcntl(out)");
         setlinebuf(cl->out);
         cl->pending = 0;
@@ -268,6 +268,8 @@ int main(int argc, char* argv[]) {
 		free(path_to_pidfile);
 
 		syslog(LOG_INFO, "Started.");
+	} else {
+		fprintf(stderr, "Started.\n");
 	}
 
 	double target_angles_deg[3] = { NAN, NAN, NAN };
@@ -303,12 +305,17 @@ int main(int argc, char* argv[]) {
                 int r = pselect(max_fd + 1, &rfds, &wfds, NULL, &timeout, &empty_mask);
                 if (r == -1 && errno != EINTR) crash("pselect");
 
+		if (debug) fprintf(stderr, "Woke up %d\n", r);
+
                 if (FD_ISSET(sck, &rfds)) new_client(sck);
+		if (debug) fprintf(stderr, "Flushing clients\n", r);
+
 
                 for (cl = clients; cl; cl = cl->next)
                         if (cl->out && FD_ISSET(fileno(cl->out), &wfds))
                                 client_flush(cl);
 
+		if (debug) fprintf(stderr, "Reading clients\n", r);
                 for (cl = clients; cl; cl = cl->next) {
                         if (!cl->in) continue;
                         if (cl->in && FD_ISSET(fileno(cl->in), &rfds)) {
@@ -324,7 +331,7 @@ int main(int argc, char* argv[]) {
                                 cl->out = NULL;
                         }
                 }
-
+		if (debug) fprintf(stderr, "Reaping clients\n", r);
                 struct Client** prevp = &clients;
                 while (*prevp) {
                         struct Client* curr = *prevp;
@@ -335,6 +342,8 @@ int main(int argc, char* argv[]) {
                                 prevp = &curr->next;
                         }
                 }
+
+		if (debug) fprintf(stderr, "Handling bus\n", r);
 
  		bus_flush(bus, &wfds);
                 bus_receive(bus, &rfds);
