@@ -17,6 +17,8 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "../proto/imu.h"
+
 // -----------------------------------------------------------------------------
 //   Together with getopt in main, this is our minimalistic UI
 // -----------------------------------------------------------------------------
@@ -110,51 +112,6 @@ enum {
 	//  rest: we don't use either
 };
 
-struct IMUProto {
-	int64_t timestamp_ms;
-	double temp_c;
-	double acc_x_m_s2;
-	double acc_y_m_s2;
-	double acc_z_m_s2;
-	double gyr_x_rad_s;
-	double gyr_y_rad_s;
-	double gyr_z_rad_s;
-	double mag_x_au;
-	double mag_y_au;
-	double mag_z_au;
-	double roll_deg;
-	double pitch_deg;
-	double yaw_deg;
-	double lat_deg;
-	double lng_deg;
-	double alt_m;
-	double vel_x_m_s;
-	double vel_y_m_s;
-	double vel_z_m_s;
-	uint8_t status;
-	uint16_t samplecounter;
-};
-
-// For use in printf and friends.
-#define OFMT_IMUPROTO(x, n)					 \
-	"timestamp_ms:%lld temp_c:%.3lf "			 \
-	"acc_x_m_s2:%.3lf acc_y_m_s2:%.3lf acc_z_m_s2:%.3lf "	 \
-	"gyr_x_rad_s:%.3lf gyr_y_rad_s:%.3lf gyr_z_rad_s:%.3lf " \
-	"mag_x_au:%.3lf mag_y_au:%.3lf mag_z_au:%.3lf " \
-	"roll_deg:%.3lf pitch_deg:%.3lf yaw_deg:%.3lf "		 \
-	"lat_deg:%.6lf lng_deg:%.6lf alt_m:%.3lf "		 \
-	"vel_x_m_s:%.3lf vel_y_m_s:%.3lf vel_z_m_s:%.3lf "	 \
-	"%n"							 \
-	, (x).timestamp_ms, (x).temp_c			 \
-	, (x).acc_x_m_s2, (x).acc_y_m_s2, (x).acc_z_m_s2	\
-	, (x).gyr_x_rad_s, (x).gyr_y_rad_s, (x).gyr_z_rad_s	\
-	, (x).mag_x_au, (x).mag_y_au, (x).mag_z_au	\
-	, (x).roll_deg, (x).pitch_deg, (x).yaw_deg		\
-	, (x).lat_deg, (x).lng_deg, (x).alt_m		\
-	, (x).vel_x_m_s, (x).vel_y_m_s, (x).vel_z_m_s	\
-	, (n)
-
-
 static float
 decode_float(uint8_t** dd)
 {
@@ -197,7 +154,7 @@ imu_decode_variables(uint8_t* b, int len, uint16_t mode, uint32_t settings, stru
 			checklen(IMU_OS_CM_DISMAG, 3*4);
 			vars->mag_x_au = decode_float(&b);
 			vars->mag_y_au = decode_float(&b);
-			vars->mag_z_au = decode_float(&b);
+			vars->mag_z_au = decode_float(&b);			
 		}
 
 		if (mode & IMU_OM_ORI) {
@@ -422,7 +379,7 @@ int main(int argc, char* argv[]) {
 			continue;
 		}
 
-		struct IMUProto vars;
+		struct IMUProto vars = INIT_IMUPROTO;
 		memset(&vars, 0, sizeof vars);
 
 		if (imu_decode_variables(buf, len, mode, settings, &vars) != 0) {
