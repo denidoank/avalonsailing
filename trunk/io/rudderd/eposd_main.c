@@ -335,12 +335,12 @@ int main(int argc, char* argv[]) {
 
         // Reap any dead children (couldn't open serial or probe)
         reap_children();
-
+#if 0
         // set to nonblocking after serial numbers have been read.
 	for (i = 0; i < nslaves; ++i)
                 if (slaves[i].pid)
                         slave_set_nonblocking(slaves+i);
-
+#endif
         // Set up sigchld handling
         sigset_t sigmask;
         sigemptyset(&sigmask);
