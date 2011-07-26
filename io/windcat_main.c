@@ -252,10 +252,10 @@ int main(int argc, char* argv[]) {
 			continue;
 		}
 
-		if (strncmp(start, "WIXDR", 5) == 0) {
-			// ignore: temperature and voltages
-			continue;
-		}
+//		if (strncmp(start, "WIXDR", 5) == 0) {
+//			// ignore: temperature and voltages
+//			continue;
+//		}
 
 		if (debug) fprintf(stderr, "Ignoring NMEA sentence: '%s'\n", line);
 	}

@@ -131,8 +131,10 @@ Client::Client(Client* next, int sck) :
   }
   in_  = fdopen(fd, "r");
   out_ = fdopen(dup(fd), "w");
+#if 0
   if (fcntl(fileno(in_),  F_SETFL, O_NONBLOCK) < 0) crash("fcntl(in)");
   if (fcntl(fileno(out_), F_SETFL, O_NONBLOCK) < 0) crash("fcntl(out)");
+#endif
   setbuffer(out_, NULL, 64<<10); // 64k out buffer
 }
 
@@ -231,7 +233,7 @@ int clsockopen(const char* path) {
     close(fd);
     return 0;
   }
-  if (fcntl(fd,  F_SETFL, O_NONBLOCK) < 0) crash("fcntl(%s)", path);
+//  if (fcntl(fd,  F_SETFL, O_NONBLOCK) < 0) crash("fcntl(%s)", path);
   return fd;
 }
 

@@ -95,9 +95,8 @@ new_client(int sck)
 	}
 	if (debug) fprintf(stderr, "New client: %s\n", cl->addr.sun_path);
 	cl->out = fdopen(fd, "w");
-	//if (fcntl(fileno(cl->out), F_SETFL, O_NONBLOCK) < 0) crash("fcntl(out)");
-	// setbuffer(cl->out, NULL, 64<<10); // 64k out buffer
-	setlinebuf(cl->out);
+//	if (fcntl(fileno(cl->out), F_SETFL, O_NONBLOCK) < 0) crash("fcntl(out)");
+//	setlinebuf(cl->out);
 	cl->pending = 0;
 	cl->next = clients;
 	clients = cl;
@@ -189,7 +188,7 @@ int main(int argc, char* argv[]) {
 
 	if (!debug) openlog(argv0, LOG_PERROR, LOG_DAEMON);
 
-	// if (fcntl(fileno(stdin), F_SETFL, O_NONBLOCK) < 0) crash("fcntl(stdin)");
+//	if (fcntl(fileno(stdin), F_SETFL, O_NONBLOCK) < 0) crash("fcntl(stdin)");
 
 	// Set up socket.
 	unlink(argv[0]);
