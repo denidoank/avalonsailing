@@ -134,9 +134,9 @@ new_client(int sck)
         }
         cl->in  = fdopen(fd, "r");
         cl->out = fdopen(dup(fd), "w");
-        if (fcntl(fileno(cl->in),  F_SETFL, O_NONBLOCK) < 0) crash("fcntl(in)");
-        if (fcntl(fileno(cl->out), F_SETFL, O_NONBLOCK) < 0) crash("fcntl(out)");
-        setbuffer(cl->out, NULL, 64<<10); // 64k out buffer
+//      if (fcntl(fileno(cl->in),  F_SETFL, O_NONBLOCK) < 0) crash("fcntl(in)");
+//      if (fcntl(fileno(cl->out), F_SETFL, O_NONBLOCK) < 0) crash("fcntl(out)");
+        setlinebuf(cl->out);
         cl->pending = 0;
         clients = cl;
         if (debug) fprintf(stderr, "new client %d\n", fd);
