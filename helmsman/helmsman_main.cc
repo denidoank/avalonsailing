@@ -27,6 +27,10 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "proto/rudder.h"
+#include "proto/wind.h"
+#include "proto/imu.h"
+
 #include "common/convert.h"
 #include "common/unknown.h"
 #include "sampling_period.h"
@@ -254,8 +258,16 @@ int clsockopen_wait(const char* path) {
 // All return false on garbage
 // -----------------------------------------------------------------------------
 
+const char* skippfx(const char* line, const char* pfx) {
+  int n = strlen(pfx);
+  if (strncmp(line, pfx, n) == 0) line += n;
+  return line;
+}
+
 int sscan_rudd(const char *line, DriveActualValuesRad* s) {
   s->Reset();
+  line = skippfx(line, "ruddersts: ");
+
   while (*line) {
     char key[16];
     double value;
@@ -278,6 +290,7 @@ int sscan_rudd(const char *line, DriveActualValuesRad* s) {
 
 int sscan_wind(const char *line, WindSensor* s) {
   s->Reset();
+  line = skippfx(line, "wind: ");
   while (*line) {
     char key[16];
     double value;
@@ -300,6 +313,7 @@ int sscan_wind(const char *line, WindSensor* s) {
 
 int sscan_imud(const char *line, Imu* s) {
   s->Reset();
+  line = skippfx(line, "imu: ");
   while (*line) {
     char key[16];
     double value;
@@ -352,6 +366,7 @@ uint64_t now_ms() {
 }
 
 int snprint_rudd(char *line, int size, const DriveReferenceValuesRad& s) {
+  
   return snprintf(line, size,
                 "timestamp_ms:%lld  rudder_l_deg:%.3f rudder_r_deg:%.3f sail_deg:%.3f\n",
                   now_ms(),
