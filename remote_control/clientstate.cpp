@@ -7,6 +7,8 @@
 
 #include "clientstate.h"
 
+#include <QVariant>
+
 ClientState::ClientState(QObject *parent) :
     QObject(parent)
 {
@@ -56,13 +58,26 @@ void ClientState::gotData() {
     QStringList keys, values;
     keys.append(first[1]);
     data_[source][first[1]] = first[2].trimmed();
+    updateProperty(first[1], first[2]);
     for (int i = 1; i < key_vals.size(); ++i) {
       QStringList entry = key_vals[i].split(":", QString::SkipEmptyParts);
       keys.append(entry[0]);
       data_[source][entry[0]] = entry[1].trimmed();
+      updateProperty(entry[0], entry[1]);
     }
     emit dataUpdate();
+  }
+}
 
+void ClientState::updateProperty(const QString& key, const QString& val) {
+  if (property(key.toLatin1().constData()).isValid()) {
+    bool ok;
+    QVariant converted(val.toFloat(&ok));
+    if (ok) {
+      setProperty(key.toLatin1().constData(), converted);
+    } else {
+      emit consoleOutput(QString("can't convert to float: ") + val);
+    }
   }
 }
 
