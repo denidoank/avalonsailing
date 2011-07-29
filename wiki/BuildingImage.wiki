@@ -39,6 +39,14 @@ an image of the avalon sailing system.
   * `syslinux /dev/sdb`
   * find a syslinux.cfg for it (if we haven't made one already)
 
+==Update CF in machine==
+  * `mkdir /cfcard`
+  * `mount /dev/sda1 /cfcard`
+  * `cp /path/to/bzImage /cfcard/vmlinuz`
+  * `cp /path/to/rootfs.ext2.gz /cfcard/initrd.img`
+  * `umount /cfcard`
+  * (not necessary) `sync`
+
 ==Quick rebuild of persistent buildroot==
   * `BUILDROOT=/tmp/avalon`
   * `make image IMAGE_DIR=$BUILDROOT`
