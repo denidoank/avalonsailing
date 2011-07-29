@@ -9,6 +9,8 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QGraphicsPolygonItem>
+#include <QGraphicsScene>
 #include "clientstate.h"
 #include "config_dialog.h"
 
@@ -30,11 +32,25 @@ private:
   ClientState* state_;
   ConfigDialog config_dialog_;
 
+  QGraphicsScene scene_;
+  QGraphicsPolygonItem* boat_;
+  QGraphicsPolygonItem* boom_;
+  QGraphicsLineItem* rudder_left_;
+  QGraphicsLineItem* rudder_right_;
+
+  void drawBoat();
+
+public slots:
+  void setBoomAngle(float angle);
+  void setRudderLeftAngle(float angle);
+  void setRudderRightAngle(float angle);
+
 private slots:
   void on_actionConnect_triggered();
   void on_actionConfig_triggered();
   void updateView();
   void printText(QString text);
+
 };
 
 #endif // MAINWINDOW_H
