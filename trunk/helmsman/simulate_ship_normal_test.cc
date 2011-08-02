@@ -9,7 +9,6 @@
 
 #include <math.h>
 #include <stdio.h>
-//#include "common/unknown.h"
 #include "common/convert.h"
 #include "common/delta_angle.h"
 #include "common/polar.h"
@@ -22,8 +21,11 @@ namespace {
 const double kSamplingPeriod = 0.1;
 }
 
+extern int debug;
+
 void NormalControllerTest(double wind_direction_deg,
-                           double expected_min_speed_m_s) {
+                          double expected_min_speed_m_s) {
+  debug = 0;
   BoatModel model(kSamplingPeriod,
                   0,                // omega_ / rad, turning rate, + turns right 
                   0,                // phi_z_ / rad, heading relative to North, + turns right
@@ -48,8 +50,8 @@ void NormalControllerTest(double wind_direction_deg,
                    true_wind,
                    &in);
     ShipControl::Run(in, &out);
-    if (t > 99.0)
-       model.Print(t); 
+    if (0 && t > 99.0)
+      model.Print(t); 
   }
   printf("\n");
   model.PrintHeader();
@@ -57,19 +59,17 @@ void NormalControllerTest(double wind_direction_deg,
   EXPECT_LT(expected_min_speed_m_s, model.GetSpeed());
   if (fabs(model.GetPhiZ() - in.alpha_star_rad) > Deg2Rad(5))
     printf("final heading %g for wind direction %g\n", Rad2Deg(model.GetPhiZ()), wind_direction_deg);
-
 }
 
 
 TEST(SimShip, Wind_0) {
   NormalControllerTest(-165,   // wind vector direction, in degrees
-                       1.4);  // minimum speed, m/s
-  return;
+                       1.4);   // minimum speed, m/s
   // all initial wind directions are handled correctly.
-  for (double wind_direction = -180; wind_direction < 180; wind_direction += 1) {
+  for (double wind_direction = -180; wind_direction < 180; wind_direction += 0.3) {
     if (fabs(wind_direction - -90) < 20)  // Not sailable.
       continue;
-    NormalControllerTest(wind_direction, 1.0);  // speeds vary from 1.0 to 2.1 m/s
+    NormalControllerTest(wind_direction, 1.0);  // speeds vary from 1.0 to 2.1 m/s 
   }  
   
 }

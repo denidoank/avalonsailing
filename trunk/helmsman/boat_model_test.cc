@@ -44,7 +44,7 @@ TEST(BoatModel, Zeros) {
                    &in);
     // artificial speed override (as an example of forcing a state to be constant)
     // in.imu.speed_m_s = 2;
-    //model.Print(t); 
+    model.Print(t); 
   }
   // expect all zeros
   printf("\nExpect all zeros:");
@@ -173,8 +173,8 @@ TEST(BoatModel, PulledRudderRight) {
                      &in);
     model.Print(t); 
   }
-  printf("\nExpect a left turn circle of 30m diameter,"
-         "and a speed of 1 m/s. (theoretical diameter 43.43m) ");
+  printf("\nExpect a right turn circle of 30m diameter,"
+         "and a speed of 1 m/s. (theoretical diameter 43.43m, get 32.16m) ");
   model.PrintHeader(); 
   model.Print(t); 
   printf("\n\n");
@@ -281,7 +281,7 @@ TEST(BoatModel, PushedRudderRight) {
                   0);               // gamma_sail_ / rad, e.g. -90 degrees here 
   
   DriveReferenceValuesRad ref;
-  Polar true_wind(0, 0);           // forward wind blows from South to North, 10m/s
+  Polar true_wind(0, 0);
   ControllerInput in;
   
   model.PrintHeader();
@@ -309,12 +309,14 @@ TEST(BoatModel, PushedRudderRight) {
          "and a speed of less than 1 m/s.");
   model.PrintHeader(); 
   model.Print(t); 
+  EXPECT_LT(Rad2Deg(SymmetricRad(model.GetPhiZ())), -10);
+  EXPECT_IN_INTERVAL(0, model.GetSpeed(), 0.5);
   printf("\n\n");
 }
 
-// The boat pulled at 1m/s all the time and turn right with a positive rudder angle.
+// The boat pulled at 1m/s all the time and turn right with a negative rudder angle.
 // Must go in a circle of a certain radius.
-TEST(BoatModel, PulledRudderLeft) {
+TEST(BoatModel, PulledRudderRightX) {
   // Set initial boat state.
   BoatModel model(kSamplingPeriod,
                   0,                // omega_ / rad, turning rate, + turns right 
@@ -390,10 +392,12 @@ TEST(BoatModel, SailEastReversed) {
                    &in);
     model.Print(t); 
   }
-  printf("\nExpect to start eastbound, then return"
-         "and a speed of roughly 3 m/s.");
+  printf("\nExpect to start eastbound, then return "
+         "and a speed of roughly 2.2 m/s.");
   model.PrintHeader(); 
   model.Print(t); 
+  EXPECT_IN_INTERVAL(80, Rad2Deg(model.GetPhiZ()), 100);
+  EXPECT_IN_INTERVAL(-2.5, model.GetSpeed(), -1.5);
   printf("\n\n");
 }
 
@@ -432,10 +436,12 @@ TEST(BoatModel, SailNorthReversed) {
                    &in);
     model.Print(t); 
   }
-  printf("\nExpect to sail straight North intially and then reverse"
-         "at a speed of roughly -2.7 m/s.");
+  printf("\nExpect to sail straight North intially and then reverse "
+         "at a speed of roughly -2.0 m/s.");
   model.PrintHeader(); 
   model.Print(t); 
+  EXPECT_IN_INTERVAL(-10, Rad2Deg(model.GetPhiZ()), 10);
+  EXPECT_IN_INTERVAL(-3, model.GetSpeed(), -1);
   printf("\n\n");
 }
 
@@ -474,18 +480,19 @@ TEST(BoatModel, SailNorthReversedRudderPositive) {
                    &in);
     model.Print(t); 
   }
-  printf("\nExpect to sail straight North intially and then reverse"
-         "turning around the portside.");
+  printf("\nExpect to sail straight North intially and then reverse "
+         "turning around the portside, finally pointing east.");
   model.PrintHeader(); 
-  model.Print(t); 
+  model.Print(t);
+  EXPECT_IN_INTERVAL(80, Rad2Deg(model.GetPhiZ()), 100);
   printf("\n\n");
 }
 
 int main(int argc, char* argv[]) {
+  BoatModel_PulledRudderRightX();
   BoatModel_Zeros();
   BoatModel_Pushed();
   BoatModel_PushedRudderRight();
-  BoatModel_PulledRudderLeft();
   BoatModel_SailEast(); 
   BoatModel_SailWest(); 
   BoatModel_SailNorth(); 

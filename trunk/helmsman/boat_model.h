@@ -41,6 +41,7 @@ class BoatModel {
                 ControllerInput* in);
   void Print(double t);
   void PrintHeader();
+  void PrintLatLon(double t);
   
   void SetSpeed(double speed);
   void SetPhiZ(double  phi_z);
@@ -51,7 +52,6 @@ class BoatModel {
  private:
   // The x-component of the sail force, very roughly.
   double ForceSail(Polar sail_wind_angle, double gamma_sail);
-  double RudderAcc(double gamma_rudder, double water_speed);
  
   double Saturate(double x, double limit); 
   void FollowRateLimited(double in, double max_rate, double* follows);
@@ -60,6 +60,18 @@ class BoatModel {
   void SimDrives(const DriveReferenceValuesRad& drives_reference,
                  DriveActualValuesRad* drives);
   void SetStartPoint(Location start_location);
+
+  // More precise and stable rudder force model
+  // We had problems with the very simple one during simulations
+  // due to the feedback effect and the simple Euler intergration model.
+  void RudderModel(double omega,
+                   double* delta_omega_rudder,
+                   double* force_rudder_x);
+  // Trapez integration model in respect to omega.
+  void IntegrateRudderModel(double* delta_omega_rudder, double* force_rudder_x);
+
+  double ForceLift(double alpha_aoa_rad, double speed);
+  double ForceDrag(double alpha_aoa_rad, double speed);
 
   double period_;
   double omega_;
@@ -74,6 +86,9 @@ class BoatModel {
   
   double north_deg_;
   double east_deg_;
+  double x_;
+  double y_;
+  
   Polar apparent_;  // apparent wind in the boat frame
 };
 #endif  // HELMSMAN_BOAT_MODEL_H

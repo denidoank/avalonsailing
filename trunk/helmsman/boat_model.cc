@@ -6,6 +6,9 @@
 // A very rough physical boat model.
 
 #include "helmsman/boat_model.h" 
+#include "helmsman/naca0010.h" 
+
+const static int debug = 0;
 
 BoatModel::BoatModel(double sampling_period,
                      double omega,
@@ -27,6 +30,8 @@ BoatModel::BoatModel(double sampling_period,
       homing_counter_right_(20),
       north_deg_(0),
       east_deg_(0),
+      x_(0),
+      y_(0),
       apparent_(0, 0) {
   SetStartPoint(start_location);
 }
@@ -45,24 +50,6 @@ double BoatModel::ForceSail(Polar apparent, double gamma_sail) {
   }
   return cos(gamma_sail + M_PI/2) *
     lift * apparent.Mag() * apparent.Mag() * 8 * 1.184 / 2; // 8m2*rho_air/2
-}
-
-// The rotational acceleration effect of the rudder force, very roughly.
-double BoatModel::RudderAcc(double gamma_rudder, double water_speed) {
-  // This can lead to oscillations in the model due to the bad Euler integration
-  // model. The magic damping factor 0.7 dampens these oscillation artefacts.
-  double alpha_water = 0;
-  if (water_speed > 0)
-    alpha_water = 0.7 * -atan2(omega_ * 1.43, water_speed);  // 1.43 m distance COG to rudder, was 1.9m
-  gamma_rudder -= alpha_water;
-    
-  // stall above 25 degrees
-  double lift = (fabs(gamma_rudder) < Deg2Rad(25)) * -gamma_rudder / Deg2Rad(10);
-
-  return (lift * water_speed * water_speed * Sign(water_speed) * 
-          (0.085 * 2 * 1030 / 2)        // 2 rudders * area * rho_water / 2; 
-          - 20 * omega_) /              // viscose damping
-              120 ;                     // assumed inertia of 120 kg m^2
 }
 
 double BoatModel::Saturate(double x, double limit) { 
@@ -139,20 +126,27 @@ void BoatModel::Simulate(const DriveReferenceValuesRad& drives_reference,
 
   // Euler integration, acc turns clockwise
   // Homing is symmetric and does not produce much rotation.
-  if (in->drives.homed_rudder_right && in->drives.homed_rudder_left)
-    omega_ += RudderAcc(gamma_rudder_right_, v_x_) * period_;
+  if (in->drives.homed_rudder_right && in->drives.homed_rudder_left) {
+    double delta_omega_new;
+    double force_rudder_x;
+    IntegrateRudderModel(&delta_omega_new,
+                         &force_rudder_x);
+    omega_ += delta_omega_new;
+  }  
   phi_z_ += omega_ * period_;
   phi_z_ = NormalizeRad(phi_z_);
 
 
   v_x_ += period_ / 535.0 * (ForceSail(apparent_, gamma_sail_) +
-                             0.2 * v_x_ * v_x_ * -Sign(v_x_) * 1030/2);  // eqiv. area 0.2m^2
+                             0.2 * v_x_ * v_x_ * -Sign(v_x_) * kRhoWater/2);  // eqiv. area 0.2m^2
 
   // Produce GPS info.
   // Convert a meter of way into the change of latitude, roughly.
   const double MeterToDegree = Rad2Deg(1/6378100.0); 
   north_deg_ += v_x_ * cos(phi_z_) * period_ * MeterToDegree;
   east_deg_  += v_x_ * sin(phi_z_) * period_ * MeterToDegree;
+  x_ += v_x_ * cos(phi_z_) * period_;
+  y_ += v_x_ * sin(phi_z_) * period_;
   
   // Sensor signal is:
   // The true wind vector direction - (all the angles our sensor is turned by),
@@ -190,18 +184,23 @@ void BoatModel::Simulate(const DriveReferenceValuesRad& drives_reference,
   in->imu.temperature_c = 28;
 }
 
+void BoatModel::PrintLatLon(double t) {
+ printf("%6.3f %10.8f %10.8f %8.3f %8.3f %8.3f %8.3f (%8.3f)\n",
+        t, north_deg_, east_deg_, Rad2Deg(SymmetricRad(phi_z_)), v_x_,
+        Rad2Deg(gamma_sail_), Rad2Deg(gamma_rudder_right_), Rad2Deg(apparent_.AngleRad()));
+}
+
 void BoatModel::Print(double t) {
  printf("%6.3f %8.3f %8.3f %8.3f %8.3f %8.3f %8.3f (%8.3f)\n",
-        t, north_deg_, east_deg_, Rad2Deg(SymmetricRad(phi_z_)), v_x_,
+        t, x_, y_, Rad2Deg(SymmetricRad(phi_z_)), v_x_,
         Rad2Deg(gamma_sail_), Rad2Deg(gamma_rudder_right_), Rad2Deg(apparent_.AngleRad()));
 }
 
 void BoatModel::PrintHeader() {
  printf("\n%-7s %-8s %-8s %-8s %-8s %-8s %-8s\n",
         "time/s", "North/m", "East/m",
-        "phi/deg", "v/m/s", "sail/deg", "rudder/deg");
+        "phi/deg", "v/m/s", "sail/deg", "rudder/deg, apparent/deg");
 }
-
 
 void BoatModel::SetSpeed(double speed){
   v_x_ = speed;
@@ -223,20 +222,130 @@ double BoatModel::GetPhiZ() {
   return phi_z_;
 }
 
-
 void BoatModel::SetStartPoint(Location start_location) {
   switch(start_location) {
     case kBrest:
       north_deg_ = 48.2390;
       east_deg_ = -4.7698;
+      x_ = 0;
+      y_ = 0;
       break;
     case kSukku:
       north_deg_ = 47.2962-0.008;
       east_deg_ = 8.5812-0.008;
+      x_ = 0;
+      y_ = 0;
       break;
     default:
       assert(0);  
   }
 }
 
+// More precise and stable rudder force model
+// We had problems with the very simple one during simulations
+// due to the feedback effect and the simple Euler intergration model.
+// kLeverR = 1.43;  // 1.43 m distance COG to rudder
+// boat.h kInertiaZ = 150;      // different sources speak of 100 to 150 kg/m^2
+
+void BoatModel::RudderModel(double omega,
+                            double* delta_omega_rudder,
+                            double* force_rudder_x) {
+  if (debug) printf("N: omega: %6.4f deg/s, v: %6.4f m/s\n", Rad2Deg(omega), v_x_);
+  // Relative speed vector of the rudder axis through the water.
+  double v_y = omega * kLeverR;
+  double v_rudder_mag = sqrt(v_x_ * v_x_ + v_y * v_y);  // (1)
+  double v_rudder_alpha = 0;
+  if (omega != 0 || v_x_ != 0)
+    v_rudder_alpha = atan2(-v_y, v_x_);                 // (2)
+  if (debug) printf("N: alpha water: %6.4f deg\n", Rad2Deg(v_rudder_alpha));
+
+  // Angle of attack for the rudder                   
+  double alpha_aoa_right = gamma_rudder_right_ - v_rudder_alpha;     // (3)
+  // Add left rudder, remove force factor 2
+ 
+  double force_lift = 2*ForceLift(alpha_aoa_right, v_rudder_mag);  // (4)
+  double force_drag = 2*ForceDrag(alpha_aoa_right, v_rudder_mag);  // (5)
+  
+  double force_x = sin(v_rudder_alpha) * force_lift - cos(v_rudder_alpha) * force_drag;  // (6)
+  *force_rudder_x = force_x;
+  double force_y = cos(v_rudder_alpha) * force_lift - sin(v_rudder_alpha) * force_drag;  // (7)
+  
+  double delta_omega = -force_y * kLeverR / kInertiaZ * period_;  // (8)
+  *delta_omega_rudder = delta_omega;
+}
+
+void BoatModel::IntegrateRudderModel(double* delta_omega_rudder,
+                                     double* force_rudder_x) {
+  // Trapez integration model in respect to omega.
+  double delta_omega1;
+  double force_rudder_x1;
+  // First calculate with the old omega
+  RudderModel(omega_, &delta_omega1, &force_rudder_x1);
+  // Then calculate with the new omega.
+  double delta_omega2;
+  double force_rudder_x2;
+  RudderModel(omega_ + delta_omega1, &delta_omega2, &force_rudder_x2);
+  // The truth lies in the middle (probably) ...
+  double delta_omega_m;
+  double force_rudder_x_m;
+  RudderModel(omega_ + (delta_omega1 + delta_omega2) / 2, &delta_omega_m, &force_rudder_x_m);
+  
+  // Check
+  double range_12 = fabs(delta_omega2 - delta_omega1);
+  double range_1m = fabs(delta_omega_m - delta_omega1);
+  if ((delta_omega1 <= delta_omega_m && delta_omega_m <= delta_omega2) ||
+      (delta_omega2 <= delta_omega_m && delta_omega_m <= delta_omega1)) {
+    if (range_12 != 0)
+      if (debug) printf("mix at %5.4f %%\n" , 100 * range_1m / range_12);
+    else
+      if (debug) printf("mix at %5.4f of 0\n" , 100 * range_1m );
+      
+    *delta_omega_rudder = delta_omega_m;
+    *force_rudder_x = force_rudder_x_m;
+  } else {
+    printf("Integration instable!\n");
+    printf("No good mix at %6.4f %%\n" , 100 * range_1m / range_12);
+    *delta_omega_rudder = (delta_omega1 + delta_omega2 + delta_omega_m) / 3;
+    *force_rudder_x = (force_rudder_x1 + force_rudder_x2 + force_rudder_x_m) / 3;
+    printf("Using  %6.4f from %6.4f %6.4f %6.4f \n", *delta_omega_rudder, delta_omega1, delta_omega2, delta_omega_m);
+  }  
+}
+
+double BoatModel::ForceLift(double alpha_aoa_rad, double speed) {
+  if (debug) printf("N: aoa: %6.4f deg\n", Rad2Deg(alpha_aoa_rad));
+  int sign = 1;
+  if (alpha_aoa_rad < 0) {
+    sign = -1;
+    alpha_aoa_rad = -alpha_aoa_rad;
+  }
+  double c_lift = 0;
+  if (alpha_aoa_rad < Deg2Rad(8)) { // linear range forward, neglect dependency of the stall angle from he speed
+    c_lift = naca0010::kCLiftPerRad * alpha_aoa_rad;
+  } else if (alpha_aoa_rad < Deg2Rad(175)) { // stall range
+    c_lift = 1.1 * sin(2*alpha_aoa_rad);
+  } else { // linear range backwards
+    c_lift = naca0010::kCLiftPerRadReverse * (alpha_aoa_rad - Deg2Rad(180));
+  }
+  if (debug) printf("N: c_lift: %6.4f \n", sign * c_lift);
+  return sign * c_lift * speed * speed * 
+          (kAreaR * kRhoWater / 2);      // area * rho_water / 2;
+}
+
+double BoatModel::ForceDrag(double alpha_aoa_rad, double speed) {
+  if (alpha_aoa_rad < 0) {
+    alpha_aoa_rad = -alpha_aoa_rad;
+  }
+  double c_drag = 0.02;
+  if (alpha_aoa_rad < Deg2Rad(8)) { // linear range forward
+    ;
+  } else if (alpha_aoa_rad < Deg2Rad(175)) { // stall range
+    c_drag = 1.8 * sin(alpha_aoa_rad);
+  } else { // linear range backwards
+    ;
+  }
+  if (debug) printf("N: c_drag: %6.4f \n", c_drag);
+
+  return c_drag * speed * speed * 
+          (kAreaR * kRhoWater / 2);      //  area * rho_water / 2; 
+}
 
