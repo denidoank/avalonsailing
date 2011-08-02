@@ -11,6 +11,7 @@
 #include "lib/fm/log.h"
 #include "modem/message-queue.h"
 #include "modem/modem.h"
+#include "proto/modem.h"
 
 #include <getopt.h>
 #include <stdlib.h>
@@ -51,12 +52,12 @@ static void Init(int argc, char** argv) {
         strncpy(phone_number, optarg, sizeof(phone_number));
         break;
       case 2:  // --queue=...
-        strncpy(phone_number, optarg, sizeof(queue));
+        strncpy(queue, optarg, sizeof(queue));
         break;
       default:
         FM_LOG_INFO("usage: %s [--device dev] [--queue dir] [--phone no]\n"
                     "\t --device modem serial device (default %s)\n"
-                    "\t --phone phone number used for sending SMS messages\n",
+                    "\t --phone phone number used for sending SMS messages\n"
                     "\t --queue directory queue for messages (default %s)\n",
                     argv[0], DEFAULT_MODEM_DEVICE, DEFAULT_QUEUE);
         exit(0);
@@ -68,8 +69,10 @@ int main(int argc, char** argv) {
   FM::Init(argc, argv);
   Init(argc, argv);
 
-  FM_LOG_INFO("Using modem device: %s and phone number:\n",
-              modem_device, phone_number);
+  setlinebuf(stdout);
+
+  FM_LOG_INFO("Using modem device: %s, phone number: %s, queue: %s\n",
+              modem_device, phone_number, queue);
   if (strlen(phone_number) == 0) {
     FM_LOG_FATAL("No phone number specified for status messages.");
   }
@@ -83,17 +86,42 @@ int main(int argc, char** argv) {
   MessageQueue inbox(inbox_dir);
   MessageQueue outbox(outbox_dir);
 
-  Modem m;
-  m.Init(modem_device);
-  string modem_type, modem_sn;
-  m.GetModemType(&modem_type);
-  m.GetModemSerialNumber(&modem_sn);
-  FM_LOG_INFO("Found modem: %s SN: %s\n", modem_type.c_str(), modem_sn.c_str());
+  ModemProto status = INIT_MODEMPROTO;
 
   while (true) {  // Wait for asynchronous status changes.
+    Modem m;
+    if (!m.Init(modem_device)) {
+      FM_LOG_ERROR("Cannot initialize the modem: %s", modem_device);
+      break;
+    }
+    string modem_type, modem_sn;
+
+    // Check that modem is alive by issuing a simple command.
+    int retries = 10;
+    while (retries) {
+      if (m.GetModemType(&modem_type) != Modem::OK ||
+          m.GetModemSerialNumber(&modem_sn) != Modem::OK) {
+        FM_LOG_ERROR("Modem not responsive. Get modem serial number failed!");
+        retries--;
+        sleep(3);
+      } else {
+        break;
+      }
+    }
+    if (retries == 0) {
+      FM_LOG_ERROR("Modem not responsive. "
+                   "Get modem serial number failed several times!");
+      break;
+    } else {
+      FM::Keepalive();
+    }
+    FM_LOG_INFO("Found modem: %s SN: %s",
+                modem_type.c_str(), modem_sn.c_str());
 
     // Send outbox messages.
-    while (outbox.NumMessages() > 0) {
+    retries = 10;
+    FM_LOG_INFO("Messages in the outbox queue: %d", outbox.NumMessages());
+    while (outbox.NumMessages() && retries) {
       // Send SMS messages:
       string message;
       const MessageQueue::MessageId id = outbox.GetMessage(0, &message);
@@ -103,16 +131,24 @@ int main(int argc, char** argv) {
 	Modem::ResultCode rc = m.SendSMSMessage(phone_number, message);
         if (rc != Modem::OK) {
           FM_LOG_ERROR("SMS sending error (%d)!\n", rc);
+          retries--;
         } else {
           FM_LOG_INFO("SMS sending successfull.\n");
           outbox.DeleteMessage(id);  // Message sent. Delete it.
         }
       }
     }
+    if (retries == 0) {
+      FM_LOG_ERROR("Failed to send SMS messages. Check network or signal!");
+    }
 
     // Check for new SMS messages.
     list<Modem::SmsMessage> messages;
-    m.ReceiveSMSMessages(&messages);
+    if (m.ReceiveSMSMessages(&messages) == Modem::OK) {
+      FM_LOG_INFO("Received SMS messages: %d messages.", messages.size());
+    } else {
+      FM_LOG_ERROR("Receive SMS messages: command failed!");
+    }
     while (!messages.empty()) {
       FM_LOG_INFO("Received SMS Message time=%d, phone=%s text=\"%s\"\n",
                   static_cast<int>(messages.front().time),
@@ -126,46 +162,34 @@ int main(int argc, char** argv) {
       messages.pop_front();        
     }
 
+    // Check network registration and signal quality.
+    bool network_registration = false;
+    if (m.GetNetworkRegistration(&network_registration) != Modem::OK) {
+      FM_LOG_ERROR("Checking network registration failed!");
+    }
+    status.network_registration = network_registration;
+    if (m.GetSignalQuality(&status.signal_quality) != Modem::OK) {
+      FM_LOG_ERROR("Checking signal quality failed!");
+    }
+    if (m.GetGeolocation(&status.coarse_position_lat,
+                         &status.coarse_position_lng,
+                         &status.position_timestamp_s) != Modem::OK) {
+      FM_LOG_ERROR("Error retrieving geolocation!");
+    }
+
+    status.inbox_queue_messages = inbox.NumMessages();
+    status.outbox_queue_messages = outbox.NumMessages();
+    status.timestamp_s = time(NULL);
+
+    int n = 0;
+    char out[1024];
+    snprintf(out, sizeof(out), OFMT_MODEMPROTO(status, &n));
+    if (n > sizeof(out)) break;
+    puts(out);
+
     // Idle loop.
     m.IdleLoop();
     sleep(1);
-
-    // Check that modem is still alive by issuing a simple command.
-    int retries = 10;
-    while (retries) {
-      string modem_sn2;
-      if (m.GetModemSerialNumber(&modem_sn2) != Modem::OK ||
-          modem_sn2 != modem_sn) {
-        FM_LOG_ERROR("Modem not responsive. Get modem serial number failed!");
-        retries--;
-        sleep(3);
-      } else {
-        break;
-      }
-    }
-    if (retries == 0) {
-      FM_LOG_ERROR("Modem not responsive. "
-                   "Get modem serial number failed several times!");
-      return -1;
-    } else {
-      FM::Keepalive();
-    }
-
-    // Check network registration and signal quality.
-    bool registered = false;
-    int signal_quality = 0;
-    if (m.GetNetworkRegistration(&registered) == Modem::OK) {
-      FM_LOG_INFO("Network registration: %s",
-                  registered ? "registered" : "not-registered");
-    }
-    if (m.GetSignalQuality(&signal_quality) == Modem::OK) {
-      FM_LOG_INFO("Signal quality: %d", signal_quality);
-    }
-    double lat = 0.0, lng = 0.0;
-    time_t timestamp = 0;
-    if (m.GetGeolocation(&lat, &lng, &timestamp) == Modem::OK) {
-      FM_LOG_INFO("Coarse geolocation: (%5.3f X %5.3f), timestamp: %s",
-                  lat, lng, ctime(&timestamp));
-    }
   }
+  FM_LOG_INFO("Modem daemon terminated.");
 }
