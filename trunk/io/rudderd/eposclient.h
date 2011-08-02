@@ -27,7 +27,7 @@ int bus_set_fds(Bus* bus, fd_set* rfds, fd_set* wfds, int* maxfd);
 int bus_receive(Bus* bus, fd_set* rfds);
 
 // Timeout variables to the INVALID state that have been PENDING for more than 1 second.
-int bus_clocktick(Bus* bus);
+void bus_clocktick(Bus* bus);
 
 // try to write any unwritten lines to the eposd or eposcom ctl fd
 int bus_flush(Bus* bus, fd_set* wfds);

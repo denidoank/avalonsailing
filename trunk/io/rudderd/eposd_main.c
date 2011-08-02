@@ -5,7 +5,7 @@
 // Daemon to multiplex devices on can busses on epos controllers on
 // serial ports to clients over unix sockets.
 //
-// For every /dev/ttyXXX listed on the commandline, forks off
+// or every /dev/ttyXXX listed on the commandline, forks off
 // an eposcom, probes the serial numbers of all controller nodes on that bus,
 // and enters the main loop.
 //
@@ -25,6 +25,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <math.h>
+#include <signal.h>
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -40,7 +41,7 @@
 #include <time.h>
 #include <unistd.h>
 
-static const char* version = "$Id: $";
+//static const char* version = "$Id: $";
 static const char* argv0;
 static int verbose = 0;
 static int debug = 0;
@@ -202,7 +203,7 @@ struct Client {
         FILE* in;
         FILE* out;
         struct sockaddr_un addr;
-        int addrlen;
+        unsigned int addrlen;
         int pending;  // possibly unflushed data in out buffer
         char line[1024];  // last read line from in
         struct PortSlave* slave;  // destination of last line, if not yet written there
@@ -335,7 +336,8 @@ int main(int argc, char* argv[]) {
 
         // Reap any dead children (couldn't open serial or probe)
         reap_children();
-#if 0
+
+#if 1
         // set to nonblocking after serial numbers have been read.
 	for (i = 0; i < nslaves; ++i)
                 if (slaves[i].pid)

@@ -52,6 +52,8 @@ crash(const char* fmt, ...)
 	return;
 }
 
+static void fault() { crash("fault"); }
+
 static void
 usage(void)
 {
@@ -59,7 +61,7 @@ usage(void)
 		"usage: %s [options] /path/to/socket\n"
 		"options:\n"
 		"\t-d debug (don't go daemon, don't syslog)\n"
-		, argv0, argv0);
+		, argv0);
 	exit(2);
 }
 
@@ -195,7 +197,7 @@ client_flush(struct Client* client)
 
 static const char*
 client_gets(struct Client* client) {
-	if (client->fd < 0) return;
+	if (client->fd < 0) return NULL;
 	int r = lb_read(client->fd, &client->in);
 	if (r == 0) return client->in.line;
 	if (r != EAGAIN) {
@@ -229,7 +231,6 @@ reap_clients()
 int main(int argc, char* argv[]) {
 
 	int ch;
-	char* path_to_socket = NULL;
 
 	argv0 = strrchr(argv[0], '/');
 	if (argv0) ++argv0; else argv0 = argv[0];
@@ -251,6 +252,9 @@ int main(int argc, char* argv[]) {
 
 	argv0 = strrchr(argv[0], '/');
 	if (argv0) ++argv0; else argv0 = argv[0];
+
+	signal(SIGBUS, fault);
+        signal(SIGSEGV, fault);
 
 	if (!debug) openlog(argv0, LOG_PERROR, LOG_DAEMON);
 
@@ -302,14 +306,15 @@ int main(int argc, char* argv[]) {
 		int r = pselect(max_fd + 1, &rfds, &wfds, NULL, NULL, &empty_mask);
 		if (r == -1 && errno != EINTR) crash("pselect");
 
-		if (debug) fprintf(stderr, "woke up %d\n", r);
+		if (debug > 1) fprintf(stderr, "woke up %d\n", r);
 
-		// Handle clients.
 		if (FD_ISSET(sck, &rfds)) new_client(sck);
 
-		for (cl = clients; cl; cl = cl->next)
+		for (cl = clients; cl; cl = cl->next) {
+			if (cl->fd < 0) continue;
 			if (FD_ISSET(cl->fd, &wfds))
 				client_flush(cl);
+		}
 
 		struct Client *cl2;
 		for (cl = clients; cl; cl = cl->next) {
@@ -318,7 +323,9 @@ int main(int argc, char* argv[]) {
 
 			const char* line = client_gets(cl);
 			if (!line) continue;
-			if (debug > 1) puts(line);
+			while(*line == '\n') ++line;
+			if (!line[0]) continue;
+			if (debug) puts(line);
 			for (cl2 = clients; cl2; cl2 = cl2->next) {
 				if (cl == cl2) continue;
 				if (cl2->fd < 0) continue;

@@ -42,8 +42,8 @@ BINARIES = $(BIN_CCSRCS:_main.cc=) $(BIN_CSRCS:_main.c=)
 TOP = $(realpath $(dir $(lastword $(MAKEFILE_LIST)))..)
 
 # make includes relative to the top work
-CFLAGS+=-I$(TOP) -m32
-CXXFLAGS+=-I$(TOP) -fno-rtti -fno-exceptions -m32
+CFLAGS+=-I$(TOP) -m32 -Wall
+CXXFLAGS+=-I$(TOP) -fno-rtti -fno-exceptions -m32 -Wall
 LDFLAGS+=-fno-rtti -fno-exceptions -m32
 INSTALL = install
 

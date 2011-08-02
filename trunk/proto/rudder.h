@@ -13,17 +13,20 @@ struct RudderProto {
 #define INIT_RUDDERPROTO { 0, NAN, NAN, NAN }
 
 #define OFMT_RUDDERPROTO_STS(x,n) \
-	"ruddersts: timestamp_ms:%lld rudder_l_deg:%.1f rudder_r_deg:%.1f sail_deg:%.1f " \
-	, (x).timestamp_ms, (x).rudder_l_deg, (x).rudder_r_deg, (x).sail_deg
+	"ruddersts: timestamp_ms:%lld rudder_l_deg:%.1f rudder_r_deg:%.1f sail_deg:%.1f%n\n" \
+	, (x).timestamp_ms, (x).rudder_l_deg, (x).rudder_r_deg, (x).sail_deg, (n)
 
 #define OFMT_RUDDERPROTO_CTL(x,n) \
-	"rudderctl: timestamp_ms:%lld rudder_l_deg:%.1lf rudder_r_deg:%.1lf sail_deg:%.1lf " \
-	, (x).timestamp_ms, (x).rudder_l_deg, (x).rudder_r_deg, (x).sail_deg
+	"rudderctl: timestamp_ms:%lld rudder_l_deg:%.1lf rudder_r_deg:%.1lf sail_deg:%.1lf%n\n" \
+	, (x).timestamp_ms, (x).rudder_l_deg, (x).rudder_r_deg, (x).sail_deg, (n)
 
 #define IFMT_RUDDERPROTO_STS(x,n) \
-	"ruddersts: timestamp_ms:%lld rudder_l_deg:%lf rudder_r_deg:%lf sail_deg:%lf " \
-	, &(x)->timestamp_ms, &(x)->rudder_l_deg, &(x)->rudder_r_deg, &(x)->sail_deg
+	"ruddersts: timestamp_ms:%lld rudder_l_deg:%lf rudder_r_deg:%lf sail_deg:%lf %n" \
+	, &(x)->timestamp_ms, &(x)->rudder_l_deg, &(x)->rudder_r_deg, &(x)->sail_deg, (n)
 
-// CTL input is parsed by hand
+#define IFMT_RUDDERPROTO_CTL(x,n) \
+	"rudderctl: timestamp_ms:%lld rudder_l_deg:%lf rudder_r_deg:%lf sail_deg:%lf %n" \
+	, &(x)->timestamp_ms, &(x)->rudder_l_deg, &(x)->rudder_r_deg, &(x)->sail_deg, (n)
+
 
 #endif // PROTO_RUDDER_H

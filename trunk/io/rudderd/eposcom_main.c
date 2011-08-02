@@ -5,6 +5,7 @@
 //  Commandline tool to read/write EPOS registers over RS232.
 //
 
+#include <ctype.h>
 #include <errno.h>
 #include <getopt.h>
 #include <stdarg.h>
@@ -17,8 +18,8 @@
 
 const char* version = "$Id: $";
 const char* argv0;
-// int verbose=0;
-// int debug=0;
+int verbose=0;
+int debug=0;
 
 
 void crash(const char* fmt, ...) {
@@ -56,11 +57,11 @@ int main(int argc, char* argv[]) {
 
 	 while ((ch = getopt(argc, argv,"dhprt:v")) != -1){
 		 switch (ch) {
-//		 case 'd': ++debug; break;
+		 case 'd': ++debug; break;
 		 case 'p': probe=0; break;
 		 case 'r': ++raw; break;
 		 case 't': timeout_ms = atoi(optarg); break;
-//		 case 'v': ++verbose; break;
+		 case 'v': ++verbose; break;
 		 default:
 			 usage();
 		 }
@@ -122,9 +123,9 @@ int main(int argc, char* argv[]) {
 		 switch (n) {
 		 case 3: {
 			 if (raw)
-				 err = epos_readobject(fd, index, subindex, nodeid, &value);
+				 err = epos_readobject(fd, index, subindex, nodeid, (uint32_t*)&value);
 			 else
-				 err = epos_waitobject(fd, timeout_ms, index, subindex, nodeid, 0, &value);
+				 err = epos_waitobject(fd, timeout_ms, index, subindex, nodeid, 0, (uint32_t*)&value);
 			 const char* ec = epos_strerror(err);
 			 printf("%.*s = 0x%x (0x%x) # %s%s\n", c1, line, value, err, ec, line[c1] ? line + c1 : "" );
 			 break;

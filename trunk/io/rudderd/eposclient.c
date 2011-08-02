@@ -258,7 +258,7 @@ static long now_ms() {
 
 enum { TIMEOUT_MS = 1000 };
 
-int bus_clocktick(Bus* bus) {
+void bus_clocktick(Bus* bus) {
 	Device* dev;
 	Register* reg;
 	long t = now_ms();
@@ -328,6 +328,7 @@ int device_get_register(Device* dev, uint32_t regidx, uint32_t* val) {
 	case PENDING:
 		return 0;
 	}
+	return 0;
 }
 
 int device_set_register(Device* dev, uint32_t regidx, uint32_t val) {

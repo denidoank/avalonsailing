@@ -280,7 +280,7 @@ uint32_t
 epos_sendcanframe(int fd, uint16_t cobid, int len, uint8_t data[8])
 {
         // Validity of CAN message:
-        assert(cobid & ~0x7FF == 0);  // 11 bits
+	assert((cobid & ~0x7FF) == 0);  // 11 bits
         assert(len <= 8);
 
         // NOTE: section 6.3.3.1 says len-1 == 9, but i think that's wrong (lvd).
@@ -303,7 +303,7 @@ uint32_t
 epos_requestcanframe(int fd, uint16_t cobid, int len, uint8_t data[8])
 {
         // Validity of CAN message:
-        assert(cobid & ~0x7FF == 0);  // 11 bits
+        assert((cobid & ~0x7FF) == 0);  // 11 bits
 
         // NOTE: section 6.3.3.1 says len-1 == 9, but i think that's wrong (lvd).
         uint8_t xmitframe[] = {
