@@ -87,6 +87,8 @@ void ReferenceValues::NewPlan(double phi_z_1,
     fprintf(stderr, "New Plan: delta_phi: %6.4f deg\n", Rad2Deg(delta_phi));
     fprintf(stderr, "delta_gamma_sail: %6.4f deg, duration %6.4f s\n", Rad2Deg(delta_gamma_sail), duration);
   }
+  printf("New Plan: delta_phi: %6.4f deg", Rad2Deg(delta_phi));
+  printf("delta_gamma_sail: %6.4f deg, duration %6.4f s", Rad2Deg(delta_gamma_sail), duration);
 }
 
 bool ReferenceValues::RunningPlan() {
