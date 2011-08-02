@@ -1,9 +1,0 @@
-This directory contains code for parsing NMEA messages sent by the various
-sensors on the Avalon boat (e.g. GPS, wind sensors, AIS).
-
-NMEA 0183 official page:
-http://www.nmea.org/content/nmea_standards/nmea_083_v_400.asp
-
-Other unofficial and free sources:
-NMEA protocol: http://www.serialmon.com/protocols/nmea0183.html
-GPS NMEA messages: http://www.gpsinformation.org/dale/nmea.htm

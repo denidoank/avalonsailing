@@ -8,7 +8,6 @@
 //
 
 #include <errno.h>
-#include <fcntl.h>
 #include <math.h>
 #include <signal.h>
 #include <stdarg.h>
@@ -21,8 +20,6 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/types.h>
-#include <sys/un.h>
-#include <sys/wait.h>
 #include <syslog.h>
 #include <time.h>
 #include <unistd.h>
@@ -30,6 +27,7 @@
 #include "proto/rudder.h"
 #include "proto/wind.h"
 #include "proto/imu.h"
+#include "proto/helmsman.h"
 
 #include "common/convert.h"
 #include "common/unknown.h"
@@ -50,335 +48,47 @@ const char* argv0;
 int verbose = 0;
 
 void crash(const char* fmt, ...) {
-  va_list ap;
-  char buf[1000];
-  va_start(ap, fmt);
-  vsnprintf(buf, sizeof(buf), fmt, ap);
-  if (debug)
-    fprintf(stderr, "%s:%s%s%s\n", argv0, buf,
-           (errno) ? ": " : "",
-           (errno) ? strerror(errno):"" );
-  else
-    syslog(LOG_CRIT, "%s%s%s\n", buf,
-          (errno) ? ": " : "",
-          (errno) ? strerror(errno):"" );
-  exit(1);
-  va_end(ap);
-  return;
+	va_list ap;
+	char buf[1000];
+	va_start(ap, fmt);
+	vsnprintf(buf, sizeof(buf), fmt, ap);
+	if (debug)
+		fprintf(stderr, "%s:%s%s%s\n", argv0, buf,
+			(errno) ? ": " : "",
+			(errno) ? strerror(errno):"" );
+	else
+		syslog(LOG_CRIT, "%s%s%s\n", buf,
+		       (errno) ? ": " : "",
+		       (errno) ? strerror(errno):"" );
+	exit(1);
+	va_end(ap);
+	return;
 }
+
+static void fault(int i) { crash("fault"); }
 
 void usage(void) {
-  fprintf(stderr,
-         "usage: %s [options]\n"
-         "options:\n"
-         "\t-C /working/dir     (default /var/run)\n"
-         "\t-S /path/to/socket  (default /working/dir/%s\n"
-         "\t-W /path/to/wind    (default /working/dir/wind\n"
-         "\t-I /path/to/imud    (default /working/dir/imud\n"
-         "\t-R /path/to/rudderd (default /working/dir/rudderd\n"
-         "\t-f forward wind/imu/rudderd messages to clients\n"
-         "\t-d debug (don't go daemon, don't syslog)\n"
-         , argv0, argv0);
-  exit(2);
+	fprintf(stderr,
+		"usage: [plug /path/to/bus] %s [options]\n"
+		"options:\n"
+		"\t-d debug (don't go daemon, don't syslog)\n"
+		, argv0);
+	exit(2);
 }
 
-// -----------------------------------------------------------------------------
-//  Linked list of clients.
-// -----------------------------------------------------------------------------
-class Client {
-public:
 
-  // Accept a new connection from sck, and tie to a client.  Returns NULL
-  // if the accept fails.  The new client will be put in the internal list.
-  static Client* New(int sck);
-
-  // Delete all clients who's files have been closed.
-  static void Reap();
-
-  // Tell select about all client's fd's
-  static void SetFds(fd_set* rfds, fd_set* wfds, int* max_fd);
-
-  // Read from and write to all clients whos fd was set.
-  // Returns pointer to the last line of any client that got a complete input.
-  static const char* Handle(fd_set* rfds, fd_set* wfds);
-
-  // Send line to all clients
-  static void Puts(char* line);
-
-private:
-  Client* next_;
-  FILE* in_;       // NULL if accept failed or closed
-  FILE* out_;
-  struct sockaddr_un addr_;
-  socklen_t addrlen_;
-  bool pending_;  // possibly unflushed data in out buffer
-  char line_[1024];  // last read line from in
-
-  // List of all clients, linked on next_
-  static Client* clients;
-
-  Client(Client*, int);
-  void puts(char* line);
-  void flush();
-};
-
-Client* Client::clients = NULL;
-
-Client::Client(Client* next, int sck) :
-  next_(next), in_(NULL), out_(NULL), addrlen_(sizeof addr_), pending_(false)
-{
-  memset(line_, 0, sizeof line_);
-  int fd = accept(sck, (struct sockaddr*)&addr_, &addrlen_);
-  if (fd < 0) {
-    fprintf(stderr, "accept:%s\n", strerror(errno));  // not fatal
-    return;
-  }
-  in_  = fdopen(fd, "r");
-  out_ = fdopen(dup(fd), "w");
-#if 0
-  if (fcntl(fileno(in_),  F_SETFL, O_NONBLOCK) < 0) crash("fcntl(in)");
-  if (fcntl(fileno(out_), F_SETFL, O_NONBLOCK) < 0) crash("fcntl(out)");
-#endif
-  setbuffer(out_, NULL, 64<<10); // 64k out buffer
-}
-
-Client* Client::New(int sck) {
-  Client* cl = new Client(clients, sck);
-  if (!cl->in_) {
-    delete cl;
-    return NULL;
-  }
-  clients = cl;
-  return cl;
-}
-
-void Client::Reap() {
-  Client** prevp = &clients;
-  while (*prevp) {
-    Client* curr = *prevp;
-    if(!curr->in_) {
-      *prevp = curr->next_;
-      delete curr;
-    } else {
-      prevp = &curr->next_;
-    }
-  }
-}
-
-void Client::Puts(char* line) {
-  for (Client* cl = clients; cl; cl = cl->next_) 
-    cl->puts(line);
-}
-
-void Client::puts(char* line) {
-        if (!out_) return;
-        pending_ = true;
-        if (fputs(line, out_) >= 0) return;
-        if (feof(out_)) {
-                pending_ = false;
-                fclose(out_);
-                out_ = NULL;
-        }
-}
-
-void Client::flush() {
-        if (!out_) return;
-        if (fflush(out_) == 0) pending_ = false;
-        if (feof(out_)) {
-                pending_ = false;
-                fclose(out_);
-                out_ = NULL;
-        }
-}
-
-void set_fd(fd_set* s, int* maxfd, FILE* f) {
+static void set_fd(fd_set* s, int* maxfd, FILE* f) {
         int fd = fileno(f);
         FD_SET(fd, s);
         if (*maxfd < fd) *maxfd = fd;
 }
 
-void Client::SetFds(fd_set* rfds, fd_set* wfds, int* max_fd) {
-  for (Client* cl = clients; cl; cl = cl->next_) {
-    if (cl->in_) set_fd(rfds, max_fd, cl->in_);
-    if (cl->out_ && cl->pending_) set_fd(wfds, max_fd, cl->out_);
-  }
-}
-
-// Returns the last line read from any client with input.
-const char* Client::Handle(fd_set* rfds, fd_set* wfds) {
-  const char* line = NULL;
-  for (Client* cl = clients; cl; cl = cl->next_) {
-    if (cl->out_ && FD_ISSET(fileno(cl->out_), wfds)) cl->flush();
-    if (cl->in_  && FD_ISSET(fileno(cl->in_),  rfds))
-      while(fgets(cl->line_, sizeof(cl->line_), cl->in_))  // will read until EAGAIN
-	line = cl->line_;
-  }
-  return line;
-}
-// -----------------------------------------------------------------------------
-
-int svrsockopen(const char* path) {
-  unlink(path);
-  int fd = socket(AF_LOCAL, SOCK_STREAM, 0);
-  if (fd < 0) crash("socket");
-  struct sockaddr_un addr = { AF_LOCAL, 0 };
-  strncpy(addr.sun_path, path, sizeof addr.sun_path );
-  if (bind(fd, (struct sockaddr*) &addr, sizeof addr) < 0) crash("bind(%s)", path);
-  if (listen(fd, 8) < 0) crash("listen(%s)", path);
-  return fd;
-}
-
-int clsockopen(const char* path) {
-  int fd = socket(AF_LOCAL, SOCK_STREAM, 0);
-  if (fd < 0) crash("socket");
-  struct sockaddr_un addr = { AF_LOCAL, 0 };
-  strncpy(addr.sun_path, path, sizeof(addr.sun_path));
-  if (connect(fd, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
-    close(fd);
-    return 0;
-  }
-//  if (fcntl(fd,  F_SETFL, O_NONBLOCK) < 0) crash("fcntl(%s)", path);
-  return fd;
-}
-
-int clsockopen_wait(const char* path) {
-  int s;
-  for (int i = 0; ; i++) {
-    s = clsockopen(path);
-    if (s) break;
-    fprintf(stderr, "Waiting for %s...%c\r", path, "-\\|/"[i++%4]);
-    sleep(1);
-  }
-  fprintf(stderr, "Waiting for %s...bingo!\n", path);
-  return s;
-}
-
-// -----------------------------------------------------------------------------
-//   I/O parsing and printing
-// All return false on garbage
-// -----------------------------------------------------------------------------
-
-const char* skippfx(const char* line, const char* pfx) {
-  int n = strlen(pfx);
-  if (strncmp(line, pfx, n) == 0) line += n;
-  return line;
-}
-
-int sscan_rudd(const char *line, DriveActualValuesRad* s) {
-  s->Reset();
-  line = skippfx(line, "ruddersts: ");
-
-  while (*line) {
-    char key[16];
-    double value;
-
-    int skip = 0;
-    int n = sscanf(line, "%16[a-z_]:%lf %n", key, &value, &skip);
-    if (n < 2) return 0;
-    if (skip == 0) return 0;
-    line += skip;
-
-    if (!strcmp(key, "rudder_l_deg") && !isnan(value))  { s->gamma_rudder_left_rad  = Deg2Rad(value); s->homed_rudder_left  = true; continue; }
-    if (!strcmp(key, "rudder_r_deg") && !isnan(value))  { s->gamma_rudder_right_rad = Deg2Rad(value); s->homed_rudder_right = true; continue; }
-    if (!strcmp(key, "sail_deg")     && !isnan(value))  { s->gamma_sail_rad         = Deg2Rad(value); s->homed_sail         = true; continue; }
-    if (!strcmp(key, "timestamp_ms"))  continue;
-
-    return 0;
-  }
-  return 1;
-}
-
-int sscan_wind(const char *line, WindSensor* s) {
-  s->Reset();
-  line = skippfx(line, "wind: ");
-  while (*line) {
-    char key[16];
-    double value;
-
-    int skip = 0;
-    int n = sscanf(line, "%16[a-z_]:%lf %n", key, &value, &skip);
-    if (n < 2) return 0;
-    if (skip == 0) return 0;
-    line += skip;
-
-    if (!strcmp(key, "angle_deg") && !isnan(value))  { s->alpha_deg = Deg2Rad(value); continue; }
-    if (!strcmp(key, "speed_m_s") && !isnan(value))  { s->mag_kn = MeterPerSecondToKnots(value); continue; }
-    if (!strcmp(key, "timestamp_ms"))  continue;
-    if (!strcmp(key, "valid"))  continue; // TODO
-
-    return 0;
-  }
-  return 1;
-}
-
-int sscan_imud(const char *line, Imu* s) {
-  s->Reset();
-  line = skippfx(line, "imu: ");
-  while (*line) {
-    char key[16];
-    double value;
-
-    int skip = 0;  // note: accelleration has a 2 in the label.
-    int n = sscanf(line, "%16[a-z_2]:%lf %n", key, &value, &skip);
-    if (n < 2) return 0;
-    if (skip == 0) return 0;
-    line += skip;
-
-    if (!strcmp(key, "temp_c"))      { s->temperature_c       = value; continue; }
-
-    if (!strcmp(key, "acc_x_m_s2"))  { s->acceleration.x_m_s2 = value; continue; }
-    if (!strcmp(key, "acc_y_m_s2"))  { s->acceleration.y_m_s2 = value; continue; }
-    if (!strcmp(key, "acc_z_m_s2"))  { s->acceleration.z_m_s2 = value; continue; }
-
-    if (!strcmp(key, "gyr_x_rad_s"))  { s->gyro.omega_x_rad_s = value; continue; }
-    if (!strcmp(key, "gyr_y_rad_s"))  { s->gyro.omega_y_rad_s = value; continue; }
-    if (!strcmp(key, "gyr_z_rad_s"))  { s->gyro.omega_z_rad_s = value; continue; }
-
-    if (!strcmp(key, "mag_x_au"))  { continue; }
-    if (!strcmp(key, "mag_y_au"))  { continue; }
-    if (!strcmp(key, "mag_z_au"))  { continue; }
-
-    if (!strcmp(key, "roll_deg"))   { s->attitude.phi_x_rad = Deg2Rad(value); continue; }
-    if (!strcmp(key, "pitch_deg"))  { s->attitude.phi_y_rad = Deg2Rad(value); continue; }
-    if (!strcmp(key, "yaw_deg"))    { s->attitude.phi_z_rad = Deg2Rad(value); continue; }
-
-    if (!strcmp(key, "lat_deg"))  { s->position.latitude_deg  = value; continue; }
-    if (!strcmp(key, "lng_deg"))  { s->position.longitude_deg = value; continue; }
-    if (!strcmp(key, "alt_m"))    { s->position.altitude_m    = value; continue; }
-
-    if (!strcmp(key, "vel_x_m_s"))  { s->velocity.x_m_s = value; continue; }
-    if (!strcmp(key, "vel_y_m_s"))  { s->velocity.y_m_s = value; continue; }
-    if (!strcmp(key, "vel_z_m_s"))  { s->velocity.z_m_s = value; continue; }
-
-    if (!strcmp(key, "timestamp_ms"))  continue;
-
-    return 0;
-  }
-  return 1;
-}
-
 uint64_t now_ms() {
-  timeval tv;
-  if (gettimeofday(&tv, NULL) < 0) crash("gettimeofday");
-  uint64_t ms1 = tv.tv_sec;  ms1 *= 1000;
-  uint64_t ms2 = tv.tv_usec; ms2 /= 1000;
-  return ms1 + ms2;
-}
-
-int snprint_rudd(char *line, int size, const DriveReferenceValuesRad& s) {
-  
-  return snprintf(line, size,
-                "timestamp_ms:%lld  rudder_l_deg:%.3f rudder_r_deg:%.3f sail_deg:%.3f\n",
-                  now_ms(),
-                  Rad2Deg(s.gamma_rudder_star_left_rad),
-                  Rad2Deg(s.gamma_rudder_star_right_rad),
-                  Rad2Deg(s.gamma_sail_star_rad));
-}
-
-int snprint_helmsmanout(char *line, int size, const SkipperInput& s) {
-    return snprintf(line, size,
-		    "timestamp_ms:%lld lat_deg:%f lng_deg:%f wind_angle_deg:%f wind_speed_m_s:%f\n" ,
-		    now_ms(), s.latitude_deg, s.longitude_deg,  s.angle_true_deg, KnotsToMeterPerSecond(s.mag_true_kn));
+	timeval tv;
+	if (gettimeofday(&tv, NULL) < 0) crash("gettimeofday");
+	uint64_t ms1 = tv.tv_sec;  ms1 *= 1000;
+	uint64_t ms2 = tv.tv_usec; ms2 /= 1000;
+	return ms1 + ms2;
 }
 
 } // namespace
@@ -388,187 +98,142 @@ int snprint_helmsmanout(char *line, int size, const SkipperInput& s) {
 // -----------------------------------------------------------------------------
 int main(int argc, char* argv[]) {
 
-  const char* cwd = "/var/run";
-  const char* path_to_socket = NULL;
-  const char* path_to_imud = "imud";
-  const char* path_to_wind = "wind";
-  const char* path_to_rudderd = "rudderd";
+	int ch;
+	argv0 = strrchr(argv[0], '/');
+	if (argv0) ++argv0; else argv0 = argv[0];
 
-  int ch;
-  int forward = 0;
-  int skipper_update_downsample = 0;
+	while ((ch = getopt(argc, argv, "dhv")) != -1){
+		switch (ch) {
+		case 'd': ++debug; break;
+		case 'v': ++verbose; break;
+		case 'h':
+		default:
+			usage();
+		}
+	}
 
-  argv0 = strrchr(argv[0], '/');
-  if (argv0) ++argv0; else argv0 = argv[0];
+	argv += optind;
+	argc -= optind;
 
-  while ((ch = getopt(argc, argv, "C:I:R:S:W:dfhv")) != -1){
-      switch (ch) {
-      case 'C': cwd = optarg; break;
-      case 'S': path_to_socket  = optarg; break;
-      case 'I': path_to_imud    = optarg; break;
-      case 'W': path_to_wind    = optarg; break;
-      case 'R': path_to_rudderd = optarg; break;
-      case 'd': ++debug; break;
-      case 'f': ++forward; break;
-      case 'v': ++verbose; break;
-      case 'h':
-      default:
-         usage();
-      }
-  }
+	if (argc != 0) usage();
 
-  if (argc != optind) usage();
+	setlinebuf(stdout);
 
-  if (!debug) openlog(argv0, LOG_PERROR, LOG_DAEMON);
+	if (!debug) openlog(argv0, LOG_PERROR, LOG_LOCAL0);
 
-  if (strcmp(cwd, ".") && chdir(cwd) < 0) crash("chdir(%s)", cwd);
-  cwd = getcwd(NULL, 0);
+	if (signal(SIGBUS, fault) == SIG_ERR)  crash("signal(SIGBUS)");
+	if (signal(SIGSEGV, fault) == SIG_ERR)  crash("signal(SIGSEGV)");
+	if (signal(SIGPIPE, SIG_IGN) == SIG_ERR) crash("signal");
 
-  // Open client sockets.  Wait until they're all there so you can start up in any order.
-  FILE* imud = fdopen(clsockopen_wait(path_to_imud), "r");
-  FILE* wind = fdopen(clsockopen_wait(path_to_wind), "r");
-  FILE* rudd = fdopen(clsockopen_wait(path_to_rudderd), "r+");
-  setlinebuf(rudd);
-  bool rudd_cmd_pending = false;
+	if (debug) {
+		fprintf(stderr, "Helmsman started\n");
+	} else {
+		daemon(0,0);
+		
+		char* path_to_pidfile = NULL;
+		asprintf(&path_to_pidfile, "/var/run/%s.pid", argv0);
+		FILE* pidfile = fopen(path_to_pidfile, "w");
+		if(!pidfile) crash("writing pidfile (%s)", path_to_pidfile);
+		fprintf(pidfile, "%d\n", getpid());
+		fclose(pidfile);
+		free(path_to_pidfile);
 
-  // Set up server socket.
-  if (!path_to_socket) path_to_socket = argv0;
-  int sck = svrsockopen(path_to_socket);
+		syslog(LOG_INFO, "Helmsman started");
+	}
 
-  // clients that hang up should not make us crash.
-  if (signal(SIGPIPE, SIG_IGN) == SIG_ERR) crash("signal");
+	ControllerInput ctrl_in;
 
-  if (debug)
-    fprintf(stderr, "created socket:%s\n", path_to_socket);
-  else
-    syslog(LOG_INFO, "Helmsman version %s working dir %s listening on %s", version, cwd, path_to_socket);
+	int nn = 0;
 
-  // Go daemon and write pidfile.
-  if (!debug) {
-    daemon(0,0);
+	struct WindProto wind  = INIT_WINDPROTO;
+	struct RudderProto sts = INIT_RUDDERPROTO;
+	struct IMUProto imu    = INIT_IMUPROTO;
+	struct HelmsmanCtlProto ctl = INIT_HELMSMANCTLPROTO;
 
-    char* path_to_pidfile = NULL;
-    asprintf(&path_to_pidfile, "%s.pid", path_to_socket);
-    FILE* pidfile = fopen(path_to_pidfile, "w");
-    if(!pidfile) crash("writing pidfile");
-    fprintf(pidfile, "%d\n", getpid());
-    fclose(pidfile);
-    free(path_to_pidfile);
-  }
+	while (!feof(stdin)) {
+			
+		if (ferror(stdin)) clearerr(stdin);
 
-  ControllerInput ctrl_in;
+		struct timespec timeout = { 0, 1E8 }; // wake up at least 10/second
+                fd_set rfds;
+		int max_fd = -1;
+                FD_ZERO(&rfds);
+		set_fd(&rfds, &max_fd, stdin);
 
-  // Main loop
-  for (;;) {
-    // wake up every kSamplingPeriod second
-    timespec timeout = { 0, 1E8 };  //TODO
-    fd_set rfds;
-    fd_set wfds;
-    FD_ZERO(&rfds);
-    FD_ZERO(&wfds);
+                sigset_t empty_mask;
+                sigemptyset(&empty_mask);
+                int r = pselect(max_fd + 1, &rfds,  NULL, NULL, &timeout, &empty_mask);
+                if (r == -1 && errno != EINTR) crash("pselect");
 
-    FD_SET(sck, &rfds);
-    int max_fd = sck;
+		if (debug>2) fprintf(stderr, "Woke up %d\n", r);
 
-    Client::SetFds(&rfds, &wfds, &max_fd);
+		if (FD_ISSET(fileno(stdin), &rfds)) {
+			char line[1024];
+			if (!fgets(line, sizeof line, stdin))
+				crash("Error reading stdin");
 
-    set_fd(&rfds, &max_fd, wind);
-    set_fd(&rfds, &max_fd, imud);
-    set_fd(&rfds, &max_fd, rudd);
+			if (sscanf(line, IFMT_WINDPROTO(&wind, &nn)) > 0) {
+				ctrl_in.wind.Reset();
+				ctrl_in.wind.alpha_deg = wind.angle_deg;
+				ctrl_in.wind.mag_kn = MeterPerSecondToKnots(wind.speed_m_s);
 
-    if (rudd_cmd_pending) set_fd(&wfds, &max_fd, rudd);
+			} else if (sscanf(line, IFMT_IMUPROTO(&imu, &nn)) > 0) {
+				ctrl_in.imu.Reset();
+				ctrl_in.imu.temperature_c = imu.temp_c;
 
-    sigset_t empty_mask;
-    sigemptyset(&empty_mask);
-    int r = pselect(max_fd + 1, &rfds, &wfds, NULL, &timeout, &empty_mask);
-    if (r == -1 && errno != EINTR) crash("pselect");
+				ctrl_in.imu.acceleration.x_m_s2 = imu.acc_x_m_s2;
+				ctrl_in.imu.acceleration.y_m_s2 = imu.acc_y_m_s2;
+				ctrl_in.imu.acceleration.z_m_s2 = imu.acc_z_m_s2;
 
-    if (FD_ISSET(sck, &rfds)) {
-      fprintf(stderr, "new client\n");
-      Client::New(sck);
-    }
+				ctrl_in.imu.gyro.omega_x_rad_s  = imu.gyr_x_rad_s;
+				ctrl_in.imu.gyro.omega_y_rad_s  = imu.gyr_y_rad_s;
+				ctrl_in.imu.gyro.omega_z_rad_s  = imu.gyr_z_rad_s;
 
-    if (FD_ISSET(fileno(rudd), &wfds)) {
-      fflush(rudd);
-      rudd_cmd_pending = false;
-    }
+				ctrl_in.imu.attitude.phi_x_rad = Deg2Rad(imu.roll_deg);
+				ctrl_in.imu.attitude.phi_y_rad = Deg2Rad(imu.pitch_deg);
+				ctrl_in.imu.attitude.phi_z_rad = Deg2Rad(imu.yaw_deg);
 
-    if (FD_ISSET(fileno(rudd), &rfds)) {
-      char line[1024];
-      while (fgets(line, sizeof line, rudd)) {
-       int n = sscan_rudd(line, &ctrl_in.drives);
-       if (!n && debug) fprintf(stderr, "Ignoring garbage from rudderd: %s\n", line);
-      }
-      if (feof(rudd) || (ferror(rudd) && errno!= EAGAIN)) crash("reading from rudderd");
-      if (forward) Client::Puts(line);
-    }
+				ctrl_in.imu.position.latitude_deg = imu.lat_deg;
+				ctrl_in.imu.position.longitude_deg = imu.lng_deg;
+				ctrl_in.imu.position.altitude_m = imu.alt_m;
 
-    if (FD_ISSET(fileno(wind), &rfds)) {
-      char line[1024];
-      while (fgets(line, sizeof line, wind)) {
-       int n = sscan_wind(line, &ctrl_in.wind);
-       if (!n && debug) fprintf(stderr, "Ignoring garbage from wind: %s\n", line);
-      }
-      if (feof(wind) || (ferror(wind) && errno!= EAGAIN)) crash("reading from wind");
-      if (forward) Client::Puts(line);
-    }
+				ctrl_in.imu.velocity.x_m_s = imu.vel_x_m_s;
+				ctrl_in.imu.velocity.y_m_s = imu.vel_y_m_s;
+				ctrl_in.imu.velocity.z_m_s = imu.vel_z_m_s;
 
-    if (FD_ISSET(fileno(imud), &rfds)) {
-      char line[1024];
-      while (fgets(line, sizeof line, imud)) {
-       int n = sscan_imud(line, &ctrl_in.imu);
-       if (!n && debug) fprintf(stderr, "Ignoring garbage from imud: %s\n", line);
-      }
-      if (feof(imud) || (ferror(imud) && errno!= EAGAIN)) crash("reading from imud");
-      if (forward) Client::Puts(line);
-    }
+				ctrl_in.imu.speed_m_s = sqrt(imu.vel_x_m_s * imu.vel_x_m_s + imu.vel_y_m_s * imu.vel_y_m_s);
+				
+			} else if (sscanf(line, IFMT_RUDDERPROTO_STS(&sts, &nn)) > 0) {
+				ctrl_in.drives.gamma_rudder_left_rad  = Deg2Rad(sts.rudder_l_deg);
+				ctrl_in.drives.gamma_rudder_right_rad = Deg2Rad(sts.rudder_r_deg);
+				ctrl_in.drives.gamma_sail_rad         = Deg2Rad(sts.sail_deg);
+				ctrl_in.drives.homed_rudder_left = true;
+				ctrl_in.drives.homed_rudder_right = true;
+				ctrl_in.drives.homed_sail = true;
 
-    { // see if anyone sent us a command
-      const char* line = Client::Handle(&rfds, &wfds);
-      double alpha_star_deg = 226;
-      uint64_t timestamp = 0;
-      if (line) {
-        // Short SMS commands: b, d, h37 or just 37
-        if (strstr(line, "b")) ShipControl::Brake();
-        else if(strstr(line, "d")) ShipControl::Docking();
-        else if(sscanf(line, "h%lf", &alpha_star_deg) == 1) {
-          ctrl_in.alpha_star_rad = Deg2Rad(alpha_star_deg);
-          ShipControl::Normal();
-        } else if(sscanf(line, "%lf", &alpha_star_deg) == 1) {  // nice for manual control
-          ctrl_in.alpha_star_rad = Deg2Rad(alpha_star_deg);
-          ShipControl::Normal();
-        } else if(sscanf(line, "timestamp_ms:%lld alpha_star_deg:%lf",
-                  &timestamp, &alpha_star_deg) == 1) {
-          ctrl_in.alpha_star_rad = Deg2Rad(alpha_star_deg);
-        } else {
-          ctrl_in.alpha_star_rad = 0;
-        }
-      }
-    }
+			} else if (sscanf(line, IFMT_HELMSMANCTLPROTO(&ctl, &nn)) > 0) {
+				if (ctl.brake) ShipControl::Brake();
+				else if (ctl.dock)  ShipControl::Docking();
+				else {
+					ctrl_in.alpha_star_rad = Deg2Rad(ctl.alpha_star_deg);
+					ShipControl::Normal();
+				}
+			}
+		}
 
-    ControllerOutput ctrl_out;
-    if (ShipControl::Run(ctrl_in, &ctrl_out)) {    // send rudder command
-      char rudcmd[1024];
-      int n = snprint_rudd(rudcmd, sizeof rudcmd, ctrl_out.drives_reference);
-      if (n <= 0 || n > sizeof rudcmd) crash("printing rudder command line");
-      if (fputs(rudcmd, rudd) == EOF) clearerr(rudd);
-      rudd_cmd_pending = true;
-      if (forward) Client::Puts(rudcmd);       // nice for debugging
-    }
+		ControllerOutput ctrl_out;
+		if (ShipControl::Run(ctrl_in, &ctrl_out)) {
+			struct RudderProto ctl = {
+				now_ms(), 
+				Rad2Deg(ctrl_out.drives_reference.gamma_rudder_star_left_rad),
+				Rad2Deg(ctrl_out.drives_reference.gamma_rudder_star_right_rad),
+				Rad2Deg(ctrl_out.drives_reference.gamma_sail_star_rad) };
+			printf(OFMT_RUDDERPROTO_CTL(ctl, &nn));
+		}
 
-    // Write the helmsman output for the skipper, which should be happy with an
-    // occasional update.
-    const int skip = static_cast<int>(kSkipperUpdatePeriod / kSamplingPeriod);
-    if (ctrl_out.skipper_input.angle_true_deg != kUnknown && !(skipper_update_downsample++ % skip)) {
-      char line[1024];
-      int n = snprint_helmsmanout(line, sizeof line, ctrl_out.skipper_input);
-      if (n <= 0 || n > sizeof line) crash("printing state line");
-      Client::Puts(line);
-    }
+	}  // for ever
 
-  }  // for ever
+	crash("Main loop exit");
 
-  crash("Main loop exit");
-
-  return 0;
+	return 0;
 }

@@ -47,6 +47,8 @@ crash(const char* fmt, ...)
 	return;
 }
 
+static void fault() { crash("fault"); }
+
 static void
 usage(void)
 {
@@ -57,7 +59,7 @@ usage(void)
 		"\t-d debug            (don't syslog)\n"
 		"\t-m output_mode      default 0x....\n"
 		"\t-s output_settings  default 0x....\n"
-		, argv0, argv0);
+		, argv0);
 	exit(2);
 }
 
@@ -295,6 +297,9 @@ int main(int argc, char* argv[]) {
 
 	if (argc != 1) usage();
 
+	if (signal(SIGBUS, fault) == SIG_ERR)  crash("signal(SIGBUS)");
+	if (signal(SIGSEGV, fault) == SIG_ERR)  crash("signal(SIGSEGV)");
+
 	if (settings & IMU_OS_FF_MASK) crash("Can't decode non ieee floats");;
 
 	setlinebuf(stdout);
@@ -387,11 +392,8 @@ int main(int argc, char* argv[]) {
 			continue;
 		}
 
-		char line[1024];
-		int n = 0;
-		snprintf(line, sizeof line, OFMT_IMUPROTO(vars, &n));
-		if (n > sizeof line) crash("imu proto bufer too small");
-		puts(line);
+		int nn = 0;
+		printf(OFMT_IMUPROTO(vars, &nn));
 	}
 
 	crash("Terminating.");

@@ -30,6 +30,8 @@
 #include "eposclient.h"
 #include "rudder.h"
 
+#include "../../proto/rudder.h"
+
 struct MotorParams motor_params[] = {
         { "LEFT",  0x09011145, 100.0, -80.0, 0, -288000 },
         { "RIGHT", 0x09010537, -90.0,  90.0, 0,  288000 },
@@ -42,7 +44,6 @@ static const char* version = "$Id: $";
 static const char* argv0;
 static int verbose = 0;
 static int debug = 0;
-
 
 static void
 crash(const char* fmt, ...)
@@ -64,44 +65,15 @@ crash(const char* fmt, ...)
 	return;
 }
 
+static void fault(int i) { crash("fault"); }
+
 static void
 usage(void)
 {
         fprintf(stderr,
-                "usage: %s /path/to/tty_or_socket\n"
+                "usage: %s /path/to/epos\n"
                 , argv0);
         exit(1);
-}
-
-static const char* varnames[] = {
-	"rudder_l_deg",
-	"rudder_r_deg",
-	"sail_deg",
-};
-
-static int
-parseline(char* line, double* angles_deg)
-{
-        while (*line) {
-                char key[16];
-                double value;
-                int skip = 0;
-                int n = sscanf(line, "%16[a-z_]:%lf %n", key, &value, &skip);
-                if (n < 2) return 0;
-                if (skip == 0) return 0;
-                line += skip;
-
-		if (!strcmp(key, varnames[LEFT]))  { angles_deg[LEFT]  = value; continue; }
-		if (!strcmp(key, varnames[RIGHT])) { angles_deg[RIGHT] = value; continue; }
-		if (!strcmp(key, varnames[SAIL]))  { angles_deg[SAIL]  = value; continue; }
-#if 1           // nice for manual control, disable in prod
-		if (!strcmp(key, "rudd"))  { angles_deg[LEFT] = angles_deg[RIGHT] = value; continue; }
-		if (!strcmp(key, "sail"))  { angles_deg[SAIL] = value; continue; }
-#endif
-                if (!strcmp(key, "timestamp_ms"))  continue;
-                return 0;
-        }
-        return 1;
 }
 
 static void set_fd(fd_set* s, int* maxfd, FILE* f) {
@@ -110,76 +82,28 @@ static void set_fd(fd_set* s, int* maxfd, FILE* f) {
         if (*maxfd < fd) *maxfd = fd;
 }
 
-struct Client {
-        struct Client* next;
-        FILE* in;
-        FILE* out;
-        struct sockaddr_un addr;
-        int addrlen;
-        int pending;  // possibly unflushed data in out buffer
-} *clients = NULL;
-
-static struct Client*
-new_client(int sck)
+static int64_t now_ms() 
 {
-        struct Client* cl = malloc(sizeof *cl);
-        bzero(cl, sizeof(*cl));
-        cl->next = clients;
-        cl->addrlen = sizeof(cl->addr);
-        int fd = accept(sck, (struct sockaddr*)&cl->addr, &cl->addrlen);
-        if (fd < 0) {
-		if (debug) fprintf(stderr, "accept:%s\n", strerror(errno));
-                free(cl);
-                return NULL;
-        }
-        cl->in  = fdopen(fd, "r");
-        cl->out = fdopen(dup(fd), "w");
-      if (fcntl(fileno(cl->in),  F_SETFL, O_NONBLOCK) < 0) crash("fcntl(in)");
-//      if (fcntl(fileno(cl->out), F_SETFL, O_NONBLOCK) < 0) crash("fcntl(out)");
-        setlinebuf(cl->out);
-        cl->pending = 0;
-        clients = cl;
-        if (debug) fprintf(stderr, "new client %d\n", fd);
-        return cl;
-}
+        struct timeval tv;
+        if (gettimeofday(&tv, NULL) < 0) crash("no working clock");
 
-// write line to client.
-static void client_puts(struct Client* client, char* line) {
-        if (!client->out) return;
-        client->pending = 1;
-        if (fputs(line, client->out) >= 0) return;
-        if (feof(client->out)) {
-                client->pending = 0;
-                fclose(client->out);
-                client->out = NULL;
-        }
-}
-
-static void client_flush(struct Client* client) {
-        if (!client->out) return;
-        if (fflush(client->out) == 0)
-                client->pending = 0;
-        if (feof(client->out)) {
-                client->pending = 0;
-                fclose(client->out);
-                client->out = 0;
-        }
+        int64_t ms1 = tv.tv_sec;  ms1 *= 1000;
+        int64_t ms2 = tv.tv_usec; ms2 /= 1000;
+        return ms1 + ms2;
 }
 
 int main(int argc, char* argv[]) {
 
 	int ch, i;
 	char* path_to_eposcom = NULL;
-	char* path_to_socket = NULL;
 
         argv0 = strrchr(argv[0], '/');
         if (argv0) ++argv0; else argv0 = argv[0];
 
-        while ((ch = getopt(argc, argv, "dE:hs:v")) != -1){
+        while ((ch = getopt(argc, argv, "dE:hv")) != -1){
                 switch (ch) {
                 case 'd': ++debug; break;
 		case 'E': path_to_eposcom = optarg; break;
-		case 's': path_to_socket = optarg; break;
                 case 'v': ++verbose; break;
                 case 'h':
                 default:
@@ -193,33 +117,18 @@ int main(int argc, char* argv[]) {
 		asprintf(&path_to_eposcom, "%.*seposcom", c - argv[0], argv[0]);
 	}
 
-	if (!path_to_socket) {
-		char* c = strrchr(argv[0], '/');
-		c = c ? c+1 : argv[0];
-		asprintf(&path_to_socket, "/var/run/%s", c);
-	}
-
 	argv += optind;
 	argc -= optind;
 
 	if (argc != 1) usage();
 
+	setlinebuf(stdout);
+
 	if (!debug) openlog(argv0, LOG_PERROR, LOG_DAEMON);
 
-	if (signal(SIGPIPE, SIG_IGN) == SIG_ERR) crash("signal");
-
-        // Set up socket
-	unlink(path_to_socket);
-
-	int sck = socket(AF_LOCAL, SOCK_STREAM, 0);
-	if (sck < 0) crash("socket");
-	struct sockaddr_un srvaddr = { AF_LOCAL, 0 };
-	strncpy(srvaddr.sun_path, path_to_socket, sizeof(srvaddr.sun_path));
-	if (bind(sck, (struct sockaddr*) &srvaddr, sizeof(srvaddr)) < 0)
-                crash("bind");
-	if (listen(sck, 8) < 0) crash("listen");
-
-        if (debug) fprintf(stderr, "created socket:%s\n", path_to_socket);
+	if (signal(SIGBUS, fault) == SIG_ERR)  crash("signal(SIGBUS)");
+	if (signal(SIGSEGV, fault) == SIG_ERR)  crash("signal(SIGSEGV)");
+	if (signal(SIGPIPE, SIG_IGN) == SIG_ERR) crash("signal(SIGPIPE)");
 
 	Bus* bus = NULL;
 	if (!strncmp("/dev/tty", argv[0], 8)) {
@@ -257,10 +166,10 @@ int main(int argc, char* argv[]) {
 
 	// Go daemon and write pidfile.
 	if (!debug) {
-		daemon(0,0);
+		daemon(0,1);
 
 		char* path_to_pidfile = NULL;
-		asprintf(&path_to_pidfile, "%s.pid", path_to_socket);
+		asprintf(&path_to_pidfile, "/var/run/%s.pid", argv0);
 		FILE* pidfile = fopen(path_to_pidfile, "w");
 		if(!pidfile) crash("writing pidfile");
 		fprintf(pidfile, "%d\n", getpid());
@@ -272,11 +181,13 @@ int main(int argc, char* argv[]) {
 		fprintf(stderr, "Started.\n");
 	}
 
-	double target_angles_deg[3] = { NAN, NAN, NAN };
-	double actual_angles_deg[3] = { NAN, NAN, NAN };
+	struct RudderProto target = INIT_RUDDERPROTO;
+	struct RudderProto actual = INIT_RUDDERPROTO;
+	actual.timestamp_ms = now_ms();
+
 	int dev_state[3] = { DEFUNCT, DEFUNCT, DEFUNCT };
 
-	for (;;) {
+	while  (!feof(stdin)) {
 
                 struct timespec timeout = { 1, 0 }; // wake up at least 1/second
                 fd_set rfds;
@@ -285,65 +196,31 @@ int main(int argc, char* argv[]) {
                 FD_ZERO(&rfds);
                 FD_ZERO(&wfds);
 
-		FD_SET(sck, &rfds);
-		max_fd = sck;
-
 		if (bus_set_fds(bus, &rfds, &wfds, &max_fd))
                         crash("Epos bus closed.\n");
 
-                struct Client* cl;
-                for (cl = clients; cl; cl = cl->next)
-                        if (cl->out && cl->pending)
-                                set_fd(&wfds, &max_fd, cl->out);
-
-                for (cl = clients; cl; cl = cl->next)
-                        if (cl->in)
-                                set_fd(&rfds, &max_fd, cl->in);
+		set_fd(&rfds, &max_fd, stdin);
 
                 sigset_t empty_mask;
                 sigemptyset(&empty_mask);
                 int r = pselect(max_fd + 1, &rfds, &wfds, NULL, &timeout, &empty_mask);
                 if (r == -1 && errno != EINTR) crash("pselect");
 
-		if (debug) fprintf(stderr, "Woke up %d\n", r);
+		if (debug>2) fprintf(stderr, "Woke up %d\n", r);
 
-                if (FD_ISSET(sck, &rfds)) new_client(sck);
-		if (debug) fprintf(stderr, "Flushing clients\n", r);
+		if (FD_ISSET(fileno(stdin), &rfds)) {
+			char line[1024];
+			if (fgets(line, sizeof line, stdin)) {
+				int nn = 0;
+				struct RudderProto newtarget = INIT_RUDDERPROTO;
+				int n = sscanf(line, IFMT_RUDDERPROTO_CTL(&newtarget, &nn));
+				if (n == 4)
+					memmove(&target, &newtarget, sizeof target);
+			}
+			if (ferror(stdin)) clearerr(stdin);
+		}
 
-
-                for (cl = clients; cl; cl = cl->next)
-                        if (cl->out && FD_ISSET(fileno(cl->out), &wfds))
-                                client_flush(cl);
-
-		if (debug) fprintf(stderr, "Reading clients\n", r);
-                for (cl = clients; cl; cl = cl->next) {
-                        if (!cl->in) continue;
-                        if (cl->in && FD_ISSET(fileno(cl->in), &rfds)) {
-                                char line[1024];
-                                while(fgets(line, sizeof line, cl->in)) {
-                                        parseline(line, target_angles_deg);
-                                }
-                        }
-                        if (feof(cl->in)) {
-                                fclose(cl->in);
-                                if (cl->out) fclose(cl->out);
-                                cl->in = NULL;
-                                cl->out = NULL;
-                        }
-                }
-		if (debug) fprintf(stderr, "Reaping clients\n", r);
-                struct Client** prevp = &clients;
-                while (*prevp) {
-                        struct Client* curr = *prevp;
-                        if(!curr->in) {
-                                *prevp = curr->next;
-                                free(curr);
-                        } else {
-                                prevp = &curr->next;
-                        }
-                }
-
-		if (debug) fprintf(stderr, "Handling bus\n", r);
+		if (debug>2) fprintf(stderr, "Handling bus\n", r);
 
  		bus_flush(bus, &wfds);
                 bus_receive(bus, &rfds);
@@ -352,40 +229,36 @@ int main(int argc, char* argv[]) {
 		errno = 0;
                 int changed = 0;
 
-		for (i = LEFT; i <= RIGHT; ++i)
-			if (dev[i]) {
-                                double before = actual_angles_deg[i];
-				dev_state[i] = rudder_control(dev[i], &motor_params[i],
-							      target_angles_deg[i],
-							      &actual_angles_deg[i]);
-                                if (before != actual_angles_deg[i]) ++changed;
-                        }
+		if (dev[LEFT]) {
+			double before = actual.rudder_l_deg;
+			dev_state[LEFT] = rudder_control(dev[LEFT], &motor_params[LEFT], target.rudder_l_deg, &actual.rudder_l_deg);
+			if (before != actual.rudder_l_deg) ++changed;
+		}
+
+		if (dev[RIGHT]) {
+			double before = actual.rudder_r_deg;
+			dev_state[RIGHT] = rudder_control(dev[RIGHT], &motor_params[RIGHT], target.rudder_r_deg, &actual.rudder_r_deg);
+			if (before != actual.rudder_r_deg) ++changed;
+		}
 
 		if (dev[SAIL] && dev[BMMH]) {
-                        double before = actual_angles_deg[SAIL];
+                        double before = actual.sail_deg;
 			dev_state[SAIL] = sail_control(dev[SAIL], dev[BMMH],
 						       &motor_params[SAIL], &motor_params[BMMH],
-						       target_angles_deg[SAIL],
-                                                       &actual_angles_deg[SAIL]);
-                        if (before != actual_angles_deg[SAIL]) ++changed;
+						       target.sail_deg, &actual.sail_deg);
+                        if (before != actual.sail_deg) ++changed;
                 }
 
-                if (changed || (r == 0)) {
-                        char line[1024];
-                        char* l = line;
-                        for (i = LEFT; i <= SAIL; ++i)
-                                if (!isnan(actual_angles_deg[i]))
-                                        l += snprintf(l, sizeof line - (l - line), "%s:%.2f ",
-                                                      varnames[i], actual_angles_deg[i]);
-                        if (l > line) {
-                                l += snprintf(l, sizeof line - (l - line), "\n");
-                                for (cl = clients; cl; cl = cl->next)
-                                        if (cl->out)
-                                                client_puts(cl, line);
-                        }
-                }
+		int64_t now = now_ms();
 
-		// TODO if anything defunct or != TARGETREACHED for too long, tell the system manager
+		if (now > actual.timestamp_ms + 1000) ++changed;
+		if (now < actual.timestamp_ms + 100) changed = 0;  // rate limit
+
+                if (changed) {
+			actual.timestamp_ms = now;
+			int nn = 0;
+			printf(OFMT_RUDDERPROTO_STS(actual, &nn));
+                }
 
 	}  // main loop
 

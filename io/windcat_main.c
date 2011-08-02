@@ -22,6 +22,7 @@
 #include <syslog.h>
 #include <termios.h>
 #include <time.h>
+#include <signal.h>
 #include <sys/time.h>
 #include <unistd.h>
 
@@ -54,6 +55,8 @@ crash(const char* fmt, ...)
 	va_end(ap);
 	return;
 }
+
+static void fault() { crash("fault"); }
 
 static void
 usage(void)
@@ -164,6 +167,9 @@ int main(int argc, char* argv[]) {
 	argc -= optind;
 
 	if (argc != 1) usage();
+	
+	if (signal(SIGBUS, fault) == SIG_ERR)  crash("signal(SIGBUS)");
+	if (signal(SIGSEGV, fault) == SIG_ERR)  crash("signal(SIGSEGV)");
 
 	setlinebuf(stdout);
 
@@ -204,7 +210,6 @@ int main(int argc, char* argv[]) {
 	FILE* nmea = fdopen(port, "r");
 
 	int garbage = 0;
-	char out[1024];
 
 	while(!feof(nmea)) {
 		if (ferror(nmea)) {
@@ -234,10 +239,8 @@ int main(int argc, char* argv[]) {
 				if (debug) fprintf(stderr, "Invalid WIMWV sentence: '%s'\n", line);
 				continue;
 			}
-			int n = 0;
-			snprintf(out, sizeof out, OFMT_WINDPROTO(vars, &n));
-			if (n > sizeof out) crash("wind proto bufer too small");
-			puts(out);
+			int nn;
+			printf(OFMT_WINDPROTO(vars, &nn));
 			continue;
 		}
 

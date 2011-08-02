@@ -8,6 +8,7 @@
 
 #include <errno.h>
 #include <getopt.h>
+#include <signal.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -47,7 +48,7 @@ usage(void)
 		"\t-i input only\n"
 		"\t-o output only\n"
 		"\t-d debug (don't go daemon, don't syslog)\n"
-		, argv0, argv0);
+		, argv0);
 	exit(2);
 }
 
