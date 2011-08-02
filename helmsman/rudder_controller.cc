@@ -16,10 +16,10 @@
 extern int debug;
 
 // Clamping of waterflow angle. For small speeds the waterflow angle approaches
-// infinity, so we have to limit it. 12 degrees is an initial guess based on the
+// infinity, so we have to limit it. 20 degrees is an improved guess based on the
 // length from COG to rudder and an estimated turning circle diameter of
-// the boat of 20 m.
-const double kLimitGamma0 = Deg2Rad(12);
+// the boat of 20m plus some simulated test results.
+const double kLimitGamma0 = Deg2Rad(20);
 
 RudderController::RudderController() : limited_(0), eps_integral_phi_(0) {}
 

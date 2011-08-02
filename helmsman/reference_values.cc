@@ -68,7 +68,6 @@ void ReferenceValues::NewPlan(double phi_z_1,
   acc_max = std::max(acc_max, 0.1);  // lower limit to limit the duration
   // Minimum time for the turn due to acceleration limit.
   double duration_acc = sqrt(fabs(delta_phi) / acc_max * 36.0 / 5);
-
   // * It takes at least kDurationNormal seconds.
   double duration = std::max(std::max(kDurationNormal, duration_sail),
                              duration_acc);
@@ -86,9 +85,8 @@ void ReferenceValues::NewPlan(double phi_z_1,
   if (debug) {
     fprintf(stderr, "New Plan: delta_phi: %6.4f deg\n", Rad2Deg(delta_phi));
     fprintf(stderr, "delta_gamma_sail: %6.4f deg, duration %6.4f s\n", Rad2Deg(delta_gamma_sail), duration);
+    fprintf(stderr, "duration_sail: %6.4f s, duration_acc: %6.4f s\n", duration_sail, duration_acc);
   }
-  printf("New Plan: delta_phi: %6.4f deg", Rad2Deg(delta_phi));
-  printf("delta_gamma_sail: %6.4f deg, duration %6.4f s", Rad2Deg(delta_gamma_sail), duration);
 }
 
 bool ReferenceValues::RunningPlan() {

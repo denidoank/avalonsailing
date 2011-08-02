@@ -72,7 +72,7 @@ void ShipControl::StateMachine(const ControllerInput& in) {
     static const char* kWinds[] = { "CALM", "NORMAL", "STORM" };
 
     if (debug)
-      fprintf(stderr, "Initial controller %sdone wind strenght:%s wind valid:%s alpha_star:%d deg\n",
+      fprintf(stderr, "Initial controller %sdone wind strenght:%s wind valid:%s alpha_star:%6.4f deg\n",
 	      controller_->Done() ? "" : "NOT ",
 	      kWinds[wind_strength_],
 	      filter_block_->ValidTrueWind() ? "YES" : "NO",
