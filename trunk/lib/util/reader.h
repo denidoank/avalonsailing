@@ -19,8 +19,8 @@ class Reader {
   };
 
   // Dummy constructor
-  Reader(): read_pos_(0), insert_pos_(0), fd_(-1),
-            own_fd_(false), eof_(false) {}
+  Reader(): fd_(-1), own_fd_(false), eof_(false),
+      read_pos_(0), insert_pos_(0) {}
 
   // Initialize with an already existing, writable file descriptor
   bool Init(int fd, bool own = true);

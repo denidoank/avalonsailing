@@ -2,6 +2,7 @@
 #define PROTO_IMU_H
 
 #include <math.h>
+#include <stdint.h>
 
 struct IMUProto {
 	int64_t timestamp_ms;

@@ -2,6 +2,7 @@
 #define PROTO_WIND_H
 
 #include <math.h>
+#include <stdint.h>
 
 struct WindProto {
 	uint64_t timestamp_ms;
