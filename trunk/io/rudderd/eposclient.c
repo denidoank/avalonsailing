@@ -263,10 +263,12 @@ void bus_clocktick(Bus* bus) {
 	Register* reg;
 	long t = now_ms();
 	for (dev = bus->devices; dev; dev = dev->next)
-		for (reg = dev->registers; reg; reg = reg->next)
-			if (reg->state == PENDING &&
-			    (t - reg->issued_ms > TIMEOUT_MS))
-					reg->state = INVALID;
+		for (reg = dev->registers; reg; reg = reg->next) {
+			if (reg->state != PENDING) continue;
+			// guard against clock jumps
+			if ((t < reg->issued_ms) || (t - reg->issued_ms > TIMEOUT_MS))
+				reg->state = INVALID;
+		}
 }
 
 
