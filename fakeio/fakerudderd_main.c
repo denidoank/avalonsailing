@@ -109,22 +109,7 @@ int main(int argc, char* argv[]) {
 	if (signal(SIGSEGV, fault) == SIG_ERR)  crash("signal(SIGSEGV)");
 	if (signal(SIGPIPE, SIG_IGN) == SIG_ERR) crash("signal(SIGPIPE)");
 
-	// Go daemon and write pidfile.
-	if (!debug) {
-		daemon(0,1);
-
-		char* path_to_pidfile = NULL;
-		asprintf(&path_to_pidfile, "/var/run/%s.pid", argv0);
-		FILE* pidfile = fopen(path_to_pidfile, "w");
-		if(!pidfile) crash("writing pidfile");
-		fprintf(pidfile, "%d\n", getpid());
-		fclose(pidfile);
-		free(path_to_pidfile);
-
-		syslog(LOG_INFO, "Started.");
-	} else {
-		fprintf(stderr, "Started.\n");
-	}
+	fprintf(stderr, "Started.\n");
 
 	int64_t last = now_ms();
 	struct RudderProto target = INIT_RUDDERPROTO;
