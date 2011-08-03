@@ -70,6 +70,8 @@ epos_waitobject(int fd, int timeout_ms,
                         return 0;
                 }
 
+		// Guard against clock jumps
+                if (now > now_ms()) return EPOS_ERR_TIMEOUT;
                 if (deadline < now_ms()) return EPOS_ERR_TIMEOUT;
                 usleep(delay2_us);
                 delay1_us <<=1;

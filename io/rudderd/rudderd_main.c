@@ -253,6 +253,7 @@ int main(int argc, char* argv[]) {
 
 		if (now > actual.timestamp_ms + 1000) ++changed;
 		if (now < actual.timestamp_ms + 100) changed = 0;  // rate limit
+		if (now < actual.timestamp_ms) ++changed;  // guard against clock jumps
 
                 if (changed) {
 			actual.timestamp_ms = now;
