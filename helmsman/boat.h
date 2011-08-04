@@ -3,7 +3,7 @@
 // that can be found in the LICENSE file.
 #ifndef HELMSMAN_BOAT_H_
 #define HELMSMAN_BOAT_H_
-// Created by simulation/generate_boat_h.m on 
+// Created by simulation/generate_boat_h.m on
 // 10:39 (CEST) Wednesday 22 June 2011
 namespace {
 const double kInertiaZ = 150;  // kg m^2

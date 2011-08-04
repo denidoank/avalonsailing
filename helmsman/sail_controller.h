@@ -37,6 +37,8 @@ class SailController {
   // the wind speed (magnitude of wind vector) in m/s. mag_wind >= 0
   double BestGammaSail(double alpha_wind_rad,
                        double mag_wind);
+  double BestGammaSailForReverseMotion(double alpha_wind_rad,
+                                       double mag_wind);
 
   // The same as BestGammaSail but with hysteresis and stabilization to avoid
   // frequent switching.

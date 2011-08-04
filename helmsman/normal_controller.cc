@@ -11,9 +11,11 @@
 #include "common/delta_angle.h"
 #include "common/normalize.h"
 #include "common/polar_diagram.h"
+#include "common/limit_rate.h"
 #include "common/unknown.h"
 #include "helmsman/apparent.h"
 #include "helmsman/new_gamma_sail.h"
+#include "helmsman/sampling_period.h"
 
 extern int debug;
 
@@ -23,7 +25,9 @@ NormalController::NormalController(RudderController* rudder_controller,
                                    SailController* sail_controller)
    : rudder_controller_(rudder_controller),
      sail_controller_(sail_controller),
-     prev_alpha_star_limited_(0) {}
+     prev_alpha_star_limited_(0),
+     alpha_star_smooth_(0),
+     give_up_counter_(0) {}
 
 NormalController::~NormalController() {}
 
@@ -32,7 +36,9 @@ void NormalController::Entry(const ControllerInput& in,
   // Make sure we get the right idea of the direction change when we come
   // from another state.
   prev_alpha_star_limited_ = SymmetricRad(filtered.phi_z_boat);
+  alpha_star_smooth_ = SymmetricRad(filtered.phi_z_boat);
   ref_.SetReferenceValues(prev_alpha_star_limited_, in.drives.gamma_sail_rad);
+  give_up_counter_ = 0;
   if (debug) fprintf(stderr, " NormalController::Entry alpha star_limited: %lf\n",  prev_alpha_star_limited_);
 
 }
@@ -45,7 +51,7 @@ void NormalController::Run(const ControllerInput& in,
     fprintf(stderr, "Ref: %6.4f", Rad2Deg(in.alpha_star_rad));
     fprintf(stderr, "Actuals: True %6.4f deg %6.4f m/s", Rad2Deg(filtered.alpha_true), filtered.mag_true);
     fprintf(stderr, "Actuals: Boat %6.4f deg %6.4f m/s", Rad2Deg(filtered.phi_z_boat), filtered.mag_boat);
-    fprintf(stderr, "Actuals: App  %6.4f deg %6.4f m/s", Rad2Deg(filtered.angle_app),  filtered.mag_app);
+    fprintf(stderr, "Actuals: App  %6.4f deg %6.4f m/s\n", Rad2Deg(filtered.angle_app),  filtered.mag_app);
   }
 
   double phi_star;
@@ -59,7 +65,7 @@ void NormalController::Run(const ControllerInput& in,
                        &phi_star,
                        &omega_star,
                        &gamma_sail_star);
-  if (debug) fprintf(stderr, "IntRef: %6.4f %6.4f %6.4f", Rad2Deg(phi_star), Rad2Deg(omega_star), Rad2Deg(gamma_sail_star));
+  if (debug) fprintf(stderr, "IntRef: %6.4f %6.4f %6.4f\n", Rad2Deg(phi_star), Rad2Deg(omega_star), Rad2Deg(gamma_sail_star));
 
   double gamma_rudder_star;
   rudder_controller_->Control(phi_star,
@@ -72,7 +78,7 @@ void NormalController::Run(const ControllerInput& in,
   out->drives_reference.gamma_rudder_star_left_rad  = gamma_rudder_star;
   out->drives_reference.gamma_rudder_star_right_rad = gamma_rudder_star;
   out->drives_reference.gamma_sail_star_rad = gamma_sail_star;
-  if (debug) fprintf(stderr, "Controls: %6.4f %6.4f", Rad2Deg(gamma_rudder_star), Rad2Deg(gamma_sail_star));
+  if (debug) fprintf(stderr, "Controls: %6.4f %6.4f\n", Rad2Deg(gamma_rudder_star), Rad2Deg(gamma_sail_star));
 }
 
 void NormalController::Exit() {
@@ -88,8 +94,15 @@ void NormalController::ReferenceValueSwitch(double alpha_star,
                                             double* omega_z_star,
                                             double* gamma_sail_star) {
 
+
+  // Rate limit alpha_star
+  const double rate_limit = Deg2Rad(2) * kSamplingPeriod;
+  LimitRateWrapRad(alpha_star, rate_limit, &alpha_star_smooth_);
+
+
   // Stay in sailable zone
-  double alpha_star_limited = BestSailableHeading(alpha_star, alpha_true);
+  double alpha_star_limited = BestSailableHeading(alpha_star_smooth_, alpha_true);
+  if (debug) fprintf(stderr, "* %6.4f %6.4f %6.4f\n",alpha_star, alpha_star_smooth_, alpha_star_limited);
 
   if (!ref_.RunningPlan() &&
       fabs(DeltaOldNewRad(alpha_star_limited, prev_alpha_star_limited_)) >
@@ -134,3 +147,12 @@ bool NormalController::Tacking() {
   return ref_.RunningPlan();
 }
 
+bool NormalController::GiveUp(const ControllerInput& in,
+                              const FilteredMeasurements& filtered) {
+  // Got stuck for more than a minute.
+  if (filtered.mag_boat < 0.05)  // Check whether the speed info is reliable
+    ++give_up_counter_;
+  else
+    give_up_counter_ = 0;
+  return give_up_counter_ > 60.0 / kSamplingPeriod;
+}

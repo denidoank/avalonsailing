@@ -51,7 +51,7 @@ void RudderController::Control(double phi_star,
   // Anti-wind-up (integrator does not fill further, if the
   // control output is at it limits already)
   // reference value for int_phi is always 0.
-  /* Good AWU 
+  /* Good AWU
   if ((eps_phi < 0 && limited_ <= 0) ||
       (eps_phi > 0 && limited_ >= 0))
     eps_integral_phi_ += kSamplingPeriod * eps_phi;
@@ -61,22 +61,22 @@ void RudderController::Control(double phi_star,
   if (eps_integral_phi_ < -int_limit)
     eps_integral_phi_ = -int_limit;
   if (fabs(eps_phi) > M_PI/2)
-    eps_integral_phi_ = 0;  
+    eps_integral_phi_ = 0;
 
   */
-  
+
   if (eps_phi * limited_ <= 0)
     eps_integral_phi_ += kSamplingPeriod * eps_phi;
 
-  
+
   const double int_limit = 1;
   if (eps_integral_phi_ > int_limit)
     eps_integral_phi_ = int_limit;
   if (eps_integral_phi_ < -int_limit)
     eps_integral_phi_ = -int_limit;
   if (fabs(eps_phi) > M_PI/2)
-    eps_integral_phi_ = 0;  
-  
+    eps_integral_phi_ = 0;
+
 
   // printf("eps_phi %6.4f %6.4f %d \n",  eps_phi, eps_integral_phi_, limited_);
   // Calculate torque around the z-axis which corrects the control error.
@@ -92,7 +92,7 @@ void RudderController::Control(double phi_star,
   // linearize output
   double gamma_rudder;
   TorqueToGammaRudder(torque, speed, &gamma_rudder, &limited_);
- 
+
   // Relative angle of water flow due to speed and rotation.
   // We are using the reference value of the rotation speed here instead of the
   // actual value because it is the more reliable signal.
@@ -115,7 +115,7 @@ void RudderController::Control(double phi_star,
     gamma_0 = -kLimitGamma0;
     if (debug) fprintf(stderr, "-limit gamma 0");
   }
-  
+
   // need negative gamma for positive torque
   *gamma_rudder_rad = -(gamma_rudder + gamma_0);
 }

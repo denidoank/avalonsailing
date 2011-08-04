@@ -39,7 +39,7 @@ SailMode SailModeLogic::BestStabilizedMode(double apparent) {
          ++delay_counter_ > delay)) {
       mode_ = SPINNAKER;
       delay_counter_ = 0;
-      if (debug) fprintf(stderr, "SailModeLogic::BestMode: Switched to spinnaker.\n"); 
+      if (debug) fprintf(stderr, "SailModeLogic::BestMode: Switched to spinnaker.\n");
     }
   } else {  // SPINNAKER
     if (apparent > kSwitchpoint + 2 * kHalfHysteresis ||
@@ -47,7 +47,7 @@ SailMode SailModeLogic::BestStabilizedMode(double apparent) {
          ++delay_counter_ > delay)) {
       mode_ = WING;
       delay_counter_ = 0;
-      if (debug) fprintf(stderr, "SailModeLogic::BestMode: Switched to wing."); 
+      if (debug) fprintf(stderr, "SailModeLogic::BestMode: Switched to wing.");
     }
   }
   return mode_;
@@ -70,7 +70,7 @@ void SailModeLogic::Reset() {
 SailController::SailController()
     // The optimal angle of attack for the trimmed sail, subject to
     // optimization, 10 - 25 degrees.
-    : optimal_angle_of_attack_rad_(Deg2Rad(10)),  // degrees.
+    : optimal_angle_of_attack_rad_(Deg2Rad(13)),  // degrees.
       sign_(1)  {}
 
 void SailController::SetOptimalAngleOfAttack(double optimal_angle_of_attack_rad) {
@@ -95,7 +95,7 @@ double SailController::GammaSailInternal(double alpha_wind_rad,
   CHECK_LE(alpha_wind_rad, M_PI);  // in [0, pi]
 
   // other lower limit, to avoid unnecessary sail motor activity at low winds?
-  if (mag_wind == 0) 
+  if (mag_wind == 0)
     return 0;
 
   SailMode mode = stabilized ?
@@ -109,6 +109,29 @@ double SailController::GammaSailInternal(double alpha_wind_rad,
   return SymmetricRad(sign_ * gamma_sail_rad);
 }
 
+double SailController::BestGammaSailForReverseMotion(double alpha_wind_rad,
+                                                     double mag_wind) {
+  assert(alpha_wind_rad < 10);
+  assert(-alpha_wind_rad > -10);
+  alpha_wind_rad = SymmetricRad(alpha_wind_rad);
+  int sign = 1;
+  if (alpha_wind_rad < 0) {
+    sign = -1;
+    alpha_wind_rad = -alpha_wind_rad;
+  }
+  CHECK_LE(alpha_wind_rad, M_PI);  // in [0, pi]
+
+  // other lower limit, to avoid unnecessary sail motor activity at low winds?
+  if (mag_wind == 0)
+    return M_PI / 2;
+
+  double gamma_sail_rad = alpha_wind_rad < (M_PI - kSwitchpoint) ?
+      (M_PI - alpha_wind_rad + optimal_angle_of_attack_rad_) :
+      M_PI / 2;      // reversed SPINNAKER mode, broad reach
+
+  return SymmetricRad(-sign * gamma_sail_rad);
+}
+
 void SailController::LockInWingMode() {
   logic_.LockInWingMode();
 }
@@ -116,7 +139,6 @@ void SailController::LockInWingMode() {
 void SailController::UnlockMode() {
   logic_.UnlockMode();
 }
-
 
 // For Stabilized results make a hysteresis around 0.
 // For non-stabilized operation make no hysteresis
@@ -128,7 +150,7 @@ double SailController::HandleSign(double alpha_wind_rad, bool stabilized) {
   } else {
     sign_ = SignNotZero(alpha_wind_rad);
   }
-  return sign_ * alpha_wind_rad;  
+  return sign_ * alpha_wind_rad;
 }
 
 void SailController::Reset() {
