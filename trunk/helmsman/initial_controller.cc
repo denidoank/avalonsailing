@@ -86,24 +86,24 @@ void InitialController::Run(const ControllerInput& in,
     case TURTLE:
       if (debug) fprintf(stderr, "phase TURTLE\n");
       // Turn into a sailable direction if necessary.
-      if (fabs(angle_app) < kSailableLimit &&
+      if (fabs(angle_app) < Deg2Rad(120) &&
           WindStrength(kCalmWind, filtered.mag_app) != kCalmWind) {
         phase_ = KOGGE;
         count_ = 0;
-	if (debug) fprintf(stderr, "TURTLE to KOGGE %d\n", sign_);
+        if (debug) fprintf(stderr, "TURTLE to KOGGE %d\n", sign_);
         break;
       }
       gamma_rudder = kReverseMotionRudderAngle * sign_;
-      gamma_sail = -kReverseMotionSailAngle * sign_;
+      gamma_sail = sail_controller_->BestGammaSailForReverseMotion(angle_app, filtered.mag_app);
       break;
     case KOGGE:
       if (debug) fprintf(stderr, "phase KOGGE\n");
       gamma_sail = sail_controller_->BestStabilizedGammaSail(angle_app, filtered.mag_app);
-      // Force the apparent angle to 90 degrees (beam reach).
-      if (fabs(angle_app) > kSailableLimit)
+      if (fabs(angle_app) > Deg2Rad(120))
         gamma_rudder = -Sign(angle_app) * kBangBangRudderAngle;
       else  
         gamma_rudder = 0;
+      ++count_;
       break; 
   }
   out->drives_reference.gamma_sail_star_rad = gamma_sail;
@@ -128,7 +128,7 @@ void InitialController::Entry(const ControllerInput& in,
 void InitialController::Exit() {}
 
 bool InitialController::Done() {
-  const bool done = (phase_ == KOGGE) && (++count_ >  10.0 / kSamplingPeriod);
+  const bool done = (phase_ == KOGGE) && (count_ >  15.0 / kSamplingPeriod);
   if (done && debug) fprintf(stderr, "InitialController::Done\n");
   return done;
 }

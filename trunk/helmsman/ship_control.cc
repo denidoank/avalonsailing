@@ -68,9 +68,7 @@ void ShipControl::StateMachine(const ControllerInput& in) {
 
   // all other transition decisions, possibly delegated to the controllers
   if (controller_ == &initial_controller_) {
-
     static const char* kWinds[] = { "CALM", "NORMAL", "STORM" };
-
     if (debug)
       fprintf(stderr, "Initial controller %sdone wind strenght:%s wind valid:%s alpha_star:%6.4f deg\n",
 	      controller_->Done() ? "" : "NOT ",
@@ -78,12 +76,6 @@ void ShipControl::StateMachine(const ControllerInput& in) {
 	      filter_block_->ValidTrueWind() ? "YES" : "NO",
 	      in.alpha_star_rad != kUnknown ? Rad2Deg(in.alpha_star_rad) : NAN);
 
-    /*
-    if (controller_.Done() && wind_strength_apparent_ == kStormWind) {
-      Transition(&normal_to_storm_controller_, in);
-      return;
-    }
-    */
     if (controller_->Done() &&
         wind_strength_ == kNormalWind &&
         filter_block_->ValidTrueWind() &&
@@ -91,23 +83,30 @@ void ShipControl::StateMachine(const ControllerInput& in) {
       Transition(&normal_controller_, in);
       return;
     } 
+    if(debug) fprintf(stderr, "InitialState, wait for true wind info and alpha_star\n");
+  }
 
-    if(debug) fprintf(stderr, "ShipControl::StateMachine failed to change state\n");
-
+  if (controller_ == &normal_controller_) {
+    if (normal_controller_.GiveUp(in, filtered_)) {
+      // Assert here to find situations in which the boat gets stuck in tests.
+      // assert(0);
+      Transition(&initial_controller_, in);
+      return;
+    }
   }
 
   if(debug) fprintf(stderr, "ShipControl::StateMachine stationary in state %s\n", controller_->Name());
-
 }
 
-// This needs to run with the sampling period.
+// This needs to run with the sampling period of 100ms.
 bool ShipControl::Run(const ControllerInput& in, ControllerOutput* out) {
   ControllerOutput prev_out = *out;
 
-  // Get wind speed and all other actual measurement values
-  // Figure out apparent and true wind
+  // Get wind speed and all other actual measurement values.
+  // Figure out apparent and true wind.
   filter_block_->Filter(in, &filtered_);
 
+  // Input for the Skipper
   if (filter_block_->ValidTrueWind()) {
     wind_strength_                     = WindStrength(wind_strength_, filtered_.mag_true);
     out->skipper_input.longitude_deg   = filtered_.longitude_deg;
@@ -118,12 +117,9 @@ bool ShipControl::Run(const ControllerInput& in, ControllerOutput* out) {
 
   wind_strength_apparent_ = WindStrength(wind_strength_apparent_, filtered_.mag_app);
 
-  // TODO fill skipper data
-
-  // find state 
+  // Find state 
   StateMachine(in);
-  // call specialized controller
-
+  // Call specialized controller
   controller_->Run(in, filtered_, out);
     
   bool changed = prev_out != *out;

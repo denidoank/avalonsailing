@@ -32,7 +32,10 @@ class NormalController : public Controller {
     return "Normal";
   }
   bool Tacking();
- private: 
+  // If the wind drops or we loose orientation, restart with Initial Controller.
+  bool GiveUp(const ControllerInput& in,
+              const FilteredMeasurements& filtered);
+ private:
   void ReferenceValueSwitch(double alpha_star,
                             double alpha_true, double mag_true,
                             double alpha_boat, double mag_boat,
@@ -49,7 +52,9 @@ class NormalController : public Controller {
   RudderController* rudder_controller_;
   SailController* sail_controller_;
   double prev_alpha_star_limited_;
+  double alpha_star_smooth_;
   ReferenceValues ref_;
+  int give_up_counter_;
 };
 
 #endif  // HELMSMAN_NORMAL_CONTROLLER_H
