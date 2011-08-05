@@ -28,6 +28,11 @@ double WrapAroundFilter::Filter(double in) {
     initial_= false;
     continuous_ = in;
   }
+  if (-10 < in && in < 10 ) {
+    ;
+  } else {
+    fprintf(stderr, "WrapAroundFilter input %g\n", in);
+  }  
   CHECK_LT(in, 10);  // expect radians here
   CHECK_GT(in, -10);
   double delta = in - prev_;
