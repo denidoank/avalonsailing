@@ -12,7 +12,7 @@
 ClientState::ClientState(QObject *parent) :
     QObject(parent)
 {
-  setCommand("/usr/bin/ssh jpilet@jpilet.zrh cat avalon/example.txt");
+  setCommand("/usr/bin/ssh root@192.168.1.29 plug /var/run/lbus");
 
   connect(&ssh_process_, SIGNAL(readyReadStandardOutput()), SLOT(gotData()));
   connect(&ssh_process_, SIGNAL(readyReadStandardError()), SLOT(gotErrorData()));
@@ -49,35 +49,25 @@ void ClientState::gotData() {
       continue;
     }
     QStringList first = key_vals[0].split(":", QString::SkipEmptyParts);
-    if (first.size() != 3) {
+    if (first.size() != 1) {
       emit consoleOutput("Can't parse: " + line);
       continue;
     }
 
     QString source = first[0];
     QStringList keys, values;
-    keys.append(first[1]);
-    data_[source][first[1]] = first[2].trimmed();
-    updateProperty(first[1], first[2]);
     for (int i = 1; i < key_vals.size(); ++i) {
       QStringList entry = key_vals[i].split(":", QString::SkipEmptyParts);
+      if (entry.size() != 2) {
+        if (key_vals[i].trimmed().size() > 0) {
+          emit consoleOutput("Can't understand: '" + key_vals[i] + "'");
+        }
+        continue;
+      }
       keys.append(entry[0]);
       data_[source][entry[0]] = entry[1].trimmed();
-      updateProperty(entry[0], entry[1]);
     }
     emit dataUpdate();
-  }
-}
-
-void ClientState::updateProperty(const QString& key, const QString& val) {
-  if (property(key.toLatin1().constData()).isValid()) {
-    bool ok;
-    QVariant converted(val.toFloat(&ok));
-    if (ok) {
-      setProperty(key.toLatin1().constData(), converted);
-    } else {
-      emit consoleOutput(QString("can't convert to float: ") + val);
-    }
   }
 }
 

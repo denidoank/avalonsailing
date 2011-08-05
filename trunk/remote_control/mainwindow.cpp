@@ -8,6 +8,7 @@
 #include <math.h>
 
 #include <QDebug>
+#include <QGraphicsTextItem>
 
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
@@ -21,9 +22,6 @@ MainWindow::MainWindow(ClientState* state, QWidget *parent) :
 
   connect(state_, SIGNAL(dataUpdate()), SLOT(updateView()));
   connect(state_, SIGNAL(consoleOutput(QString)), SLOT(printText(QString)));
-  connect(state_, SIGNAL(rudder_l_deg_changed(float)), SLOT(setRudderLeftAngle(float)));
-  connect(state_, SIGNAL(rudder_r_deg_changed(float)), SLOT(setRudderRightAngle(float)));
-  connect(state_, SIGNAL(sail_deg_changed(float)), SLOT(setBoomAngle(float)));
 }
 
 MainWindow::~MainWindow()
@@ -56,14 +54,25 @@ void MainWindow::on_actionConnect_triggered()
 void MainWindow::updateView() {
   QString text;
   const QMap<QString, QMap<QString,QString> >& map = state_->getData();
-  for (QMap<QString, QMap<QString, QString> >::const_iterator source = map.constBegin(); source != map.constEnd(); ++source) {
+  for (QMap<QString, QMap<QString, QString> >::const_iterator source = map.constBegin();
+      source != map.constEnd(); ++source) {
     const QMap<QString,QString>& pairs = source.value();
     text += source.key() + ":\n";
-    for (QMap<QString, QString>::const_iterator i = pairs.constBegin(); i != pairs.constEnd(); ++i) {
+    for (QMap<QString, QString>::const_iterator i = pairs.constBegin();
+        i != pairs.constEnd(); ++i) {
       text += "    " + i.key() + ": " + i.value() + "\n";
     }
   }
   ui->dataview->setPlainText(text);
+
+  // Update the drawing.
+
+  compass_->setRotation(state_->getDouble("imud", "yaw_deg"));
+  boom_->setRotation(state_->getDouble("rudderssts", "sail_deg"));
+  rudder_left_->setRotation(state_->getDouble("ruddersts", "rudder_l_deg"));
+  rudder_right_->setRotation(state_->getDouble("ruddersts", "rudder_r_deg"));
+
+  ui->graphicsView->update();
 }
 
 void MainWindow::printText(QString text) {
@@ -74,58 +83,64 @@ void MainWindow::drawBoat() {
   QPen black_border(QColor(0,0,0));
 
   QPolygonF boat_poly;
-  boat_poly << QPointF(0, -5)  // tip of the boat
+  boat_poly << QPointF(0, -100)  // tip of the boat
     // starboard side
-    <<  QPointF(2, 0) <<  QPointF(2, 2) <<  QPointF(1.5, 6)
+    <<  QPointF(40, 0) <<  QPointF(40, 40) <<  QPointF(30, 120)
     // port side
-    <<  QPointF(-1.5, 6) <<  QPointF(-2, 2) <<  QPointF(-2, 0);
+    <<  QPointF(-30, 120) <<  QPointF(-40, 40) <<  QPointF(-40, 0);
 
   boat_ = scene_.addPolygon(boat_poly, black_border);
   boom_ = new QGraphicsPolygonItem(boat_);
 
   QPolygonF boom_poly;
-  float width = .3;
-  boom_poly << QPointF(0, -2)
-          << QPointF(sqrt(.5), -sqrt(.5) - 1)
-          << QPointF(1, -1)
-          << QPointF(sqrt(.5), sqrt(.5) - 1)
-          << QPointF(width, sqrt(.5) - 1)
-          << QPointF(width, 4)
-          << QPointF(0, 5.2 - 1)
-          << QPointF(-width, 4)
-          << QPointF(-width, sqrt(.5) - 1)
-          << QPointF(-sqrt(.5), sqrt(.5) - 1)
-          << QPointF(-1, -1)
-          << QPointF(-sqrt(.5), -sqrt(.5) - 1);
+  const float width = 6;
+  const float boom_radius = 20;
+  const float sqrt_r2(sqrt(.5)*boom_radius);
+  boom_poly << QPointF(0, -40)
+          << QPointF(sqrt_r2, -sqrt_r2 - 20)
+          << QPointF(20, -20)
+          << QPointF(sqrt_r2, sqrt_r2 - 20)
+          << QPointF(width, sqrt_r2 - 20)
+          << QPointF(width, 80)
+          << QPointF(0, 104 - 20)
+          << QPointF(-width, 80)
+          << QPointF(-width, sqrt_r2 - 20)
+          << QPointF(-sqrt_r2, sqrt_r2 - 20)
+          << QPointF(-20, -20)
+          << QPointF(-sqrt_r2, -sqrt_r2 - 20);
   boom_->setPolygon(boom_poly);
   boom_->setPen(black_border);
-  boom_->setPos(0, -1);
-  boom_->setRotation(30);
+  boom_->setPos(0, -20);
 
-  rudder_left_ = new QGraphicsLineItem(0, 0, 0, 2, boat_, &scene_);
-  rudder_left_->setPos(-1, 6);
+  rudder_left_ = new QGraphicsLineItem(0, 0, 0, 40, boat_, &scene_);
+  rudder_left_->setPos(-20, 120);
   rudder_left_->setPen(black_border);
 
-  rudder_right_ = new QGraphicsLineItem(0, 0, 0, 2, boat_, &scene_);
-  rudder_right_->setPos(1, 6);
+  rudder_right_ = new QGraphicsLineItem(0, 0, 0, 40, boat_, &scene_);
+  rudder_right_->setPos(20, 120);
   rudder_right_->setPen(black_border);
 
+  // Draw the compass.
+  compass_ = new QGraphicsEllipseItem(-40, -40, 80, 80);
+  scene_.addItem(compass_);
+  QGraphicsTextItem* north = new QGraphicsTextItem("N", compass_);
+  north->setPos(-north->boundingRect().width()/2, -40);
+
+  QGraphicsTextItem* east = new QGraphicsTextItem("E", compass_);
+  east->setRotation(90);
+  east->setPos(40, -east->boundingRect().width()/2);
+
+  QGraphicsTextItem* south = new QGraphicsTextItem("S", compass_);
+  south->setRotation(180);
+  south->setPos(south->boundingRect().width()/2, 40);
+
+  QGraphicsTextItem* west = new QGraphicsTextItem("W", compass_);
+  west->setRotation(-90);
+  west->setPos(-40, west->boundingRect().width()/2);
+  new QGraphicsLineItem(0, -20, 0, 20, compass_, &scene_);
+  new QGraphicsLineItem(-20, 0, 20, 0, compass_, &scene_);
+
+  compass_->setPos(-160, -100);
+
   ui->graphicsView->setScene(&scene_);
-  //ui->graphicsView->setSceneRect(-16, -16, 16, 16);
-  ui->graphicsView->scale(20, 20);
-}
-
-void MainWindow::setBoomAngle(float angle) {
-  boom_->setRotation(angle);
-  ui->graphicsView->update();
-}
-
-void MainWindow::setRudderLeftAngle(float angle) {
-  rudder_left_->setRotation(angle);
-  ui->graphicsView->update();
-}
-
-void MainWindow::setRudderRightAngle(float angle) {
-  rudder_right_->setRotation(angle);
-  ui->graphicsView->update();
 }

@@ -11,6 +11,7 @@
 #include <QMainWindow>
 #include <QGraphicsPolygonItem>
 #include <QGraphicsScene>
+#include <QGraphicsEllipseItem>
 #include "clientstate.h"
 #include "config_dialog.h"
 
@@ -37,13 +38,11 @@ private:
   QGraphicsPolygonItem* boom_;
   QGraphicsLineItem* rudder_left_;
   QGraphicsLineItem* rudder_right_;
+  QGraphicsEllipseItem* compass_;
 
   void drawBoat();
 
 public slots:
-  void setBoomAngle(float angle);
-  void setRudderLeftAngle(float angle);
-  void setRudderRightAngle(float angle);
 
 private slots:
   void on_actionConnect_triggered();
