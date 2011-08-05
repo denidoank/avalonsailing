@@ -41,6 +41,8 @@ const double kCalmLimitHysteresis_m_s = 0.15;
                                              // limit.
 const double kStormLimit_m_s = 20;           // 40 knots would be 20.578 .
 const double kStormLimitHysteresis_m_s = 2;  // 44 knots on, 36 off point.
+static const char* kWindsStrings[] = { "CALM", "NORMAL", "STORM" };
+
 }  // namespace
 
 WindStrengthRange WindStrength(WindStrengthRange previous_range,
@@ -65,4 +67,9 @@ WindStrengthRange WindStrength(WindStrengthRange previous_range,
       CHECK(false);
   }
   return kNormalWind;  // never reached
+}
+
+const char* WindToString(WindStrengthRange range) {
+  CHECK_IN_INTERVAL(0, range, 2);
+  return kWindsStrings[range];
 }

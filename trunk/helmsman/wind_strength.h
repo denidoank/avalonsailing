@@ -11,6 +11,10 @@ enum WindStrengthRange {
   kStormWind
 };
 
+// enum to string conversion
+const char* WindToString(WindStrengthRange range);
+
+
 WindStrengthRange WindStrength(WindStrengthRange previous_range,
                                double wind_m_s);
 #endif   // HELMSMAN_WIND_STRENGTH_H
