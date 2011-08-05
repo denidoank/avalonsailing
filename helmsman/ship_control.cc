@@ -68,16 +68,15 @@ void ShipControl::StateMachine(const ControllerInput& in) {
 
   // all other transition decisions, possibly delegated to the controllers
   if (controller_ == &initial_controller_) {
-    static const char* kWinds[] = { "CALM", "NORMAL", "STORM" };
     if (debug)
       fprintf(stderr, "Initial controller %sdone wind strenght:%s wind valid:%s alpha_star:%6.4f deg\n",
 	      controller_->Done() ? "" : "NOT ",
-	      kWinds[wind_strength_],
+	      WindToString(wind_strength_apparent_),
 	      filter_block_->ValidTrueWind() ? "YES" : "NO",
 	      in.alpha_star_rad != kUnknown ? Rad2Deg(in.alpha_star_rad) : NAN);
 
     if (controller_->Done() &&
-        wind_strength_ == kNormalWind &&
+        wind_strength_apparent_ == kNormalWind &&
         filter_block_->ValidTrueWind() &&
         in.alpha_star_rad != kUnknown) {
       Transition(&normal_controller_, in);
