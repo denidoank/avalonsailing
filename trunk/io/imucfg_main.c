@@ -71,16 +71,16 @@ usage(void)
  
 #define MKMESSAGE(mid)        { 0xFA, 0xFF, mid, 0, (uint8_t)-(0xFF+mid) }
 #define MKMESSAGE16(mid, val) { 0xFA, 0xFF, mid, 2, (val)>>8, (val), (uint8_t)-(0xFF+mid+2+((val)>>8)+(val)) }
-#define MKMESSAGE32(mid, val) { 0xFA, 0xFF, mid, 4, (val)>>24, (val)>>16, (val)>>8, (val), (uint8_t)-(0xFF+mid+2+((val)>>24)+((val)>>16)+((val)>>16)+(val)) }
+#define MKMESSAGE32(mid, val) { 0xFA, 0xFF, mid, 4, (val)>>24, (val)>>16, (val)>>8, (val), (uint8_t)-(0xFF+mid+4+((val)>>24)+((val)>>16)+((val)>>8)+(val)) }
 #define MKMESSAGE3x32(mid, val1, val2, val3) \
 	{ 0xFA, 0xFF, mid, 12, \
 	  (val1)>>24, (val1)>>16, (val1)>>8, (val1), \
 	  (val2)>>24, (val2)>>16, (val2)>>8, (val2), \
 	  (val3)>>24, (val3)>>16, (val3)>>8, (val3),	\
-	  (uint8_t)-(0xFF+mid+2+ \
-		     ((val1)>>24)+((val1)>>16)+((val1)>>16)+(val1)+	\
-		     ((val2)>>24)+((val2)>>16)+((val2)>>16)+(val2)+	\
-		     ((val3)>>24)+((val3)>>16)+((val3)>>16)+(val3))	\
+	  (uint8_t)-(0xFF+mid+12+ \
+		     ((val1)>>24)+((val1)>>16)+((val1)>>8)+(val1)+	\
+		     ((val2)>>24)+((val2)>>16)+((val2)>>8)+(val2)+	\
+		     ((val3)>>24)+((val3)>>16)+((val3)>>8)+(val3))	\
 	}
 
 static const uint8_t kMsgGotoConfig[]      = MKMESSAGE(IMU_GOTOCONFIG);
@@ -95,7 +95,7 @@ decode_float(uint8_t** dd)
 {
 	uint8_t* d = *dd;
 	uint8_t f[4] = { d[3], d[2], d[1], d[0] };
-	if(debug) fprintf(stderr, "decode float: %02x %02x %02x %02x  : %lf\n", d[0],d[1],d[2],d[3], *(float*)f);
+	if(debug>1) fprintf(stderr, "decode float: %02x %02x %02x %02x  : %lf\n", d[0],d[1],d[2],d[3], *(float*)f);
 	(*dd) += 4;
 	return *(float*) f;
 }
@@ -117,7 +117,7 @@ static int
 read_timeout(int fd, uint8_t* buf, size_t size)
 {
         fd_set rfds;
-        struct timeval tv = { 0, 500*1000 };  // 500 msec
+        struct timeval tv = { 1, 0 };  // 1 sec
         FD_ZERO(&rfds);  FD_SET(fd, &rfds);
         int err = select(fd+1, &rfds, NULL, NULL, &tv);
         if (err == 1)
@@ -177,6 +177,8 @@ msg_read(int fd, uint8_t* msg, size_t size)
 		int s = len;
 		if (s > size - 1) s = size - 1;
 		memmove(msg+1, buf+ ((len>254) ? 6 : 4), s);
+		memmove(buf, buf+ll, p-ll);
+		p -= ll;
 		return len;
 	}
 	return 0;
@@ -187,19 +189,19 @@ msg_xchg(int fd, const uint8_t* w_msg, size_t w_size, uint8_t* r_msg, size_t r_s
 {
 	int i;
 	r_msg[0] = 0;
-	for (i = 0; i < 20; ++i) {
+	for (i = 0; i < 200; ++i) {
 		if (debug) fprintf(stderr, "Sending message 0x%x..(0x%02x)..%c\r", w_msg[2], r_msg[0], "-\\|/"[i%4]);
 		tcflush(fd, TCIFLUSH);
 		if (msg_write(fd, w_msg, w_size)) crash("writing %d bytes", w_size);
 		int r = msg_read(fd, r_msg, sizeof r_msg);
-		if (r <= 0) crash("reading ack");
+		if (r < 0) crash("reading ack");
 		if (r_msg[0] == w_msg[2] + 1) {
-			if (debug) fprintf(stderr, "Sending message 0x%x...bingo!\n", w_msg[2]);
+			if (debug) fprintf(stderr, "Sending message 0x%x..(0x%02x)..bingo!\n", w_msg[2], r_msg[0]);
 			return r;  // acks' are req + 1
 		}
 	}
 	if (debug) fprintf(stderr, "Sending message 0x%x...FAIL, got 0x%x!\n", w_msg[2], r_msg[0]);
-	return 0;
+	return -1;
 }
 
 int main(int argc, char* argv[]) {
@@ -291,7 +293,7 @@ int main(int argc, char* argv[]) {
 	int r;
 
 	r = msg_xchg(port,  kMsgGotoConfig, sizeof kMsgGotoConfig, msg, sizeof msg);
-	if (r <= 0) crash("Unable to go to config mode.");
+	if (r < 0) crash("Unable to go to config mode.");
 
 	if (factoryreset) {
 		r = msg_xchg(port, kMsgFactoryReset, sizeof kMsgFactoryReset, msg, sizeof msg);
@@ -301,15 +303,15 @@ int main(int argc, char* argv[]) {
 
 	uint8_t msgSetSkipFactor[] = MKMESSAGE16(IMU_OUTPUTSKIPFACTOR, skipf);
 	r = msg_xchg(port, msgSetSkipFactor, sizeof msgSetSkipFactor, msg, sizeof msg);
-	if (r <= 0) crash("Unable set outputmode");
+	if (r < 0) crash("Unable set skipfactor");
 
 	uint8_t msgSetOutputMode[] = MKMESSAGE16(IMU_OUTPUTMODE, mode);
 	r = msg_xchg(port, msgSetOutputMode, sizeof msgSetOutputMode, msg, sizeof msg);
-	if (r <= 0) crash("Unable set outputmode");
+	if (r < 0) crash("Unable set outputmode");
 
 	uint8_t msgSetOutputSettings[] = MKMESSAGE32(IMU_OUTPUTSETTINGS, settings);
-	r = msg_xchg(port, msgSetOutputSettings, sizeof msgSetOutputMode, msg, sizeof msg);
-	if (r <= 0) crash("Unable set output settings");
+	r = msg_xchg(port, msgSetOutputSettings, sizeof msgSetOutputSettings, msg, sizeof msg);
+	if (r < 0) crash("Unable set output settings");
 
 	uint32_t llx = encode_float(lev_x);
 	uint32_t lly = encode_float(lev_y);
@@ -322,18 +324,18 @@ int main(int argc, char* argv[]) {
 		assert(decode_float(&d) == lev_z);
 	}
 	r = msg_xchg(port, msgSetLeverArm, sizeof msgSetLeverArm, msg, sizeof msg);
-	if (r <= 0) crash("Unable set lever arm");
+	if (r < 0) crash("Unable set lever arm");
 
 	uint8_t msgSetScenario[] = MKMESSAGE16(IMU_SCENARIO, scenario);
 	r = msg_xchg(port, msgSetScenario, sizeof msgSetScenario, msg, sizeof msg);
-	if (r <= 0) crash("Unable set scenario");
+	if (r < 0) crash("Unable set scenario");
 
 	if (reset) {
 		r = msg_xchg(port, kMsgReset, sizeof kMsgReset, msg, sizeof msg);
-		if (r <= 0) crash("Unable to reset.");
+		if (r < 0) crash("Unable to reset.");
 	} else {
 		r = msg_xchg(port,  kMsgGotoMeasurement, sizeof kMsgGotoMeasurement, msg, sizeof msg);
-		if (r <= 0) crash("Unable to go to measurement mode.");
+		if (r < 0) crash("Unable to go to measurement mode.");
 	}
 
 	return 0;
