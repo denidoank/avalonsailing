@@ -13,6 +13,20 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+namespace testing {
+// Runs all tests registered with ATEST macro below. Returns zero iff all
+// succeeded.
+int RunAllTests();
+
+// Implementation detail, clients should ignore.
+struct TestRegistrar { TestRegistrar(const char* name, void (*f)()); };
+}  // testing
+
+#define ATEST(class_name, test_case) \
+void class_name##_##test_case(); \
+static testing::TestRegistrar class_name##_##test_case##_REGISTRAR( \
+  #class_name"_"#test_case, class_name##_##test_case); \
+void class_name##_##test_case()
 
 #define TEST(class_name, test_case)  void class_name##_##test_case()
 
