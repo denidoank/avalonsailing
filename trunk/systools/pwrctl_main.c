@@ -139,8 +139,8 @@ int main(int argc, char* argv[]) {
     int op_code = strcmp(operation, "off") == 0 ? 1 : 0;
 
     if (strcmp(circuit, "cpu") == 0) rc |= relay_set(adam, 0, op_code);
-    else if (strcmp(circuit, "sensors") == 0) rc |= relay_set(adam, 1, op_code);
-    else if (strcmp(circuit, "epos") == 0) rc |= relay_set(adam, 2, op_code);
+    else if (strcmp(circuit, "epos") == 0) rc |= relay_set(adam, 1, op_code);
+    else if (strcmp(circuit, "sensors") == 0) rc |= relay_set(adam, 2, op_code);
     else crash("unknown circuit %s", circuit);
   }
   return rc;
