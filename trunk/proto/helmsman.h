@@ -2,6 +2,7 @@
 #define PROTO_HELMSMAN_H
 
 #include <math.h>
+#include <stdint.h>
 
 struct HelmsmanCtlProto {
 	int64_t timestamp_ms;

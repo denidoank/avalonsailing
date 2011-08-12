@@ -4,8 +4,8 @@
 //
 // Communication daemon for sending/receiving status messages and commands by
 // SMS.
-// ./modemd --logtostderr --no-syslog --task=modemd --timeout=60 --debug \
-//          --device=/dev/ttyUSB1 --phone=41760000000
+//   ./modemd --logtostderr --no-syslog --task=modemd --timeout=60 --debug
+//            --device=/dev/ttyUSB1 --phone=41760000000
 
 #include "lib/fm/fm.h"
 #include "lib/fm/log.h"
@@ -21,11 +21,12 @@
 
 using namespace std;
 
-#define DEFAULT_MODEM_DEVICE      "/dev/ttyUSB1"
-#define DEFAULT_QUEUE             "/tmp"
+#define DEFAULT_PHONE_NUMBER      "41763038610"
+#define DEFAULT_MODEM_DEVICE      "/dev/ttyUSB8"
+#define DEFAULT_QUEUE             "/tmp/modem"
 
 static char modem_device[256] = DEFAULT_MODEM_DEVICE;
-static char phone_number[64] = "";
+static char phone_number[64] = DEFAULT_PHONE_NUMBER;
 static char queue[256] = DEFAULT_QUEUE;
 
 static void Init(int argc, char** argv) {
@@ -184,7 +185,7 @@ int main(int argc, char** argv) {
     int n = 0;
     char out[1024];
     snprintf(out, sizeof(out), OFMT_MODEMPROTO(status, &n));
-    if (n > sizeof(out)) break;
+    if (n > static_cast<int>(sizeof(out))) break;
     puts(out);
 
     // Idle loop.

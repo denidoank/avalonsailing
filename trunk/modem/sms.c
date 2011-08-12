@@ -210,8 +210,8 @@ int DecodeSMS(const unsigned char* buffer, const int buffer_length,
     return -1;
   const int sms_deliver_start = 1 + buffer[0];
   if (sms_deliver_start + 1 > buffer_length ||
-      (buffer[sms_deliver_start] & SMS_DELIVER_ONE_MESSAGE !=
-       SMS_DELIVER_ONE_MESSAGE)) {
+      (buffer[sms_deliver_start] & SMS_DELIVER_ONE_MESSAGE) !=
+       SMS_DELIVER_ONE_MESSAGE) {
     return -1;
   }
 

@@ -41,7 +41,7 @@ vector<int> get_int_list(const string& str, const vector<int>& base) {
   vector<int> ints;
   const char* ptr = str.c_str();
   while (*ptr == ' ' || *ptr == '"') ptr++;  // Skip spaces.
-  for (int i = 0; i < base.size() && ptr != '\0'; ++i) {
+  for (unsigned int i = 0; i < base.size() && ptr != '\0'; ++i) {
     char* endptr;
     int n = strtol(ptr, &endptr, base[i]);
     if (endptr == ptr) break;  // Failed to get extract a number.
@@ -140,7 +140,7 @@ Modem::ResultCode Modem::GetNetworkRegistration(bool* registered) {
       if (async_status_.front().substr(0, 6) == "+CREG:") {
         vector<int> ints = get_int_list(async_status_.front().substr(6),
                                         vector<int>(2, 10));
-        if (ints.size() >= 2 && ints[1] == 1 || ints[1] == 5) {
+        if (ints.size() >= 2 && (ints[1] == 1 || ints[1] == 5)) {
           // Registered home network (1) or roaming (5).
           *registered = true;
         }
@@ -253,7 +253,7 @@ Modem::ResultCode Modem::ReceiveSMSMessages(list<SmsMessage>* messages) {
     char sender_phone_number[32];
     unsigned char pdu[MAX_SMS_PDU_LENGTH];
     char sms_text[161];
-    for (int i = 0; i < info_.front().length(); i += 2) {
+    for (unsigned int i = 0; i < info_.front().length(); i += 2) {
       pdu[i / 2] = strtol(info_.front().substr(i, 2).c_str(), NULL, 16);
     }
     int sms_length = DecodeSMS(pdu, info_.front().length() / 2, &sms_time,

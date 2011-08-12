@@ -18,6 +18,8 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "proto/fuelcell.h"
+
 // -----------------------------------------------------------------------------
 //   Together with getopt in main, this is our minimalistic UI
 // -----------------------------------------------------------------------------
@@ -53,7 +55,7 @@ usage(void)
           "options:\n"
           "\t-d debug            (don't syslog)\n"
           "\t-p period           (60s)\n"
-          , argv0, argv0);
+          , argv0);
   exit(2);
 }
 
@@ -64,31 +66,33 @@ int fc_status(FILE *fc) {
   int found_mask = 0;
   struct pollfd pfd;
 
-  double u,i,e,t;
+  struct FuelcellProto fc_status = INIT_FUELCELLPROTO;
 
   while (1) {
-
     pfd.fd = fileno(fc);
     pfd.events = POLLIN;
     if (poll(&pfd, 1, 5000) != 1) return 1; // timeout or error
 
     if (fscanf(fc, "%[^\r]\r", buffer) != 1) return 1; // error
 
-    if (sscanf(buffer, "battery voltage %lfV", &u) == 1) {
+    if (sscanf(buffer, "battery voltage %lfV", &fc_status.tension_V) == 1) {
       found_mask |= 1;
-    } else if (sscanf(buffer, "output current %lfA", &i) == 1) {
+    } else if (sscanf(buffer, "output current %lfA",
+                      &fc_status.charge_current_A) == 1) {
       found_mask |= 1 << 1;
-    } else if (sscanf(buffer, "cumulative output energy %lfWh", &e) == 1) {
+    } else if (sscanf(buffer, "cumulative output energy %lfWh",
+               &fc_status.energy_Wh) == 1) {
       found_mask |= 1 << 2;
-    } else if (sscanf(buffer, "operation time (charge mode) %lfh", &t) == 1) {
+    } else if (sscanf(buffer, "operation time (charge mode) %lfh",
+               &fc_status.runtime_h) == 1) {
       found_mask |= 1 << 3;
     }
 
     if (debug > 1) fprintf(stderr, "'%s'\n", buffer);
 
     if (found_mask == 15) {
-      printf("tension_V:%lf charge_current_A:%lf energy_Wh:%lf runtime_h:%lf\n",
-             u, i, e, t);
+      int n;
+      printf(OFMT_FUELCELLPROTO(fc_status, &n));
 
       while (1) { // clean up input until there is nothing left
         pfd.fd = fileno(fc);
@@ -137,7 +141,8 @@ int main(int argc, char* argv[]) {
     if (tcgetattr(port, &t) < 0) crash("tcgetattr(%s)", argv[0]);
     cfmakeraw(&t);
 
-    t.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
+    t.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR |
+                   IGNCR | ICRNL | IXON);
     t.c_oflag &= ~OPOST;
     t.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
     t.c_cflag &= ~(CSIZE | PARENB);
