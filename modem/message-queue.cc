@@ -44,19 +44,19 @@ void MessageQueue::EmptyQueue() {
   vector<MessageId> ids;
   GetAvailableIds(ids);
   // Delete all messages.
-  for (int i = 0; i < ids.size(); ++i) {
+  for (unsigned int i = 0; i < ids.size(); ++i) {
     DeleteMessage(ids[i]);
   }
 }
 
-int MessageQueue::NumMessages() {
+unsigned int MessageQueue::NumMessages() {
   vector<MessageId> ids;
   GetAvailableIds(ids);
   return ids.size();
 }
 
 MessageQueue::MessageId MessageQueue::GetMessage(
-    const int index, string* message) {
+    const unsigned int index, string* message) {
   message->clear();
   vector<MessageId> ids;
   MessageId id = kInvalidId;
@@ -108,7 +108,8 @@ MessageQueue::MessageId MessageQueue::PushMessage(const string& message) {
     FM_LOG_ERROR("Error creating message (temp file: %s).", temp_filename);
     return kInvalidId;
   }
-  if (write(fd, message.c_str(), message.length()) != message.length()) {
+  if (write(fd, message.c_str(), message.length()) !=
+      static_cast<int>(message.length())) {
     FM_LOG_ERROR("Error writing message (temp file: %s).", temp_filename);
     close(fd);
     unlink(temp_filename);
@@ -134,7 +135,7 @@ MessageQueue::MessageId MessageQueue::GetNextId() const {
   MessageId id = first_pid_id;
   vector<MessageId> ids;
   GetAvailableIds(ids);
-  for (int i = 0; i < ids.size(); ++i) {
+  for (unsigned int i = 0; i < ids.size(); ++i) {
     if (first_pid_id == (ids[i] >> 16) << 16)
       id = ids[i];  // Update with latest pid based id.
   }

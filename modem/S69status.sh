@@ -4,7 +4,7 @@ set -e
 
 DESC="Avalon SMS status"
 DIR=/usr/bin
-MODEM_QUEUE=/tmp/iridium
+MODEM_QUEUE=/tmp/modem
 
 case "$1" in
   start)

@@ -25,7 +25,6 @@ int test_sms_encode() {
     0x0A, 0xE8, 0x32, 0x9B, 0xFD, 0x46, 0x97, 0xD9, 0xEC, 0x37  // SMS text.
   };
   // SMS encoding example from: http://www.dreamfabric.com/sms/.
-  const time_t sms_time = 918788250;  // "12 Feb 1999 05:57:30 GMT+3"
   unsigned char buffer[36];
   int buffer_length = EncodeSMS("27381000015", "46708251358",
 				"hellohello", 10,
@@ -51,7 +50,6 @@ int test_sms_encode() {
 }
 
 int test_sms_decode() {
-  const time_t expected_sms_time = 918788250;  // "12 Feb 1999 05:57:30 GMT+3"
   const char expected_sms_phone[] = "27838890001";
   const char expected_sms_text[] = "hellohello";
   const unsigned char buffer[] = {

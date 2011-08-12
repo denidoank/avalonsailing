@@ -9,8 +9,21 @@
 #include <string.h>
 #include <time.h>
 
+char CharOfIntLT64(const int x) {
+  if (x < 0)
+    return '?';
+  if (x < 10)
+    return '0' + x;
+  if (x < 36)
+    return 'A' + (x - 10);
+  if (x < 62)
+    return 'a' + (x - 36);
+  // x >= 63
+  return '{';
+}
+
 // SMS Status Example:
-// 08184459GN451259W001195934215091259Bb000OtherStatusInfoInPlainText
+// 08184459GN451259W0011959342150912n3Bb000OtherStatusInfoInPlainText
 //
 // where:
 // 1. GMT date and time (8 digits)
@@ -31,9 +44,10 @@
 // 5. Wind speed average to 10 closest degrees and speed in knots:
 //    0912 = Wind average direction 090 +/-5 degrees, wind speed is 12 knots
 //
-// 6. Battery charge (1 digit) and fuel cell supply (1 digit)
-//    5 = medium (0 = empty, 9 = full, N = not available, X = failed)
-//    9 = full (0 = empty, 9 = full, N = not available, X = failed)
+// 6. Battery charge (1 digit) and fuel cell runtime (1 digit)
+//    Values are encoded using: 0-9 A-Z a-z = 62 values, '{' = 63 or more
+//    Battery charge: decoded value / 2 volts (e.g. 'n' -> 49 -> 24.5V)
+//    Fuel cell runtime: decoded value / 2 hours (e.g. '3' -> 3 -> 1.5h)
 //
 // 7. Number of tacks/jibes:
 //    B = 11 tacks: (0-9 A-Z a-z = 62 values, '{' = 63 or more tacks)
@@ -50,6 +64,8 @@ string BuildStatusMessage(const time_t status_time,
                           const IMUProto& imu_status,
                           const WindProto& wind_status,
                           const ModemProto& modem_status,
+                          const HelmsmanCtlProto& helmsman_status,
+                          const FuelcellProto& fuelcell_status,
                           const string& status_text) {
   // 1. GMT date and time (offset 0).
   char status[1024];
@@ -89,9 +105,9 @@ string BuildStatusMessage(const time_t status_time,
 
   // 3. Skipper bearing (offset 24).
   strcat(status + 24, "XXX");
-  double bearing = NAN;
-  if (!isnan(bearing)) {
-    sprintf(status + 24, "%03d", static_cast<int>(bearing) % 360);
+  if (!isnan(helmsman_status.alpha_star_deg)) {
+    const double bearing = round(helmsman_status.alpha_star_deg);
+    sprintf(status + 24, "%03d", (static_cast<int>(bearing) + 360) % 360);
   }
 
   // 4. Speed in .1 knot increments (offset 27)
@@ -117,10 +133,18 @@ string BuildStatusMessage(const time_t status_time,
   }
 
   // 6. Battery charge (1 digit) and fuel cell supply (offset 33).
-  strcat(status + 33, "NN");
+  strcat(status + 33, "??");
+  if (!isnan(fuelcell_status.tension_V)) {
+    status[33] =
+        CharOfIntLT64(static_cast<int>(fuelcell_status.tension_V * 2.0));
+  }
+  if (!isnan(fuelcell_status.runtime_h)) {
+    status[34] =
+        CharOfIntLT64(static_cast<int>(fuelcell_status.runtime_h * 2.0) % 64);
+  }
 
   // 7. Number of tacks/jibes (offset 35).
-  strcat(status + 35, "00");
+  strcat(status + 35, "??");
 
   // 8. Hardware/Software failures (offset 37).
   strcat(status + 37, "000");

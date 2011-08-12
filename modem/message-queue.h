@@ -23,13 +23,13 @@ class MessageQueue {
   void EmptyQueue();
 
   // Returns the number of messages in the queue.
-  int NumMessages();
+  unsigned int NumMessages();
 
   // Read message from the inbox from position index (between 0 to
   // NumMessages). First position corresponds to oldest pushed messages where
   // last position corresponds with the newest message. Returns a valid message
   // id, if successful, or kInvalidId otherwise.
-  MessageId GetMessage(const int index, string* message);
+  MessageId GetMessage(const unsigned int index, string* message);
 
   // Delete message with corresponding id. Returns true if successfull.
   bool DeleteMessage(const MessageId message_id);
