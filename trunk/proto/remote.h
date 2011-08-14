@@ -23,18 +23,24 @@ struct RemoteProto {
   // bit 4: force status report/ack.
   // bit 5-7: unused
   int command;
-  double bearing_deg;  // valid if command = 4 only.
+  double alpha_star_deg;  // valid if command = 4 only.
 };
+
+static const int kNormalControlMode = 1;
+static const int kDockingControlMode = 2;
+static const int kBrakeControlMode = 3;
+static const int kOverrideSkipperMode = 4;
+static const int kPowerShutdownMode = 5;
 
 #define INIT_REMOTEPROTO {0, 0, NAN}
 
 // For use in printf and friends.
 #define OFMT_REMOTEPROTO(x, n)                             \
-  "remote: timestamp_s:%ld command:%d bearing:%06.2lf%n",  \
+  "remote: timestamp_s:%ld command:%d alpha_star:%06.2lf%n",  \
     (x).timestamp_s, (x).command, (x).bearing_deg, (n)
 
 #define IFMT_REMOTEPROTO(x, n)                             \
-  "remote: timestamp_s:%ld command:%d bearing:%lf%n",	   \
-   &(x)->timestamp_s, &(x)->command, &(x)->bearing_deg, (n)
+  "remote: timestamp_s:%ld command:%d alpha_star:%lf%n",	   \
+   &(x)->timestamp_s, &(x)->command, &(x)->alpha_star_deg, (n)
 
 #endif // PROTO_REMOTE_H
