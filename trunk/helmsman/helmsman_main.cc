@@ -93,6 +93,21 @@ uint64_t now_ms() {
   return ms1 + ms2;
 }
 
+uint64_t now_micros() {
+  timeval tv;
+  if (gettimeofday(&tv, NULL) < 0) crash("gettimeofday");
+  return tv.tv_sec * 1000000LL + tv.tv_usec;
+}
+
+uint64_t nanos_to_wait(uint64_t last_controller_call_micros) {
+  uint64_t now = now_micros();
+  const uint64_t period = 100000LL;
+  uint64_t timeout = last_controller_call_micros + period > now ?
+     last_controller_call_micros + period - now :
+     0;
+  return 1000 * timeout;
+}
+
 void HandleRemoteControl(RemoteProto remote, int* control_mode) {
   if (remote.command != *control_mode)
     fprintf(stderr, "Helmsman switched to control mode %d\n", remote.command);
@@ -180,12 +195,14 @@ int main(int argc, char* argv[]) {
   ctrl_in.alpha_star_rad = Deg2Rad(225);  // Going SouthWest is a good guess (and breaks up a deadlock)
   int control_mode = kNormalControlMode;
   int loops = 0;
+  uint64_t last_run_micros = 0;
+
 
   while (!feof(stdin)) {
 
     if (ferror(stdin)) clearerr(stdin);
 
-    struct timespec timeout = { 0, 1E8 }; // wake up at least 10/second TODO: Exactly once every 100ms
+    struct timespec timeout = { 0, nanos_to_wait(last_run_micros) }; // Run ship cotroller exactly once every 100ms
     fd_set rfds;
     int max_fd = -1;
     FD_ZERO(&rfds);
@@ -205,7 +222,7 @@ int main(int argc, char* argv[]) {
 
       if (sscanf(line, IFMT_WINDPROTO(&wind, &nn)) > 0) {
         ctrl_in.wind.Reset();
-        ctrl_in.wind.alpha_deg = wind.angle_deg;
+        ctrl_in.wind.alpha_deg = SymmetricDeg(NormalizeDeg(wind.angle_deg));
         ctrl_in.wind.mag_kn = MeterPerSecondToKnots(wind.speed_m_s);
 
       } else if (sscanf(line, IFMT_IMUPROTO(&imu, &nn)) > 0) {
@@ -222,7 +239,7 @@ int main(int argc, char* argv[]) {
 
         ctrl_in.imu.attitude.phi_x_rad = Deg2Rad(imu.roll_deg);
         ctrl_in.imu.attitude.phi_y_rad = Deg2Rad(imu.pitch_deg);
-        ctrl_in.imu.attitude.phi_z_rad = Deg2Rad(imu.yaw_deg);
+        ctrl_in.imu.attitude.phi_z_rad = SymmetricRad(NormalizeRad(Deg2Rad(imu.yaw_deg)));
 
         ctrl_in.imu.position.latitude_deg = imu.lat_deg;
         ctrl_in.imu.position.longitude_deg = imu.lng_deg;
@@ -254,26 +271,28 @@ int main(int argc, char* argv[]) {
       }
     }
 
-    if (0/*too early*/) continue;
+    if (nanos_to_wait(last_run_micros) > 100)
+      continue;
     ControllerOutput ctrl_out;
-    if (ShipControl::Run(ctrl_in, &ctrl_out)) {
-      struct RudderProto ctl = {
-        now_ms(),
-        Rad2Deg(ctrl_out.drives_reference.gamma_rudder_star_left_rad),
-        Rad2Deg(ctrl_out.drives_reference.gamma_rudder_star_right_rad),
-        Rad2Deg(ctrl_out.drives_reference.gamma_sail_star_rad) };
-      printf(OFMT_RUDDERPROTO_CTL(ctl, &nn));
+    last_run_micros = now_micros();
+    ShipControl::Run(ctrl_in, &ctrl_out);
+    struct RudderProto ctl = {
+      now_ms(),
+      Rad2Deg(ctrl_out.drives_reference.gamma_rudder_star_left_rad),
+      Rad2Deg(ctrl_out.drives_reference.gamma_rudder_star_right_rad),
+      Rad2Deg(ctrl_out.drives_reference.gamma_sail_star_rad) };
+    printf(OFMT_RUDDERPROTO_CTL(ctl, &nn));
 
-      if (loops == 0) {
-        struct SkipperInputProto to_skipper = {
-          now_ms(), 
-          ctrl_out.skipper_input.longitude_deg,
-          ctrl_out.skipper_input.latitude_deg,
-          ctrl_out.skipper_input.angle_true_deg,
-          ctrl_out.skipper_input.mag_true_kn
-        };
-        printf(OFMT_SKIPPER_INPUTPROTO(to_skipper, &nn));
-      }
+    if (loops == 0) {
+      struct SkipperInputProto to_skipper = {
+        now_ms(),
+        ctrl_out.skipper_input.longitude_deg,
+        ctrl_out.skipper_input.latitude_deg,
+        ctrl_out.skipper_input.angle_true_deg,
+        ctrl_out.skipper_input.mag_true_kn
+      };
+      printf(OFMT_SKIPPER_INPUTPROTO(to_skipper, &nn));
+    }
       /*
       if (loops == 5) {
         struct HelmsmanStatus = {
@@ -281,8 +300,8 @@ int main(int argc, char* argv[]) {
         };
         printf(OFMT_HELMSMAN_STATUSPROTO);
       */
-      loops = loops == 9 ? 0 : loops+1;
-    }
+    loops = loops == 9 ? 0 : loops+1;
+
 
   }  // for ever
 
