@@ -29,14 +29,16 @@ FilterBlock* ShipControl::filter_block_ = new FilterBlock;
 
 // All methods are static.
 void ShipControl::Transition(Controller* new_state, const ControllerInput& in) {
-  if(debug)fprintf(stderr,"Transition %s -> %s\n", controller_->Name(), new_state->Name());
+  if(debug)
+    fprintf(stderr,"Transition %s -> %s\n", controller_->Name(), new_state->Name());
   controller_->Exit();
   controller_ = new_state;
   controller_->Entry(in, filtered_);  
 }
 
 void ShipControl::StateMachine(const ControllerInput& in) {
-  if(debug) fprintf(stderr, "Entering Statemachine with %s\n", controller_->Name());
+  if(debug)
+    fprintf(stderr, "Entering Statemachine with %s\n", controller_->Name());
 
   switch (meta_state_) {
   case kBraking:
@@ -76,13 +78,14 @@ void ShipControl::StateMachine(const ControllerInput& in) {
 	      in.alpha_star_rad != kUnknown ? Rad2Deg(in.alpha_star_rad) : NAN);
 
     if (controller_->Done() &&
-        wind_strength_apparent_ == kNormalWind &&
+        wind_strength_apparent_ != kCalmWind &&
         filter_block_->ValidTrueWind() &&
         in.alpha_star_rad != kUnknown) {
       Transition(&normal_controller_, in);
       return;
     } 
-    if(debug) fprintf(stderr, "InitialState, wait for true wind info and alpha_star\n");
+    if(debug)
+      fprintf(stderr, "InitialState, wait for true wind info and alpha_star\n");
   }
 
   if (controller_ == &normal_controller_) {
@@ -94,7 +97,8 @@ void ShipControl::StateMachine(const ControllerInput& in) {
     }
   }
 
-  if(debug) fprintf(stderr, "ShipControl::StateMachine stationary in state %s\n", controller_->Name());
+  if(debug)
+    fprintf(stderr, "ShipControl::StateMachine stationary in state %s\n", controller_->Name());
 }
 
 // This needs to run with the sampling period of 100ms.

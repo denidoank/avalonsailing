@@ -112,7 +112,7 @@ TEST(WrapAroundFilter, Median3ZigZag) {
 TEST(WrapAroundFilter, LowPass1FilterZigZagValid) {
   WrapAroundFilter f(new LowPass1Filter(10));
   for (int i = 0; i < 20; ++i) {
-    double out = f.Filter(i % 3 - 1 + 2);
+    f.Filter(i % 3 - 1 + 2);
     if (i >= 9) {
       EXPECT_TRUE(f.ValidOutput());
     } else {
