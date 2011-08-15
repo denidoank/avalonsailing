@@ -483,7 +483,6 @@ Richard intends to work more during July. Steffen will work for a week in July o
    independant start-up and live time.
    Send at a fixed period.
 
-
 3. This is a real-time system (at least drives, sensorics and helmsman)
    Part of the real world, has to be live at all times.
    The differential equations are replaced by difference equations
@@ -492,21 +491,14 @@ Richard intends to work more during July. Steffen will work for a week in July o
    are constant, otherwise we would have to calculate them anew
    everytime we run a the ship controller using exponential functions. 
    This means te ship control has to run at a constant frequency.
-
-  * Luuk, AIS wrapper
-
+  * Luuk,
+    AIS wrapper
   * Steffen
   Get ETH support for today
-
-
   * Richard
   AIS antenna
-
-
-
   *  Start week: Friday 16.9. plus following week
       4 to 5 days sea testing and release
   * Emma GlobalTag,
     - Fax to the police
     - email GlobalTag again
-
