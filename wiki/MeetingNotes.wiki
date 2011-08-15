@@ -442,3 +442,71 @@ Luuk: SMS interface into the Drive demon and to the helmsman
 
 Critical is that we are lagging behind our schedule.
 Richard intends to work more during July. Steffen will work for a week in July on Avalon.
+
+
+== 2011-08-15 ==
+
+  * POWER_SHUTDOWN, helmsman exits, system reboots needs to kick watchdog.
+  * marius: fuel cell monitor, remote control by SMS
+
+  * Steffen
+   remote control execution
+  * Dont panic
+1. need to keep what we've got so far,
+   not loosing functionality with changes
+   (e.g. valid flag functions)
+2. Do not repeat mistakes
+-  Resolution problem with GPS latitude longitude coordinates having 3
+   digits after the decimal point reappeared with the rudder angle having 1 digit after the point only.
+   This is an artificial stair function, an artificial non-linearity which
+   costs us energy because the rudder cannot get to its equilibrical point
+   and speed.
+
+-  Rudder must not be sticky
+   We talked about the effect of the slack in the rudder mechanism.
+   Exactly the same applies the the rudder control.
+   The rudder control value must be passed through as it is, unchanged and 
+   immediately.
+   (Currently it doesn't change, if the reference value deviates from the actual by less than 1.5 degrees,
+   which is about 8% of our control range. This drives the bearing controller mad
+   and costs a lot of energy and speed.)
+
+- Sail angle can be sticky (not in a closed loop, but ideally  that logic should go into the sail controller
+  where it is tested and documented. 
+  
+- Write tests
+
+- Use what is there, tested and tuned (e.g. boat_model.cc)
+
+- The communication pattern
+   Send-on-change-only is broken because the participants have an 
+   independant start-up and live time.
+   Send at a fixed period.
+
+
+3. This is a real-time system (at least drives, sensorics and helmsman)
+   Part of the real world, has to be live at all times.
+   The differential equations are replaced by difference equations
+   under the assumption that the sampling period is constant.
+   This has the advantage that all coefficients of the difference equations
+   are constant, otherwise we would have to calculate them anew
+   everytime we run a the ship controller using exponential functions. 
+   This means te ship control has to run at a constant frequency.
+
+  * Luuk, AIS wrapper
+
+  * Steffen
+  Get ETH support for today
+
+
+  * Richard
+  AIS antenna
+
+
+
+  *  Start week: Friday 16.9. plus following week
+      4 to 5 days sea testing and release
+  * Emma GlobalTag,
+    - Fax to the police
+    - email GlobalTag again
+
