@@ -206,7 +206,7 @@ int main(int argc, char** argv) {
           if (tolower(message.at(0)) == 'o')  { // Override
             char* endptr = NULL;
             if (sscanf(message.substr(1).c_str(), "%lf",
-                &remote_status.bearing_deg) == 1)
+                &remote_status.alpha_star_deg) == 1)
               remote_status.command = 4;
           }
         if (tolower(message.at(0)) == 'p')  // Power off.
