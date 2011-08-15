@@ -36,9 +36,14 @@ private:
   QGraphicsScene scene_;
   QGraphicsPolygonItem* boat_;
   QGraphicsPolygonItem* boom_;
+  QGraphicsLineItem* target_boom_;
   QGraphicsLineItem* rudder_left_;
   QGraphicsLineItem* rudder_right_;
+  QGraphicsLineItem* target_rudder_left_;
+  QGraphicsLineItem* target_rudder_right_;
   QGraphicsEllipseItem* compass_;
+  QGraphicsLineItem* target_heading_;
+  QGraphicsLineItem* wind_;
 
   void drawBoat();
 
