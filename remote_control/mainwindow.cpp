@@ -68,9 +68,15 @@ void MainWindow::updateView() {
   // Update the drawing.
 
   compass_->setRotation(state_->getDouble("imud", "yaw_deg"));
+  target_heading_->setRotation(state_->getDouble("helm", "alpha_star_deg"));
+  wind_->setRotation(state_->getDouble("wind", "angle_deg"));
+
   boom_->setRotation(state_->getDouble("rudderssts", "sail_deg"));
+  target_boom_->setRotation(state_->getDouble("ruddersctl", "sail_deg"));
   rudder_left_->setRotation(state_->getDouble("ruddersts", "rudder_l_deg"));
   rudder_right_->setRotation(state_->getDouble("ruddersts", "rudder_r_deg"));
+  target_rudder_left_->setRotation(state_->getDouble("rudderctl", "rudder_l_deg"));
+  target_rudder_right_->setRotation(state_->getDouble("rudderctl", "rudder_r_deg"));
 
   ui->graphicsView->update();
 }
@@ -112,13 +118,32 @@ void MainWindow::drawBoat() {
   boom_->setPen(black_border);
   boom_->setPos(0, -20);
 
+  wind_ = new QGraphicsLineItem(0, 0, 0, -30, boom_, &scene_);
+  wind_->setPos(0, -20);
+  QPen wind_pen(QColor(0, 99, 0));
+  wind_pen.setWidth(2);
+  wind_->setPen(wind_pen);
+
+  target_boom_ = new QGraphicsLineItem(0,0, 0, 60, boat_, &scene_);
+  QPen target_pen(QColor(255,0,0));
+  target_pen.setWidth(2);
+  target_pen.setStyle(Qt::DashLine);
+  target_boom_->setPen(target_pen);
+  target_boom_->setPos(0, -20);
+
   rudder_left_ = new QGraphicsLineItem(0, 0, 0, 40, boat_, &scene_);
   rudder_left_->setPos(-20, 120);
   rudder_left_->setPen(black_border);
+  target_rudder_left_ = new QGraphicsLineItem(0, 0, 0, 40, boat_, &scene_);
+  target_rudder_left_->setPos(-20, 120);
+  target_rudder_left_->setPen(target_pen);
 
   rudder_right_ = new QGraphicsLineItem(0, 0, 0, 40, boat_, &scene_);
   rudder_right_->setPos(20, 120);
   rudder_right_->setPen(black_border);
+  target_rudder_left_ = new QGraphicsLineItem(0, 0, 0, 40, boat_, &scene_);
+  target_rudder_left_->setPos(20, 120);
+  target_rudder_left_->setPen(target_pen);
 
   // Draw the compass.
   compass_ = new QGraphicsEllipseItem(-40, -40, 80, 80);
@@ -141,6 +166,9 @@ void MainWindow::drawBoat() {
   new QGraphicsLineItem(-20, 0, 20, 0, compass_, &scene_);
 
   compass_->setPos(-160, -100);
+  target_heading_ = new QGraphicsLineItem(0, 0, 0, -60, 0, &scene_);
+  target_heading_->setPos(compass_->pos());
+  target_heading_->setPen(target_pen);
 
   ui->graphicsView->setScene(&scene_);
 }
