@@ -35,12 +35,12 @@ static const int kPowerShutdownMode = 5;
 #define INIT_REMOTEPROTO {0, 0, NAN}
 
 // For use in printf and friends.
-#define OFMT_REMOTEPROTO(x, n)                             \
+#define OFMT_REMOTEPROTO(x, n)                                \
   "remote: timestamp_s:%ld command:%d alpha_star:%06.2lf%n",  \
-    (x).timestamp_s, (x).command, (x).bearing_deg, (n)
+    (x).timestamp_s, (x).command, (x).alpha_star_deg, (n)
 
-#define IFMT_REMOTEPROTO(x, n)                             \
-  "remote: timestamp_s:%ld command:%d alpha_star:%lf%n",	   \
+#define IFMT_REMOTEPROTO(x, n)                                 \
+  "remote: timestamp_s:%ld command:%d alpha_star:%lf%n",       \
    &(x)->timestamp_s, &(x)->command, &(x)->alpha_star_deg, (n)
 
 #endif // PROTO_REMOTE_H
