@@ -56,8 +56,9 @@ void DriveReferenceValues::Reset() {
 }
 
 void DriveReferenceValues::Check() {
-  CHECK_IN_INTERVAL(-180, gamma_rudder_star_left_deg, 180);
-  CHECK_IN_INTERVAL(-180, gamma_rudder_star_right_deg, 180);
+  // mechanical limits, rudder might block
+  CHECK_IN_INTERVAL(-25, gamma_rudder_star_left_deg, 90);
+  CHECK_IN_INTERVAL(-90, gamma_rudder_star_right_deg, 25);
   CHECK_IN_INTERVAL(-180, gamma_sail_star_deg, 180);
 }
 
@@ -107,6 +108,13 @@ DriveReferenceValuesRad::DriveReferenceValuesRad(
   gamma_rudder_star_left_rad  = Deg2Rad(ref_deg.gamma_rudder_star_left_deg);
   gamma_rudder_star_right_rad = Deg2Rad(ref_deg.gamma_rudder_star_right_deg);
   gamma_sail_star_rad = Deg2Rad(ref_deg.gamma_sail_star_deg);
+}
+
+void DriveReferenceValuesRad::Check() {
+  // mechanical limits, rudder might block
+  CHECK_IN_INTERVAL(Deg2Rad( -25, gamma_rudder_star_left_rad,  Deg2Rad(90));
+  CHECK_IN_INTERVAL(Deg2Rad( -90, gamma_rudder_star_right_rad, Deg2Rad(25));
+  CHECK_IN_INTERVAL(Deg2Rad(-180, gamma_sail_star_rad,         Deg2Rad(180));
 }
 
 void DriveReferenceValuesRad::Reset() {

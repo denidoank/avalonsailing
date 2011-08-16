@@ -130,7 +130,7 @@ void HandleRemoteControl(RemoteProto remote, int* control_mode) {
       ShipControl::Normal();
       break;
   default:
-    crash("Illegal remote control");
+    fprintf(stderr, "Illegal remote control");
   }
 }
 
