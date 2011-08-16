@@ -17,7 +17,7 @@
 // at 0.5, 1, 2, 3, 6 kts water speed.
 void LogCLiftDiagram() {
   double speeds_kn[] = {0.5, 1, 2, 3, 6};
-  for (int i = 0; i < sizeof(speeds_kn) / sizeof(speeds_kn[0]); ++i) {
+  for (size_t i = 0; i < sizeof(speeds_kn) / sizeof(speeds_kn[0]); ++i) {
     double water_speed = KnotsToMeterPerSecond(speeds_kn[i]);
     printf("\n For water_speed: %g m/s\n", water_speed);
     printf("C_Lift, angle/degree, limited\n");
