@@ -112,9 +112,9 @@ DriveReferenceValuesRad::DriveReferenceValuesRad(
 
 void DriveReferenceValuesRad::Check() {
   // mechanical limits, rudder might block
-  CHECK_IN_INTERVAL(Deg2Rad( -25, gamma_rudder_star_left_rad,  Deg2Rad(90));
-  CHECK_IN_INTERVAL(Deg2Rad( -90, gamma_rudder_star_right_rad, Deg2Rad(25));
-  CHECK_IN_INTERVAL(Deg2Rad(-180, gamma_sail_star_rad,         Deg2Rad(180));
+  CHECK_IN_INTERVAL(Deg2Rad( -25), gamma_rudder_star_left_rad,  Deg2Rad(90));
+  CHECK_IN_INTERVAL(Deg2Rad( -90), gamma_rudder_star_right_rad, Deg2Rad(25));
+  CHECK_IN_INTERVAL(Deg2Rad(-180), gamma_sail_star_rad,         Deg2Rad(180));
 }
 
 void DriveReferenceValuesRad::Reset() {
