@@ -67,12 +67,12 @@ void MainWindow::updateView() {
 
   // Update the drawing.
 
-  compass_->setRotation(state_->getDouble("imud", "yaw_deg"));
+  compass_->setRotation(state_->getDouble("imu", "yaw_deg"));
   target_heading_->setRotation(state_->getDouble("helm", "alpha_star_deg"));
   wind_->setRotation(state_->getDouble("wind", "angle_deg"));
 
-  boom_->setRotation(state_->getDouble("rudderssts", "sail_deg"));
-  target_boom_->setRotation(state_->getDouble("ruddersctl", "sail_deg"));
+  boom_->setRotation(state_->getDouble("ruddersts", "sail_deg"));
+  target_boom_->setRotation(state_->getDouble("rudderctl", "sail_deg"));
   rudder_left_->setRotation(state_->getDouble("ruddersts", "rudder_l_deg"));
   rudder_right_->setRotation(state_->getDouble("ruddersts", "rudder_r_deg"));
   target_rudder_left_->setRotation(state_->getDouble("rudderctl", "rudder_l_deg"));
@@ -141,9 +141,9 @@ void MainWindow::drawBoat() {
   rudder_right_ = new QGraphicsLineItem(0, 0, 0, 40, boat_, &scene_);
   rudder_right_->setPos(20, 120);
   rudder_right_->setPen(black_border);
-  target_rudder_left_ = new QGraphicsLineItem(0, 0, 0, 40, boat_, &scene_);
-  target_rudder_left_->setPos(20, 120);
-  target_rudder_left_->setPen(target_pen);
+  target_rudder_right_ = new QGraphicsLineItem(0, 0, 0, 40, boat_, &scene_);
+  target_rudder_right_->setPos(20, 120);
+  target_rudder_right_->setPen(target_pen);
 
   // Draw the compass.
   compass_ = new QGraphicsEllipseItem(-40, -40, 80, 80);
