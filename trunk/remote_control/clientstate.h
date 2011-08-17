@@ -32,6 +32,8 @@ public:
           return getVar(daemon, var).toDouble();
   }
 
+  void writeToBus(const char* data);
+
 signals:
 
   void dataUpdate();
@@ -48,12 +50,11 @@ public slots:
   void processFinished(int exitCode, QProcess::ExitStatus exitStatus);
 
 private:
+  void processLine(const QString& line);
+
   QString command_;
-
   QProcess ssh_process_;
-
   QMap<QString, QMap<QString, QString> > data_;
-
   QTimer restart_timer_;
 };
 

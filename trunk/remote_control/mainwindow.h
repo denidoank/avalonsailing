@@ -12,6 +12,7 @@
 #include <QGraphicsPolygonItem>
 #include <QGraphicsScene>
 #include <QGraphicsEllipseItem>
+#include "anglecontroller.h"
 #include "clientstate.h"
 #include "config_dialog.h"
 
@@ -45,9 +46,15 @@ private:
   QGraphicsLineItem* target_heading_;
   QGraphicsLineItem* wind_;
 
+  AngleController* boom_controller_;
+  AngleController* heading_controller_;
+  AngleController* rudder_controller_;
+
   void drawBoat();
 
 public slots:
+  void onRudderCtlActivated(double angle);
+  void onTargetHeadingRotated(double angle);
 
 private slots:
   void on_actionConnect_triggered();

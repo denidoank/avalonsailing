@@ -35,39 +35,43 @@ void ClientState::tryToConnect() {
   emit consoleOutput(QString("Running: ") + cmd);
 }
 
+void ClientState::processLine(const QString& line) {
+ if( line.size() <= 0 ) {
+   return;
+ }
+
+ QStringList key_vals = line.split(" ", QString::SkipEmptyParts);
+ if (key_vals.size() == 0) {
+   emit consoleOutput("Can't parse: " + line);
+   return;
+ }
+ QStringList first = key_vals[0].split(":", QString::SkipEmptyParts);
+ if (first.size() != 1) {
+   emit consoleOutput("Can't parse: " + line);
+   return;
+ }
+
+ QString source = first[0];
+ QStringList keys, values;
+ for (int i = 1; i < key_vals.size(); ++i) {
+   QStringList entry = key_vals[i].split(":", QString::SkipEmptyParts);
+   if (entry.size() != 2) {
+     if (key_vals[i].trimmed().size() > 0) {
+       emit consoleOutput("Can't understand: '" + key_vals[i] + "'");
+     }
+     return;
+   }
+   keys.append(entry[0]);
+   data_[source][entry[0]] = entry[1].trimmed();
+ }
+ emit dataUpdate();
+}
+
 void ClientState::gotData() {
   ssh_process_.setReadChannel(QProcess::StandardOutput);
   while (ssh_process_.canReadLine()) {
     QString line(ssh_process_.readLine(8192));
-    if( line.size() <= 0 ) {
-      continue;
-    }
-
-    QStringList key_vals = line.split(" ", QString::SkipEmptyParts);
-    if (key_vals.size() == 0) {
-      emit consoleOutput("Can't parse: " + line);
-      continue;
-    }
-    QStringList first = key_vals[0].split(":", QString::SkipEmptyParts);
-    if (first.size() != 1) {
-      emit consoleOutput("Can't parse: " + line);
-      continue;
-    }
-
-    QString source = first[0];
-    QStringList keys, values;
-    for (int i = 1; i < key_vals.size(); ++i) {
-      QStringList entry = key_vals[i].split(":", QString::SkipEmptyParts);
-      if (entry.size() != 2) {
-        if (key_vals[i].trimmed().size() > 0) {
-          emit consoleOutput("Can't understand: '" + key_vals[i] + "'");
-        }
-        continue;
-      }
-      keys.append(entry[0]);
-      data_[source][entry[0]] = entry[1].trimmed();
-    }
-    emit dataUpdate();
+    processLine(line);
   }
 }
 
@@ -92,4 +96,14 @@ void ClientState::processFinished(int exitCode, QProcess::ExitStatus exitStatus)
   emit consoleOutput("Process finished. Restarting it in 1 second.");
   restart_timer_.setSingleShot(true);
   restart_timer_.start(1000);
+}
+
+void ClientState::writeToBus(const char *data) {
+  QString data_string(QString::fromAscii(data));
+  processLine(data_string);
+  if (ssh_process_.isWritable()) {
+    ssh_process_.write(data);
+ } else {
+   emit consoleOutput(QString("Can't write command: ") + data_string);
+ }
 }
