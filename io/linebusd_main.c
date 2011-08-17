@@ -6,6 +6,8 @@
 // connected client.
 //
 //
+#define _GNU_SOURCE
+
 #include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
@@ -262,7 +264,7 @@ int main(int argc, char* argv[]) {
 	unlink(argv[0]);
 	int sck = socket(AF_LOCAL, SOCK_STREAM, 0);
 	if (sck < 0) crash("socket");
-	struct sockaddr_un srvaddr = { AF_LOCAL, 0 };
+	struct sockaddr_un srvaddr = { AF_LOCAL, {0} };
 	strncpy(srvaddr.sun_path, argv[0], sizeof srvaddr.sun_path );
 	if (bind(sck, (struct sockaddr*) &srvaddr, sizeof srvaddr) < 0) crash("bind(%S)", argv[0]);
 	if (listen(sck, 8) < 0) crash("listen");

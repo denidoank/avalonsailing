@@ -311,7 +311,7 @@ int sail_control(Device* motor, Device* bmmh,
 		 MotorParams* motor_params, MotorParams* bmmh_params,
 		 double target_angle_deg, double* actual_angle_deg) {
 
-        int r, i;
+        int r;
         uint32_t status;
         uint32_t error;
         uint32_t control;
