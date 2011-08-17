@@ -8,6 +8,7 @@
 // and try to maintain rudder homing bit and target position, and sail
 // target position.
 //
+#define _GNU_SOURCE
 
 #include <errno.h>
 #include <fcntl.h>
@@ -20,6 +21,7 @@
 #include <sys/select.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <sys/types.h>
 #include <sys/un.h>
 #include <sys/wait.h>
@@ -40,7 +42,7 @@ struct MotorParams motor_params[] = {
         { "BMMH",  0x00001227,  -180, 180.0, 2048, -2048 }, // 4096 tics for a complete rotation
 };
 
-static const char* version = "$Id: $";
+// static const char* version = "$Id: $";
 static const char* argv0;
 static int verbose = 0;
 static int debug = 0;
@@ -220,7 +222,7 @@ int main(int argc, char* argv[]) {
       if (ferror(stdin)) clearerr(stdin);
     }
 
-    if (debug>2) fprintf(stderr, "Handling bus\n", r);
+    if (debug>2) fprintf(stderr, "Handling bus\n");
 
     bus_flush(bus, &wfds);
     bus_receive(bus, &rfds);

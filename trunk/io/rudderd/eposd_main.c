@@ -21,6 +21,7 @@
 //  (fputs returns EAGAIN), lines from slave to client are dropped!
 //  lines from client to slave that cause the slave to block will block
 //  the client.
+#define _GNU_SOURCE
 
 #include <errno.h>
 #include <fcntl.h>
@@ -300,7 +301,7 @@ int main(int argc, char* argv[]) {
 
 	int sck = socket(AF_LOCAL, SOCK_STREAM, 0);
 	if (sck < 0) crash("socket");
-	struct sockaddr_un srvaddr = { AF_LOCAL, 0 };
+	struct sockaddr_un srvaddr = { AF_LOCAL, { 0 }};
 	strncpy(srvaddr.sun_path, path_to_socket, sizeof(srvaddr.sun_path));
 	if (bind(sck, (struct sockaddr*) &srvaddr, sizeof(srvaddr)) < 0)
                 crash("bind");

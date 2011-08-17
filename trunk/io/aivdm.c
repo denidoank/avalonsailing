@@ -211,7 +211,7 @@ aivdm_decode(const char *buf, size_t buflen,
 
 	/* extract packet fields */
 	memset(fieldcopy, 0, sizeof(fieldcopy));
-	strncpy(fieldcopy, buf, sizeof(fieldcopy)-1);
+	strncpy((char*)fieldcopy, buf, sizeof(fieldcopy)-1);
 	field[nfields++] = (uint8_t *)buf;
 	for (cp = fieldcopy; cp < fieldcopy + buflen; cp++)
 		if (*cp == ',') {
