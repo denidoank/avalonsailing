@@ -12,6 +12,8 @@
 
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include "../proto/rudder.h"
+#include "../proto/helmsman.h"
 
 MainWindow::MainWindow(ClientState* state, QWidget *parent) :
   QMainWindow(parent),
@@ -67,7 +69,7 @@ void MainWindow::updateView() {
 
   // Update the drawing.
 
-  compass_->setRotation(state_->getDouble("imu", "yaw_deg"));
+  compass_->setRotation(-state_->getDouble("imu", "yaw_deg"));
   target_heading_->setRotation(state_->getDouble("helm", "alpha_star_deg"));
   wind_->setRotation(state_->getDouble("wind", "angle_deg"));
 
@@ -131,6 +133,10 @@ void MainWindow::drawBoat() {
   target_boom_->setPen(target_pen);
   target_boom_->setPos(0, -20);
 
+  boom_controller_ = new AngleController(QPointF(0, 60), 5, boat_);
+  boom_controller_->setPos(0, -20);
+  connect(boom_controller_, SIGNAL(turned(double)), SLOT(onRudderCtlActivated(double)));
+
   rudder_left_ = new QGraphicsLineItem(0, 0, 0, 40, boat_, &scene_);
   rudder_left_->setPos(-20, 120);
   rudder_left_->setPen(black_border);
@@ -144,6 +150,11 @@ void MainWindow::drawBoat() {
   target_rudder_right_ = new QGraphicsLineItem(0, 0, 0, 40, boat_, &scene_);
   target_rudder_right_->setPos(20, 120);
   target_rudder_right_->setPen(target_pen);
+
+  rudder_controller_ = new AngleController(QPointF(0, 40), 5, boat_);
+  rudder_controller_->setPos(20,120);
+  connect(rudder_controller_, SIGNAL(turned(double)), SLOT(onRudderCtlActivated(double)));
+
 
   // Draw the compass.
   compass_ = new QGraphicsEllipseItem(-40, -40, 80, 80);
@@ -166,9 +177,37 @@ void MainWindow::drawBoat() {
   new QGraphicsLineItem(-20, 0, 20, 0, compass_, &scene_);
 
   compass_->setPos(-160, -100);
-  target_heading_ = new QGraphicsLineItem(0, 0, 0, -60, 0, &scene_);
-  target_heading_->setPos(compass_->pos());
+  compass_->setRotation(45);
+  target_heading_ = new QGraphicsLineItem(0, 0, 0, -60, compass_, &scene_);
   target_heading_->setPen(target_pen);
+  heading_controller_ = new AngleController(QPointF(0, -60), 5, compass_);
+  connect(heading_controller_, SIGNAL(turned(double)), SLOT(onTargetHeadingRotated(double)));
 
   ui->graphicsView->setScene(&scene_);
+}
+
+void MainWindow::onRudderCtlActivated(double) {
+  RudderProto command;
+  command.timestamp_ms = 0;
+  command.rudder_l_deg = rudder_controller_->rotation();
+  command.rudder_r_deg = command.rudder_l_deg;
+  command.sail_deg = boom_controller_->rotation();
+
+  size_t BufSize = 256;
+  char buf[BufSize];
+  int length;
+  ::snprintf(buf, BufSize, OFMT_RUDDERPROTO_CTL(command, &length));
+  state_->writeToBus(buf);
+}
+
+void MainWindow::onTargetHeadingRotated(double angle) {
+  HelmsmanCtlProto proto;
+  proto.timestamp_ms = 0;
+  proto.alpha_star_deg = angle;
+
+  size_t BufSize = 256;
+  char buf[BufSize];
+  int length;
+  ::snprintf(buf, BufSize, OFMT_HELMSMANCTLPROTO(proto, &length));
+  state_->writeToBus(buf);
 }

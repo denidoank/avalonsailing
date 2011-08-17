@@ -28,7 +28,7 @@ struct SkipperInputProto {
 
 // For use in printf and friends.
 #define OFMT_SKIPPER_INPUTPROTO(x, n)  \
-  "skipper_input: timestamp_ms:%lld longitude_deg:%lf latitude_deg:%lf angle_true_deg:%6.2lf mag_true_kn:%6.2lf%n\n", \
+  "skipper_input: timestamp_ms:%lld longitude_deg:%lf latitude_deg:%lf angle_true_deg:%.2lf mag_true_kn:%.2lf%n\n", \
    (x).timestamp_ms, (x).longitude_deg, (x).latitude_deg, (x).angle_true_deg, (x).mag_true_kn, (n)
 
 
