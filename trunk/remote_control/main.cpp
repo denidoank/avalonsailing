@@ -6,6 +6,7 @@
 // Entry point for the remote_control application.
 
 #include <QtGui/QApplication>
+#include <QString>
 #include "mainwindow.h"
 #include "clientstate.h"
 
@@ -14,6 +15,10 @@ int main(int argc, char *argv[])
   QApplication a(argc, argv);
   ClientState state;
   MainWindow w(&state);
+  if (argc > 1) {
+    state.setCommand(QString::fromAscii(argv[1]));
+    state.tryToConnect();
+  }
   w.show();
   return a.exec();
 }
