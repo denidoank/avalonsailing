@@ -3,7 +3,7 @@
 // that can be found in the LICENSE file.
 //
 // Open serial port and decode IMU MTData messages
-// 
+//
 
 #include <errno.h>
 #include <fcntl.h>
@@ -20,6 +20,7 @@
 
 #include "../proto/imu.h"
 #include "mtcp.h"
+#include "correct_compass_angle.h"
 
 // -----------------------------------------------------------------------------
 //   Together with getopt in main, this is our minimalistic UI
@@ -342,7 +343,7 @@ int main(int argc, char* argv[]) {
       continue;
     }
 
-    CorrectCompassAngle(vars.lat_deg, vars.lon_deg, &vars.yaw_deg);
+    // link problem CorrectCompassAngle(vars.lat_deg, vars.lng_deg, &vars.yaw_deg);
 
     int nn = 0;
     printf(OFMT_IMUPROTO(vars, &nn));

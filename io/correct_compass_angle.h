@@ -3,7 +3,7 @@
 // that can be found in the LICENSE file.
 // Steffen Grundmann, May 2011
 
-// Sail brake status is managed by the drive interface. 
+// Sail brake status is managed by the drive interface.
 // All angle values in degrees. For the drives the [-180, 180] convention
 // is used.
 // Constructors, Reset, Check and conversion functions are provided for.
@@ -14,7 +14,12 @@
 // Given the current position, the compass_deg bearing is corrected to the
 // value in relation to true North.
 // If the coordinates are Nan or outside of the expected range, we do nothing.
-void  CorrectCompassAngle(double lat_deg, double lon_deg, double* compass_deg);
-
+#ifdef __CPP__
+extern "C" {
+#endif
+void CorrectCompassAngle(double lat_deg, double lon_deg, double* compass_deg);
+#ifdef __CPP__
+};
+#endif
 
 #endif  // IO_CORRECT_COMPASS_ANGLE_H
