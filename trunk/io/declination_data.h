@@ -6,8 +6,8 @@
 #ifndef MAGNETIC_DECLINATION_DATA_H
 #define MAGNETIC_DECLINATION_DATA_H
 
-const static double step_lat = 5;
-const static double step_lon = 5;
+const static double lat_step = 5;
+const static double lon_step = 5;
 
 const static double lat_min = 0;
 const static double lat_max = 50;
