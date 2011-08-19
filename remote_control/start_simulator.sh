@@ -24,14 +24,21 @@ fi
 popd
 
 # killing linebusd should kill everything.
-killall linebusd
+killall linebusd fakeimu fakerudderd fakewind || true
 
 # Run the bus and the fake boat
 ./io/linebusd $LBUS
+sleep 1
+
 ${PLUG} ./fakeio/fakeimu &
 ${PLUG} ./fakeio/fakerudderd &
 ${PLUG} ./fakeio/fakewind &
+
+sleep 1
+
 ${PLUG} ./helmsman/helmsman &
+
+sleep 1
 
 # Run the remote_control tool, and configure it.
 CONNECT_CMD=$(pwd)"/io/plug ${LBUS}"
