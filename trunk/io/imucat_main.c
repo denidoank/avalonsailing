@@ -20,7 +20,6 @@
 
 #include "../proto/imu.h"
 #include "mtcp.h"
-#include "correct_compass_angle.h"
 
 // -----------------------------------------------------------------------------
 //   Together with getopt in main, this is our minimalistic UI
