@@ -342,6 +342,8 @@ int main(int argc, char* argv[]) {
       continue;
     }
 
+    CorrectCompassAngle(vars.lat_deg, vars.lon_deg, &vars.yaw_deg);
+
     int nn = 0;
     printf(OFMT_IMUPROTO(vars, &nn));
   }
