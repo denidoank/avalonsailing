@@ -32,6 +32,8 @@ using std::vector;
 // Each center has to lie within exactly one other TargetCircle,
 // except for the center of the first TargetCircle, which must not be within any other.
 struct TargetCirclePoint {
+  TargetCirclePoint(double lat, double lon, double radius_deg)
+      :  lat_lon(lat, lon), radius_deg(radius_deg) {}
   LatLon lat_lon;
   double radius_deg;
 };

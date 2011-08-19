@@ -17,7 +17,7 @@ AvalonState DefaultState() {
   AvalonState state;
   state.position = LatLon::Degrees(42, -15);
   state.target = Bearing::West();
-  state.wind = Bearing::Degrees(180);
+  state.wind_from = Bearing::Degrees(180);
   state.wind_speed_m_s = 10;
   return state;
 }
@@ -34,7 +34,7 @@ AisInfo MakeShip(const AvalonState& avalon,
   return res;
 }
 
-double ExpectedVelocity(Bearing wind, double wind_speed_m_s, Bearing avalon) {
+double ExpectedVelocity(Bearing wind_from, double wind_speed_m_s, Bearing avalon) {
   if (wind_speed_m_s < 1e-9) {
     // TODO(zis): why ReadPolarDiagram doesn't do it?
     return 0;
@@ -42,7 +42,7 @@ double ExpectedVelocity(Bearing wind, double wind_speed_m_s, Bearing avalon) {
   double speed_m_s;
   bool dead_tack;
   bool dead_jibe;
-  ReadPolarDiagram(wind.deg() - avalon.deg(), wind_speed_m_s,
+  ReadPolarDiagram(wind_from.deg() - avalon.deg(), wind_speed_m_s,
                    &dead_tack, &dead_jibe, &speed_m_s);
   return speed_m_s;
 }
@@ -56,7 +56,9 @@ double Simulate(const AvalonState& avalon_in,
 
   for (int tick = 0; tick < ticks; ++tick) {
     Bearing bearing = RunVSkipper(avalon, ships, 0);
-    double v = ExpectedVelocity(avalon.wind, avalon.wind_speed_m_s, bearing);
+    double v = ExpectedVelocity(avalon.wind_from,
+                                avalon.wind_speed_m_s,
+                                bearing);
     double min_dist = 1e11;
     for (size_t i = 0; i < ships.size(); ++i) {
       Bearing a_b;
@@ -85,6 +87,27 @@ ATEST(VSkipper, Smoke) {
   Bearing actual = RunVSkipper(state, std::vector<AisInfo>(), 0);
 
   EXPECT_NEAR(270, 5, actual.deg());
+}
+
+/*
+ATEST(VSkipper, Smoke45) {
+  AvalonState state = DefaultState();
+  state.target = Bearing::Degrees(45);
+  Bearing actual = RunVSkipper(state, std::vector<AisInfo>(), 0);
+
+  EXPECT_NEAR(45, 5, actual.deg());
+}
+*/
+
+ATEST(VSkipper, Around) {
+  AvalonState state = DefaultState();
+  for (int target = -180; target < 180; ++target) { 
+    state.target = Bearing::Degrees(target);
+    Bearing actual = RunVSkipper(state, std::vector<AisInfo>(), 0);
+    if (fabs(target - actual.deg()) > 1)
+      fprintf(stderr, "target: %d , out %g\n", target, actual.deg());
+    //EXPECT_NEAR(target, 1, actual.deg());
+  }
 }
 
 ATEST(VSkipper, TreeInTheWay) {

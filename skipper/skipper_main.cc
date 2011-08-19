@@ -82,7 +82,7 @@ void usage(void) {
 int clsockopen(const char* path) {
   int fd = socket(AF_LOCAL, SOCK_STREAM, 0);
   if (fd < 0) crash("socket");
-  struct sockaddr_un addr = { AF_LOCAL, 0 };
+  struct sockaddr_un addr = { {AF_LOCAL}, 0 };
   strncpy(addr.sun_path, path, sizeof(addr.sun_path));
   if (connect(fd, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
     close(fd);
@@ -215,7 +215,7 @@ int main(int argc, char* argv[]) {
 
   bool skipper_out_pending = false;
   SkipperInput skipper_input;   // reported back from helmsman
-  std::vector<AISInfo> ais;
+  std::vector<skipper::AisInfo> ais;
   double alpha_star_deg;
 
   // Main loop
@@ -247,8 +247,8 @@ int main(int argc, char* argv[]) {
     if (FD_ISSET(fileno(held), &rfds)) {
       char line[1024];
       while (fgets(line, sizeof line, held)) {
-	int n = sscan_skipper_input(line, &skipper_input);
-	if (!n && debug) fprintf(stderr, "Ignoring garbage from helmsmand: %s\n", line);
+	      int n = sscan_skipper_input(line, &skipper_input);
+	      if (!n && debug) fprintf(stderr, "Ignoring garbage from helmsmand: %s\n", line);
       }
       if (feof(held) || (ferror(held) && errno!= EAGAIN)) crash("reading from helmsmand");
     }

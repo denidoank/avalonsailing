@@ -18,7 +18,7 @@ struct AvalonState {
   // Desired direction (according to global planner)
   Bearing target;
   // Current wind (used to estimate expected speed in every direction)
-  Bearing wind;  // Where the wind is coming FROM
+  Bearing wind_from;  // Where the wind is coming FROM
   double wind_speed_m_s;
 
   AvalonState() : timestamp_ms(0), target(Bearing::West()), wind_speed_m_s(0) {}
