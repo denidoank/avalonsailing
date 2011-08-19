@@ -144,7 +144,7 @@ int main(int argc, char* argv[]) {
       case 'T': us.timestamp_ms = atoll(optarg); break;
       case 'A': us.position = LatLon::Degrees(atof(optarg), us.position.lon_deg()); break;
       case 'O': us.position = LatLon::Degrees(us.position.lat_deg(), atof(optarg)); break;
-      case 'W': us.wind = Bearing::Degrees(atof(optarg)); break;
+      case 'W': us.wind_from = Bearing::Degrees(atof(optarg)); break;
       case 'S': us.wind_speed_m_s = atof(optarg); break;
       case 'P': us.target = Bearing::Degrees(atof(optarg)); break;
       case 'h':

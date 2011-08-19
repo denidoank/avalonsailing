@@ -15,7 +15,8 @@ const static double to_cartesian_meters = 111111; // from degrees to meters dist
 struct LatLon {
   LatLon(double latitude, double longitude) : lat(latitude), lon(longitude) {
     CHECK_IN_INTERVAL(-360, latitude, 360);
-    CHECK_IN_INTERVAL(-360, longitude, 360);  }
+    CHECK_IN_INTERVAL(-360, longitude, 360);
+  }
   void Flat(double* x, double* y) {
     *x = lat * to_cartesian_meters;
     *y = lon * to_cartesian_meters;

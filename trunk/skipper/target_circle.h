@@ -84,5 +84,4 @@ class TargetCircle {
   double radius_squared_;
 };
 
-
 #endif  // SKIPPER_TARGET_CIRCLE_H

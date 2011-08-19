@@ -15,14 +15,15 @@
 #include "skipper/lat_lon.h"
 #include "skipper/target_circle.h"
 #include "skipper/plans.h"
-
+#include "vskipper/vskipper.h"
+#include "vskipper/util.h"
 
 const static double kDays = 3600 * 24;
 
 TEST(SkipperInternal, All) {
   double end_time = 0;
   SkipperInput in;
-  std::vector<AISInfo> ais;
+  std::vector<skipper::AisInfo> ais;
   double alpha_star;
 
   // no wind, default direction
@@ -68,7 +69,7 @@ TEST(SkipperInternal, All) {
 TEST(SkipperInternal, SukkulentenhausPlan) {
   double end_time = 0;
   SkipperInput in;
-  std::vector<AISInfo> ais;
+  std::vector<skipper::AisInfo> ais;
   double alpha_star;
 
   in.angle_true_deg = 120;  // so we cannot sail south
@@ -104,12 +105,10 @@ TEST(SkipperInternal, SukkulentenhausPlan) {
 }
 
 
-
-
 TEST(SkipperInternal, ThalwilOpposingWind) {
   double end_time = 0;
   SkipperInput in;
-  std::vector<AISInfo> ais;
+  std::vector<skipper::AisInfo> ais;
   double alpha_star;
 
   // Thalwil test, with bad opposing wind
@@ -148,7 +147,7 @@ TEST(SkipperInternal, ThalwilOpposingWind) {
 TEST(SkipperInternal, Atlantic) {
   double end_time = 0;
   SkipperInput in;
-  std::vector<AISInfo> ais;
+  std::vector<skipper::AisInfo> ais;
   double alpha_star;
   // Atlantic test, with constantly bad opposing wind
   in.angle_true_deg = 45;  // so we cannot sail south-west directly
@@ -193,7 +192,7 @@ TEST(SkipperInternal, Atlantic) {
 TEST(SkipperInternal, ChangingAtlantic) {
   double end_time = 0;
   SkipperInput in;
-  std::vector<AISInfo> ais;
+  std::vector<skipper::AisInfo> ais;
   double alpha_star;
   // Atlantic test, with changing winds and erratic storms throwing us off
   // track.
@@ -245,7 +244,7 @@ TEST(SkipperInternal, ChangingAtlantic) {
 TEST(SkipperInternal, StormyAtlantic) {
   double end_time = 0;
   SkipperInput in;
-  std::vector<AISInfo> ais;
+  std::vector<skipper::AisInfo> ais;
   double alpha_star;
 
   // Stormy Atlantic test, with changing winds and erratic storms throwing us

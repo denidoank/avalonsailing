@@ -9,6 +9,7 @@
 #include <iostream>
 #include <iomanip>
 #include <algorithm>
+#include <stdio.h>
 
 using namespace std;
 
@@ -72,7 +73,9 @@ void ComputeLocalAis(const AisInfo& them,
   SphericalShortestPath(us.position, pos, &out->us_them, &out->distance_m);
 }
 
-double ExpectedVelocity(Bearing wind, double wind_speed_m_s, Bearing avalon) {
+double ExpectedVelocity(Bearing wind_from,
+                        double wind_speed_m_s,
+                        Bearing avalon) {
   if (wind_speed_m_s < 1e-9) {
     // TODO(zis): why doesn't ReadPolarDiagram do this?
     return 0;
@@ -80,7 +83,7 @@ double ExpectedVelocity(Bearing wind, double wind_speed_m_s, Bearing avalon) {
   double speed_m_s;
   bool dead_tack;
   bool dead_jibe;
-  ReadPolarDiagram(wind.deg() - avalon.deg(), wind_speed_m_s,
+  ReadPolarDiagram(wind_from.deg() - avalon.deg(), wind_speed_m_s,
                    &dead_tack, &dead_jibe, &speed_m_s);
   return speed_m_s;
 }
@@ -149,7 +152,7 @@ void SkipperImpl(const AvalonState& now,
     CandidateBearing& c = candidates[i];
 
     c.expected_velocity_m_s =
-        ExpectedVelocity(now.wind, now.wind_speed_m_s, c.bearing);
+        ExpectedVelocity(now.wind_from, now.wind_speed_m_s, c.bearing);
     c.expected_velocity_to_target_m_s =
         c.expected_velocity_m_s * cos(now.target.rad() - c.bearing.rad());
 
@@ -191,6 +194,9 @@ void SkipperImpl(const AvalonState& now,
 Bearing RunVSkipper(const AvalonState& now,
                     const std::vector<AisInfo>& ais_in,
                     int debug) {
+
+  fprintf(stderr, "in: %g\n", now.target.deg());
+
   std::vector<LocalAis> ships(ais_in.size());
   for (size_t i = 0; i < ais_in.size(); ++i) {
     ComputeLocalAis(ais_in[i], now, &ships[i]);
@@ -208,6 +214,7 @@ Bearing RunVSkipper(const AvalonState& now,
     }
   }
 
+  fprintf(stderr, "out: %g\n", out.deg());
   return out;
 }
 

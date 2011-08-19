@@ -97,7 +97,7 @@ double JibeZoneRad() {
   return Deg2Rad(kJibeZoneDeg);
 }
 
-double BestSailableHeading(double alpha_star,double alpha_true) {
+double BestSailableHeading(double alpha_star, double alpha_true) {
   // Stay in sailable zone
   double tack_zone_min = Reverse(alpha_true) - TackZoneRad();
   double tack_zone_max = Reverse(alpha_true) + TackZoneRad();
