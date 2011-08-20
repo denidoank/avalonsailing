@@ -83,6 +83,11 @@ void BoatModel::FollowRateLimitedRadWrap(double in, double max_rate, double* fol
 
 void BoatModel::SimDrives(const DriveReferenceValuesRad& drives_reference,
                           DriveActualValuesRad* drives) {
+  if (isnan(drives_reference.gamma_sail_star_rad) ||
+      isnan(drives_reference.gamma_rudder_star_left_rad) ||
+      isnan(drives_reference.gamma_rudder_star_right_rad))
+    return;
+
   const double kOmegaMaxRudder = Deg2Rad(30);
 
   FollowRateLimitedRadWrap(drives_reference.gamma_sail_star_rad,
