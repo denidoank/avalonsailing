@@ -189,8 +189,12 @@ void BoatModel::Simulate(const DriveReferenceValuesRad& drives_reference,
   in->imu.gyro.omega_z_rad_s = omega_;
   in->imu.temperature_c = 28;
  
-  printf("model: latlon:%g/%g phi_z:%g vx: %g om: %g", north_deg_, east_deg_, phi_z_, v_x_, omega_);
+  printf("model: latlon:%g/%g phi_z:%g vx: %g om: %g\n", north_deg_, east_deg_, phi_z_, v_x_, omega_);
   
+  string deb_string = in->imu.ToString();
+  printf("%s\n", deb_string.c_str()); 
+
+
   CHECK_IN_INTERVAL(-80, in->imu.position.longitude_deg, 20);
   CHECK_IN_INTERVAL(0, in->imu.position.latitude_deg, 60);
   CHECK_IN_INTERVAL(-2*M_PI, in->imu.attitude.phi_z_rad, 2*M_PI);
