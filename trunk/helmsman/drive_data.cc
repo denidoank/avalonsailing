@@ -130,6 +130,15 @@ bool DriveReferenceValuesRad::operator!=(const DriveReferenceValuesRad& r) {
          gamma_sail_star_rad !=         r.gamma_sail_star_rad;
 }  
 
+void DriveReferenceValuesRad::FromProto(const RudderProto& sts) {
+  gamma_rudder_star_left_rad  = Deg2Rad(sts.rudder_l_deg);
+  gamma_rudder_star_right_rad = Deg2Rad(sts.rudder_r_deg);
+  gamma_sail_star_rad         = Deg2Rad(sts.sail_deg);
+}
+
+
+
+
 DriveActualValuesRad::DriveActualValuesRad(const std::string& kvline) {
   Reset();
   const char* line = kvline.c_str();
