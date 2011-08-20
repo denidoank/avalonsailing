@@ -5,6 +5,7 @@
 
 #include "drive_data.h"
 
+#include <math.h>
 #include "common/check.h"
 #include "common/convert.h"
 
@@ -140,11 +141,36 @@ DriveActualValuesRad::DriveActualValuesRad(const std::string& kvline) {
     CHECK(n >= 2);    // invalid line
     CHECK(skip > 0);  // invalid line
     line += skip;
-    CHECK(line - kvline.c_str() <= kvline.size());  // really a bug
+    // really a bug
+    CHECK(line - kvline.c_str() <= static_cast<int>(kvline.size()));
 
-    if (!strcmp(key, "rudder_l_deg")) { gamma_rudder_left_rad  = Deg2Rad(value); homed_rudder_left = true; continue; }
-    if (!strcmp(key, "rudder_r_deg")) { gamma_rudder_right_rad = Deg2Rad(value); homed_rudder_right = true;continue; }
-    if (!strcmp(key, "sail_deg"    )) { gamma_sail_rad         = Deg2Rad(value); homed_sail = true;        continue; }
+    if (!strcmp(key, "rudder_l_deg")) {
+      gamma_rudder_left_rad  = Deg2Rad(value); homed_rudder_left = true; continue;
+    }
+    if (!strcmp(key, "rudder_r_deg")) {
+      gamma_rudder_right_rad = Deg2Rad(value); homed_rudder_right = true;continue;
+    }
+    if (!strcmp(key, "sail_deg"    )) {
+      gamma_sail_rad         = Deg2Rad(value); homed_sail = true;        continue;
+    }
     CHECK(false);  // if we get here there is an unrecognized key.
   }
+}
+
+void DriveActualValuesRad::FromProto(const RudderProto& sts) {
+  gamma_rudder_left_rad  = Deg2Rad(sts.rudder_l_deg);
+  gamma_rudder_right_rad = Deg2Rad(sts.rudder_r_deg);
+  gamma_sail_rad         = Deg2Rad(sts.sail_deg);
+  homed_rudder_left = !isnan(sts.rudder_l_deg);
+  homed_rudder_right = !isnan(sts.rudder_r_deg);
+  homed_sail = !isnan(sts.sail_deg);
+}
+
+void DriveActualValuesRad::ToProto(RudderProto* sts) const {
+  sts->rudder_l_deg =
+      homed_rudder_left ? Rad2Deg(gamma_rudder_left_rad) : NAN;
+  sts->rudder_r_deg =
+      homed_rudder_right ? Rad2Deg(gamma_rudder_right_rad) : NAN;
+  sts->sail_deg =
+      homed_sail ? Rad2Deg(gamma_sail_rad) : NAN;  
 }

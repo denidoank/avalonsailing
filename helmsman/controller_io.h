@@ -10,6 +10,9 @@
 #include "helmsman/wind.h"
 #include "helmsman/drive_data.h"
 #include "helmsman/skipper_input.h"
+#include "proto/rudder.h"
+#include "proto/wind.h"
+#include "proto/imu.h"
 
 // Input definition
 struct ControllerInput {
@@ -18,15 +21,22 @@ struct ControllerInput {
   }  
   void Reset () {
     imu.Reset();
-    wind.Reset();
+    wind_sensor.Reset();
     drives.Reset();
     alpha_star_rad = kUnknown;  // natural
   }
+  void ToProto(WindProto* wind_sensor_proto,
+               RudderProto* drive_actual_proto,
+               IMUProto* imu_proto) {
+    imu.ToProto(imu_proto);
+    wind_sensor.ToProto(wind_sensor_proto);
+    drives.ToProto(drive_actual_proto);
+  }
 
   Imu imu;
-  WindSensor wind;
+  WindSensor wind_sensor;
   DriveActualValuesRad drives;  // Actual positions and Ready flags
-  double alpha_star_rad;            // from Skipper
+  double alpha_star_rad;        // from Skipper
 };
 
 // Output definition

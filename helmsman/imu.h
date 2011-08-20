@@ -8,12 +8,15 @@
 #define HELMSMAN_IMU_H
 
 #include <string>
+#include "proto/imu.h"
 
 // Original units from IMU, Controllers needs metric units and radians anyway. 
 struct Imu {
   Imu();
   void Reset();
-  std::string ToString() const;  
+  std::string ToString() const;
+  void ToProto(IMUProto* imu_proto) const; 
+  void FromProto(const IMUProto& imu_proto);
   double speed_m_s; // in m/s
   // GPS-Data
   struct Position {

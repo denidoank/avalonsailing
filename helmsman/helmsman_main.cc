@@ -2,7 +2,7 @@
 // Use of this source code is governed by the Apache License 2.0
 // that can be found in the LICENSE file.
 //
-// Main loop for helmsman: open client sockets to wind and imu, server
+// Main loop for helmsman: open client sockets to wind_sensor and imu, server
 // socket for helsman clients (e.g. the skipper and sysmon) and shovel
 // data between all open file descriptors and the main controller.
 //
@@ -187,7 +187,7 @@ int main(int argc, char* argv[]) {
 
   int nn = 0;
 
-  struct WindProto wind  = INIT_WINDPROTO;
+  struct WindProto wind_sensor  = INIT_WINDPROTO;
   struct RudderProto sts = INIT_RUDDERPROTO;
   struct IMUProto imu    = INIT_IMUPROTO;
   struct HelmsmanCtlProto ctl = INIT_HELMSMANCTLPROTO;
@@ -220,10 +220,10 @@ int main(int argc, char* argv[]) {
       if (!fgets(line, sizeof line, stdin))
         crash("Error reading stdin");
 
-      if (sscanf(line, IFMT_WINDPROTO(&wind, &nn)) > 0) {
-        ctrl_in.wind.Reset();
-        ctrl_in.wind.alpha_deg = SymmetricDeg(NormalizeDeg(wind.angle_deg));
-        ctrl_in.wind.mag_kn = MeterPerSecondToKnots(wind.speed_m_s);
+      if (sscanf(line, IFMT_WINDPROTO(&wind_sensor, &nn)) > 0) {
+        ctrl_in.wind_sensor.Reset();
+        ctrl_in.wind_sensor.alpha_deg = SymmetricDeg(NormalizeDeg(wind_sensor.angle_deg));
+        ctrl_in.wind_sensor.mag_m_s = wind_sensor.speed_m_s;
 
       } else if (sscanf(line, IFMT_IMUPROTO(&imu, &nn)) > 0) {
         ctrl_in.imu.Reset();
@@ -239,7 +239,7 @@ int main(int argc, char* argv[]) {
 
         ctrl_in.imu.attitude.phi_x_rad = Deg2Rad(imu.roll_deg);
         ctrl_in.imu.attitude.phi_y_rad = Deg2Rad(imu.pitch_deg);
-        ctrl_in.imu.attitude.phi_z_rad = SymmetricRad(NormalizeRad(Deg2Rad(imu.yaw_deg)));
+        ctrl_in.imu.attitude.phi_z_rad = SymmetricRad(Deg2Rad(imu.yaw_deg));
 
         ctrl_in.imu.position.latitude_deg = imu.lat_deg;
         ctrl_in.imu.position.longitude_deg = imu.lng_deg;
