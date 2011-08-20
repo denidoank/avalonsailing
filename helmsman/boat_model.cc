@@ -122,12 +122,10 @@ void BoatModel::SimDrives(const DriveReferenceValuesRad& drives_reference,
 void BoatModel::Simulate(const DriveReferenceValuesRad& drives_reference, 
                          Polar true_wind,
                          ControllerInput* in) {
-  
-  std::string deb_string = drives_reference.ToString();
-  printf("Simulate: %s\n", deb_string.c_str()); 
+  // std::string deb_string = drives_reference.ToString();
+  // printf("Simulate: %s\n", deb_string.c_str()); 
 
-
-in->imu.Reset();
+  in->imu.Reset();
   in->wind_sensor.Reset();
   // alpha_star remains
  
@@ -200,11 +198,9 @@ in->imu.Reset();
   in->imu.gyro.omega_z_rad_s = omega_;
   in->imu.temperature_c = 28;
  
-  printf("model: latlon:%g/%g phi_z:%g vx: %g om: %g\n", north_deg_, east_deg_, phi_z_, v_x_, omega_);
-  
-  deb_string = in->imu.ToString();
-  printf("%s\n", deb_string.c_str()); 
-
+  // printf("model: latlon:%g/%g phi_z:%g vx: %g om: %g\n", north_deg_, east_deg_, phi_z_, v_x_, omega_);
+  // deb_string = in->imu.ToString();
+  // printf("%s\n", deb_string.c_str()); 
 
   CHECK_IN_INTERVAL(-80, in->imu.position.longitude_deg, 20);
   CHECK_IN_INTERVAL(0, in->imu.position.latitude_deg, 60);
