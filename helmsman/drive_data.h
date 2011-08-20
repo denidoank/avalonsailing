@@ -70,6 +70,8 @@ struct DriveReferenceValuesRad {
   DriveReferenceValuesRad(const DriveReferenceValues& ref_deg);
   void Reset();
   void Check();
+  void FromProto(const RudderProto& sts);
+
   bool operator!=(const DriveReferenceValuesRad& r);
   double gamma_rudder_star_left_rad;
   double gamma_rudder_star_right_rad;

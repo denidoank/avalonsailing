@@ -59,7 +59,7 @@ void InitialController::Run(const ControllerInput& in,
   }
   
   if (debug) {
-    fprintf(stderr, "WindSensor: %s\n", in.wind.ToString().c_str());
+    fprintf(stderr, "WindSensor: %s\n", in.wind_sensor.ToString().c_str());
     fprintf(stderr, "DriveActuals: %s\n", in.drives.ToString().c_str());
     fprintf(stderr, "AppFiltered: %fdeg %fm/s\n", Rad2Deg(filtered.angle_app), filtered.mag_app);
   }
