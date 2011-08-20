@@ -30,9 +30,7 @@ killall linebusd fakeimu fakerudderd fakewind || true
 ./io/linebusd $LBUS
 sleep 1
 
-${PLUG} ./fakeio/fakeimu &
-${PLUG} ./fakeio/fakerudderd &
-${PLUG} ./fakeio/fakewind &
+${PLUG} ./fakeio/fakeboat &
 
 sleep 1
 
