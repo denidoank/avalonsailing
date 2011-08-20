@@ -100,14 +100,15 @@ int main(int argc, char* argv[]) {
 
   int nn = 0;
   int64_t last = now_ms();
-  
+  int rounds = 0:
+   
   // Model
   struct RudderProto drives_reference = INIT_RUDDERPROTO;  // in
   struct RudderProto drives_actual = INIT_RUDDERPROTO;     // out, and internal input
   struct WindProto   wind_sensor = INIT_WINDPROTO;         // out
   struct IMUProto    imu = {                               // out
     last, 28.5,
-    0, 0, 9.8,   // acc
+    0, 0, 9.8, // acc
     0, 0, 0,   // gyr
     1, 0, 0,   // mag
     0, 0, 0,   // r/p/y
@@ -117,7 +118,8 @@ int main(int argc, char* argv[]) {
   };
 
   ControllerInput controller_input;
-  Polar true_wind = Polar(Deg2Rad(180) , 10);  // North wind blows South.
+  controller_input.alpha_star_rad = Deg2Rad(90);  // go East!
+  Polar true_wind = Polar(Deg2Rad(180), 10);  // North wind blows South.
   DriveReferenceValuesRad drives_ref;
 
   BoatModel model(kSamplingPeriod,
@@ -166,9 +168,13 @@ int main(int argc, char* argv[]) {
     // in comparison to our sampling period of 100ms.
     controller_input.ToProto(&wind_sensor, &drives_actual, &imu);
 
-    printf(OFMT_WINDPROTO(wind_sensor, &nn));
-    printf(OFMT_RUDDERPROTO_STS(drives_actual, &nn));        // actuals
-    printf(OFMT_IMUPROTO(imu, &nn));
+    if (rounds % 10 == 0)
+      printf(OFMT_WINDPROTO(wind_sensor, &nn));
+    if (rounds % 10 == 0)
+       printf(OFMT_RUDDERPROTO_STS(drives_actual, &nn));        // actuals
+    if (rounds % 4 == 0)
+      printf(OFMT_IMUPROTO(imu, &nn));
+    ++rounds;
   }
 
   crash("Terminating."); 
