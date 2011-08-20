@@ -117,7 +117,7 @@ void BoatModel::Simulate(const DriveReferenceValuesRad& drives_reference,
                          Polar true_wind,
                          ControllerInput* in) {
   in->imu.Reset();
-  in->wind.Reset();
+  in->wind_sensor.Reset();
   // alpha_star remains
  
   apparent_ = Polar (0, 0);  // apparent wind in the boat frame
@@ -168,8 +168,8 @@ void BoatModel::Simulate(const DriveReferenceValuesRad& drives_reference,
   double angle_sensor = apparent_.AngleRad() - (
       kWindSensorOffsetRad + gamma_sail_ + M_PI);
 
-  in->wind.alpha_deg = NormalizeDeg(Rad2Deg(angle_sensor));
-  in->wind.mag_kn = MeterPerSecondToKnots(apparent_.Mag());
+  in->wind_sensor.alpha_deg = NormalizeDeg(Rad2Deg(angle_sensor));
+  in->wind_sensor.mag_m_s = apparent_.Mag();
   SimDrives(drives_reference, &in->drives);
   in->imu.speed_m_s = v_x_;
   in->imu.position.longitude_deg = east_deg_;
