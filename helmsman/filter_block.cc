@@ -34,8 +34,8 @@ const double kLongFilterPeriod = 100.0; // s, N.B. The state Initial cannot be
 void FilterBlock::Filter(const ControllerInput& in,
                          FilteredMeasurements* fil) {
   double zz[kChannels];
-  double mag_wind_m_s = KnotsToMeterPerSecond(in.wind.mag_kn);
-  double alpha_wind_rad = NormalizeRad(Deg2Rad(in.wind.alpha_deg));
+  double mag_wind_m_s = KnotsToMeterPerSecond(in.wind_sensor.mag_m_s);
+  double alpha_wind_rad = NormalizeRad(Deg2Rad(in.wind_sensor.alpha_deg));
 
   double angle_sail_raw = (alpha_wind_rad - M_PI + kWindSensorOffsetRad);
 
@@ -92,7 +92,7 @@ void FilterBlock::Filter(const ControllerInput& in,
               Polar(fil->phi_z_boat, fil->mag_boat),
               fil->phi_z_boat,
               &wind_true);
-          
+
     fil->mag_true = average_mag_true_.Filter(
         median_mag_true_.Filter(wind_true.Mag()));
     fil->alpha_true = SymmetricRad(wrap_3_.Filter(
