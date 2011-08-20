@@ -230,7 +230,7 @@ void BoatModel::SetOmega(double omega){
   omega_ = omega;
 }
 
-void SetLatLon(double lat, double lon) {
+void BoatModel::SetLatLon(double lat, double lon) {
   north_deg_ = lat;
   east_deg_ = lon;
 }
