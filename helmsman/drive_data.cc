@@ -64,6 +64,7 @@ void DriveReferenceValues::Check() {
 }
 
 
+
 // Internally used radians versions.
 DriveActualValuesRad::DriveActualValuesRad() {
   Reset();
@@ -122,6 +123,13 @@ void DriveReferenceValuesRad::Reset() {
   gamma_rudder_star_left_rad  = 0;
   gamma_rudder_star_right_rad = 0;
   gamma_sail_star_rad = 0;
+}
+
+std::string DriveReferenceValuesRad::ToString() const {
+  char line[1024];
+  int s = snprintf(line, sizeof line, "rudder_l_rad:%f rudder_r_rad:%f sail_rad:%f\n",
+      gamma_rudder_star_left_rad, gamma_rudder_star_right_rad, gamma_sail_star_rad);
+  return std::string(line, s);
 }
 
 bool DriveReferenceValuesRad::operator!=(const DriveReferenceValuesRad& r) {
