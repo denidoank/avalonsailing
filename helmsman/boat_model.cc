@@ -117,7 +117,12 @@ void BoatModel::SimDrives(const DriveReferenceValuesRad& drives_reference,
 void BoatModel::Simulate(const DriveReferenceValuesRad& drives_reference, 
                          Polar true_wind,
                          ControllerInput* in) {
-  in->imu.Reset();
+  
+  std::string deb_string = drives_reference.ToString();
+  printf("Simulate: %s\n", deb_string.c_str()); 
+
+
+in->imu.Reset();
   in->wind_sensor.Reset();
   // alpha_star remains
  
