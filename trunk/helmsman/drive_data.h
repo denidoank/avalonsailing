@@ -70,6 +70,7 @@ struct DriveReferenceValuesRad {
   DriveReferenceValuesRad(const DriveReferenceValues& ref_deg);
   void Reset();
   void Check();
+  std::string ToString() const;
   void FromProto(const RudderProto& sts);
 
   bool operator!=(const DriveReferenceValuesRad& r);
