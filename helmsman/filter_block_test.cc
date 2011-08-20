@@ -32,8 +32,8 @@ void SetEnv(const Polar& wind_true,
   // The effects of turning the mast on the magnitude are neglected.
   double mag_sensor = sensor_wind.Mag();
 
-  in->wind.mag_kn = MeterPerSecondToKnots(mag_sensor);
-  in->wind.alpha_deg = Rad2Deg(NormalizeRad(angle_sensor));
+  in->wind_sensor.mag_m_s = mag_sensor;
+  in->wind_sensor.alpha_deg = Rad2Deg(NormalizeRad(angle_sensor));
 
   in->imu.speed_m_s = boat.Mag();
   in->imu.attitude.phi_z_rad = boat.AngleRad();
