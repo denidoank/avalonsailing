@@ -46,6 +46,7 @@ class BoatModel {
   void SetSpeed(double speed);
   void SetPhiZ(double  phi_z);
   void SetOmega(double omega);
+  void SetLatLon(double lat, double lon);
   double GetSpeed();
   double GetPhiZ();
 

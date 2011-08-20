@@ -127,6 +127,7 @@ int main(int argc, char* argv[]) {
                   0,                // phi_z_ / rad, heading relative to North, + turns right
                   0,                // v_x_ / m/s,   speed  
                   -M_PI / 2);       // gamma_sail_ / rad, e.g. -90 degrees here 
+  model.SetLatLon(48.2390, -4.7698);
 
   while (!feof(stdin)) {
     if (ferror(stdin)) clearerr(stdin);
