@@ -197,7 +197,7 @@ in->imu.Reset();
  
   printf("model: latlon:%g/%g phi_z:%g vx: %g om: %g\n", north_deg_, east_deg_, phi_z_, v_x_, omega_);
   
-  std::string deb_string = in->imu.ToString();
+  deb_string = in->imu.ToString();
   printf("%s\n", deb_string.c_str()); 
 
 
