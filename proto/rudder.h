@@ -2,6 +2,7 @@
 #define PROTO_RUDDER_H
 
 #include <math.h>
+#include <stdint.h>
 
 struct RudderProto {
 	int64_t timestamp_ms;
