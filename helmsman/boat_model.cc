@@ -5,7 +5,7 @@
 
 // A very rough physical boat model.
 
-#include <string>
+#include <string.h>
 #include "helmsman/boat_model.h" 
 #include "helmsman/naca0010.h" 
 
