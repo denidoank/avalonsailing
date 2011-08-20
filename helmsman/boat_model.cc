@@ -5,7 +5,7 @@
 
 // A very rough physical boat model.
 
-#include <string.h>
+#include <string>
 #include "helmsman/boat_model.h" 
 #include "helmsman/naca0010.h" 
 
@@ -192,7 +192,7 @@ void BoatModel::Simulate(const DriveReferenceValuesRad& drives_reference,
  
   printf("model: latlon:%g/%g phi_z:%g vx: %g om: %g\n", north_deg_, east_deg_, phi_z_, v_x_, omega_);
   
-  string deb_string = in->imu.ToString();
+  std::string deb_string = in->imu.ToString();
   printf("%s\n", deb_string.c_str()); 
 
 
