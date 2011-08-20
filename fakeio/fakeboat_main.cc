@@ -100,7 +100,7 @@ int main(int argc, char* argv[]) {
 
   int nn = 0;
   int64_t last = now_ms();
-  int rounds = 0:
+  int rounds = 0;
    
   // Model
   struct RudderProto drives_reference = INIT_RUDDERPROTO;  // in
