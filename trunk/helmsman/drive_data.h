@@ -12,6 +12,7 @@
 #define HELMSMAN_DRIVE_DATA_H
 
 #include <string>
+#include "proto/rudder.h"
 
 struct DriveReferenceValuesRad;
 
@@ -49,6 +50,10 @@ struct DriveActualValuesRad {
   DriveActualValuesRad(const DriveActualValues& act_deg);
   void Reset();
   std::string ToString() const;
+
+  void FromProto(const RudderProto& sts);
+  void ToProto(RudderProto* sts) const;
+
   double gamma_rudder_left_rad;
   double gamma_rudder_right_rad;
   double gamma_sail_rad;
