@@ -189,7 +189,7 @@ void BoatModel::Simulate(const DriveReferenceValuesRad& drives_reference,
   in->imu.gyro.omega_z_rad_s = omega_;
   in->imu.temperature_c = 28;
  
-  //printf("model: latlon:%g/%g phi_z:%g vx: %g om: %g", north_deg_, east_deg_, phi_z_, v_x_, omega_);
+  printf("model: latlon:%g/%g phi_z:%g vx: %g om: %g", north_deg_, east_deg_, phi_z_, v_x_, omega_);
   
   CHECK_IN_INTERVAL(-80, in->imu.position.longitude_deg, 20);
   CHECK_IN_INTERVAL(0, in->imu.position.latitude_deg, 60);
@@ -228,6 +228,11 @@ void BoatModel::SetPhiZ(double  phi_z){
 
 void BoatModel::SetOmega(double omega){
   omega_ = omega;
+}
+
+void SetLatLon(double lat, double lon) {
+  north_deg_ = lat;
+  east_deg_ = lon;
 }
 
 double BoatModel::GetSpeed() {
