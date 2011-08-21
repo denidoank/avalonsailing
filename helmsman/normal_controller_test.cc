@@ -6,12 +6,11 @@
 
 #include "helmsman/normal_controller.h"
 
-#include "common/unknown.h"
-
 #include "common/convert.h"
 #include "common/polar.h"
 #include "helmsman/apparent.h"
 #include "helmsman/controller_io.h"
+#include "helmsman/rudder_controller_const.h"
 
 #include "lib/testing/testing.h"
 
@@ -69,22 +68,29 @@ TEST(NormalController, All) {
   c.Run(in, filtered, &out);
   // Values depend on the control amplification coefficients, so we have to
   // relax the test conditions later.
-  EXPECT_FLOAT_EQ(-0.423465, Rad2Deg(out.drives_reference.gamma_rudder_star_left_rad));
-  EXPECT_FLOAT_EQ(-0.423465, Rad2Deg(out.drives_reference.gamma_rudder_star_right_rad));
+  EXPECT_FLOAT_EQ(452.39, kStateFeedback1);
+  EXPECT_FLOAT_EQ(563.75, kStateFeedback2);
+  EXPECT_FLOAT_EQ(291.71, kStateFeedback3);
+  
+
+  EXPECT_FLOAT_EQ(-0.295634, Rad2Deg(out.drives_reference.gamma_rudder_star_left_rad));
+  EXPECT_EQ(out.drives_reference.gamma_rudder_star_left_rad,
+            out.drives_reference.gamma_rudder_star_right_rad);
   // Sail in spinakker mode
   EXPECT_FLOAT_EQ(-93, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
 
   in.alpha_star_rad = 0.0;
   c.Run(in, filtered, &out);
-  EXPECT_FLOAT_EQ(-0.0208339, Rad2Deg(out.drives_reference.gamma_rudder_star_left_rad));
-  EXPECT_FLOAT_EQ(-0.0208339, Rad2Deg(out.drives_reference.gamma_rudder_star_right_rad));
+  EXPECT_FLOAT_EQ(-0.0145448, Rad2Deg(out.drives_reference.gamma_rudder_star_left_rad));
+  EXPECT_EQ(out.drives_reference.gamma_rudder_star_left_rad,
+            out.drives_reference.gamma_rudder_star_right_rad);
   // Sail in spinakker mode
   EXPECT_FLOAT_EQ(-93, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
   c.Run(in, filtered, &out);
-  EXPECT_FLOAT_EQ(-0.0208339, Rad2Deg(out.drives_reference.gamma_rudder_star_left_rad));
+  EXPECT_FLOAT_EQ(-0.0145448, Rad2Deg(out.drives_reference.gamma_rudder_star_left_rad));
   in.alpha_star_rad = -0.01;
   c.Run(in, filtered, &out);
-  EXPECT_FLOAT_EQ(0.402631, Rad2Deg(out.drives_reference.gamma_rudder_star_left_rad));
+  EXPECT_FLOAT_EQ(0.281089, Rad2Deg(out.drives_reference.gamma_rudder_star_left_rad));
   in.alpha_star_rad = 0;
   c.Run(in, filtered, &out);
   EXPECT_FLOAT_EQ(0.0, Rad2Deg(out.drives_reference.gamma_rudder_star_left_rad));
