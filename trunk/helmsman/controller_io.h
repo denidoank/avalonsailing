@@ -10,6 +10,7 @@
 #include "helmsman/wind.h"
 #include "helmsman/drive_data.h"
 #include "helmsman/skipper_input.h"
+#include "helmsman/helmsman_status.h"
 #include "proto/rudder.h"
 #include "proto/wind.h"
 #include "proto/imu.h"
@@ -44,6 +45,7 @@ struct ControllerOutput {
   void Reset() {
     drives_reference.Reset();
     skipper_input.Reset();
+    status.Reset();
   }
   bool operator!=(const ControllerOutput& r) {
     return skipper_input != r.skipper_input ||
@@ -51,6 +53,7 @@ struct ControllerOutput {
   }  
   SkipperInput skipper_input;
   DriveReferenceValuesRad drives_reference;
+  HelmsmanStatus status;
 };
 
 struct FilteredMeasurements {

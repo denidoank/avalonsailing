@@ -13,6 +13,7 @@
 #define HELMSMAN_NORMAL_CONTROLLER_H
 
 #include "helmsman/controller.h"
+#include "helmsman/maneuver_type.h"
 #include "helmsman/rudder_controller.h"
 #include "helmsman/reference_values.h"
 #include "helmsman/sail_controller.h"
@@ -36,7 +37,7 @@ class NormalController : public Controller {
   bool GiveUp(const ControllerInput& in,
               const FilteredMeasurements& filtered);
  private:
-  void ReferenceValueSwitch(double alpha_star,
+  ManeuverType ReferenceValueSwitch(double alpha_star,
                             double alpha_true, double mag_true,
                             double alpha_boat, double mag_boat,
                             double alpha_app,  double mag_app,

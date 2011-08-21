@@ -17,11 +17,11 @@ RudderController ShipControl::rudder_controller_;
 SailController   ShipControl::sail_controller_;
 
 InitialController ShipControl::initial_controller_(&ShipControl::sail_controller_);
-
 BrakeController   ShipControl::brake_controller_;
 DockingController ShipControl::docking_controller_;
 NormalController  ShipControl::normal_controller_(&ShipControl::rudder_controller_, &ShipControl::sail_controller_);
 
+// This is the state of the ship controller state machine.
 Controller* ShipControl::controller_ = &ShipControl::initial_controller_;
 
 FilteredMeasurements ShipControl::filtered_;
