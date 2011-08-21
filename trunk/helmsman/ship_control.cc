@@ -116,6 +116,8 @@ bool ShipControl::Run(const ControllerInput& in, ControllerOutput* out) {
     out->skipper_input.latitude_deg    = filtered_.latitude_deg;
     out->skipper_input.angle_true_deg  = NormalizeDeg(Rad2Deg(filtered_.alpha_true));
     out->skipper_input.mag_true_kn     = MeterPerSecondToKnots(filtered_.mag_true);
+    out->status.direction_true_deg     = NormalizeDeg(Rad2Deg(filtered_.alpha_true));
+    out->status.mag_true_m_s           = filtered_.mag_true;
   }  
 
   wind_strength_apparent_ = WindStrength(wind_strength_apparent_, filtered_.mag_app);
