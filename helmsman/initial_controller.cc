@@ -81,6 +81,7 @@ void InitialController::Run(const ControllerInput& in,
         // Decide which way to go.
         sign_ = SignNotZero(angle_app);
         if (debug) fprintf(stderr, "SLEEP to TURTLE %d\n", sign_);
+        out->status.inits++;
       }
       break;
     case TURTLE:

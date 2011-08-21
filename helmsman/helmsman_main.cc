@@ -28,6 +28,7 @@
 #include "proto/wind.h"
 #include "proto/imu.h"
 #include "proto/helmsman.h"
+#include "proto/helmsman_status.h"
 #include "proto/remote.h"
 #include "proto/skipper_input.h"
 
@@ -282,8 +283,8 @@ int main(int argc, char* argv[]) {
       Rad2Deg(ctrl_out.drives_reference.gamma_sail_star_rad) };
     printf(OFMT_RUDDERPROTO_CTL(ctl, &nn));
 
-    if (loops == 0) {
-      struct SkipperInputProto to_skipper = {
+    if (loops % 10 == 0) {
+      SkipperInputProto to_skipper = {
         now_ms(),
         ctrl_out.skipper_input.longitude_deg,
         ctrl_out.skipper_input.latitude_deg,
@@ -292,16 +293,14 @@ int main(int argc, char* argv[]) {
       };
       printf(OFMT_SKIPPER_INPUTPROTO(to_skipper, &nn));
     }
-      /*
-      if (loops == 5) {
-        struct HelmsmanStatus = {
-          Rad2Deg(ctrl_in.alpha_star_rad)
-        };
-        printf(OFMT_HELMSMAN_STATUSPROTO);
-      */
-    loops = loops == 9 ? 0 : loops+1;
-
-
+    if (loops % 100 == 5) {
+      HelmsmanStatusProto sts;
+      ctrl_out.status.ToProto(&sts);
+      sts.timestamp_ms = now_ms();
+      printf(OFMT_HELMSMAN_STATUSPROTO(sts, &nn));
+    }
+    // A simple ++loops would do the job unil loops wraps around only. 
+    loops = loops > 999 ? 0 : loops+1;
   }  // for ever
 
   crash("Main loop exit");
