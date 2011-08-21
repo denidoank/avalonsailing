@@ -66,6 +66,7 @@ class BoatModel {
   // We had problems with the very simple one during simulations
   // due to the feedback effect and the simple Euler intergration model.
   void RudderModel(double omega,
+                   double period,
                    double* delta_omega_rudder,
                    double* force_rudder_x);
   // Trapez integration model in respect to omega.
