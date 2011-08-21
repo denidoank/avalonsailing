@@ -117,16 +117,15 @@ TEST(RudderController, All) {
   c.Control(0.1, 0.1,
             phi, omega,
             0.2 * speed, &gamma);
-  // -19 degrees (7 from NACA profile, 12 for gamma_0)
-  EXPECT_FLOAT_EQ(-0.331613, gamma);
+  // -27 degrees (7 from NACA profile, 20 for gamma_0)
+  EXPECT_FLOAT_EQ(-0.46562, gamma);
 
   c.Reset();
   // Negative speed, at limit.
   c.Control(0.1, 0.1,
             phi, omega,
             -0.2 * speed, &gamma);
-  // +2 degrees
-  EXPECT_FLOAT_EQ(0.0349066, gamma);
+  EXPECT_FLOAT_EQ(0.168914, gamma);
 }
 
 int main(int argc, char* argv[]) {

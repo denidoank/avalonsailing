@@ -37,8 +37,10 @@ TEST(NewGammaSail, Tack) {
                &sail_controller,
                &new_gamma_sail,
                &delta_gamma_sail);
-  EXPECT_IN_INTERVAL(45, Rad2Deg(new_gamma_sail), 46);
-  EXPECT_IN_INTERVAL(90, Rad2Deg(delta_gamma_sail), 92);
+  EXPECT_IN_INTERVAL(41, Rad2Deg(new_gamma_sail), 43);
+  EXPECT_IN_INTERVAL(82, Rad2Deg(delta_gamma_sail), 86);
+  EXPECT_EQ(old_gamma_sail, -new_gamma_sail);
+
 
   new_gamma_sail = -1;
   delta_gamma_sail = -1;
@@ -52,8 +54,8 @@ TEST(NewGammaSail, Tack) {
                &sail_controller,
                &new_gamma_sail,
                &delta_gamma_sail);
-  EXPECT_IN_INTERVAL(64, Rad2Deg(new_gamma_sail), 65);
-  EXPECT_IN_INTERVAL(109, Rad2Deg(delta_gamma_sail), 110);
+  EXPECT_IN_INTERVAL(61, Rad2Deg(new_gamma_sail), 62);
+  EXPECT_IN_INTERVAL(100, Rad2Deg(delta_gamma_sail), 110);
 }
 
 TEST(NewGammaSail, Jibe) {
@@ -120,8 +122,8 @@ TEST(NewGammaSail, Jibe) {
                &sail_controller,
                &new_gamma_sail,
                &delta_gamma_sail);
-  EXPECT_IN_INTERVAL(-59, Rad2Deg(new_gamma_sail), -58);
-  EXPECT_IN_INTERVAL(244, Rad2Deg(delta_gamma_sail), 246);
+  EXPECT_IN_INTERVAL(-56, Rad2Deg(new_gamma_sail), -55);
+  EXPECT_IN_INTERVAL(247, Rad2Deg(delta_gamma_sail), 249);
 
   /* Correct jibe, sail turns over the bow, delta gamma is positive and
      has a magnitude of more than 180 degrees.
@@ -178,7 +180,7 @@ TEST(NewGammaSail, Jibe) {
                &new_gamma_sail,
                &delta_gamma_sail);
   EXPECT_IN_INTERVAL(-94, Rad2Deg(new_gamma_sail), -92);
-  EXPECT_IN_INTERVAL(-54, Rad2Deg(delta_gamma_sail), -52);
+  EXPECT_IN_INTERVAL(-57, Rad2Deg(delta_gamma_sail), -55);
   EXPECT_EQ(kChange, type);
 
   alpha_true = M_PI;  // North wind vector
@@ -205,7 +207,7 @@ TEST(NewGammaSail, Jibe) {
                &new_gamma_sail,
                &delta_gamma_sail);
   EXPECT_IN_INTERVAL(92, Rad2Deg(new_gamma_sail), 93);
-  EXPECT_IN_INTERVAL(-228, Rad2Deg(delta_gamma_sail), -226);
+  EXPECT_IN_INTERVAL(-231, Rad2Deg(delta_gamma_sail), -229);
   EXPECT_EQ(kJibe, type);
 
   new_gamma_sail = -1;
@@ -226,8 +228,7 @@ TEST(NewGammaSail, Jibe) {
                &new_gamma_sail,
                &delta_gamma_sail);
   EXPECT_IN_INTERVAL(-93, Rad2Deg(new_gamma_sail), -92);
-  EXPECT_IN_INTERVAL(-53, Rad2Deg(delta_gamma_sail), -52);
-
+  EXPECT_IN_INTERVAL(-56, Rad2Deg(delta_gamma_sail), -55);
 }
 
 TEST(NewGammaSail, Change) {
@@ -256,8 +257,8 @@ TEST(NewGammaSail, Change) {
                &sail_controller,
                &new_gamma_sail,
                &delta_gamma_sail);
-  EXPECT_IN_INTERVAL(87, Rad2Deg(new_gamma_sail), 89);
-  EXPECT_IN_INTERVAL(25, Rad2Deg(delta_gamma_sail), 26);
+  EXPECT_IN_INTERVAL(85, Rad2Deg(new_gamma_sail), 86);
+  EXPECT_IN_INTERVAL(22, Rad2Deg(delta_gamma_sail), 23);
   EXPECT_EQ(kChange, type);
 
   new_gamma_sail = -1;
@@ -272,8 +273,8 @@ TEST(NewGammaSail, Change) {
                &sail_controller,
                &new_gamma_sail,
                &delta_gamma_sail);
-  EXPECT_IN_INTERVAL(67, Rad2Deg(new_gamma_sail), 69);
-  EXPECT_IN_INTERVAL(4, Rad2Deg(delta_gamma_sail), 6);
+  EXPECT_IN_INTERVAL(65, Rad2Deg(new_gamma_sail), 66);
+  EXPECT_IN_INTERVAL(2, Rad2Deg(delta_gamma_sail), 3);
   EXPECT_EQ(kChange, type);
 
 
@@ -289,8 +290,8 @@ TEST(NewGammaSail, Change) {
                &sail_controller,
                &new_gamma_sail,
                &delta_gamma_sail);
-  EXPECT_IN_INTERVAL(49, Rad2Deg(new_gamma_sail), 51);
-  EXPECT_IN_INTERVAL(-13, Rad2Deg(delta_gamma_sail), -11);
+  EXPECT_IN_INTERVAL(47, Rad2Deg(new_gamma_sail), 48);
+  EXPECT_IN_INTERVAL(-17, Rad2Deg(delta_gamma_sail), -15);
   EXPECT_EQ(kChange, type);
 }
 
@@ -302,8 +303,8 @@ void LogNewGammaSail() {
   double angle_app;
   double mag_app;
 
-  printf("true wind: %g at %g degree\n", mag_true, Rad2Deg(alpha_true));
-  printf("boat:      %g at %g degree\n", mag_boat, Rad2Deg(alpha_boat));
+  printf("true wind: %8.2f at %8.2f degree\n", mag_true, Rad2Deg(alpha_true));
+  printf("boat:      %8.2f at %8.2f degree\n", mag_boat, Rad2Deg(alpha_boat));
   printf("new_heading gamma_sail  delta  type\n");
   for (double turn = 100; turn < 260; turn += 5) {
     double new_alpha_boat = alpha_boat - Deg2Rad(turn);
@@ -326,7 +327,7 @@ void LogNewGammaSail() {
                  &sail_controller,
                  &new_gamma_sail,
                  &delta_gamma_sail);
-    printf("%6.2f %6.2f %6.2f %s\n", Rad2Deg(new_alpha_boat), Rad2Deg(new_gamma_sail), Rad2Deg(delta_gamma_sail),
+    printf("%9.2f %8.2f %7.2f %s\n", Rad2Deg(new_alpha_boat), Rad2Deg(new_gamma_sail), Rad2Deg(delta_gamma_sail),
            type == kChange ? "Change" : type == kJibe ? "Jibe" : "Tack");
   }
 }
