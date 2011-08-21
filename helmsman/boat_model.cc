@@ -6,26 +6,26 @@
 // A very rough physical boat model.
 
 #include <string>
-#include "helmsman/boat_model.h" 
-#include "helmsman/naca0010.h" 
+#include "helmsman/boat_model.h"
+#include "helmsman/naca0010.h"
 
 extern int debug;
 BoatModel::BoatModel(double sampling_period,
                      double omega,
-                     double phi_z, 
+                     double phi_z,
                      double v_x,
                      double gamma_sail,
                      double gamma_rudder_left,
                      double gamma_rudder_right,
-                     Location start_location) 
+                     Location start_location)
     : period_(sampling_period),
       omega_(omega),
-      phi_z_(phi_z), 
+      phi_z_(phi_z),
       v_x_(v_x),
       gamma_sail_(gamma_sail),
       gamma_rudder_left_(gamma_rudder_left),
       gamma_rudder_right_(gamma_rudder_right),
-      // The following are not settable for lazyness.   
+      // The following are not settable for lazyness.
       homing_counter_left_(50),
       homing_counter_right_(20),
       north_deg_(0),
@@ -269,7 +269,7 @@ void BoatModel::SetStartPoint(Location start_location) {
       y_ = 0;
       break;
     default:
-      assert(0);  
+      assert(0);
   }
 }
 
@@ -280,51 +280,66 @@ void BoatModel::SetStartPoint(Location start_location) {
 // boat.h kInertiaZ = 150;      // different sources speak of 100 to 150 kg/m^2
 
 void BoatModel::RudderModel(double omega,
+                            double period,
                             double* delta_omega_rudder,
                             double* force_rudder_x) {
-  //if (debug) printf("N: omega: %6.4f deg/s, v: %6.4f m/s\n", Rad2Deg(omega), v_x_);
+  if (debug) printf("N: omega: %6.4f deg/s, v: %6.4f m/s period: %gs\n", Rad2Deg(omega), v_x_, period);
   // Relative speed vector of the rudder axis through the water.
   double v_y = omega * kLeverR;
   double v_rudder_mag = sqrt(v_x_ * v_x_ + v_y * v_y);  // (1)
   double v_rudder_alpha = 0;
   if (omega != 0 || v_x_ != 0)
     v_rudder_alpha = atan2(-v_y, v_x_);                 // (2)
-  //if (debug) printf("N: alpha water: %6.4f deg\n", Rad2Deg(v_rudder_alpha));
+  if (debug) printf("N: alpha water: %6.4f deg\n", Rad2Deg(v_rudder_alpha));
 
-  // Angle of attack for the rudder                   
+  // Angle of attack for the rudder
   double alpha_aoa_right = gamma_rudder_right_ - v_rudder_alpha;     // (3)
   // Add left rudder, remove force factor 2
- 
+
   double force_lift = 2*ForceLift(alpha_aoa_right, v_rudder_mag);  // (4)
   double force_drag = 2*ForceDrag(alpha_aoa_right, v_rudder_mag);  // (5)
-  
+
   double force_x = sin(v_rudder_alpha) * force_lift - cos(v_rudder_alpha) * force_drag;  // (6)
   *force_rudder_x = force_x;
   double force_y = cos(v_rudder_alpha) * force_lift - sin(v_rudder_alpha) * force_drag;  // (7)
-  
-  double delta_omega = -force_y * kLeverR / kInertiaZ * period_;  // (8)
+
+  double delta_omega = -force_y * kLeverR / kInertiaZ * period;  // (8)
   *delta_omega_rudder = delta_omega;
 }
 
 void BoatModel::IntegrateRudderModel(double* delta_omega_rudder,
                                      double* force_rudder_x) {
+  // Use Luuks idea of a stationary rotational speed as an upper bound.
+  // Without external torques, omega can never have a bigger magnitude
+  // than this omega_stat.
+  CHECK(fabs(gamma_rudder_right_) < Deg2Rad(90));
+  double omega_stat = -v_x_ * tan(gamma_rudder_right_) / kLeverR;
+  double delta_max = omega_stat - omega_;
+  // printf("omega_stat: %6.4f deg/s, omega_: %f delta_max %f\n", Rad2Deg(omega_stat), Rad2Deg(omega_), Rad2Deg(delta_max));
+           
   // Trapez integration model in respect to omega.
   double delta_omega1;
   double force_rudder_x1;
   // First calculate with the old omega
-  RudderModel(omega_, &delta_omega1, &force_rudder_x1);
+  RudderModel(omega_, period_, &delta_omega1, &force_rudder_x1);
   // Then calculate with the new omega.
   double delta_omega2;
   double force_rudder_x2;
-  RudderModel(omega_ + delta_omega1, &delta_omega2, &force_rudder_x2);
+  // limit the initially calculated acceleration
+  // printf("QQQ: %f %f\n", delta_omega1, delta_max);
+  delta_omega1 = std::min(std::max(delta_omega1, -fabs(delta_max)), fabs(delta_max));
+  RudderModel(omega_ + delta_omega1,
+              period_,
+              &delta_omega2, &force_rudder_x2);
   // The truth lies in the middle (probably) ...
   double delta_omega_m;
   double force_rudder_x_m;
-  RudderModel(omega_ + (delta_omega1 + delta_omega2) / 2, &delta_omega_m, &force_rudder_x_m);
-  
+  RudderModel(omega_ + (delta_omega1 + delta_omega2) / 2, period_, &delta_omega_m, &force_rudder_x_m);
+
   // Check
   double range_12 = fabs(delta_omega2 - delta_omega1);
   double range_1m = fabs(delta_omega_m - delta_omega1);
+
   if ((delta_omega1 <= delta_omega_m && delta_omega_m <= delta_omega2) ||
       (delta_omega2 <= delta_omega_m && delta_omega_m <= delta_omega1) ||
       (range_12 != 0 && range_1m / range_12 < 1.1) ||
@@ -336,30 +351,30 @@ void BoatModel::IntegrateRudderModel(double* delta_omega_rudder,
     } else {
       if (debug && 0) printf("mix at %5.4f of 0\n" , 100 * range_1m );
     }
-      
+
     *delta_omega_rudder = delta_omega_m;
     *force_rudder_x = force_rudder_x_m;
   } else {
     // At angle of attack around +- 175 degrees and for negative speeds it
     // happens that c_lift is at the boundary between linear and turbulent flow
     // and we get jumps in the output. These are rare and have little effect
-    // The middle value used is never totally off.  
-    /*printf("Integration instable!\n");
+    // The middle value used is never totally off.
+    printf("Integration instable!\n");
     printf("Inputs: ");
     printf("omega: %6.4f deg/s, v: %6.4f m/s\n", Rad2Deg(omega_), v_x_);
     printf("No good mix at %6.4f %%\n" , 100 * range_1m / range_12);
-    */
+
     *delta_omega_rudder = (delta_omega1 + delta_omega2 + delta_omega_m) / 3;
     *force_rudder_x = (force_rudder_x1 + force_rudder_x2 + force_rudder_x_m) / 3;
-    // printf("Using  %6.4f from 1:%6.4f 2:%6.4f m:%6.4f \n", *delta_omega_rudder, delta_omega1, delta_omega2, delta_omega_m);
-    
+    printf("Using  %6.4f from 1:%6.4f 2:%6.4f m:%6.4f \n", *delta_omega_rudder, delta_omega1, delta_omega2, delta_omega_m);
+
     // Redo with debug logging on.
     debug = 1;
-    RudderModel(omega_, &delta_omega1, &force_rudder_x1);
-    RudderModel(omega_ + delta_omega1, &delta_omega2, &force_rudder_x2);
-    RudderModel(omega_ + (delta_omega1 + delta_omega2) / 2, &delta_omega_m, &force_rudder_x_m);    
+    RudderModel(omega_, period_, &delta_omega1, &force_rudder_x1);
+    RudderModel(omega_ + delta_omega1, period_, &delta_omega2, &force_rudder_x2);
+    RudderModel(omega_ + (delta_omega1 + delta_omega2) / 2, period_, &delta_omega_m, &force_rudder_x_m);
     debug = 0;
-  }  
+  }
 }
 
 double BoatModel::ForceLift(double alpha_aoa_rad, double speed) {
@@ -381,7 +396,7 @@ double BoatModel::ForceLift(double alpha_aoa_rad, double speed) {
   if (debug && alpha_aoa_rad > Deg2Rad(9))
     printf("Rudder stall, cL: %g\n", c_lift);
   //if (debug) printf("N: c_lift: %6.4f \n", sign * c_lift);
-  return sign * c_lift * speed * speed * 
+  return sign * c_lift * speed * speed *
           (kAreaR * kRhoWater / 2);      // area * rho_water / 2;
 }
 
@@ -399,7 +414,7 @@ double BoatModel::ForceDrag(double alpha_aoa_rad, double speed) {
   }
   //if (debug) printf("N: c_drag: %6.4f \n", c_drag);
 
-  return c_drag * speed * speed * 
-          (kAreaR * kRhoWater / 2);      //  area * rho_water / 2; 
+  return c_drag * speed * speed *
+          (kAreaR * kRhoWater / 2);      //  area * rho_water / 2;
 }
 
