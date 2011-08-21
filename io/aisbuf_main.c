@@ -9,6 +9,7 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#include <signal.h>
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -17,6 +18,7 @@
 #include <syslog.h>
 #include <termios.h>
 #include <time.h>
+#include <sys/select.h>
 #include <sys/time.h>
 #include <unistd.h>
 
@@ -70,6 +72,9 @@ static struct AISMsg {
 	int mmsi;
 	int msgtype;
 	char line[1024];
+        int head;
+        int discard;
+        int tail;
 } *msgs = NULL;
 
 static int samemsg(struct AISMsg *a, struct AISMsg *b) {
@@ -85,6 +90,35 @@ static int samemsg(struct AISMsg *a, struct AISMsg *b) {
 	return 0;
 }
 
+
+// Reads from fd into the message, returns 0 if there is a \n terminated
+// line, EAGAIN if there is an incomplete line, or errno from read(2)
+// otherwise.  if the buffer overflows before EOL sets the discard flag which will
+// cause the current line to be discarded until an EOL is found.
+// the line will be 0-terminated.
+static int msg_read(int fd, struct AISMsg* lb) {
+        int n = read(fd, lb->line+lb->head, sizeof(lb->line) - lb->head - 1);
+        switch (n) {
+        case 0:
+                return EOF;
+        case -1:
+                return errno;
+        }
+
+        lb->line[lb->head+n] = 0;
+        char* eol = strchr(lb->line+lb->head, '\n');
+        if (eol) {
+                lb->head = 0;
+                if (!lb->discard) return 0;  // lb->line starts with a complete line
+                lb->discard = 0;
+        }
+        
+        // no EOL || discard
+        lb->head += n;
+        if (lb->head == sizeof(lb->line) - 1) lb->discard = 1;
+        if (lb->discard) lb->head = 0;
+        return EAGAIN;
+}
 
 int main(int argc, char* argv[]) {
 
@@ -124,38 +158,56 @@ int main(int argc, char* argv[]) {
 	int badcnt = 0;
 	int msgcnt = 0;
 	struct AISMsg* msg = malloc(sizeof *msg);
-	while (!feof(stdin)) {
+	memset(msg, 0, sizeof *msg);
+	for(;;) {
 
-		msg->link = msgs;
+		struct timespec timeout = { update_s, 0 };
+		fd_set rfds;
+		FD_ZERO(&rfds);
+		FD_SET(fileno(stdin), &rfds);
+		sigset_t empty_mask;
+                sigemptyset(&empty_mask);
+                int r = pselect(fileno(stdin)+ 1, &rfds, NULL, NULL, &timeout, &empty_mask);
+                if (r == -1 && errno != EINTR) crash("pselect");
 
-		if (!fgets(msg->line, sizeof msg->line, stdin))
-			crash("reading stdin");
+		if (r == 1) {
+			r = msg_read(fileno(stdin), msg);
+			if (r == EOF) break;
+			if (r == EAGAIN) continue;
+			if (r != 0) crash("reading stdin");
+			if (sscanf(msg->line, "ais: timestamp_ms:%lld mmsi:%d msgtype:%d ", &msg->timestamp_ms, &msg->mmsi, &msg->msgtype) < 3) {
+				if (badcnt++ > 100) crash("Nothing but garbage on stdin: %s", msg->line);
+				if (debug) fprintf(stderr, "Could not parse stdin:%s", msg->line);
+				continue;
+			}
 
-		if (sscanf(msg->line, "ais: timestamp_ms:%lld mmsi:%d msgtype:%d ", &msg->timestamp_ms, &msg->mmsi, &msg->msgtype) < 3) {
-			if (badcnt++ > 100) crash("Nothing but garbage on stdin: %s", msg->line);
-			if (debug) fprintf(stderr, "Could not parse stdin:%s", msg->line);
-			continue;
-		}
+			badcnt = 0;
+			msgcnt++;
+			msg->link = msgs;
+			msgs = msg;
 
-		badcnt = 0;
-		msgcnt++;
-		msgs = msg;
+			msg = malloc(sizeof *msg);
+			memset(msg, 0, sizeof *msg);
 
-		struct AISMsg** pp = &msg->link;
-		while (*pp) {
-			struct AISMsg* curr = *pp;
-			if (samemsg(curr, msg)) {
-				*pp = curr->link;
-				free(curr);
-				msgcnt--;
-			} else {
-				pp = &(*pp)->link;
+			// delete older versions
+			struct AISMsg** pp = &msgs->link;
+			while (*pp) {
+				struct AISMsg* curr = *pp;
+				if (samemsg(curr, msgs)) {
+					*pp = curr->link;
+					free(curr);
+					msgcnt--;
+				} else {
+					pp = &(*pp)->link;
+				}
 			}
 		}
 
+		// clean to lowwatermark when above highwatermarkxs
 		if (msgcnt > 3000) {  // highwatermark
-			if (debug) fprintf(stderr, "Cleaning %dto low watermark\n", msgcnt);
+			if (debug) fprintf(stderr, "Cleaning %d to low watermark\n", msgcnt);
 			int lowwatermark = 2000; // lowwatermark
+			struct AISMsg** pp;
 			for (pp = &msgs; *pp && lowwatermark; pp=&(*pp)->link)
 				lowwatermark--;
 			while (*pp) {
@@ -166,19 +218,20 @@ int main(int argc, char* argv[]) {
 			}
 		}
 
-		if (msg->timestamp_ms < lastwritten_ms) // clock jumped back
+		if (msgs->timestamp_ms < lastwritten_ms) // clock jumped back
 			lastwritten_ms = 0;
 	  
-		if (lastwritten_ms + garbage_s*1000 < msg->timestamp_ms) {
+		if (lastwritten_ms + update_s*1000 < msgs->timestamp_ms) {
 			if (debug) fprintf(stderr, "Flushing %d messages\n", msgcnt);
 
 			FILE* tmp = fopen(tmppath, "w");
 			if (!tmp) crash("opening %s", tmppath);
 
+			struct AISMsg** pp;
 			for (pp = &msgs; *pp; pp=&(*pp)->link) {
-				if ((*pp)->timestamp_ms > msg->timestamp_ms) // clock jumped back
+				if ((*pp)->timestamp_ms > msgs->timestamp_ms) // clock jumped back
 					break;
-				if ((*pp)->timestamp_ms + 1000*garbage_s < msg->timestamp_ms)
+				if ((*pp)->timestamp_ms + 1000*garbage_s < msgs->timestamp_ms)
 					break;
 				fputs((*pp)->line, tmp);
 			}
@@ -186,6 +239,7 @@ int main(int argc, char* argv[]) {
 			if (fclose(tmp)) crash("closing %s", tmppath);
 			if (rename(tmppath, argv[0])) crash("renaming to %s", argv[0]);
 
+			// garbage collect the rest
 			while (*pp) {
 				struct AISMsg* curr = *pp;
 				*pp = curr->link;
@@ -195,7 +249,6 @@ int main(int argc, char* argv[]) {
 		}
 
 		if (debug) fprintf(stderr, "Loop  %d messages\n", msgcnt);
-		msg = malloc(sizeof *msg);
 	}
 
 	crash("Exit loop");
