@@ -122,7 +122,7 @@ void HandleRemoteControl(RemoteProto remote, int* control_mode) {
        ShipControl::Docking();
       break;
     case kBrakeControlMode:
-    case kPowerShutdownMode:
+    case kPowerCycleMode:
       *control_mode = remote.command;
       ShipControl::Brake();
       break;
