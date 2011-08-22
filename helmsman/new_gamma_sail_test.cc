@@ -39,7 +39,7 @@ TEST(NewGammaSail, Tack) {
                &delta_gamma_sail);
   EXPECT_IN_INTERVAL(41, Rad2Deg(new_gamma_sail), 43);
   EXPECT_IN_INTERVAL(82, Rad2Deg(delta_gamma_sail), 86);
-  EXPECT_EQ(old_gamma_sail, -new_gamma_sail);
+  EXPECT_FLOAT_EQ(old_gamma_sail, -new_gamma_sail);
 
 
   new_gamma_sail = -1;
