@@ -204,7 +204,7 @@ int main(int argc, char* argv[]) {
 
     if (ferror(stdin)) clearerr(stdin);
 
-    struct timespec timeout = { 0, nanos_to_wait(last_run_micros) }; // Run ship cotroller exactly once every 100ms
+    struct timespec timeout = { 0, nanos_to_wait(last_run_micros) }; // Run ship controller exactly once every 100ms
     fd_set rfds;
     int max_fd = -1;
     FD_ZERO(&rfds);
