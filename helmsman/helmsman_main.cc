@@ -185,6 +185,7 @@ int main(int argc, char* argv[]) {
   }
 
   ControllerInput ctrl_in;
+  ControllerOutput ctrl_out;  // in this scope because it keeps the statistics. 
 
   int nn = 0;
 
@@ -273,7 +274,7 @@ int main(int argc, char* argv[]) {
 
     if (nanos_to_wait(last_run_micros) > 100)
       continue;
-    ControllerOutput ctrl_out;
+    ctrl_out.Reset();
     last_run_micros = now_micros();
     ShipControl::Run(ctrl_in, &ctrl_out);
     struct RudderProto ctl = {
@@ -293,11 +294,11 @@ int main(int argc, char* argv[]) {
       };
       printf(OFMT_SKIPPER_INPUTPROTO(to_skipper, &nn));
     }
-    if (loops % 100 == 5) {
-      HelmsmanStatusProto sts;
-      ctrl_out.status.ToProto(&sts);
-      sts.timestamp_ms = now_ms();
-      printf(OFMT_HELMSMAN_STATUSPROTO(sts, &nn));
+    if (loops % 10 == 5) {
+      HelmsmanStatusProto hsts = INIT_HELMSMAN_STATUSPROTO;
+      ctrl_out.status.ToProto(&hsts);
+      hsts.timestamp_ms = now_ms();
+      printf(OFMT_HELMSMAN_STATUSPROTO(hsts, &nn));
     }
     // A simple ++loops would do the job unil loops wraps around only. 
     loops = loops > 999 ? 0 : loops+1;

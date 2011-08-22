@@ -65,10 +65,13 @@ void NormalController::Run(const ControllerInput& in,
                        &phi_star,
                        &omega_star,
                        &gamma_sail_star);
-  if (maneuver == kTack)
+  if (maneuver == kTack) {
     out->status.tacks++;
-  else if (maneuver == kJibe)
+    if (debug) fprintf(stderr, "\nTack\n\n"); 
+  } else if (maneuver == kJibe) {
     out->status.jibes++;
+    if (debug) fprintf(stderr, "\nJibe\n\n"); 
+  }  
 
   if (debug) fprintf(stderr, "IntRef: %6.4f %6.4f %6.4f\n", Rad2Deg(phi_star), Rad2Deg(omega_star), Rad2Deg(gamma_sail_star));
 
