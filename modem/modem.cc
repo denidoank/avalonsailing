@@ -1,7 +1,6 @@
 // Copyright 2011 The Avalon Project Authors. All rights reserved.
 // Use of this source code is governed by the Apache License 2.0
 // that can be found in the LICENSE file.
-#include "lib/fm/log.h"
 #include "lib/util/reader.h"
 #include "modem/modem.h"
 #include "modem/sms.h"
@@ -11,6 +10,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
+#include <syslog.h>
 #include <termios.h>
 #include <unistd.h>
 #include <vector>
@@ -60,7 +60,7 @@ Modem::~Modem() {
 
 bool Modem::Init(const char *devname) {
   if (!serial_.Init(devname, B9600)) {
-    FM_LOG_ERROR("Intializing serial port %s failed.", devname);
+    syslog(LOG_ERR, "Intializing serial port %s failed.", devname);
     return false;
   }
   // Initialize modem.
@@ -262,7 +262,7 @@ Modem::ResultCode Modem::ReceiveSMSMessages(list<SmsMessage>* messages) {
     if (sms_length > 0) {  // Valid SMS received.
       SmsMessage message;
       if (ids.empty()) {
-        FM_LOG_ERROR("Invalid message id!");
+        syslog(LOG_ERR, "Invalid message id!");
         return ERROR;
       }
       message.id = ids.front();
@@ -281,7 +281,7 @@ Modem::ResultCode Modem::ReceiveSMSMessages(list<SmsMessage>* messages) {
 Modem::ResultCode Modem::DeleteSMSMessage(const SmsMessage& message) {
   char cmd[128];
   sprintf(cmd, "AT+CMGD=%d", message.id);
-  FM_LOG_DEBUG("deleting SMS message id: %d", message.id);
+  syslog(LOG_DEBUG, "deleting SMS message id: %d", message.id);
   return SendCommand(cmd);
 }
 
@@ -291,14 +291,14 @@ void Modem::IdleLoop() {
     // TODO: process asyncronous messages such as:
     // - network registration status change.
     // - network location changes.
-    FM_LOG_DEBUG("asynchronous status: %s", async_status_.front().c_str());
+    syslog(LOG_DEBUG, "asynchronous status: %s", async_status_.front().c_str());
     async_status_.pop_front();
   }
   while (!info_.empty()) {
     // TODO: process asyncronous messages such as:
     // - network registration status change.
     // - network location changes.
-    FM_LOG_DEBUG("info: %s", info_.front().c_str());
+    syslog(LOG_DEBUG, "info: %s", info_.front().c_str());
     info_.pop_front();
   }
 }

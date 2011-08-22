@@ -1,7 +1,6 @@
 // Copyright 2011 The Avalon Project Authors. All rights reserved.
 // Use of this source code is governed by the Apache License 2.0
 // that can be found in the LICENSE file.
-#include "lib/fm/log.h"
 #include "modem/message-queue.h"
 
 #include <algorithm>
@@ -13,8 +12,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <syslog.h>
 #include <unistd.h>
 
 #define DEFAULT_PERMISSIONS (S_IRUSR | S_IWUSR)
@@ -40,7 +41,6 @@ MessageQueue:: ~MessageQueue() {
 }
 
 void MessageQueue::EmptyQueue() {
-  FM_LOG_DEBUG("Empty message queue.");
   vector<MessageId> ids;
   GetAvailableIds(ids);
   // Delete all messages.
@@ -67,7 +67,7 @@ MessageQueue::MessageId MessageQueue::GetMessage(
     const string filename = GetFilenameFromId(id);
     int fd = open(filename.c_str(), O_RDONLY);
     if (fd < 0) {
-      FM_LOG_ERROR("Error opening message id %u.", id);
+      syslog(LOG_ERR, "Error opening message id %u.", id);
       id = kInvalidId;      
     } else {
       char buffer[1024];
@@ -77,10 +77,10 @@ MessageQueue::MessageId MessageQueue::GetMessage(
         message->append(buffer, length);
       }
       if (length < 0) {
-        FM_LOG_ERROR("Error reading message id %u.", id);
+        syslog(LOG_ERR, "Error reading message id %u.", id);
         id = kInvalidId;
       } else {
-        FM_LOG_INFO("Opening message id %u.", id);
+        syslog(LOG_INFO, "Opening message id %u.", id);
         message->append(buffer, length);
       }
     }
@@ -91,9 +91,9 @@ MessageQueue::MessageId MessageQueue::GetMessage(
 
 bool MessageQueue::DeleteMessage(const MessageId message_id) {
   string filename = GetFilenameFromId(message_id);
-  FM_LOG_INFO("Remove message id %u.", message_id);
+  syslog(LOG_INFO, "Remove message id %u.", message_id);
   if (unlink(filename.c_str())) {
-    FM_LOG_ERROR("Removing message id %u failed.", message_id);    
+    syslog(LOG_ERR, "Removing message id %u failed.", message_id);    
     return false;
   }
   return true;
@@ -105,12 +105,12 @@ MessageQueue::MessageId MessageQueue::PushMessage(const string& message) {
   strncat(temp_filename, "/temp_XXXXXX", sizeof(temp_filename) - 1);
   int fd = mkstemp(temp_filename);
   if (fd < 0) {
-    FM_LOG_ERROR("Error creating message (temp file: %s).", temp_filename);
+    syslog(LOG_ERR, "Error creating message (temp file: %s).", temp_filename);
     return kInvalidId;
   }
   if (write(fd, message.c_str(), message.length()) !=
       static_cast<int>(message.length())) {
-    FM_LOG_ERROR("Error writing message (temp file: %s).", temp_filename);
+    syslog(LOG_ERR, "Error writing message (temp file: %s).", temp_filename);
     close(fd);
     unlink(temp_filename);
     return kInvalidId;
@@ -120,8 +120,8 @@ MessageQueue::MessageId MessageQueue::PushMessage(const string& message) {
   MessageId id = GetNextId();  
   string filename = GetFilenameFromId(id);
   if (rename(temp_filename, filename.c_str())) {
-    FM_LOG_ERROR("Error pushing message id: %d (file: %s)",
-                 id, filename.c_str());
+    syslog(LOG_ERR, "Error pushing message id: %d (file: %s)",
+           id, filename.c_str());
     unlink(temp_filename);
     return kInvalidId;
   } 
@@ -154,7 +154,8 @@ void MessageQueue::GetAvailableIds(vector<MessageId>& ids) const {
   // List all files in the queue directory.
   n = scandir(base_dir_.c_str(), &namelist, 0, 0);
   if (n < 0) {
-    FM_LOG_FATAL("Cannot scan message queue dir: %s", base_dir_.c_str());
+    syslog(LOG_CRIT, "Cannot scan message queue dir: %s", base_dir_.c_str());
+    exit(1);
   } else {
     while (n--) {  // For each file entry.
       MessageId id = GetIdFromFilename(namelist[n]->d_name);

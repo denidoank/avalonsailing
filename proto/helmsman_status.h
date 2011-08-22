@@ -25,14 +25,18 @@ struct HelmsmanStatusProto {
 #define INIT_HELMSMAN_STATUSPROTO {0, 0, 0, 0, NAN, NAN}
 
 // For use in printf and friends.
-#define OFMT_HELMSMAN_STATUSPROTO(x, n)  \
-  "helmsman_st: timestamp_ms:%lld tacks:%d jibes:%d inits:%d direction_true_deg:%.2lf mag_true_m_s:%.2lf%n\n", \
-   (x).timestamp_ms, (x).tacks, (x).jibes, (x).inits, (x).direction_true_deg, (x).mag_true_m_s, (n)
+#define OFMT_HELMSMAN_STATUSPROTO(x, n)                                       \
+   "helmsman_st: timestamp_ms:%lld tacks:%d jibes:%d inits:%d "               \
+   "direction_true_deg:%.2lf mag_true_m_s:%.2lf%n\n",                         \
+   (x).timestamp_ms, (x).tacks, (x).jibes, (x).inits, (x).direction_true_deg, \
+   (x).mag_true_m_s, (n)
 
 
 // For use in scanf.
-#define IFMT_HELMSMAN_STATUSPROTO(x, n)                             \
-  "helmsman_st: timestamp_ms:%lld tacks:%d jibes:%d inits:%d direction_true_deg:%lf mag_true_m_s:%lf%n",	   \
-   &(x).timestamp_ms, &(x).tacks, &(x).jibes, &(x).inits, &(x).direction_true_deg, &(x).mag_true_m_s, (n)
+#define IFMT_HELMSMAN_STATUSPROTO(x, n)                                       \
+  "helmsman_st: timestamp_ms:%lld tacks:%d jibes:%d inits:%d "                \
+  "direction_true_deg:%lf mag_true_m_s:%lf%n",	                              \
+   &(x)->timestamp_ms, &(x)->tacks, &(x)->jibes, &(x)->inits,                 \
+   &(x)->direction_true_deg, &(x)->mag_true_m_s, (n)
 
 #endif // PROTO_HELMSMAN_STATUS_H
