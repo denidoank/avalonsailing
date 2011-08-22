@@ -11,8 +11,8 @@ PLUG="./io/plug ${LBUS}"
 # Compile what we need.
 $MAKE -C common
 $MAKE -C io
-$MAKE -C fakeio
 $MAKE -C helmsman
+$MAKE -C fakeio
 pushd remote_control
 if which qmake > /dev/null; then
   qmake
@@ -24,7 +24,7 @@ fi
 popd
 
 # killing linebusd should kill everything.
-killall linebusd fakeimu fakerudderd fakewind || true
+killall linebusd helmsman fakeboat || true
 
 # Run the bus and the fake boat
 ./io/linebusd $LBUS
