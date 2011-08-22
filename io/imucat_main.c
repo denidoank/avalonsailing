@@ -5,11 +5,7 @@
 // Open serial port and decode IMU MTData messages
 //
 // NOTE: wrt the IMU manual, the gyroscopic rates (rad/s) and the orientation angles (deg) are
-// reversed in sign, but the axes of the coordinate system are unchanged: x-forward, y-left, z-up.
-//
-// The avalon convention (output by this program) is that the  angle +90 degrees around Z means to the RIGHT
-// If you compute an angle with atan2(x,y), be sure to check for consistency: you probably want to use -y there.
-//
+// reversed in sign, and the Y-axis of the coordinate system is flipped: x-forward, y-left, z-up.
 //
 
 #include <errno.h>
@@ -100,9 +96,9 @@ imu_decode_variables(uint8_t* b, int len, uint16_t mode, uint32_t settings, stru
 	if (mode & IMU_OM_CAL) {  
 		if (!(settings & IMU_OS_CM_DISACC)) {
 			checklen(IMU_OS_CM_DISACC, 3*4);
-			vars->acc_x_m_s2  = decode_float(&b);
-			vars->acc_y_m_s2  = decode_float(&b);
-			vars->acc_z_m_s2  = decode_float(&b);
+			vars->acc_x_m_s2  =  decode_float(&b);
+			vars->acc_y_m_s2  = -decode_float(&b);   // avalon flipped y
+			vars->acc_z_m_s2  =  decode_float(&b);
 		}
 		if (!(settings & IMU_OS_CM_DISGYR)) {
 			checklen(IMU_OS_CM_DISGYR, 3*4);
@@ -112,9 +108,9 @@ imu_decode_variables(uint8_t* b, int len, uint16_t mode, uint32_t settings, stru
 		}
 		if (!(settings & IMU_OS_CM_DISMAG)) {
 			checklen(IMU_OS_CM_DISMAG, 3*4);
-			vars->mag_x_au = decode_float(&b);
-			vars->mag_y_au = decode_float(&b);
-			vars->mag_z_au = decode_float(&b);      
+			vars->mag_x_au =  decode_float(&b);
+			vars->mag_y_au = -decode_float(&b);    // avalon flipped y
+			vars->mag_z_au =  decode_float(&b);      
 		}
 
 		if (mode & IMU_OM_ORI) {
@@ -151,9 +147,9 @@ imu_decode_variables(uint8_t* b, int len, uint16_t mode, uint32_t settings, stru
 
 	if (mode & IMU_OM_VEL) {
 		checklen( IMU_OM_VEL,3*4);
-		vars->vel_x_m_s = decode_float(&b);
-		vars->vel_y_m_s = decode_float(&b);
-		vars->vel_z_m_s = decode_float(&b);
+		vars->vel_x_m_s =  decode_float(&b);
+		vars->vel_y_m_s = -decode_float(&b);    // avalon flipped y
+		vars->vel_z_m_s =  decode_float(&b);
 	}
 
 	if (mode & IMU_OM_STS) {
