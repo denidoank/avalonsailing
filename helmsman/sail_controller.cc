@@ -23,16 +23,18 @@ SailModeLogic::SailModeLogic()
       delay_counter_(0)
   {}
 
-SailMode SailModeLogic::BestMode(double apparent) const {
+SailMode SailModeLogic::BestMode(double apparent, double wind_strength_m_s) const {
   CHECK_GE(apparent, 0);
-  return apparent < kSwitchpoint ? SPINNAKER : WING;
+  return apparent < kSwitchpoint && wind_strength_m_s < kSpinakkerLimit ? SPINNAKER : WING;
 }
 
-SailMode SailModeLogic::BestStabilizedMode(double apparent) {
+SailMode SailModeLogic::BestStabilizedMode(double apparent, double wind_strength_m_s) {
   const int delay = static_cast<int>(kSwitchBackDelay / kSamplingPeriod + 0.5);
   if (mode_ == WING_LOCKED) {
     return WING_LOCKED;
   }
+  if (wind_strength_m_s > kSpinakkerLimit)
+    return WING;
   if (mode_ == WING) {
     if (apparent <= kSwitchpoint - 2 * kHalfHysteresis ||
         (apparent < kSwitchpoint - kHalfHysteresis &&
@@ -47,7 +49,7 @@ SailMode SailModeLogic::BestStabilizedMode(double apparent) {
          ++delay_counter_ > delay)) {
       mode_ = WING;
       delay_counter_ = 0;
-      if (debug) fprintf(stderr, "SailModeLogic::BestMode: Switched to wing.");
+      if (debug) fprintf(stderr, "SailModeLogic::BestMode: Switched to wing.\n");
     }
   }
   return mode_;
@@ -85,6 +87,15 @@ double SailController::BestStabilizedGammaSail(double alpha_wind_rad, double mag
   return GammaSailInternal(alpha_wind_rad, mag_wind, true);
 }
 
+double SailController::AngleOfAttack(double mag_wind) {
+  // The sail forces are proportional to the square of the wind speed.
+  if (mag_wind < kAngleReductionLimit)
+    return optimal_angle_of_attack_rad_;
+  else
+    return optimal_angle_of_attack_rad_ * kAngleReductionLimit * kAngleReductionLimit /
+        (mag_wind * mag_wind);
+}
+
 double SailController::GammaSailInternal(double alpha_wind_rad,
                                          double mag_wind,
                                          bool stabilized) {
@@ -99,8 +110,8 @@ double SailController::GammaSailInternal(double alpha_wind_rad,
     return 0;
 
   SailMode mode = stabilized ?
-      logic_.BestStabilizedMode(alpha_wind_rad) :
-      logic_.BestMode(alpha_wind_rad);
+      logic_.BestStabilizedMode(alpha_wind_rad, mag_wind) :
+      logic_.BestMode(alpha_wind_rad, mag_wind);
 
   double gamma_sail_rad = (mode == WING) ?
       (alpha_wind_rad - M_PI + optimal_angle_of_attack_rad_) :
@@ -125,7 +136,7 @@ double SailController::BestGammaSailForReverseMotion(double alpha_wind_rad,
   if (mag_wind == 0)
     return M_PI / 2;
 
-  double gamma_sail_rad = alpha_wind_rad < (M_PI - kSwitchpoint) ?
+  double gamma_sail_rad = alpha_wind_rad < (M_PI - kSwitchpoint) || mag_wind > kSpinakkerLimit ?
       (M_PI - alpha_wind_rad + optimal_angle_of_attack_rad_) :
       M_PI / 2;      // reversed SPINNAKER mode, broad reach
 

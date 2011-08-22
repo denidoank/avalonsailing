@@ -31,7 +31,6 @@ TEST(SailController, Basic) {
   EXPECT_FLOAT_EQ(Deg2Rad(84), controller.BestGammaSail(Deg2Rad(-86), 10));
 
 
-
   double alpha_wind = kSwitchpoint;
   EXPECT_FLOAT_EQ(kSwitchpoint - M_PI + aoa_optimal,
                   controller.BestGammaSail(kSwitchpoint + 1E-6, 5));
@@ -98,9 +97,22 @@ TEST(SailController, Reverse) {
   EXPECT_FLOAT_EQ(-1.81514, controller.BestGammaSailForReverseMotion(Deg2Rad(86), 10));
 }
 
+TEST(SailController, Storm) {  
+  SailController controller;
+  double optimal_deg = 10;
+  controller.SetOptimalAngleOfAttack(Deg2Rad(optimal_deg));
+
+  EXPECT_FLOAT_EQ(Deg2Rad(-80), controller.BestGammaSail(Deg2Rad(90), 5));
+  EXPECT_FLOAT_EQ(Deg2Rad(-90 + optimal_deg), controller.BestGammaSail(Deg2Rad(90), 5));
+  EXPECT_FLOAT_EQ(Deg2Rad(-90 + optimal_deg), controller.BestGammaSail(Deg2Rad(90), kAngleReductionLimit));
+  EXPECT_FLOAT_EQ(Deg2Rad(-90 + optimal_deg / 4), controller.BestGammaSail(Deg2Rad(90), 2 * kAngleReductionLimit));
+}
+
 int main(int argc, char* argv[]) {
   SailController_Basic();
   SailController_Reverse();
+  SailController_Storm();
+
   return 0;
 }
 

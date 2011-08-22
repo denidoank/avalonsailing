@@ -117,7 +117,9 @@ TEST(RudderController, All) {
   c.Control(0.1, 0.1,
             phi, omega,
             0.2 * speed, &gamma);
-  // -27 degrees (7 from NACA profile, 20 for gamma_0)
+  // -27 degrees (7 from NACA profile, 20 for gamma_0) would be 0.471238898038469
+  // ?
+  // TODO: Check this result.
   EXPECT_FLOAT_EQ(-0.46562, gamma);
 
   c.Reset();
