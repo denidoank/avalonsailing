@@ -9,7 +9,7 @@ MODEM_QUEUE=/tmp/modem
 case "$1" in
   start)
         echo -n "Starting $DESC: "
-        $DIR/plug -o /var/run/lbus | $DIR/statusd  --no-syslog --logtostderr --task=statusd --timeout=60 --debug --queue=$MODEM_QUEUE --initial_timeout=180 --status_interval=86400 >/dev/null 2>&1 &
+        $DIR/plug -o /var/run/lbus | $DIR/statusd --queue=$MODEM_QUEUE --initial_timeout=180 --status_interval=86400  2>/dev/null | $DIR/plug -i /var/run/lbus &
         echo "OK"
         ;;
   stop)

@@ -23,7 +23,7 @@ char CharOfIntLT64(const int x) {
 }
 
 // SMS Status Example:
-// 08184459GN451259W0011959342150912n3Bb000OtherStatusInfoInPlainText
+// 08184459GN451259W001195934215T09212n3Bb1OtherStatusInfoInPlainText
 //
 // where:
 // 1. GMT date and time (8 digits)
@@ -41,30 +41,27 @@ char CharOfIntLT64(const int x) {
 // 4. Speed in .1 knot increments (2 digits)
 //    15 = 1.5 knots
 //
-// 5. Wind speed average to 10 closest degrees and speed in knots:
-//    0912 = Wind average direction 090 +/-5 degrees, wind speed is 12 knots
+// 5. Wind speed average degrees and speed in knots:
+//    T09212 = True wind average direction 092 degrees, wind speed is 12 knots
 //
 // 6. Battery charge (1 digit) and fuel cell runtime (1 digit)
 //    Values are encoded using: 0-9 A-Z a-z = 62 values, '{' = 63 or more
 //    Battery charge: decoded value / 2 volts (e.g. 'n' -> 49 -> 24.5V)
 //    Fuel cell runtime: decoded value / 2 hours (e.g. '3' -> 3 -> 1.5h)
 //
-// 7. Number of tacks/jibes:
-//    B = 11 tacks: (0-9 A-Z a-z = 62 values, '{' = 63 or more tacks)
-//    b = 37 jibes: (0-9 A-Z a-z = 62 values, '{' = 63 or more jibes)
-//
-// 8. Hardware/Software failures
-//    000 = To be defined (15 bits)
-//          5 bits are encoded per character (0-9 A-Z a-z = 62 values, '{' = 63)
-//          hw/sw components are: main sail engine, left ruder, right rudder,
-//          inertial (imu), radar (ais), gps, modem (Iridium)
+// 7. Number of tacks/jibes/inits (modulo 64):
+//    B = 11 tacks: (0-9 A-Z a-z = 62 values, '{' = 63 tacks)
+//    b = 37 jibes: (0-9 A-Z a-z = 62 values, '{' = 63 jibes)
+//    1 =  1 inits: (0-9 A-Z a-z = 62 values, '{' = 63 inits)
 //
 // === TOTAL 40 characters for basic status information ===
+
 string BuildStatusMessage(const time_t status_time,
                           const IMUProto& imu_status,
                           const WindProto& wind_status,
                           const ModemProto& modem_status,
-                          const HelmsmanCtlProto& helmsman_status,
+                          const HelmsmanCtlProto& helmsman_ctl,
+                          const HelmsmanStatusProto& helmsman_status,
                           const FuelcellProto& fuelcell_status,
                           const string& status_text) {
   // 1. GMT date and time (offset 0).
@@ -105,15 +102,15 @@ string BuildStatusMessage(const time_t status_time,
 
   // 3. Skipper bearing (offset 24).
   strcat(status + 24, "XXX");
-  if (!isnan(helmsman_status.alpha_star_deg)) {
-    const double bearing = round(helmsman_status.alpha_star_deg);
+  if (!isnan(helmsman_ctl.alpha_star_deg)) {
+    const double bearing = round(helmsman_ctl.alpha_star_deg);
     sprintf(status + 24, "%03d", (static_cast<int>(bearing) + 360) % 360);
   }
 
   // 4. Speed in .1 knot increments (offset 27)
   strcat(status + 27, "XX");
-  double speed = NAN;
-  if (!isnan(speed)) {
+  if (!isnan(imu_status.vel_x_m_s)) {
+    double speed =  MeterPerSecondToKnots(imu_status.vel_x_m_s);
     if (speed >= 10.0) {
       strcat(status + 27, "++");
     } else {
@@ -122,34 +119,44 @@ string BuildStatusMessage(const time_t status_time,
   }
 
   // 5. Wind speed average to 10 closest degrees and speed in knots (offset 29).
-  // TODO(mariusv): Update wind direction and speed from helmsmann
-  strcat(status + 29, "XXXX");
-  if (!isnan(wind_status.angle_deg))
-    sprintf(status + 29, "%02d",
-            (static_cast<int>(wind_status.angle_deg) % 360) / 10);
-  if (!isnan(wind_status.speed_m_s)) {
-    sprintf(status + 31, "%02d", static_cast<int>(
+  strcat(status + 29, "XXXXXX");
+  if (!isnan(wind_status.angle_deg)) {  // Relative wind from wind sensor.
+    const int wind_direction =
+        (static_cast<int>(wind_status.angle_deg) + 360) % 360;
+    sprintf(status + 29, "R%03d", wind_direction);
+    if (!isnan(wind_status.speed_m_s)) {
+    sprintf(status + 33, "%02d", static_cast<int>(
         MeterPerSecondToKnots(wind_status.speed_m_s)) % 100);
+    }
+  }
+  if (!isnan(helmsman_status.direction_true_deg)) {  // True wind from helmsman.
+    const int wind_direction =
+        (static_cast<int>(helmsman_status.direction_true_deg) + 360) % 360;
+    sprintf(status + 29, "T%03d", wind_direction);
+    if (!isnan(helmsman_status.mag_true_m_s)) {
+      sprintf(status + 33, "%02d", static_cast<int>(
+          MeterPerSecondToKnots(helmsman_status.mag_true_m_s)) % 100);
+    }
   }
 
-  // 6. Battery charge (1 digit) and fuel cell supply (offset 33).
-  strcat(status + 33, "??");
+  // 6. Battery charge (1 digit) and fuel cell supply (offset 35).
+  strcat(status + 35, "??");
   if (!isnan(fuelcell_status.tension_V)) {
-    status[33] =
+    status[35] =
         CharOfIntLT64(static_cast<int>(fuelcell_status.tension_V * 2.0));
   }
   if (!isnan(fuelcell_status.runtime_h)) {
-    status[34] =
+    status[36] =
         CharOfIntLT64(static_cast<int>(fuelcell_status.runtime_h * 2.0) % 64);
   }
 
-  // 7. Number of tacks/jibes (offset 35).
-  strcat(status + 35, "??");
-
-  // 8. Hardware/Software failures (offset 37).
-  strcat(status + 37, "000");
+  // 7. Number of tacks/jibes/inits (offset 37).
+  status[37] = CharOfIntLT64(helmsman_status.tacks % 64);
+  status[38] = CharOfIntLT64(helmsman_status.jibes % 64);
+  status[39] = CharOfIntLT64(helmsman_status.inits % 64);
 
   // Other information in plain text (offset 40).
+  status[40] = '\0';
   strncat(status + 40, status_text.c_str(), 160 - 40);
 
   return status;

@@ -19,9 +19,7 @@ struct RemoteProto {
   //  2 = docking mode (sails, ruders straight)
   //  3 = brake mode 
   //  4 = override bearing mode
-  //  5 = power shutdown
-  // bit 4: force status report/ack.
-  // bit 5-7: unused
+  //  5 = power cycle/reboot
   int command;
   double alpha_star_deg;  // valid if command = 4 only.
 };
@@ -30,9 +28,9 @@ static const int kNormalControlMode = 1;
 static const int kDockingControlMode = 2;
 static const int kBrakeControlMode = 3;
 static const int kOverrideSkipperMode = 4;
-static const int kPowerShutdownMode = 5;
+static const int kPowerCycleMode = 5;
 
-#define INIT_REMOTEPROTO {0, 0, NAN}
+#define INIT_REMOTEPROTO {0, kNormalControlMode, NAN}
 
 // For use in printf and friends.
 #define OFMT_REMOTEPROTO(x, n)                                \

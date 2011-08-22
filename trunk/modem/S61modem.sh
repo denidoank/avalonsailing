@@ -12,14 +12,14 @@ QUEUE=/tmp/modem
 case "$1" in
   start)
         echo -n "Starting $DESC: "
-	test -d $QUEUE || mkdir -p $QUEUE
-	$DIR/modemd --no-syslog --task=modemd --timeout=60 --debug --device=$DEVICE --phone=$PHONE --queue=$QUEUE | $DIR/plug -i /var/run/lbus >/dev/null 2>&1 &
+        test -d $QUEUE || mkdir -p $QUEUE
+        $DIR/modemd --device=$DEVICE --phone=$PHONE --queue=$QUEUE | $DIR/plug -i /var/run/lbus >/dev/null 2>&1 &
         echo "OK"
         ;;
   stop)
         echo -n "Stopping $DESC: "
-	kill `cat /var/run/modem.pid`
-	killall modemd
+        kill `cat /var/run/modem.pid`
+        killall modemd
         echo "OK"
         ;;
   restart|force-reload)

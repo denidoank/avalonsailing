@@ -4,7 +4,7 @@ set -e
 
 DESC="Fuelcell monitor"
 DIR=/usr/bin
-DEVICE=/dev/ttyUSB8
+DEVICE=/dev/ttyUSB5
 
 
 case "$1" in

@@ -6,6 +6,7 @@
 
 #include "proto/fuelcell.h"
 #include "proto/helmsman.h"
+#include "proto/helmsman_status.h"
 #include "proto/imu.h"
 #include "proto/modem.h"
 #include "proto/wind.h"
@@ -19,7 +20,8 @@ string BuildStatusMessage(const time_t status_time,
                           const IMUProto& imu_status,
                           const WindProto& wind_status,
                           const ModemProto& modem_status,
-                          const HelmsmanCtlProto& helmsman_status,
+                          const HelmsmanCtlProto& helmsman_ctl,
+                          const HelmsmanStatusProto& helmsman_status,
                           const FuelcellProto& fuelcell_status,
                           const string& status_text);
 
