@@ -25,7 +25,8 @@
 
 /usr/bin/modemd --device=/dev/ttyUSB8 --queue=/var/run/modem | /usr/bin/plug -i /var/run/lbus 2>/dev/null &
 
-/usr/bin/plug -o /var/run/lbus | /usr/bin/statusd  --queue=/var/run/modem --initial_timeout=180 --status_interval=86400 >/dev/null 2>&1 &
+/usr/bin/plug -o /var/run/lbus | /usr/bin/statusd  --queue=/var/run/modem \
+--initial_timeout=180 --status_interval=86400 --remote_cmd_interval=5 >/dev/null 2>&1 &
 
 echo "Und immer eine Handbreit Wasser unter dem Kiel!"
 echo "May she always have a good passage, wherever she goes!"
