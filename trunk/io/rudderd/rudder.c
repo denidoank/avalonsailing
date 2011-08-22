@@ -144,7 +144,7 @@ rudder_control(Device* dev,  MotorParams* params, double target_angle_deg, doubl
                 ? params->home_pos_qc : params->extr_pos_qc;
         int32_t maxpos = (params->home_pos_qc > params->extr_pos_qc)
                 ? params->home_pos_qc : params->extr_pos_qc;
-        int32_t delta  = (maxpos - minpos) / 256;  // aim for 8 bits of resolution, see tolerance below.
+        int32_t delta  = (maxpos - minpos) / 4096;  // aim for 12 bits of resolution, see tolerance below.
         minpos -= 10*delta;
         maxpos += 10*delta;
         int32_t method = (params->home_pos_qc < params->extr_pos_qc) ? 1 : 2;  // TODO check 23/27
@@ -235,7 +235,7 @@ rudder_control(Device* dev,  MotorParams* params, double target_angle_deg, doubl
 	if (isnan(target_angle_deg)) return REACHED;
 
         // no matter where we are, if current target is away from new target angle, we're not there
-        const double tolerance = (1.0/256.0); // imagine we have about 8 bits or resolution
+        const double tolerance = (1.0/4096.0); // imagine we have about 12 bits of resolution
         double targ_diff = target_angle_deg - qc_to_angle(params, curr_targ_qc);
         targ_diff /= params->extr_angle_deg - params->home_angle_deg;
         if (targ_diff < 0) targ_diff = -targ_diff;
