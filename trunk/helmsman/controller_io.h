@@ -45,7 +45,6 @@ struct ControllerOutput {
   void Reset() {
     drives_reference.Reset();
     skipper_input.Reset();
-    status.Reset();
   }
   bool operator!=(const ControllerOutput& r) {
     return skipper_input != r.skipper_input ||
