@@ -114,7 +114,7 @@ double SailController::GammaSailInternal(double alpha_wind_rad,
       logic_.BestMode(alpha_wind_rad, mag_wind);
 
   double gamma_sail_rad = (mode == WING) ?
-      (alpha_wind_rad - M_PI + optimal_angle_of_attack_rad_) :
+      (alpha_wind_rad - M_PI + AngleOfAttack(mag_wind)) :
       (0.5 * alpha_wind_rad - kDragMax);      // SPINNAKER mode, broad reach
 
   return SymmetricRad(sign_ * gamma_sail_rad);
@@ -137,7 +137,7 @@ double SailController::BestGammaSailForReverseMotion(double alpha_wind_rad,
     return M_PI / 2;
 
   double gamma_sail_rad = alpha_wind_rad < (M_PI - kSwitchpoint) || mag_wind > kSpinakkerLimit ?
-      (M_PI - alpha_wind_rad + optimal_angle_of_attack_rad_) :
+      (M_PI - alpha_wind_rad + AngleOfAttack(mag_wind)) :
       M_PI / 2;      // reversed SPINNAKER mode, broad reach
 
   return SymmetricRad(-sign * gamma_sail_rad);
