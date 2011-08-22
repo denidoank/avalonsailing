@@ -16,8 +16,8 @@ enum SailMode {
 class SailModeLogic {
  public:
   SailModeLogic();
-  SailMode BestMode(double alpha_apparent_wind_rad) const;
-  SailMode BestStabilizedMode(double alpha_apparent_wind_rad);
+  SailMode BestMode(double alpha_apparent_wind_rad, double wind_strength_m_s) const;
+  SailMode BestStabilizedMode(double alpha_apparent_wind_rad, double wind_strength_m_s);
   void LockInWingMode();
   void UnlockMode();
   void Reset();
@@ -51,6 +51,9 @@ class SailController {
   void Reset();
 
  private:
+  // Optimal angle of attack, reduced at high wind strength.
+  double AngleOfAttack(double mag_wind);
+
   double GammaSailInternal(double alpha_wind_rad,
                            double mag_wind,
                            bool stabilized);
