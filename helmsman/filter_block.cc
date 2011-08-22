@@ -54,8 +54,10 @@ void FilterBlock::Filter(const ControllerInput& in,
   bool valid = true;
   for (int i = 0; i < kChannels; ++i) {
     CHECK_NE(in_block[i].filter, NULL);
-    if (isnan(*in_block[i].in))
-      fprintf(stderr, "Filter channel %d has NaN data.\n", i);
+    if (isnan(*in_block[i].in)) {
+      fprintf(stderr, "Filter channel %d has NaN data. Skipping\n", i);
+      continue;
+    }  
     *in_block[i].out = in_block[i].filter->Filter(*in_block[i].in);
     valid = valid && in_block[i].filter->ValidOutput();
   }
