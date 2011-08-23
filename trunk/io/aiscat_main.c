@@ -214,7 +214,7 @@ int main(int argc, char* argv[]) {
 			if (debug)
 				fprintf(stderr, "#AIVDM:%s",line);
 		  
-			printf("timestamp_ms:%lld mmsi:%d msgtype:%d ", now_ms(), ais.mmsi, ais.type);
+			printf("ais: timestamp_ms:%lld mmsi:%d msgtype:%d ", now_ms(), ais.mmsi, ais.type);
 
 			switch(ais.type) {
 			case 1: case 2: case 3:
@@ -278,7 +278,6 @@ int main(int argc, char* argv[]) {
 			}
 			puts("");
 
-
 			continue;
 		}
 		
@@ -286,6 +285,6 @@ int main(int argc, char* argv[]) {
 		if (debug) fprintf(stderr, "Ignoring NMEA sentence:%s", line);
 	}
 
-	crash("Terminating.");
+	crash("Exit loop");
 	return 0;
 }
