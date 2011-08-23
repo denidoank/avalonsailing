@@ -53,7 +53,7 @@ usage(void)
 	fprintf(stderr,
 		"usage: %s [options] [/dev/ttyXX]\n"
 		"options:\n"
-		"\t-b baudrate         (default unchanged)\n"
+		"\t-b baudrate         (default 38400)\n"
 		"\t-d debug            (don't syslog, -dd opens port as plain file)\n"
 		"will read NMEA sentence from stdin with no arguments.\n"
 		, argv0);
@@ -102,7 +102,7 @@ char* valid_nmea(char* line) {
 int main(int argc, char* argv[]) {
 
 	int ch;
-	int baudrate = 0;
+	int baudrate = 38400;
 
 	argv0 = strrchr(argv[0], '/');
 	if (argv0) ++argv0; else argv0 = argv[0];
