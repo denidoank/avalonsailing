@@ -16,8 +16,9 @@
 
 /usr/bin/plug /var/run/lbus /usr/bin/rudderd /var/run/eposd
 
-/usr/bin/imucfg
-/usr/bin/imucat  /dev/xsensIMU   | /usr/bin/plug -i /var/run/lbus &
+
+/usr/bin/imucfg /dev/xsensIMU && /usr/bin/imucat /dev/xsensIMU | /usr/bin/plug -i /var/run/lbus &
+
 /usr/bin/windcat /dev/windsensor | /usr/bin/plug -i /var/run/lbus &
 /usr/bin/aiscat  /dev/ttyUSB7    | /usr/bin/aisbuf /var/run/ais.txt &
 /usr/bin/fcmon   /dev/ttyUSB5    | /usr/bin/plug -i /var/run/lbus &
