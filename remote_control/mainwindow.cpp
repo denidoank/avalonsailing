@@ -153,6 +153,7 @@ void MainWindow::drawBoat() {
 
   rudder_controller_ = new AngleController(QPointF(0, 40), 5, boat_);
   rudder_controller_->setPos(20,120);
+  rudder_controller_->setBounds(-30, 30);
   connect(rudder_controller_, SIGNAL(turned(double)), SLOT(onRudderCtlActivated(double)));
 
 

@@ -1,6 +1,7 @@
 #include "anglecontroller.h"
 
 #include <math.h>
+#include <algorithm>
 
 #include <QDebug>
 #include <QGraphicsSceneMouseEvent>
@@ -20,6 +21,9 @@ void AngleController::mouseMoveEvent(QGraphicsSceneMouseEvent * event) {
   QPointF pos(parentItem()->mapFromItem(this, event->pos()));
   QPointF diff(pos - origin);
   double angle = getAngle(diff) - getAngle(pos_);
+
+  angle = std::max(minAngle_, angle);
+  angle = std::min(maxAngle_, angle);
 
   setRotation(angle);
   emit turned(angle);
