@@ -64,7 +64,7 @@ usage(void)
 	fprintf(stderr,
 		"usage: %s [options] /dev/ttyXX\n"
 		"options:\n"
-		"\t-b baudrate         (default unchanged)\n"
+		"\t-b baudrate         (default 4800)\n"
 		"\t-d debug            (don't syslog, -dd is open serial as plain file)\n"
 		, argv0);
 	exit(2);
@@ -147,7 +147,7 @@ int parse_wimvx(char* sentence, struct WindProto* wp) {
 int main(int argc, char* argv[]) {
 
 	int ch;
-	int baudrate = 0;
+	int baudrate = 4800;
 
 	argv0 = strrchr(argv[0], '/');
 	if (argv0) ++argv0; else argv0 = argv[0];

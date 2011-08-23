@@ -60,7 +60,7 @@ usage(void)
 	fprintf(stderr,
 		"usage: %s [options] /dev/ttyXX\n"
 		"options:\n"
-		"\t-b baudrate         (default unchanged)\n"
+		"\t-b baudrate         (default 115200)\n"
 		"\t-d debug            (don't syslog)\n"
 		"\t-m output_mode      default 0x....\n"
 		"\t-s output_settings  default 0x....\n"
@@ -213,7 +213,7 @@ imu_decode_variables(uint8_t* b, int len, uint16_t mode, uint32_t settings, stru
 int main(int argc, char* argv[]) {
 
 	int ch;
-	int baudrate = 0;
+	int baudrate = 115200;
 
 	uint16_t mode = IMU_OUTPUT_MODE;
 	uint32_t settings = IMU_OUTPUT_SETTINGS;
