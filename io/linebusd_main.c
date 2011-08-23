@@ -26,6 +26,8 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "linebuffer.h"
+
 // -----------------------------------------------------------------------------
 //   Together with getopt in main, this is our minimalistic UI
 // -----------------------------------------------------------------------------
@@ -66,64 +68,6 @@ usage(void)
 		, argv0);
 	exit(2);
 }
-
-//
-struct LineBuffer {
-	char line[1024];
-	int head;
-	int discard;
-	int tail;
-};
-
-// Reads from fd into the linebuffer, returns 0 if there is a \n terminated
-// line, EAGAIN if there is an incomplete line, or errno from read(2)
-// otherwise.  if the buffer overflows before EOL sets the discard flag which will
-// cause the current line to be discarded until an EOL is found.
-// the line will be 0-terminated.
-static int lb_read(int fd, struct LineBuffer* lb) {
-	int n = read(fd, lb->line+lb->head, sizeof(lb->line) - lb->head - 1);
-	switch (n) {
-	case 0:
-		return EOF;
-	case -1:
-		return errno;
-	}
-
-	lb->line[lb->head+n] = 0;
-	char* eol = strchr(lb->line+lb->head, '\n');
-	if (eol) {
-		lb->head = 0;
-		if (!lb->discard) return 0;  // lb->line starts with a complete line
-		lb->discard = 0;
-	}
-	
-	// no EOL || discard
-	lb->head += n;
-	if (lb->head == sizeof(lb->line) - 1) lb->discard = 1;
-	if (lb->discard) lb->head = 0;
-	return EAGAIN;
-}
-
-static void lb_putline(struct LineBuffer* lb, const char* line) {
-	strncpy(lb->line, line, sizeof lb->line - 1);
-	lb->line[sizeof lb->line - 1] = 0;
-	lb->head = strlen(lb->line);
-}
-
-static int lb_pending(struct LineBuffer* lb) {
-	return lb->head > 0;
-}
-
-static int lb_write(int fd, struct LineBuffer* lb) {
-	int n = write(fd, lb->line + lb->tail, lb->head - lb->tail);
-	if (n < 0) return errno;
-	lb->tail += n;
-	if (lb->tail != lb->head) return EAGAIN;
-	lb->head = 0;
-	lb->tail = 0;
-	return 0;
-}
-
 
 // -----------------------------------------------------------------------------
 //   Linked list of open client sockets.
@@ -264,7 +208,10 @@ int main(int argc, char* argv[]) {
 	unlink(argv[0]);
 	int sck = socket(AF_LOCAL, SOCK_STREAM, 0);
 	if (sck < 0) crash("socket");
-	struct sockaddr_un srvaddr = { AF_LOCAL, {0} };
+	struct sockaddr_un srvaddr;
+	memset(&srvaddr, 0, sizeof srvaddr);
+	srvaddr.sun_family = AF_LOCAL;
+
 	strncpy(srvaddr.sun_path, argv[0], sizeof srvaddr.sun_path );
 	if (bind(sck, (struct sockaddr*) &srvaddr, sizeof srvaddr) < 0) crash("bind(%S)", argv[0]);
 	if (listen(sck, 8) < 0) crash("listen");
