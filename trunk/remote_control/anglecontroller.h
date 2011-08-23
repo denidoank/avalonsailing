@@ -12,10 +12,12 @@ class AngleController : public QObject, public QGraphicsEllipseItem
 public:
   AngleController(QPointF pos, float radius, QGraphicsItem *parent)
       : QGraphicsEllipseItem(QRectF(-radius + pos.x(), -radius + pos.y(), 2*radius, 2*radius), parent),
-      pos_(pos) {
+      pos_(pos), minAngle_(-180), maxAngle_(180) {
     QBrush controller_brush(QColor(255, 0, 0), Qt::SolidPattern);
     setBrush(controller_brush);
   }
+
+  void setBounds(double minAngle, double maxAngle) { minAngle_ = minAngle; maxAngle_ = maxAngle; }
 
 protected:
   // Overloading mousePressEvent is necessary for mouseMoveEvent to work.
@@ -28,6 +30,7 @@ signals:
 
 private:
   QPointF pos_;
+  double minAngle_, maxAngle_;
 };
 
 #endif // ANGLECONTROLLER_H
