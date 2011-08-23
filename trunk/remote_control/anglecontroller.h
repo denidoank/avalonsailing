@@ -12,7 +12,7 @@ class AngleController : public QObject, public QGraphicsEllipseItem
 public:
   AngleController(QPointF pos, float radius, QGraphicsItem *parent)
       : QGraphicsEllipseItem(QRectF(-radius + pos.x(), -radius + pos.y(), 2*radius, 2*radius), parent),
-      pos_(pos), minAngle_(-180), maxAngle_(180) {
+      pos_(pos), minAngle_(-180), maxAngle_(360) {
     QBrush controller_brush(QColor(255, 0, 0), Qt::SolidPattern);
     setBrush(controller_brush);
   }
