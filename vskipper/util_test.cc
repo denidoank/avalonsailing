@@ -55,6 +55,9 @@ ATEST(BearingDistance, SphericalBearing) {
   EXPECT_NEAR(225, 1e-2, GetBearing(SphericalShortestPath, 0, 0, -1, -1));
   EXPECT_NEAR(270, 1e-2, GetBearing(SphericalShortestPath, 0, 0,  0, -1));
   EXPECT_NEAR(315, 1e-2, GetBearing(SphericalShortestPath, 0, 0,  1, -1));
+  // From Quai at China garden to Uetliberg, TV tower.
+  EXPECT_NEAR(264.6, 1e-2, GetBearing(SphericalShortestPath, 47.3552, 8.5493,
+                                                           47.3514, 8.4902));
 }
 
 ATEST(BearingDistance, SphericalDistance) {
