@@ -9,6 +9,8 @@
 
 #include <QDebug>
 #include <QGraphicsTextItem>
+#include <QAbstractScrollArea>
+#include <QScrollBar>
 
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
@@ -65,7 +67,9 @@ void MainWindow::updateView() {
       text += "    " + i.key() + ": " + i.value() + "\n";
     }
   }
+  int original_scroll = ui->dataview->verticalScrollBar()->value();
   ui->dataview->setPlainText(text);
+  ui->dataview->verticalScrollBar()->setValue(original_scroll);
 
   // Update the drawing.
 
