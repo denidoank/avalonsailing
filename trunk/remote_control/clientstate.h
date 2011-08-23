@@ -29,7 +29,12 @@ public:
         return data_.value(daemon).value(var);
   }
   double getDouble(const QString& daemon, const QString& var) const {
-          return getVar(daemon, var).toDouble();
+    QString value = getVar(daemon, var);
+    if (value.isEmpty() || value == "nan") {
+      return 0;
+    } else {
+      return value.toDouble();
+    }
   }
 
   void writeToBus(const char* data);

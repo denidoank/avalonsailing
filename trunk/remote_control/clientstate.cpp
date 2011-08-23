@@ -103,6 +103,7 @@ void ClientState::writeToBus(const char *data) {
   processLine(data_string);
   if (ssh_process_.isWritable()) {
     ssh_process_.write(data);
+    ssh_process_.waitForBytesWritten(100);
  } else {
    emit consoleOutput(QString("Can't write command: ") + data_string);
  }
