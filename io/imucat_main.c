@@ -31,6 +31,7 @@
 static const char* argv0;
 static int verbose = 0;
 static int debug = 0;
+static int forcetime = 0;
 
 static void
 crash(const char* fmt, ...)
@@ -165,7 +166,7 @@ imu_decode_variables(uint8_t* b, int len, uint16_t mode, uint32_t settings, stru
 
 	if (settings & IMU_OS_TS_UTC) {
 		checklen( IMU_OS_TS_UTC, 12);
-		if (debug || (b[11] & 0x4)) {  // valid utc
+		if (debug || forcetime || (b[11] & 0x4)) {  // valid utc
 /*
   0 Nanoseconds of second, range 0 .. 1.000.000.000 
   4 Year, range 1999 .. 2099 
@@ -198,9 +199,8 @@ imu_decode_variables(uint8_t* b, int len, uint16_t mode, uint32_t settings, stru
 			ns /= 1E6;
 			vars->timestamp_ms = time_s + ns;
       
-		} else {
-			b += 12;
 		}
+		b += 12;
 	}
 
 	if (debug) fprintf(stderr, "bytes left: %d\n", e-b);
@@ -221,10 +221,11 @@ int main(int argc, char* argv[]) {
 	argv0 = strrchr(argv[0], '/');
 	if (argv0) ++argv0; else argv0 = argv[0];
 
-	while ((ch = getopt(argc, argv, "b:dhm:s:v")) != -1){
+	while ((ch = getopt(argc, argv, "b:dfhm:s:v")) != -1){
 		switch (ch) {
 		case 'b': baudrate = atoi(optarg); break;
 		case 'd': ++debug; break;
+		case 'f': ++forcetime; break;
 		case 'v': ++verbose; break;
 		case 'm':
 			mode = strtol(optarg, NULL, 0); 
@@ -289,20 +290,14 @@ int main(int argc, char* argv[]) {
 	FILE* imu = fdopen(port, "r");
 
 	int garbage = 0;
-	int loops = 0;
   
 	while(!feof(imu)) {
 
 		if (ferror(imu))
 			clearerr(imu);
 		
-		// we read 5 lines/second, if they're all unreadable we want to know within 10 seconds.
-		if (garbage++ > 50)
-			crash("Read more than 1 %% garbage from imu");
-		if (loops++ > 5000) {
-			loops = 0;
-			garbage = 0;
-		}
+		if (garbage++ > 500)
+			crash("Read only garbage from imu");
 
 		if (fgetc(imu) != 0xfa) continue;
 		if (fgetc(imu) != 0xff) continue;
