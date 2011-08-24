@@ -15,7 +15,6 @@
 // The true wind vector is especially noisy and is stabilized with a slow (100s)
 // sliding average filter. 
 
-
 #ifndef HELMSMAN_FILTER_BLOCK_H
 #define HELMSMAN_FILTER_BLOCK_H
 
