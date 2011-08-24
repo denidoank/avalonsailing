@@ -37,25 +37,27 @@ void FilterBlock::Filter(const ControllerInput& in,
   double mag_wind_m_s = in.wind_sensor.mag_m_s;
   double alpha_wind_rad = NormalizeRad(Deg2Rad(in.wind_sensor.alpha_deg));
 
+  // The wind sensor is telling where the wind is coming *from*, but we work
+  // with motion vectors pointing here the wind is going *to*.
   double angle_sail_raw = (alpha_wind_rad - M_PI + kWindSensorOffsetRad);
 
-  FilterElement in_block[kChannels] = {
-      {median_ + 0,  &in.imu.speed_m_s,              zz + 0},  // in m/s
+  const FilterElement in_block[kChannels] = {
+      {median_ + 0,  &in.imu.speed_m_s,              zz + 0},  // in m/s, x-component of speed vector
       {median_ + 1,  &in.imu.position.longitude_deg, zz + 1},  // GPS-Data
       {median_ + 2,  &in.imu.position.latitude_deg,  zz + 2},
       {median_ + 3,  &in.imu.attitude.phi_x_rad,     zz + 3},  // roll; IMU-Data
       {median_ + 4,  &in.imu.attitude.phi_y_rad,     zz + 4},  // pitch;
       {&wrap_med_1_, &in.imu.attitude.phi_z_rad,     zz + 5},  // yaw;
-      {median_ + 6,  &in.imu.gyro.omega_z_rad_s,     zz + 6},
-      {median_ + 7,  &in.imu.temperature_c,          zz + 7},  // in deg C
-      {median_ + 8,  &mag_wind_m_s,                  zz + 8},  // Wind
-      {&wrap_med_2_, &alpha_wind_rad,                zz + 9}};
+      {median_ + 6,  &in.imu.gyro.omega_z_rad_s,     zz + 6},  // yaw rate
+      {median_ + 7,  &in.imu.temperature_c,          zz + 7},  // in deg Celsius
+      {median_ + 8,  &mag_wind_m_s,                  zz + 8},  // true wind magnitude
+      {&wrap_med_2_, &alpha_wind_rad,                zz + 9}}; // true wind vector direction
   CHECK_EQ(kChannels, sizeof(in_block) / sizeof(in_block[0]));
   bool valid = true;
   for (int i = 0; i < kChannels; ++i) {
     CHECK_NE(in_block[i].filter, NULL);
     if (isnan(*in_block[i].in)) {
-      fprintf(stderr, "Filter channel %d has NaN data. Skipping\n", i);
+      fprintf(stderr, "Filter input channel %d has NaN data. Skipping\n", i);
       continue;
     }  
     *in_block[i].out = in_block[i].filter->Filter(*in_block[i].in);
@@ -84,8 +86,6 @@ void FilterBlock::Filter(const ControllerInput& in,
   }
 
   if (in.drives.homed_sail) {
-    // The wind sensor is telling where the wind is coming from, but we work
-    // with motion vectors pointing here the wind is going to.
     fil->angle_app = SymmetricRad(angle_sail_raw + in.drives.gamma_sail_rad);
     fil->mag_app = fil->mag_sensor;
 

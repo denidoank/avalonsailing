@@ -11,16 +11,19 @@ class FilterInterface {
   // current filter output is produced.
   virtual double Filter(double in) = 0;
 
-  // false indicates unreliable output due to initial condition.
-  // All filters have to switch to true after their Filter method
-  // beeing called a finite number of times.
+  // false indicates unreliable output due to the fact that
+  // the assumed initial condition (the history of value
+  // contains zeros only) is not necessarily true.
+  // All filters switch to true sooner or later if their
+  // Filter method is repeatedly called.
   virtual bool ValidOutput() = 0;
 
-  // For a quick startup set the output to the initially expected value.
-  // By default the initial output value is zero.
+  // For a quick startup set the history to y0.
+  // (By default the initial output value is zero.)
+  // Side effect: makes ValidOutput return true afterwards.
   virtual void SetOutput(double y0) = 0;
 
-  // Support filters for values wrapping around.
+  // Support for filters for values wrapping around.
   virtual void Shift(double shift) = 0;
 
   virtual ~FilterInterface();

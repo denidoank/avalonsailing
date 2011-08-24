@@ -9,6 +9,7 @@
 #include "lib/testing/testing.h"
 #include "lib/util/stopwatch.h"
 
+#include "quick_sliding_average_filter.h"
 #include "sliding_average_filter.h"
 #include "wrap_around_filter.h"
 #include "median_filter.h"
@@ -222,25 +223,28 @@ TEST(WrapAroundFilter, AllFilterRamp2) {
   }
 }
 
-// All these filters have constant runtime in the range of 320ns (Desktop).
+// All these filters have a constant runtime in the range of 320ns (Desktop).
 TEST(WrapAroundFilter, AllFilterTiming) {
   WrapAroundFilter f1(new SlidingAverageFilter(10));
   WrapAroundFilter f2(new LowPass1Filter(10));
   WrapAroundFilter f3(new Median3Filter());
   WrapAroundFilter f4(new Median5Filter());
   WrapAroundFilter f5(new SlidingAverageFilter(100));
+  WrapAroundFilter f6(new QuickSlidingAverageFilter(100));
   double prev1;
   double prev2;
   double prev3;
   double prev4;
   double prev5;
+  double prev6;
   double increment = 1;
   int64 micros1 = 0;
   int64 micros2 = 0;
   int64 micros3 = 0;
   int64 micros4 = 0;
   int64 micros5 = 0;
-  const size_t rounds = 5000;
+  int64 micros6 = 0;
+  const int rounds = 5000;
   for (int cnt = 0; cnt < rounds; ++cnt) {
     double in = NormalizeRad(cnt * increment);
     int64 n0 = Now();
@@ -254,11 +258,14 @@ TEST(WrapAroundFilter, AllFilterTiming) {
     int64 n4 = Now();
     double out5 = f5.Filter(in);
     int64 n5 = Now();
+    double out6 = f6.Filter(in);
+    int64 n6 = Now();
     micros1 += n1 - n0;
     micros2 += n2 - n1;
     micros3 += n3 - n2;
     micros4 += n4 - n3;
     micros5 += n5 - n4;
+    micros6 += n6 - n5;
     //printf("%6.4f %6.4f %6.4f %6.4f %6.4f\n", out1, out2, out3, out4, out5);
 
     EXPECT_IN_INTERVAL(0, out1, 2 * M_PI);
@@ -266,6 +273,7 @@ TEST(WrapAroundFilter, AllFilterTiming) {
     EXPECT_IN_INTERVAL(0, out3, 2 * M_PI);
     EXPECT_IN_INTERVAL(0, out4, 2 * M_PI);
     EXPECT_IN_INTERVAL(0, out5, 2 * M_PI);
+    EXPECT_IN_INTERVAL(0, out6, 2 * M_PI);
 
     // In steady state, the output follows the input with the same gradient.
     if (cnt > 200) {
@@ -274,16 +282,23 @@ TEST(WrapAroundFilter, AllFilterTiming) {
       EXPECT_FLOAT_EQ(increment, DeltaOldNewRad(prev3, out3));
       EXPECT_FLOAT_EQ(increment, DeltaOldNewRad(prev4, out4));
       EXPECT_FLOAT_EQ(increment, DeltaOldNewRad(prev5, out5));
+      EXPECT_FLOAT_EQ(increment, DeltaOldNewRad(prev6, out6));
     }
     if (cnt < 99)
       EXPECT_FALSE(f5.ValidOutput());
     if (cnt >= 99)
       EXPECT_TRUE(f5.ValidOutput());
+    if (cnt < 49)
+      EXPECT_FALSE(f6.ValidOutput());
+    if (cnt >= 49)
+      EXPECT_TRUE(f6.ValidOutput());
+
     prev1 = out1;
     prev2 = out2;
     prev3 = out3;
     prev4 = out4;
     prev5 = out5;
+    prev6 = out6;
   }
   printf("\nRuntimes/microseconds\n=================\n");
   printf("SlidingAverageFilter:    %6.4f micros\n", micros1 / static_cast<double>(rounds));
@@ -291,6 +306,7 @@ TEST(WrapAroundFilter, AllFilterTiming) {
   printf("Median3Filter:           %6.4f micros\n", micros3 / static_cast<double>(rounds));
   printf("Median5Filter:           %6.4f micros\n", micros4 / static_cast<double>(rounds));
   printf("SlidingAverageFilter100: %6.4f micros\n", micros5 / static_cast<double>(rounds));
+  printf("QuickSlidingAverageFilter100: %6.4f micros\n", micros6 / static_cast<double>(rounds));
   printf("\n");
 }
 

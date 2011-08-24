@@ -24,6 +24,7 @@
 
 #include "lib/filter/median_filter.h"
 #include "lib/filter/sliding_average_filter.h"
+#include "lib/filter/quick_sliding_average_filter.h"
 #include "lib/filter/wrap_around_filter.h"
 
 static const int kChannels = 10;
@@ -55,7 +56,7 @@ class FilterBlock {
 
   // 2 channels (the heading phi_z and the wind direction) are angles that can
   // wrap around at 360 degrees and need a wrap around filter.
-  // 1 slow filter channel for the true wind, needs a wrap around filter.
+  // 1 slow filter channel for the true wind direction, needs a wrap around filter.
   Median5Filter median_wr_1_;
   Median5Filter median_wr_2_;
   Median5Filter median_wr_3_;
@@ -64,9 +65,9 @@ class FilterBlock {
   WrapAroundFilter wrap_med_2_;
   WrapAroundFilter wrap_med_3_;
 
-  SlidingAverageFilter average_wr_1_;
-  SlidingAverageFilter average_wr_2_;
-  SlidingAverageFilter average_wr_3_;
+  QuickSlidingAverageFilter average_wr_1_;
+  QuickSlidingAverageFilter average_wr_2_;
+  QuickSlidingAverageFilter average_wr_3_;
   WrapAroundFilter wrap_1_;
   WrapAroundFilter wrap_2_;
   WrapAroundFilter wrap_3_;
