@@ -3,7 +3,7 @@
 // that can be found in the LICENSE file.
 // Steffen Grundmann, May 2011
 
-// A filter for radians angle input sinals like angles that wrap around at 2pi.
+// A filter for radians angle input signals like angles that wrap around at 2pi.
 #ifndef LIB_FILTER_WRAP_AROUND_FILTER_H
 #define LIB_FILTER_WRAP_AROUND_FILTER_H
 
