@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
 # Buildroot 2011.05 Configuration
-# Tue Jul 12 17:40:51 2011
+# Fri Aug 19 13:38:25 2011
 #
 BR2_HAVE_DOT_CONFIG=y
 # BR2_arm is not set
@@ -400,7 +400,7 @@ BR2_PACKAGE_MAKEDEVS=y
 # BR2_PACKAGE_MTD is not set
 # BR2_PACKAGE_NTFS_3G is not set
 # BR2_PACKAGE_NTFSPROGS is not set
-BR2_PACKAGE_PCIUTILS=y
+# BR2_PACKAGE_PCIUTILS is not set
 # BR2_PACKAGE_RNG_TOOLS is not set
 # BR2_PACKAGE_SDPARM is not set
 # BR2_PACKAGE_SETSERIAL is not set
@@ -606,14 +606,7 @@ BR2_PACKAGE_DROPBEAR_SMALL=y
 # BR2_PACKAGE_NETPLUG is not set
 # BR2_PACKAGE_NETSNMP is not set
 # BR2_PACKAGE_NETSTAT_NAT is not set
-BR2_PACKAGE_NFS_UTILS=y
-
-#
-# NFS utilities selection
-#
-# BR2_PACKAGE_NFS_UTILS_RPCDEBUG is not set
-# BR2_PACKAGE_NFS_UTILS_RPC_LOCKD is not set
-BR2_PACKAGE_NFS_UTILS_RPC_RQUOTAD=y
+# BR2_PACKAGE_NFS_UTILS is not set
 # BR2_PACKAGE_NGIRCD is not set
 # BR2_PACKAGE_NTP is not set
 # BR2_PACKAGE_NUTTCP is not set
@@ -621,7 +614,7 @@ BR2_PACKAGE_NFS_UTILS_RPC_RQUOTAD=y
 # BR2_PACKAGE_OPENNTPD is not set
 # BR2_PACKAGE_OPENSSH is not set
 # BR2_PACKAGE_OPENVPN is not set
-BR2_PACKAGE_PORTMAP=y
+# BR2_PACKAGE_PORTMAP is not set
 # BR2_PACKAGE_PPPD is not set
 # BR2_PACKAGE_RADVD is not set
 # BR2_PACKAGE_PPTP_LINUX is not set
