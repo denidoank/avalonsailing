@@ -35,7 +35,7 @@ void SlidingAverageFilter::Shift(double shift) {
 
 void SlidingAverageFilter::NextIndex() {
   index_ = (index_ + 1) % window_size_;
-  if(!index_)
+  if (!index_)
     valid_ = true;
 }
 
