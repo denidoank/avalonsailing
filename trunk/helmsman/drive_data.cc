@@ -41,12 +41,15 @@ DriveReferenceValues::DriveReferenceValues(
   gamma_rudder_star_left_deg  = Rad2Deg(ref_rad.gamma_rudder_star_left_rad);
   gamma_rudder_star_right_deg = Rad2Deg(ref_rad.gamma_rudder_star_right_rad);
   gamma_sail_star_deg = Rad2Deg(ref_rad.gamma_sail_star_rad);
+  storm_flag = ref_rad.storm_flag;
 }
 
 std::string DriveReferenceValues::ToString() const {
   char line[1024];
-  int s = snprintf(line, sizeof line, "rudder_l_deg:%f rudder_r_deg:%f sail_deg:%f\n",
-      gamma_rudder_star_left_deg, gamma_rudder_star_right_deg, gamma_sail_star_deg);
+  int s = snprintf(line, sizeof line,
+      "rudder_l_deg:%f rudder_r_deg:%f sail_deg:%f storm_flag:%d\n",
+      gamma_rudder_star_left_deg, gamma_rudder_star_right_deg,
+      gamma_sail_star_deg, storm_flag);
   return std::string(line, s);
 }
 
@@ -54,6 +57,7 @@ void DriveReferenceValues::Reset() {
   gamma_rudder_star_left_deg = 0;
   gamma_rudder_star_right_deg = 0;
   gamma_sail_star_deg = 0;
+  storm_flag = 0;
 }
 
 void DriveReferenceValues::Check() {
@@ -61,9 +65,8 @@ void DriveReferenceValues::Check() {
   CHECK_IN_INTERVAL(-25, gamma_rudder_star_left_deg, 90);
   CHECK_IN_INTERVAL(-90, gamma_rudder_star_right_deg, 25);
   CHECK_IN_INTERVAL(-180, gamma_sail_star_deg, 180);
+  CHECK_IN_INTERVAL(0, storm_flag, 1);
 }
-
-
 
 // Internally used radians versions.
 DriveActualValuesRad::DriveActualValuesRad() {
@@ -110,6 +113,7 @@ DriveReferenceValuesRad::DriveReferenceValuesRad(
   gamma_rudder_star_left_rad  = Deg2Rad(ref_deg.gamma_rudder_star_left_deg);
   gamma_rudder_star_right_rad = Deg2Rad(ref_deg.gamma_rudder_star_right_deg);
   gamma_sail_star_rad = Deg2Rad(ref_deg.gamma_sail_star_deg);
+  storm_flag = ref_deg.storm_flag;
 }
 
 void DriveReferenceValuesRad::Check() {
@@ -117,34 +121,45 @@ void DriveReferenceValuesRad::Check() {
   CHECK_IN_INTERVAL(Deg2Rad( -25), gamma_rudder_star_left_rad,  Deg2Rad(90));
   CHECK_IN_INTERVAL(Deg2Rad( -90), gamma_rudder_star_right_rad, Deg2Rad(25));
   CHECK_IN_INTERVAL(Deg2Rad(-180), gamma_sail_star_rad,         Deg2Rad(180));
+  CHECK_IN_INTERVAL(0,             storm_flag,                  1);
 }
 
 void DriveReferenceValuesRad::Reset() {
   gamma_rudder_star_left_rad  = 0;
   gamma_rudder_star_right_rad = 0;
   gamma_sail_star_rad = 0;
+  storm_flag = 0;
 }
 
 std::string DriveReferenceValuesRad::ToString() const {
   char line[1024];
-  int s = snprintf(line, sizeof line, "rudder_l_rad:%f rudder_r_rad:%f sail_rad:%f\n",
-      gamma_rudder_star_left_rad, gamma_rudder_star_right_rad, gamma_sail_star_rad);
+  int s = snprintf(line, sizeof line,
+     "rudder_l_rad:%f rudder_r_rad:%f sail_rad:%f storm_flag:%d\n",
+      gamma_rudder_star_left_rad, gamma_rudder_star_right_rad,
+      gamma_sail_star_rad, storm_flag);
   return std::string(line, s);
 }
 
 bool DriveReferenceValuesRad::operator!=(const DriveReferenceValuesRad& r) {
   return gamma_rudder_star_left_rad !=  r.gamma_rudder_star_left_rad ||
          gamma_rudder_star_right_rad != r.gamma_rudder_star_right_rad ||
-         gamma_sail_star_rad !=         r.gamma_sail_star_rad;
+         gamma_sail_star_rad !=         r.gamma_sail_star_rad ||
+         storm_flag !=                  r.storm_flag;
 }  
 
 void DriveReferenceValuesRad::FromProto(const RudderProto& sts) {
   gamma_rudder_star_left_rad  = Deg2Rad(sts.rudder_l_deg);
   gamma_rudder_star_right_rad = Deg2Rad(sts.rudder_r_deg);
   gamma_sail_star_rad         = Deg2Rad(sts.sail_deg);
+  storm_flag                  = sts.storm_flag;
 }
 
-
+void DriveReferenceValuesRad::ToProto(RudderProto* sts) const {
+  sts->rudder_l_deg = Rad2Deg(gamma_rudder_star_left_rad);
+  sts->rudder_r_deg = Rad2Deg(gamma_rudder_star_right_rad);
+  sts->sail_deg     = Rad2Deg(gamma_sail_star_rad);
+  sts->storm_flag   = storm_flag;
+}
 
 
 DriveActualValuesRad::DriveActualValuesRad(const std::string& kvline) {

@@ -277,11 +277,8 @@ int main(int argc, char* argv[]) {
     ctrl_out.Reset();
     last_run_micros = now_micros();
     ShipControl::Run(ctrl_in, &ctrl_out);
-    struct RudderProto ctl = {
-      now_ms(),
-      Rad2Deg(ctrl_out.drives_reference.gamma_rudder_star_left_rad),
-      Rad2Deg(ctrl_out.drives_reference.gamma_rudder_star_right_rad),
-      Rad2Deg(ctrl_out.drives_reference.gamma_sail_star_rad) };
+    RudderProto ctl;
+    ctrl_out.drives_reference.ToProto(&ctl);
     printf(OFMT_RUDDERPROTO_CTL(ctl, &nn));
 
     if (loops % 10 == 0) {

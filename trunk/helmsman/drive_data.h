@@ -41,6 +41,7 @@ struct DriveReferenceValues {
   double gamma_rudder_star_left_deg;
   double gamma_rudder_star_right_deg;
   double gamma_sail_star_deg;
+  int storm_flag;  // means: keep the sail brake closed
 };
 
 // Internally used radians versions.
@@ -72,11 +73,13 @@ struct DriveReferenceValuesRad {
   void Check();
   std::string ToString() const;
   void FromProto(const RudderProto& sts);
+  void ToProto(RudderProto* sts) const;
 
   bool operator!=(const DriveReferenceValuesRad& r);
   double gamma_rudder_star_left_rad;
   double gamma_rudder_star_right_rad;
   double gamma_sail_star_rad;
+  int storm_flag;
 };
 
 #endif  // HELMSMAN_DRIVE_DATA_H

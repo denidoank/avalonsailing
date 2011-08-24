@@ -9,9 +9,6 @@
 #include "helmsman/boat.h"  // kWindSensorOffsetRad
 #include "helmsman/controller_io.h"
 #include "helmsman/sampling_period.h"
-#include "lib/filter/median_filter.h"
-#include "lib/filter/sliding_average_filter.h"
-#include "lib/filter/wrap_around_filter.h"
 
 #include "common/check.h"
 #include "common/normalize.h"
