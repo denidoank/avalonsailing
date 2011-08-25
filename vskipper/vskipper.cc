@@ -106,7 +106,8 @@ double WindFractionP(double f) {
 struct CandidateBearing {
   Bearing bearing;
   double expected_velocity_m_s;
-  double expected_velocity_to_target_m_s;
+  // Difference from target bearing (degrees)
+  double bearing_diff;
 
   double danger;
   double corridor_danger;
@@ -114,7 +115,7 @@ struct CandidateBearing {
   explicit CandidateBearing(Bearing b)
       : bearing(b),
         expected_velocity_m_s(0),
-        expected_velocity_to_target_m_s(0),
+        bearing_diff(0),
         danger(0),
         corridor_danger(0) {
   }
@@ -123,7 +124,7 @@ struct CandidateBearing {
 std::ostream& operator<<(std::ostream& out, const CandidateBearing& c) {
   return out << "bearing=" << prec(0) << c.bearing.deg()
              << ", expected_v=" << prec(3) << c.expected_velocity_m_s
-             << ", v_to_target=" << prec(3) << c.expected_velocity_to_target_m_s
+             << ", target_diff=" << prec(3) << c.bearing_diff
              << ", danger=" << prec(2) << c.danger;
 }
 
@@ -132,7 +133,7 @@ struct BetterBearing {
     if (a.corridor_danger != b.corridor_danger) {
       return a.corridor_danger < b.corridor_danger;
     }
-    return a.expected_velocity_to_target_m_s > b.expected_velocity_to_target_m_s;
+    return a.bearing_diff < b.bearing_diff;
   }
 };
 
@@ -153,8 +154,7 @@ void SkipperImpl(const AvalonState& now,
 
     c.expected_velocity_m_s =
         ExpectedVelocity(now.wind_from, now.wind_speed_m_s, c.bearing);
-    c.expected_velocity_to_target_m_s =
-        c.expected_velocity_m_s * cos(now.target.rad() - c.bearing.rad());
+    c.bearing_diff = fabs(SymmetricDeg(c.bearing.deg() - now.target.deg()));
 
     for (double wind_fraction = 0; wind_fraction < 2.01; wind_fraction += 0.2) {
       double danger = 0;
@@ -194,7 +194,6 @@ void SkipperImpl(const AvalonState& now,
 Bearing RunVSkipper(const AvalonState& now,
                     const std::vector<AisInfo>& ais_in,
                     int debug) {
-
   fprintf(stderr, "in: %g\n", now.target.deg());
 
   std::vector<LocalAis> ships(ais_in.size());

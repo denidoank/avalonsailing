@@ -89,24 +89,13 @@ ATEST(VSkipper, Smoke) {
   EXPECT_NEAR(270, 5, actual.deg());
 }
 
-/*
-ATEST(VSkipper, Smoke45) {
-  AvalonState state = DefaultState();
-  state.target = Bearing::Degrees(45);
-  Bearing actual = RunVSkipper(state, std::vector<AisInfo>(), 0);
-
-  EXPECT_NEAR(45, 5, actual.deg());
-}
-*/
-
 ATEST(VSkipper, Around) {
   AvalonState state = DefaultState();
-  for (int target = -180; target < 180; ++target) { 
+  for (int target = -180; target < 180; ++target) {
     state.target = Bearing::Degrees(target);
     Bearing actual = RunVSkipper(state, std::vector<AisInfo>(), 0);
-    if (fabs(target - actual.deg()) > 1)
-      fprintf(stderr, "target: %d , out %g\n", target, actual.deg());
-    //EXPECT_NEAR(target, 1, actual.deg());
+    double diff = fabs(SymmetricDeg(target - actual.deg()));
+    EXPECT_NEAR(0, 0.1, diff);
   }
 }
 
@@ -117,7 +106,7 @@ ATEST(VSkipper, TreeInTheWay) {
 
   Bearing actual = RunVSkipper(state, ships, 0);
   // Safe tangent is at 30º. Plus another 5 for safety corridor.
-  EXPECT_NEAR(270 + 30 + 5, 1, actual.deg());
+  EXPECT_NEAR(270 - 30 - 5, 1, actual.deg());
   // Go around it at close to min safe distance (slightly above due to safety
   // corridor).
   EXPECT_IN_INTERVAL(199, Simulate(state, ships, 10, 60), 300);
