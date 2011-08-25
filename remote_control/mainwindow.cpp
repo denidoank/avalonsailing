@@ -56,20 +56,25 @@ void MainWindow::on_actionConnect_triggered()
 }
 
 void MainWindow::updateView() {
-  QString text;
-  const QMap<QString, QMap<QString,QString> >& map = state_->getData();
-  for (QMap<QString, QMap<QString, QString> >::const_iterator source = map.constBegin();
-      source != map.constEnd(); ++source) {
-    const QMap<QString,QString>& pairs = source.value();
-    text += source.key() + ":\n";
-    for (QMap<QString, QString>::const_iterator i = pairs.constBegin();
-        i != pairs.constEnd(); ++i) {
-      text += "    " + i.key() + ": " + i.value() + "\n";
+  // Stop updating the text when scrolling. It is less perturbating, both for qt
+  // and for users.
+  if (!ui->dataview->verticalScrollBar()->isSliderDown()
+      && !ui->dataview->verticalScrollBar()->isSliderDown()) {
+    QString text;
+    const QMap<QString, QMap<QString,QString> >& map = state_->getData();
+    for (QMap<QString, QMap<QString, QString> >::const_iterator source = map.constBegin();
+         source != map.constEnd(); ++source) {
+      const QMap<QString,QString>& pairs = source.value();
+      text += source.key() + ":\n";
+      for (QMap<QString, QString>::const_iterator i = pairs.constBegin();
+           i != pairs.constEnd(); ++i) {
+        text += "    " + i.key() + ": " + i.value() + "\n";
+      }
     }
+    int original_scroll = ui->dataview->verticalScrollBar()->value();
+    ui->dataview->setPlainText(text);
+    ui->dataview->verticalScrollBar()->setValue(original_scroll);
   }
-  int original_scroll = ui->dataview->verticalScrollBar()->value();
-  ui->dataview->setPlainText(text);
-  ui->dataview->verticalScrollBar()->setValue(original_scroll);
 
   // Update the drawing.
 
@@ -182,7 +187,6 @@ void MainWindow::drawBoat() {
   new QGraphicsLineItem(-20, 0, 20, 0, compass_, &scene_);
 
   compass_->setPos(-160, -100);
-  compass_->setRotation(45);
   target_heading_ = new QGraphicsLineItem(0, 0, 0, -60, compass_, &scene_);
   target_heading_->setPen(target_pen);
   heading_controller_ = new AngleController(QPointF(0, -60), 5, compass_);
@@ -192,8 +196,7 @@ void MainWindow::drawBoat() {
 }
 
 void MainWindow::onRudderCtlActivated(double) {
-  RudderProto command;
-  command.timestamp_ms = 0;
+  RudderProto command = INIT_RUDDERPROTO;
   command.rudder_l_deg = rudder_controller_->rotation();
   command.rudder_r_deg = command.rudder_l_deg;
   command.sail_deg = boom_controller_->rotation();
@@ -206,8 +209,7 @@ void MainWindow::onRudderCtlActivated(double) {
 }
 
 void MainWindow::onTargetHeadingRotated(double angle) {
-  HelmsmanCtlProto proto;
-  proto.timestamp_ms = 0;
+  HelmsmanCtlProto proto = INIT_HELMSMANCTLPROTO;
   proto.alpha_star_deg = angle;
 
   size_t BufSize = 256;
