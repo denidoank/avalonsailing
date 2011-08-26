@@ -21,3 +21,6 @@ HEADERS += mainwindow.h \
 FORMS += mainwindow.ui \
     config_dialog.ui \
     config_dialog.ui
+
+RESOURCES += \
+    icons.qrc

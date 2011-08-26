@@ -12,6 +12,7 @@
 ClientState::ClientState(QObject *parent) :
     QObject(parent)
 {
+  connection_wanted_ = false;
   setCommand("/usr/bin/ssh root@192.168.1.29 plug /var/run/lbus");
 
   connect(&ssh_process_, SIGNAL(readyReadStandardOutput()), SLOT(gotData()));
@@ -29,10 +30,16 @@ void ClientState::setCommand(const QString& command) {
 }
 
 void ClientState::tryToConnect() {
+  connection_wanted_ = true;
   ssh_process_.setProcessChannelMode(QProcess::SeparateChannels);
   QString& cmd = getCommand();
   ssh_process_.start(cmd);
   emit consoleOutput(QString("Running: ") + cmd);
+}
+
+void ClientState::disconnect() {
+  connection_wanted_ = false;
+  ssh_process_.terminate();
 }
 
 void ClientState::processLine(const QString& line) {
@@ -93,9 +100,11 @@ void ClientState::processError(QProcess::ProcessError error) {
 }
 
 void ClientState::processFinished(int exitCode, QProcess::ExitStatus exitStatus) {
-  emit consoleOutput("Process finished. Restarting it in 1 second.");
-  restart_timer_.setSingleShot(true);
-  restart_timer_.start(1000);
+  if (connection_wanted_) {
+    emit consoleOutput("Process finished. Restarting it in 1 second.");
+    restart_timer_.setSingleShot(true);
+    restart_timer_.start(1000);
+  }
 }
 
 void ClientState::writeToBus(const char *data) {
