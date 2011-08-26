@@ -15,6 +15,15 @@ double getAngle(const QPointF& vector) {
 void AngleController::mousePressEvent(QGraphicsSceneMouseEvent * event) {
 }
 
+void AngleController::setAngle(double angle) {
+  angle = std::max(minAngle_, angle);
+  angle = std::min(maxAngle_, angle);
+
+  angle_= angle;
+  setRotation(angle);
+  emit turned(angle);
+}
+
 void AngleController::mouseMoveEvent(QGraphicsSceneMouseEvent * event) {
   QGraphicsEllipseItem::mouseMoveEvent(event);
   QPointF origin(parentItem()->mapFromItem(this, 0, 0));
@@ -22,9 +31,5 @@ void AngleController::mouseMoveEvent(QGraphicsSceneMouseEvent * event) {
   QPointF diff(pos - origin);
   double angle = getAngle(diff) - getAngle(pos_);
 
-  angle = std::max(minAngle_, angle);
-  angle = std::min(maxAngle_, angle);
-
-  setRotation(angle);
-  emit turned(angle);
+  setAngle(angle);
 }

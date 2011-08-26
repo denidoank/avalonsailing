@@ -11,6 +11,7 @@
 #include <QGraphicsTextItem>
 #include <QAbstractScrollArea>
 #include <QScrollBar>
+#include <QKeyEvent>
 
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
@@ -52,7 +53,7 @@ void MainWindow::on_actionConfig_triggered()
 
 void MainWindow::on_actionConnect_triggered()
 {
-  state_->tryToConnect();
+  //state_->tryToConnect();
 }
 
 void MainWindow::updateView() {
@@ -88,6 +89,8 @@ void MainWindow::updateView() {
   rudder_right_->setRotation(state_->getDouble("ruddersts", "rudder_r_deg"));
   target_rudder_left_->setRotation(state_->getDouble("rudderctl", "rudder_l_deg"));
   target_rudder_right_->setRotation(state_->getDouble("rudderctl", "rudder_r_deg"));
+  skipper_disc_->setRotation(-state_->getDouble("imu", "yaw_deg"));
+  true_wind_->setRotation(state_->getDouble("skipper_input", "angle_true_deg"));
 
   ui->graphicsView->update();
 }
@@ -162,7 +165,6 @@ void MainWindow::drawBoat() {
 
   rudder_controller_ = new AngleController(QPointF(0, 40), 5, boat_);
   rudder_controller_->setPos(20,120);
-  rudder_controller_->setBounds(-30, 30);
   connect(rudder_controller_, SIGNAL(turned(double)), SLOT(onRudderCtlActivated(double)));
 
 
@@ -192,6 +194,13 @@ void MainWindow::drawBoat() {
   heading_controller_ = new AngleController(QPointF(0, -60), 5, compass_);
   connect(heading_controller_, SIGNAL(turned(double)), SLOT(onTargetHeadingRotated(double)));
 
+  // Speed and true wind display
+  skipper_disc_ = new QGraphicsEllipseItem(-40, -40, 80, 80);
+  scene_.addItem(skipper_disc_);
+  skipper_disc_->setPos(-160, 0);
+  true_wind_ = new QGraphicsLineItem(0, 0, 0, -45, skipper_disc_, &scene_);
+  true_wind_->setPen(wind_pen);
+
   ui->graphicsView->setScene(&scene_);
 }
 
@@ -218,3 +227,30 @@ void MainWindow::onTargetHeadingRotated(double angle) {
   ::snprintf(buf, BufSize, OFMT_HELMSMANCTLPROTO(proto, &length));
   state_->writeToBus(buf);
 }
+
+void MainWindow::on_actionConnect_triggered(bool checked)
+{
+  if (checked)
+          state_->tryToConnect();
+  else
+          state_->disconnect();
+}
+
+
+void MainWindow::keyPressEvent(QKeyEvent* event) {
+  switch(event->key()) {
+  case Qt::Key_C:
+          rudder_controller_->setAngle(rudder_controller_->angle() - 2); break;
+  case Qt::Key_Z:
+          rudder_controller_->setAngle(rudder_controller_->angle() + 2); break;
+  case Qt::Key_X:
+          rudder_controller_->setAngle(0);
+          break;
+
+  case Qt::Key_A:
+          boom_controller_->setAngle(boom_controller_->angle() - 5); break;
+  case Qt::Key_D:
+          boom_controller_->setAngle(boom_controller_->angle() + 5); break;
+  }
+}
+

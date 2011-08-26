@@ -45,23 +45,28 @@ private:
   QGraphicsEllipseItem* compass_;
   QGraphicsLineItem* target_heading_;
   QGraphicsLineItem* wind_;
+  QGraphicsLineItem* true_wind_;
 
   AngleController* boom_controller_;
   AngleController* heading_controller_;
   AngleController* rudder_controller_;
 
+  QGraphicsEllipseItem* skipper_disc_;
+
   void drawBoat();
+
+  virtual void keyPressEvent(QKeyEvent* event);
 
 public slots:
   void onRudderCtlActivated(double angle);
   void onTargetHeadingRotated(double angle);
-
 private slots:
   void on_actionConnect_triggered();
   void on_actionConfig_triggered();
   void updateView();
   void printText(QString text);
 
+  void on_actionConnect_triggered(bool checked);
 };
 
 #endif // MAINWINDOW_H
