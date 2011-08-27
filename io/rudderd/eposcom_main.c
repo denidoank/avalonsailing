@@ -48,6 +48,8 @@ static uint32_t nodeidmap[] = {
         -1, -1, -1, -1, */
 };
 
+#define nelem(x) (sizeof(x)/sizeof(x[0]))
+
 int main(int argc, char* argv[]) {
 	int ch;
 	int raw = 0;
@@ -78,7 +80,7 @@ int main(int argc, char* argv[]) {
 	 if (probe) {
 		 int nodeid;
 		 printf("%s:", argv[0]);
-		 for (nodeid = 1; nodeid < sizeof(nodeidmap); ++nodeid) {
+		 for (nodeid = 1; nodeid < nelem(nodeidmap); ++nodeid) {
 			 uint32_t err = epos_readobject(fd, 0x1018, 4, nodeid, nodeidmap + nodeid);
 			 if (err != 0) continue;
 			 fprintf(stderr, "port:%s nodeid:%d serial:0x%x\n", argv[0], nodeid, nodeidmap[nodeid]);
@@ -111,13 +113,13 @@ int main(int argc, char* argv[]) {
 		 // TBD maybe disallow n == 3 && line[c1] == ':' or '=',
 		 // or stronger: require line[c1] == 0 or '#'
 
-		 int nodeid = sizeof(nodeidmap);
+		 int nodeid = nelem(nodeidmap);
 		 if (probe)
-			 for(nodeid = 1; nodeid < sizeof(nodeidmap); ++nodeid)
+			 for(nodeid = 1; nodeid < nelem(nodeidmap); ++nodeid)
 				 if (nodeidmap[nodeid] == serial)
 					 break;
 
-		 if (nodeid == sizeof(nodeidmap)) nodeid = serial;
+		 if (nodeid == nelem(nodeidmap)) nodeid = serial;
 
 		 uint32_t err = 0;
 		 switch (n) {
