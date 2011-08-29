@@ -7,10 +7,11 @@
 // here, because the GPS/IMU might not be able to give a correct direction
 // information. The Initial controller tries to sail downwind. It does not
 // follow the skipper direction alpha_star.
-// When the initial controller stae is left, 
+// When the initial controller state is left, 
 //   1. we have covered some distance (so the IMU should be capable of getting
-//      spped and direction info),
-//   2. the true wind filter is filled. 
+//      speed and direction info),
+//   2. the true wind filter is filled,
+//   3. the boat has some forward speed and the rudders have the usual effect. 
 
 #ifndef HELMSMAN_INITIAL_CONTROLLER_H
 #define HELMSMAN_INITIAL_CONTROLLER_H
