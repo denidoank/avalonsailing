@@ -43,6 +43,7 @@ signals:
 
   void dataUpdate();
   void consoleOutput(QString text);
+  void connectionWantedChanged(bool connection_wanted);
 
 public slots:
   void setCommand(const QString& command);
