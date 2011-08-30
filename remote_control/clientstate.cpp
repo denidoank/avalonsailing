@@ -30,16 +30,26 @@ void ClientState::setCommand(const QString& command) {
 }
 
 void ClientState::tryToConnect() {
+  if (!connection_wanted_) {
+    emit connectionWantedChanged(true);
+  }
   connection_wanted_ = true;
-  ssh_process_.setProcessChannelMode(QProcess::SeparateChannels);
-  QString& cmd = getCommand();
-  ssh_process_.start(cmd);
-  emit consoleOutput(QString("Running: ") + cmd);
+
+  if (ssh_process_.state() == QProcess::NotRunning) {
+    ssh_process_.setProcessChannelMode(QProcess::SeparateChannels);
+    QString& cmd = getCommand();
+    ssh_process_.start(cmd);
+    emit consoleOutput(QString("Running: ") + cmd);
+  }
 }
 
 void ClientState::disconnect() {
+  if (!connection_wanted_) {
+    return;
+  }
   connection_wanted_ = false;
   ssh_process_.terminate();
+  emit connectionWantedChanged(false);
 }
 
 void ClientState::processLine(const QString& line) {

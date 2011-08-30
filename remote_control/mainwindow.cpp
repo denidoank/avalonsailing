@@ -27,6 +27,8 @@ MainWindow::MainWindow(ClientState* state, QWidget *parent) :
 
   connect(state_, SIGNAL(dataUpdate()), SLOT(updateView()));
   connect(state_, SIGNAL(consoleOutput(QString)), SLOT(printText(QString)));
+  ui->actionConnect->connect(state_, SIGNAL(connectionWantedChanged(bool)),
+                             SLOT(setChecked(bool)));
 }
 
 MainWindow::~MainWindow()
