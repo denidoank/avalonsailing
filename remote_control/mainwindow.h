@@ -12,6 +12,7 @@
 #include <QGraphicsPolygonItem>
 #include <QGraphicsScene>
 #include <QGraphicsEllipseItem>
+#include <QTime>
 #include "anglecontroller.h"
 #include "clientstate.h"
 #include "config_dialog.h"
@@ -53,6 +54,10 @@ private:
 
   QGraphicsEllipseItem* skipper_disc_;
 
+  QTimer update_timer_;
+  QPointF scroll_pos_;
+  QTime scroll_update_time_;
+
   void drawBoat();
 
   virtual void keyPressEvent(QKeyEvent* event);
@@ -61,9 +66,9 @@ public slots:
   void onRudderCtlActivated(double angle);
   void onTargetHeadingRotated(double angle);
 private slots:
-  void on_actionConnect_triggered();
   void on_actionConfig_triggered();
   void updateView();
+  void updateGraphics();
   void printText(QString text);
 
   void on_actionConnect_triggered(bool checked);

@@ -20,7 +20,7 @@
 
 MainWindow::MainWindow(ClientState* state, QWidget *parent) :
   QMainWindow(parent),
-  ui(new Ui::MainWindow), state_(state), config_dialog_(state, this)
+    ui(new Ui::MainWindow), state_(state), config_dialog_(state, this), scroll_pos_(0, 0)
 {
   ui->setupUi(this);
   drawBoat();
@@ -29,6 +29,9 @@ MainWindow::MainWindow(ClientState* state, QWidget *parent) :
   connect(state_, SIGNAL(consoleOutput(QString)), SLOT(printText(QString)));
   ui->actionConnect->connect(state_, SIGNAL(connectionWantedChanged(bool)),
                              SLOT(setChecked(bool)));
+
+  connect(&update_timer_, SIGNAL(timeout()), SLOT(updateGraphics()));
+  update_timer_.setInterval(50);
 }
 
 MainWindow::~MainWindow()
@@ -53,11 +56,6 @@ void MainWindow::on_actionConfig_triggered()
   config_dialog_.show();
 }
 
-void MainWindow::on_actionConnect_triggered()
-{
-  //state_->tryToConnect();
-}
-
 void MainWindow::updateView() {
   // Stop updating the text when scrolling. It is less perturbating, both for qt
   // and for users.
@@ -79,8 +77,10 @@ void MainWindow::updateView() {
     ui->dataview->verticalScrollBar()->setValue(original_scroll);
   }
 
-  // Update the drawing.
+  updateGraphics();
+}
 
+void MainWindow::updateGraphics() {
   compass_->setRotation(-state_->getDouble("imu", "yaw_deg"));
   target_heading_->setRotation(state_->getDouble("helm", "alpha_star_deg"));
   wind_->setRotation(state_->getDouble("wind", "angle_deg"));
@@ -93,6 +93,21 @@ void MainWindow::updateView() {
   target_rudder_right_->setRotation(state_->getDouble("rudderctl", "rudder_r_deg"));
   skipper_disc_->setRotation(-state_->getDouble("imu", "yaw_deg"));
   true_wind_->setRotation(state_->getDouble("skipper_input", "angle_true_deg"));
+
+  QPointF speed(state_->getDouble("imu", "vel_y_m_s"), state_->getDouble("imu", "vel_x_m_s"));
+
+  // The boat length is 220 pixels and 4m. Convert m/s into pixels/sec.
+  speed *=  220 / 4.0;
+  scroll_pos_ += speed * (scroll_update_time_.restart() / 1000.0);
+
+  scroll_pos_.setX(fmod(scroll_pos_.x(), 4 * 256));
+  scroll_pos_.setY(fmod(scroll_pos_.y(), 4 * 256));
+
+  QBrush brush(scene_.backgroundBrush());
+  QMatrix mat;
+  mat.translate(scroll_pos_.x(), scroll_pos_.y());
+  brush.setMatrix(mat);
+  scene_.setBackgroundBrush(brush);
 
   ui->graphicsView->update();
 }
@@ -203,7 +218,14 @@ void MainWindow::drawBoat() {
   true_wind_ = new QGraphicsLineItem(0, 0, 0, -45, skipper_disc_, &scene_);
   true_wind_->setPen(wind_pen);
 
+  QPixmap background(":/images/water_texture.png");
+  QBrush background_brush(background);
+  QMatrix background_mat;
+  background_brush.setMatrix(background_mat);
+  scene_.setBackgroundBrush(background_brush);
+
   ui->graphicsView->setScene(&scene_);
+  update_timer_.start();
 }
 
 void MainWindow::onRudderCtlActivated(double) {
