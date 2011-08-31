@@ -26,7 +26,7 @@
      <x>0</x>
      <y>0</y>
      <width>830</width>
-     <height>22</height>
+     <height>27</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -36,7 +36,18 @@
     <addaction name="actionConfig"/>
     <addaction name="actionConnect"/>
    </widget>
+   <widget class="QMenu" name="menuHelmsman">
+    <property name="title">
+     <string>Helmsman</string>
+    </property>
+    <addaction name="actionAuto_pilot"/>
+    <addaction name="actionBrake"/>
+    <addaction name="actionDocking"/>
+    <addaction name="actionOverride_bearing"/>
+    <addaction name="actionRestart"/>
+   </widget>
    <addaction name="menuFile"/>
+   <addaction name="menuHelmsman"/>
   </widget>
   <widget class="QToolBar" name="mainToolBar">
    <attribute name="toolBarArea">
@@ -46,6 +57,10 @@
     <bool>false</bool>
    </attribute>
    <addaction name="actionConnect"/>
+   <addaction name="actionAuto_pilot"/>
+   <addaction name="actionDocking"/>
+   <addaction name="actionOverride_bearing"/>
+   <addaction name="actionBrake"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
   <widget class="QDockWidget" name="dockWidget_5">
@@ -94,6 +109,47 @@
    </property>
    <property name="text">
     <string>Connect</string>
+   </property>
+  </action>
+  <action name="actionAuto_pilot">
+   <property name="icon">
+    <iconset resource="icons.qrc">
+     <normaloff>:/icons/auto_pilot.png</normaloff>:/icons/auto_pilot.png</iconset>
+   </property>
+   <property name="text">
+    <string>Auto pilot</string>
+   </property>
+  </action>
+  <action name="actionDocking">
+   <property name="icon">
+    <iconset resource="icons.qrc">
+     <normaloff>:/icons/dock.png</normaloff>:/icons/dock.png</iconset>
+   </property>
+   <property name="text">
+    <string>Docking</string>
+   </property>
+  </action>
+  <action name="actionOverride_bearing">
+   <property name="icon">
+    <iconset resource="icons.qrc">
+     <normaloff>:/icons/override.png</normaloff>:/icons/override.png</iconset>
+   </property>
+   <property name="text">
+    <string>Override bearing</string>
+   </property>
+  </action>
+  <action name="actionRestart">
+   <property name="text">
+    <string>Restart</string>
+   </property>
+  </action>
+  <action name="actionBrake">
+   <property name="icon">
+    <iconset resource="icons.qrc">
+     <normaloff>:/icons/brake.png</normaloff>:/icons/brake.png</iconset>
+   </property>
+   <property name="text">
+    <string>Brake</string>
    </property>
   </action>
  </widget>

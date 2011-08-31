@@ -17,6 +17,7 @@
 #include "ui_mainwindow.h"
 #include "../proto/rudder.h"
 #include "../proto/helmsman.h"
+#include "../proto/remote.h"
 
 MainWindow::MainWindow(ClientState* state, QWidget *parent) :
   QMainWindow(parent),
@@ -278,3 +279,32 @@ void MainWindow::keyPressEvent(QKeyEvent* event) {
   }
 }
 
+void MainWindow::sendRemoteProto(int command) {
+  RemoteProto proto = INIT_REMOTEPROTO;
+  proto.command = command;
+  proto.alpha_star_deg = rudder_controller_->angle();
+  size_t BufSize = 256;
+  char buf[BufSize];
+  int length;
+  ::snprintf(buf, BufSize, OFMT_REMOTEPROTO(proto, &length));
+  state_->writeToBus(buf);
+}
+
+void MainWindow::on_actionAuto_pilot_triggered() {
+  sendRemoteProto(kNormalControlMode);
+}
+
+void MainWindow::on_actionDocking_triggered()
+{
+  sendRemoteProto(kDockingControlMode);
+}
+
+void MainWindow::on_actionBrake_triggered()
+{
+  sendRemoteProto(kBrakeControlMode);
+}
+
+void MainWindow::on_actionOverride_bearing_triggered()
+{
+  sendRemoteProto(kOverrideSkipperMode);
+}

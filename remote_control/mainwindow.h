@@ -58,14 +58,19 @@ private:
   QPointF scroll_pos_;
   QTime scroll_update_time_;
 
-  void drawBoat();
-
   virtual void keyPressEvent(QKeyEvent* event);
+
+  void drawBoat();
+  void sendRemoteProto(int command);
 
 public slots:
   void onRudderCtlActivated(double angle);
   void onTargetHeadingRotated(double angle);
 private slots:
+  void on_actionOverride_bearing_triggered();
+  void on_actionBrake_triggered();
+  void on_actionDocking_triggered();
+  void on_actionAuto_pilot_triggered();
   void on_actionConfig_triggered();
   void updateView();
   void updateGraphics();

@@ -32,13 +32,9 @@ sleep 1
 
 ${PLUG} ./fakeio/fakeboat &
 
-sleep 1
-
-${PLUG} ./helmsman/helmsman &
-
-sleep 1
-
 # Run the remote_control tool, and configure it.
 CONNECT_CMD=$(pwd)"/io/plug ${LBUS}"
 echo "remote_control config string: ${CONNECT_CMD}"
-./remote_control/remote_control "${CONNECT_CMD}"
+./remote_control/remote_control "${CONNECT_CMD}" &
+
+${PLUG} ./helmsman/helmsman
