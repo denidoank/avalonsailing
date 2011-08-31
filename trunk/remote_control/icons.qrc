@@ -2,4 +2,7 @@
     <qresource prefix="/icons">
         <file>connect.png</file>
     </qresource>
+    <qresource prefix="/images">
+        <file>water_texture.png</file>
+    </qresource>
 </RCC>
