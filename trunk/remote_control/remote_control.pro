@@ -17,10 +17,9 @@ HEADERS += mainwindow.h \
     config_dialog.h \
     anglecontroller.h \
     ../proto/rudder.h \
-    ../proto/helmsman.h
+    ../proto/helmsman.h \
+    ../proto/remote.h
 FORMS += mainwindow.ui \
     config_dialog.ui \
     config_dialog.ui
-
-RESOURCES += \
-    icons.qrc
+RESOURCES += icons.qrc
