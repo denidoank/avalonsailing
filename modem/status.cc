@@ -141,9 +141,9 @@ string BuildStatusMessage(const time_t status_time,
 
   // 6. Battery charge (1 digit) and fuel cell supply (offset 35).
   strcat(status + 35, "??");
-  if (!isnan(fuelcell_status.tension_V)) {
+  if (!isnan(fuelcell_status.voltage_V)) {
     status[35] =
-        CharOfIntLT64(static_cast<int>(fuelcell_status.tension_V * 2.0));
+        CharOfIntLT64(static_cast<int>(fuelcell_status.voltage_V * 2.0));
   }
   if (!isnan(fuelcell_status.runtime_h)) {
     status[36] =

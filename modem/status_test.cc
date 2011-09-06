@@ -70,7 +70,7 @@ int main(int argc, char *argv[]) {
             "30141516GN450722W0084720XXXXXT00529??000status-ok");
 
   // Status using fuelcel.
-  fuelcell_status.tension_V = 24.6;
+  fuelcell_status.voltage_V = 24.6;
   fuelcell_status.charge_current_A = 2.3;
   fuelcell_status.energy_Wh = 15.4;
   fuelcell_status.runtime_h = 1.6;

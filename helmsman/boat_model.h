@@ -83,8 +83,8 @@ class BoatModel {
   double gamma_sail_;
   double gamma_rudder_left_;
   double gamma_rudder_right_;
-  int homing_counter_left_;
-  int homing_counter_right_;
+  bool homed_left_;
+  bool homed_right_;
   
   double north_deg_;
   double east_deg_;

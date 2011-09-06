@@ -18,7 +18,7 @@ extern int debug; // global shared
 
 namespace {
 const double kReverseMotionSailAngle = Deg2Rad(90);
-const double kReverseMotionRudderAngle = Deg2Rad(15);
+const double kReverseMotionRudderAngle = Deg2Rad(10);
 // Lets sail a while in broad reach.
 const double kReferenceAngleApp = Deg2Rad(90);
 const double kBangBangRudderAngle = Deg2Rad(5);
@@ -71,11 +71,11 @@ void InitialController::Run(const ControllerInput& in,
       if (debug) fprintf(stderr, "phase SLEEP\n");
       gamma_sail = 0;
       gamma_rudder = 0;
-      // wait 10s for all filters to settle
-      if (++count_ > 10.0 / kSamplingPeriod &&
+      // wait 5s for all filters to settle
+      if (++count_ > 5.0 / kSamplingPeriod &&
           in.drives.homed_sail &&
-          in.drives.homed_rudder_left &&
-          in.drives.homed_rudder_right) {
+          (in.drives.homed_rudder_left ||
+          in.drives.homed_rudder_right)) {
         count_ = 0;
         phase_ = TURTLE;
         // Decide which way to go.
@@ -87,16 +87,17 @@ void InitialController::Run(const ControllerInput& in,
     case TURTLE:
       if (debug) fprintf(stderr, "phase TURTLE\n");
       // Turn into a sailable direction if necessary.
-      if (fabs(angle_app) < Deg2Rad(120) &&
-          WindStrength(kCalmWind, filtered.mag_app) != kCalmWind) {
+      if (fabs(angle_app) > Deg2Rad(120) ||
+          WindStrength(kCalmWind, filtered.mag_app) == kCalmWind) {
+        gamma_rudder = kReverseMotionRudderAngle * sign_;
+        gamma_sail = sail_controller_->BestGammaSailForReverseMotion(angle_app, filtered.mag_app);
+        break;
+      } else {
         phase_ = KOGGE;
         count_ = 0;
         if (debug) fprintf(stderr, "TURTLE to KOGGE %d\n", sign_);
-        break;
+        // intentional falltrough
       }
-      gamma_rudder = kReverseMotionRudderAngle * sign_;
-      gamma_sail = sail_controller_->BestGammaSailForReverseMotion(angle_app, filtered.mag_app);
-      break;
     case KOGGE:
       if (debug) fprintf(stderr, "phase KOGGE\n");
       gamma_sail = sail_controller_->BestStabilizedGammaSail(angle_app, filtered.mag_app);

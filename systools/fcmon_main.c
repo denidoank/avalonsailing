@@ -75,7 +75,7 @@ int fc_status(FILE *fc) {
 
     if (fscanf(fc, "%[^\r]\r", buffer) != 1) return 1; // error
 
-    if (sscanf(buffer, "battery voltage %lfV", &fc_status.tension_V) == 1) {
+    if (sscanf(buffer, "battery voltage %lfV", &fc_status.voltage_V) == 1) {
       found_mask |= 1;
     } else if (sscanf(buffer, "output current %lfA",
                       &fc_status.charge_current_A) == 1) {
