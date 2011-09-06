@@ -445,60 +445,54 @@ Richard intends to work more during July. Steffen will work for a week in July o
 
 
 == 2011-08-15 ==
+   * POWER_SHUTDOWN, helmsman exits, system reboots needs to kick watchdog.
+   * Marius: fuel cell monitor, remote control by SMS
+   * Steffen: remote control execution
+   * Don't panic
+      * We need to keep what we've got so far, not loosing functionality with changes (e.g. drive valid flag functions)
+      * Do not repeat mistakes
+         * Resolution problem with GPS latitude/longitude coordinates having 3 digits after the decimal point reappeared with the rudder angle having 1 digit after the point only.           This is an artificial stair function, an artificial non-linearity which costs us energy because the rudder cannot get to its equilibrical point and speed.
+         * Rudder must not be sticky
+           We talked about the effect of the slack in the rudder mechanism.
+           Exactly the same applies the the rudder control.
+           The rudder control value must be passed through as it is, unchanged and 
+           immediately.
+           (Currently it doesn't change, if the reference value deviates from the actual by less than 1.5 degrees,
+           which is about 8% of our control range. This drives the bearing controller mad
+           and costs a lot of energy and speed.)
+         * Sail angle can be sticky (not in a closed loop, but ideally that logic should go into the sail controller where it is tested and documented.  
+         * Write tests
+         * Use what is there, tested and tuned (e.g. boat_model.cc)
+         * The communication pattern Send-on-change-only is broken because the participants have an independant start-up and live time. Send at a fixed period.
+   * This is a real-time system (at least drives, sensorics and helmsman)
+       Our software is part of the real world, has to be live at all times and the worst time latency of any operation is an essential performance factor.
+       In the closed loop control the differential equations are replaced by difference equations
+       under the assumption that the sampling period is constant.
+       This has the advantage that all coefficients of the difference equations
+       are constant, otherwise we would have to calculate them anew
+       everytime we run a the ship controller using exponential functions. 
+       This means the ship control has to run at a constant (+-10%) frequency.
+   * Luuk: AIS wrapper
+   * Steffen: Get ETH support for today
+   * Richard: AIS antenna
+   * Start week: Friday 16.9. plus following week, 4 to 5 days sea testing and release
+   * Emma: Fax to the police, email GlobalTag again
 
-  * POWER_SHUTDOWN, helmsman exits, system reboots needs to kick watchdog.
-  * marius: fuel cell monitor, remote control by SMS
 
-  * Steffen
-   remote control execution
-  * Dont panic
-1. need to keep what we've got so far,
-   not loosing functionality with changes
-   (e.g. valid flag functions)
-2. Do not repeat mistakes
--  Resolution problem with GPS latitude longitude coordinates having 3
-   digits after the decimal point reappeared with the rudder angle having 1 digit after the point only.
-   This is an artificial stair function, an artificial non-linearity which
-   costs us energy because the rudder cannot get to its equilibrical point
-   and speed.
 
--  Rudder must not be sticky
-   We talked about the effect of the slack in the rudder mechanism.
-   Exactly the same applies the the rudder control.
-   The rudder control value must be passed through as it is, unchanged and 
-   immediately.
-   (Currently it doesn't change, if the reference value deviates from the actual by less than 1.5 degrees,
-   which is about 8% of our control range. This drives the bearing controller mad
-   and costs a lot of energy and speed.)
+== 2011-09-05 ==
 
-- Sail angle can be sticky (not in a closed loop, but ideally  that logic should go into the sail controller
-  where it is tested and documented. 
-  
-- Write tests
-
-- Use what is there, tested and tuned (e.g. boat_model.cc)
-
-- The communication pattern
-   Send-on-change-only is broken because the participants have an 
-   independant start-up and live time.
-   Send at a fixed period.
-
-3. This is a real-time system (at least drives, sensorics and helmsman)
-   Part of the real world, has to be live at all times.
-   The differential equations are replaced by difference equations
-   under the assumption that the sampling period is constant.
-   This has the advantage that all coefficients of the difference equations
-   are constant, otherwise we would have to calculate them anew
-   everytime we run a the ship controller using exponential functions. 
-   This means te ship control has to run at a constant frequency.
-  * Luuk,
-    AIS wrapper
-  * Steffen
-  Get ETH support for today
-  * Richard
-  AIS antenna
-  *  Start week: Friday 16.9. plus following week
-      4 to 5 days sea testing and release
-  * Emma GlobalTag,
-    - Fax to the police
-    - email GlobalTag again
+  * Participants: Cedric (via Skype), Jürg, Luuk, Pete, Bernhard, Marius, Richard, Emma, Julien, Steffen,
+  * Status of the boat after collission on August 28th:
+     * Some delamination in the boom, possibly reduced strength
+     * For details seee Patricks mail from August 31st
+     * The rudders have been repaired and the boat is in a sailable condition for lake tests
+     * New masttop mount was finished by Patrick, Mechanical mounting of the wind sensor was tested on last Friday
+     * ZSG was very friendly and will handle the scratches during normal maintanance
+  * Wind sensor   
+     * Tested by Steffen, definitively broken
+     
+  * Original goal of participating in the MicroTransat 2011 not feasible, AI: Cedric informs the organizers
+  * Both ETH-ASL and Google intend to continue with the project, the goal is to get the boat sailing and participate in (or organize ourselves) competitions and races.
+  * Jürg will leave the project (starts a new job in November). He will be available for know-how-transfer for a limited time. Thanks for the huge contribution, Jürg!
+  * Student support will be necessary, Cedric checks options of thesises or just student work support based on a prioritized list (from Patrick damage list): AI Steffen: Send list of important topics to Cedric
