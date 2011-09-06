@@ -26,8 +26,8 @@ BoatModel::BoatModel(double sampling_period,
       gamma_rudder_left_(gamma_rudder_left),
       gamma_rudder_right_(gamma_rudder_right),
       // The following are not settable for lazyness.
-      homing_counter_left_(50),
-      homing_counter_right_(20),
+      homed_left_(50),
+      homed_right_(20),
       north_deg_(0),
       east_deg_(0),
       x_(0),
@@ -88,35 +88,33 @@ void BoatModel::SimDrives(const DriveReferenceValuesRad& drives_reference,
       isnan(drives_reference.gamma_rudder_star_right_rad))
     return;
 
-  const double kOmegaMaxRudder = Deg2Rad(30);
-
   FollowRateLimitedRadWrap(drives_reference.gamma_sail_star_rad,
-                    kOmegaMaxSail, &gamma_sail_); 
+                           kOmegaMaxSail, &gamma_sail_); 
   drives->gamma_sail_rad = gamma_sail_;
   drives->homed_sail = true;
 
-  if (homing_counter_left_ <= 0) {
+  if (homed_left_) {
     FollowRateLimited(drives_reference.gamma_rudder_star_left_rad,
                       kOmegaMaxRudder, &gamma_rudder_left_);
-    drives->gamma_rudder_left_rad = gamma_rudder_left_;
-    drives->homed_rudder_left = true;
   } else {
-    gamma_rudder_left_ += Deg2Rad(50 * period_);  // homing speed
-    drives->gamma_rudder_left_rad = gamma_rudder_left_;
-    drives->homed_rudder_left = false;
-    --homing_counter_left_;
+    gamma_rudder_left_ += Deg2Rad(5 * period_);  // homing speed
+    if (gamma_rudder_left_ > Deg2Rad(90));
+      homed_left_ = true;
   }
 
-  if (homing_counter_right_ <= 0) {
+  if (homed_right_) {
     FollowRateLimited(drives_reference.gamma_rudder_star_right_rad,
                       kOmegaMaxRudder, &gamma_rudder_right_);
-    drives->gamma_rudder_right_rad = gamma_rudder_right_;
-    drives->homed_rudder_right = true;
   } else {
-    gamma_rudder_right_ -= Deg2Rad(50 * period_);  // homing speed
-    drives->homed_rudder_right = false;
-    --homing_counter_right_;
+    gamma_rudder_right_ -= Deg2Rad(5 * period_);  // homing speed
+    if (gamma_rudder_right_ < Deg2Rad(-100));
+      homed_right_ = true;
   }
+
+  drives->homed_rudder_left = homed_left_;
+  drives->gamma_rudder_left_rad = gamma_rudder_left_;
+  drives->homed_rudder_right = homed_right_;
+  drives->gamma_rudder_right_rad = gamma_rudder_right_;
 }
 
 void BoatModel::Simulate(const DriveReferenceValuesRad& drives_reference, 
@@ -275,7 +273,7 @@ void BoatModel::SetStartPoint(Location start_location) {
 
 // More precise and stable rudder force model
 // We had problems with the very simple one during simulations
-// due to the feedback effect and the simple Euler intergration model.
+// due to the feedback effect and the too simple Euler intergration model.
 // kLeverR = 1.43;  // 1.43 m distance COG to rudder
 // boat.h kInertiaZ = 150;      // different sources speak of 100 to 150 kg/m^2
 
@@ -377,6 +375,8 @@ void BoatModel::IntegrateRudderModel(double* delta_omega_rudder,
   }
 }
 
+const static double kLinearRudder = Deg2Rad(9);
+
 double BoatModel::ForceLift(double alpha_aoa_rad, double speed) {
   //if (debug) printf("N: aoa: %6.4f deg\n", Rad2Deg(alpha_aoa_rad));
   int sign = 1;
@@ -385,15 +385,14 @@ double BoatModel::ForceLift(double alpha_aoa_rad, double speed) {
     alpha_aoa_rad = -alpha_aoa_rad;
   }
   double c_lift = 0;
-  if (alpha_aoa_rad < Deg2Rad(9)) { // linear range forward, neglect dependency of the stall angle from the speed
+  if (alpha_aoa_rad < kLinearRudder) { // linear range forward, neglect dependency of the stall angle from the speed
     c_lift = naca0010::kCLiftPerRad * alpha_aoa_rad;
   } else if (alpha_aoa_rad < Deg2Rad(175)) { // stall range
-
     c_lift = 1.1 * sin(2*alpha_aoa_rad);
   } else { // linear range backwards
     c_lift = naca0010::kCLiftPerRadReverse * (alpha_aoa_rad - Deg2Rad(180));
   }
-  if (debug && alpha_aoa_rad > Deg2Rad(9))
+  if (debug && alpha_aoa_rad > kLinearRudder)
     printf("Rudder stall, cL: %g\n", c_lift);
   //if (debug) printf("N: c_lift: %6.4f \n", sign * c_lift);
   return sign * c_lift * speed * speed *
@@ -404,17 +403,12 @@ double BoatModel::ForceDrag(double alpha_aoa_rad, double speed) {
   if (alpha_aoa_rad < 0) {
     alpha_aoa_rad = -alpha_aoa_rad;
   }
-  double c_drag = 0.02;
-  if (alpha_aoa_rad < Deg2Rad(8)) { // linear range forward
-    ;
-  } else if (alpha_aoa_rad < Deg2Rad(175)) { // stall range
-    c_drag = 1.8 * sin(alpha_aoa_rad);
-  } else { // linear range backwards
-    ;
-  }
+  double c_drag = 0.02; // linear flow ranges forward & backwaards
+  if (kLinearRudder < alpha_aoa_rad && alpha_aoa_rad < M_PI - kLinearRudder) { // stall range
+    c_drag = 1.8 * sin(alpha_aoa_rad) * sin(alpha_aoa_rad);
+
   //if (debug) printf("N: c_drag: %6.4f \n", c_drag);
 
-  return c_drag * speed * speed *
-          (kAreaR * kRhoWater / 2);      //  area * rho_water / 2;
+  return c_drag * speed * speed * (kAreaR * kRhoWater / 2);
 }
 
