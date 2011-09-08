@@ -34,11 +34,11 @@ static const int kPowerCycleMode = 5;
 
 // For use in printf and friends.
 #define OFMT_REMOTEPROTO(x, n)                                \
-  "remote: timestamp_s:%ld command:%d alpha_star:%06.2lf%n",  \
+  "remote: timestamp_s:%ld command:%d alpha_star:%.2lf%n\n",  \
     (x).timestamp_s, (x).command, (x).alpha_star_deg, (n)
 
 #define IFMT_REMOTEPROTO(x, n)                                 \
-  "remote: timestamp_s:%ld command:%d alpha_star:%lf%n",       \
+  "remote: timestamp_s:%ld command:%d alpha_star:%lf%n\n",       \
    &(x)->timestamp_s, &(x)->command, &(x)->alpha_star_deg, (n)
 
 #endif // PROTO_REMOTE_H
