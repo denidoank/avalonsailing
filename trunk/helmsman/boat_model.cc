@@ -6,6 +6,7 @@
 // A very rough physical boat model.
 
 #include <string>
+#include "common/sign.h"
 #include "helmsman/boat_model.h"
 #include "helmsman/naca0010.h"
 
@@ -26,8 +27,8 @@ BoatModel::BoatModel(double sampling_period,
       gamma_rudder_left_(gamma_rudder_left),
       gamma_rudder_right_(gamma_rudder_right),
       // The following are not settable for lazyness.
-      homed_left_(50),
-      homed_right_(20),
+      homed_left_(false),
+      homed_right_(false),
       north_deg_(0),
       east_deg_(0),
       x_(0),
@@ -43,10 +44,10 @@ double BoatModel::ForceSail(Polar apparent, double gamma_sail) {
   double lift;
   // Improvements see:
   // https://docs.google.com/a/google.com/viewer?a=v&pid=explorer&srcid=0B9PVZMr3Jl1ZZGRlMWRlOTEtOTNhNC00NGY0LWJmNzAtOTU3YzY0NWZhY2U5&hl=en
-  if (fabs(angle_attack) < Deg2Rad(15)) {
-    lift = angle_attack / Deg2Rad(15);
+  if (fabs(angle_attack) < Deg2Rad(25)) {
+    lift = angle_attack / Deg2Rad(25);
   } else {
-    lift = 1.5 * Sign(angle_attack); 
+    lift = 0.5 * Sign(angle_attack); 
   }
   return cos(gamma_sail + M_PI/2) *
     lift * apparent.Mag() * apparent.Mag() * 8 * 1.184 / 2; // 8m2*rho_air/2
@@ -130,22 +131,20 @@ void BoatModel::Simulate(const DriveReferenceValuesRad& drives_reference,
   apparent_ = Polar (0, 0);  // apparent wind in the boat frame
   ApparentPolar(true_wind, Polar(phi_z_, v_x_), phi_z_, &apparent_);
 
+  double delta_omega;
+  double force_rudder_x;
+  IntegrateRudderModel(&delta_omega,
+                       &force_rudder_x);
+  printf("delta_omega %g \n", delta_omega);
+  omega_ += delta_omega;
   // Euler integration, acc turns clockwise
-  // Homing is symmetric and does not produce much rotation.
-  if (in->drives.homed_rudder_right && in->drives.homed_rudder_left) {
-    double delta_omega_new;
-    double force_rudder_x;
-    IntegrateRudderModel(&delta_omega_new,
-                         &force_rudder_x);
-    omega_ += delta_omega_new;
-  }  
   phi_z_ += omega_ * period_;
   phi_z_ = NormalizeRad(phi_z_);
 
   //printf("v_x %g %g %g\n", v_x_, kRhoWater, gamma_sail_);
   double force_x = ForceSail(apparent_, gamma_sail_) +
                    0.3 * v_x_ * v_x_ * -Sign(v_x_) * kRhoWater/2;  // eqiv. area 0.3m^2
-                   // + rudder_x;
+                   // + force_rudder_x;
   // Turbulent drag above 6 knots.
   if (v_x_ > 3)
     force_x -= ((v_x_ - 3) * (v_x_ - 3)) * 500.0;
@@ -271,6 +270,20 @@ void BoatModel::SetStartPoint(Location start_location) {
   }
 }
 
+
+void BoatModel::OneRudder(double gamma_rudder, double v_rudder_alpha,
+                          double v_rudder_mag,
+                          double* force_x, double* force_y) {
+  // Angle of attack for the rudder
+  double alpha_aoa = gamma_rudder - v_rudder_alpha;        // (3) 
+
+  double force_lift = ForceLift(alpha_aoa, v_rudder_mag);  // (4)
+  double force_drag = ForceDrag(alpha_aoa, v_rudder_mag);  // (5)
+
+  *force_x = sin(v_rudder_alpha) * force_lift - cos(v_rudder_alpha) * force_drag;  // (6)
+  *force_y = cos(v_rudder_alpha) * force_lift - sin(v_rudder_alpha) * force_drag;  // (7)
+}
+
 // More precise and stable rudder force model
 // We had problems with the very simple one during simulations
 // due to the feedback effect and the too simple Euler intergration model.
@@ -290,19 +303,22 @@ void BoatModel::RudderModel(double omega,
     v_rudder_alpha = atan2(-v_y, v_x_);                 // (2)
   if (debug) printf("N: alpha water: %6.4f deg\n", Rad2Deg(v_rudder_alpha));
 
-  // Angle of attack for the rudder
-  double alpha_aoa_right = gamma_rudder_right_ - v_rudder_alpha;     // (3)
-  // Add left rudder, remove force factor 2
+  double force_x_left;
+  double force_y_left;
+  double force_x_right;
+  double force_y_right;
+  OneRudder(gamma_rudder_left_, v_rudder_alpha, v_rudder_mag,
+            &force_x_left, &force_y_left);
+  OneRudder(gamma_rudder_right_, v_rudder_alpha, v_rudder_mag,
+            &force_x_right, &force_y_right);
 
-  double force_lift = 2*ForceLift(alpha_aoa_right, v_rudder_mag);  // (4)
-  double force_drag = 2*ForceDrag(alpha_aoa_right, v_rudder_mag);  // (5)
-
-  double force_x = sin(v_rudder_alpha) * force_lift - cos(v_rudder_alpha) * force_drag;  // (6)
-  *force_rudder_x = force_x;
-  double force_y = cos(v_rudder_alpha) * force_lift - sin(v_rudder_alpha) * force_drag;  // (7)
-
-  double delta_omega = -force_y * kLeverR / kInertiaZ * period;  // (8)
-  *delta_omega_rudder = delta_omega;
+  *force_rudder_x = force_x_left + force_x_right;
+  const double hull_rotation_resistance = 400; // What force for 50 degrees per second ?
+  double force_y = force_y_left + force_y_right + Sign(omega) * omega * omega * hull_rotation_resistance;
+  // Because the rudder is at the rear end of the boat a postive y-force causes
+  // a negative angular acceleration.
+  *delta_omega_rudder = -force_y * kLeverR / kInertiaZ * period;  // (8)
+  if (debug) printf("N: force_y %6.4f \n", force_y_left + force_y_right);
 }
 
 void BoatModel::IntegrateRudderModel(double* delta_omega_rudder,
@@ -311,7 +327,8 @@ void BoatModel::IntegrateRudderModel(double* delta_omega_rudder,
   // Without external torques, omega can never have a bigger magnitude
   // than this omega_stat.
   CHECK(fabs(gamma_rudder_right_) < Deg2Rad(90));
-  double omega_stat = -v_x_ * tan(gamma_rudder_right_) / kLeverR;
+  // Use average rudders angle
+  double omega_stat = -v_x_ * tan(gamma_rudder_left_ + gamma_rudder_right_) / 2 * kLeverR;
   double delta_max = omega_stat - omega_;
   // printf("omega_stat: %6.4f deg/s, omega_: %f delta_max %f\n", Rad2Deg(omega_stat), Rad2Deg(omega_), Rad2Deg(delta_max));
            
@@ -406,7 +423,7 @@ double BoatModel::ForceDrag(double alpha_aoa_rad, double speed) {
   double c_drag = 0.02; // linear flow ranges forward & backwaards
   if (kLinearRudder < alpha_aoa_rad && alpha_aoa_rad < M_PI - kLinearRudder) { // stall range
     c_drag = 1.8 * sin(alpha_aoa_rad) * sin(alpha_aoa_rad);
-
+  }
   //if (debug) printf("N: c_drag: %6.4f \n", c_drag);
 
   return c_drag * speed * speed * (kAreaR * kRhoWater / 2);

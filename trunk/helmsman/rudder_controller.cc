@@ -43,6 +43,7 @@ void RudderController::Control(double phi_star,
                                double omega,
                                double speed,
                                double* gamma_rudder_rad) {
+  if (debug) fprintf(stderr, "phi* %lf phi %lf\n", Rad2Deg(phi_star), Rad2Deg(phi)); 
   // Make control error epsilon for all 3 states omega, phi and int_phi.
   double eps_omega = omega_star - omega;
   // Normalization is essential to cope with going through 180 degrees.

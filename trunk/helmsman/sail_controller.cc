@@ -72,7 +72,7 @@ void SailModeLogic::Reset() {
 SailController::SailController()
     // The optimal angle of attack for the trimmed sail, subject to
     // optimization, 10 - 25 degrees.
-    : optimal_angle_of_attack_rad_(Deg2Rad(13)),  // degrees.
+    : optimal_angle_of_attack_rad_(Deg2Rad(20)),  // degrees.
       sign_(1)  {}
 
 void SailController::SetOptimalAngleOfAttack(double optimal_angle_of_attack_rad) {

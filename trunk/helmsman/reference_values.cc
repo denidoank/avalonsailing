@@ -64,7 +64,7 @@ void ReferenceValues::NewPlan(double phi_z_1,
 
   // * The rudders don't stall.
   // maximum rotational acceleration is speed dependant.
-  double acc_max = 0.4 * speed * speed;
+  double acc_max = 0.25 * speed * speed;
   acc_max = std::max(acc_max, 0.1);  // lower limit to limit the duration
   // Minimum time for the turn due to acceleration limit.
   double duration_acc = sqrt(fabs(delta_phi) / acc_max * 36.0 / 5);

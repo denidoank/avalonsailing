@@ -50,12 +50,16 @@ class NormalController : public Controller {
                      double gamma_rudder_star,
                      double gamma_sail_star);
 
+  double NowSeconds();                   
+
   RudderController* rudder_controller_;
   SailController* sail_controller_;
   double prev_alpha_star_limited_;
   double alpha_star_smooth_;
   ReferenceValues ref_;
   int give_up_counter_;
+  uint64_t start_time_ms_;
+  int trap2_;
 };
 
 #endif  // HELMSMAN_NORMAL_CONTROLLER_H
