@@ -496,3 +496,13 @@ Richard intends to work more during July. Steffen will work for a week in July o
   * Both ETH-ASL and Google intend to continue with the project, the goal is to get the boat sailing and participate in (or organize ourselves) competitions and races.
   * Jürg will leave the project (starts a new job in November). He will be available for know-how-transfer for a limited time. Thanks for the huge contribution, Jürg!
   * Student support will be necessary, Cedric checks options of thesises or just student work support based on a prioritized list (from Patrick damage list): AI Steffen: Send list of important topics to Cedric
+
+
+
+== 2011-09-12 ==
+
+  * Participants: Luuk, Pete, Bernhard, Marius, Richard, Emma, Julien, Steffen,
+  * Steffen
+     * needs to test the Moxa 1130I communication (store /var/log message to know which driver was loaded)
+     * Liam AI: discusses general scheme of the power supply system
+     * Julien AI: secondary wind sensor mounting (we have an extra pair of wires for data, and 24V supply)
