@@ -74,6 +74,9 @@ class BoatModel {
 
   double ForceLift(double alpha_aoa_rad, double speed);
   double ForceDrag(double alpha_aoa_rad, double speed);
+  void OneRudder(double gamma_rudder, double v_rudder_alpha,
+                 double v_rudder_mag,
+                 double* force_x, double* force_y);
 
   double period_;
   double omega_;

@@ -18,7 +18,7 @@ extern int debug; // global shared
 
 namespace {
 const double kReverseMotionSailAngle = Deg2Rad(90);
-const double kReverseMotionRudderAngle = Deg2Rad(10);
+const double kReverseMotionRudderAngle = Deg2Rad(8);
 // Lets sail a while in broad reach.
 const double kReferenceAngleApp = Deg2Rad(90);
 const double kBangBangRudderAngle = Deg2Rad(5);
