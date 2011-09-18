@@ -6,10 +6,10 @@
 //
 // sample invocation
 //  skipper2 ...  <<EOF
-// timestamp_ms:1311258570959 mmsi:265330000 msgtype:1 status:8 speed_m_s:1.3 lat_deg:55.558400 lng_deg:14.356425 cog_deg:209.6 
-// timestamp_ms:1311258570959 mmsi:266137000 msgtype:18 speed_m_s:4.5 lat_deg:55.537585 lng_deg:14.374660 cog_deg:176.3 
-// timestamp_ms:1311258570956 mmsi:258762000 msgtype:5 size_m:106 shipname:'ANICIA'
-// timestamp_ms:1311258570956 mmsi:258762000 msgtype:3 status:1 rot_deg_min:0 speed_m_s:0.1 lat_deg:55.550258 lng_deg:14.380817 cog_deg:49.3 heading_deg:297 
+// ais: timestamp_ms:1311258570959 mmsi:265330000 msgtype:1 status:8 speed_m_s:1.3 lat_deg:55.558400 lng_deg:14.356425 cog_deg:209.6 
+// ais: timestamp_ms:1311258570959 mmsi:266137000 msgtype:18 speed_m_s:4.5 lat_deg:55.537585 lng_deg:14.374660 cog_deg:176.3 
+// ais: timestamp_ms:1311258570956 mmsi:258762000 msgtype:5 size_m:106 shipname:'ANICIA'
+// ais: timestamp_ms:1311258570956 mmsi:258762000 msgtype:3 status:1 rot_deg_min:0 speed_m_s:0.1 lat_deg:55.550258 lng_deg:14.380817 cog_deg:49.3 heading_deg:297 
 // EOF
 #include <vector>
 
@@ -74,6 +74,10 @@ void usage(void) {
 
 int sscan_ais(const char *line, uint64_t now_ms, AisInfo* s) {
   s->timestamp_ms = now_ms;
+
+  if (!strncmp(line, "ais: ", 5))
+    line += 5;
+
   while (*line) {
     char key[16];
     double value = NAN;
