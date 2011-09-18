@@ -24,6 +24,8 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "io/linebuffer.h"
+
 #include "proto/rudder.h"
 #include "proto/wind.h"
 #include "proto/imu.h"
@@ -199,10 +201,10 @@ int main(int argc, char* argv[]) {
   int loops = 0;
   uint64_t last_run_micros = 0;
 
+  struct LineBuffer lbuf;
+  memset(&lbuf, 0, sizeof lbuf);
 
-  while (!feof(stdin)) {
-
-    if (ferror(stdin)) clearerr(stdin);
+  for (;;) {
 
     struct timespec timeout = { 0, nanos_to_wait(last_run_micros) }; // Run ship controller exactly once every 100ms
     fd_set rfds;
@@ -218,58 +220,60 @@ int main(int argc, char* argv[]) {
     if (debug>2) fprintf(stderr, "Woke up %d\n", r);
 
     if (FD_ISSET(fileno(stdin), &rfds)) {
-      char line[1024];
-      if (!fgets(line, sizeof line, stdin))
-        crash("Error reading stdin");
+      r = lb_read(fileno(stdin), &lbuf);
+      if (r == 0) {
+	const char *line = lbuf.line;
 
-      if (sscanf(line, IFMT_WINDPROTO(&wind_sensor, &nn)) > 0) {
-        ctrl_in.wind_sensor.Reset();
-        ctrl_in.wind_sensor.alpha_deg = SymmetricDeg(NormalizeDeg(wind_sensor.angle_deg));
-        ctrl_in.wind_sensor.mag_m_s = wind_sensor.speed_m_s;
+	if (sscanf(line, IFMT_WINDPROTO(&wind_sensor, &nn)) > 0) {
+	  ctrl_in.wind_sensor.Reset();
+	  ctrl_in.wind_sensor.alpha_deg = SymmetricDeg(NormalizeDeg(wind_sensor.angle_deg));
+	  ctrl_in.wind_sensor.mag_m_s = wind_sensor.speed_m_s;
 
-      } else if (sscanf(line, IFMT_IMUPROTO(&imu, &nn)) > 0) {
-        ctrl_in.imu.Reset();
-        ctrl_in.imu.temperature_c = imu.temp_c;
+	} else if (sscanf(line, IFMT_IMUPROTO(&imu, &nn)) > 0) {
+	  ctrl_in.imu.Reset();
+	  ctrl_in.imu.temperature_c = imu.temp_c;
+	  
+	  ctrl_in.imu.acceleration.x_m_s2 = imu.acc_x_m_s2;
+	  ctrl_in.imu.acceleration.y_m_s2 = imu.acc_y_m_s2;
+	  ctrl_in.imu.acceleration.z_m_s2 = imu.acc_z_m_s2;
 
-        ctrl_in.imu.acceleration.x_m_s2 = imu.acc_x_m_s2;
-        ctrl_in.imu.acceleration.y_m_s2 = imu.acc_y_m_s2;
-        ctrl_in.imu.acceleration.z_m_s2 = imu.acc_z_m_s2;
+	  ctrl_in.imu.gyro.omega_x_rad_s  = imu.gyr_x_rad_s;
+	  ctrl_in.imu.gyro.omega_y_rad_s  = imu.gyr_y_rad_s;
+	  ctrl_in.imu.gyro.omega_z_rad_s  = imu.gyr_z_rad_s;
 
-        ctrl_in.imu.gyro.omega_x_rad_s  = imu.gyr_x_rad_s;
-        ctrl_in.imu.gyro.omega_y_rad_s  = imu.gyr_y_rad_s;
-        ctrl_in.imu.gyro.omega_z_rad_s  = imu.gyr_z_rad_s;
+	  ctrl_in.imu.attitude.phi_x_rad = Deg2Rad(imu.roll_deg);
+	  ctrl_in.imu.attitude.phi_y_rad = Deg2Rad(imu.pitch_deg);
+	  ctrl_in.imu.attitude.phi_z_rad = SymmetricRad(Deg2Rad(imu.yaw_deg));
 
-        ctrl_in.imu.attitude.phi_x_rad = Deg2Rad(imu.roll_deg);
-        ctrl_in.imu.attitude.phi_y_rad = Deg2Rad(imu.pitch_deg);
-        ctrl_in.imu.attitude.phi_z_rad = SymmetricRad(Deg2Rad(imu.yaw_deg));
+	  ctrl_in.imu.position.latitude_deg = imu.lat_deg;
+	  ctrl_in.imu.position.longitude_deg = imu.lng_deg;
+	  ctrl_in.imu.position.altitude_m = imu.alt_m;
 
-        ctrl_in.imu.position.latitude_deg = imu.lat_deg;
-        ctrl_in.imu.position.longitude_deg = imu.lng_deg;
-        ctrl_in.imu.position.altitude_m = imu.alt_m;
+	  ctrl_in.imu.velocity.x_m_s = imu.vel_x_m_s;
+	  ctrl_in.imu.velocity.y_m_s = imu.vel_y_m_s;
+	  ctrl_in.imu.velocity.z_m_s = imu.vel_z_m_s;
 
-        ctrl_in.imu.velocity.x_m_s = imu.vel_x_m_s;
-        ctrl_in.imu.velocity.y_m_s = imu.vel_y_m_s;
-        ctrl_in.imu.velocity.z_m_s = imu.vel_z_m_s;
+	  ctrl_in.imu.speed_m_s = imu.vel_x_m_s;
 
-        ctrl_in.imu.speed_m_s = imu.vel_x_m_s;
+	} else if (sscanf(line, IFMT_RUDDERPROTO_STS(&sts, &nn)) > 0) {
+	  ctrl_in.drives.gamma_rudder_left_rad  = Deg2Rad(sts.rudder_l_deg);
+	  ctrl_in.drives.gamma_rudder_right_rad = Deg2Rad(sts.rudder_r_deg);
+	  ctrl_in.drives.gamma_sail_rad         = Deg2Rad(sts.sail_deg);
+	  ctrl_in.drives.homed_rudder_left = !isnan(sts.rudder_l_deg);
+	  ctrl_in.drives.homed_rudder_right = !isnan(sts.rudder_r_deg);
+	  ctrl_in.drives.homed_sail = !isnan(sts.sail_deg);
 
-      } else if (sscanf(line, IFMT_RUDDERPROTO_STS(&sts, &nn)) > 0) {
-        ctrl_in.drives.gamma_rudder_left_rad  = Deg2Rad(sts.rudder_l_deg);
-        ctrl_in.drives.gamma_rudder_right_rad = Deg2Rad(sts.rudder_r_deg);
-        ctrl_in.drives.gamma_sail_rad         = Deg2Rad(sts.sail_deg);
-        ctrl_in.drives.homed_rudder_left = !isnan(sts.rudder_l_deg);
-        ctrl_in.drives.homed_rudder_right = !isnan(sts.rudder_r_deg);
-        ctrl_in.drives.homed_sail = !isnan(sts.sail_deg);
-
-      } else if (sscanf(line, IFMT_HELMSMANCTLPROTO(&ctl, &nn)) > 0) {
+	} else if (sscanf(line, IFMT_HELMSMANCTLPROTO(&ctl, &nn)) > 0) {
           if (control_mode != kOverrideSkipperMode &&
               !isnan(ctl.alpha_star_deg))
             ctrl_in.alpha_star_rad = Deg2Rad(ctl.alpha_star_deg);
-      } else if (sscanf(line, IFMT_REMOTEPROTO(&remote, &nn)) > 0) {
-        HandleRemoteControl(remote, &control_mode);
-        if (control_mode == kOverrideSkipperMode)
-          ctrl_in.alpha_star_rad = Deg2Rad(remote.alpha_star_deg);
-      }
+	} else if (sscanf(line, IFMT_REMOTEPROTO(&remote, &nn)) > 0) {
+	  HandleRemoteControl(remote, &control_mode);
+	  if (control_mode == kOverrideSkipperMode)
+	    ctrl_in.alpha_star_rad = Deg2Rad(remote.alpha_star_deg);
+	}
+      } else
+	if (r != EAGAIN) crash("Error reading stdin");
     }
 
     if (nanos_to_wait(last_run_micros) > 100)
