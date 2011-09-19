@@ -2,6 +2,10 @@
 // Use of this source code is governed by the Apache License 2.0
 // that can be found in the LICENSE file.
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // line buffer that plays well with select
 struct LineBuffer {
 	char line[1024];
@@ -21,3 +25,7 @@ int lb_read(int fd, struct LineBuffer* lb);
 void lb_putline(struct LineBuffer* lb, const char* line);
 int lb_pending(struct LineBuffer* lb);
 int lb_write(int fd, struct LineBuffer* lb);
+
+#ifdef __cplusplus
+}
+#endif
