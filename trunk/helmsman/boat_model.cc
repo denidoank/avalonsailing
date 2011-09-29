@@ -174,8 +174,15 @@ void BoatModel::Simulate(const DriveReferenceValuesRad& drives_reference,
   double angle_sensor = apparent_.AngleRad() - (
       kWindSensorOffsetRad + gamma_sail_ + M_PI);
 
+  // exact wind calculation
   in->wind_sensor.alpha_deg = NormalizeDeg(Rad2Deg(angle_sensor));
   in->wind_sensor.mag_m_s = apparent_.Mag();
+  // fakewind formula
+  //  angle_sensor = true_wind.AngleRad() - (
+  //    kWindSensorOffsetRad + gamma_sail_ + M_PI); 
+  //  in->wind_sensor.alpha_deg = NormalizeDeg(Rad2Deg(angle_sensor));
+  //  in->wind_sensor.mag_m_s = true_wind.Mag();
+    
   SimDrives(drives_reference, &in->drives);
   in->imu.speed_m_s = v_x_;
   in->imu.position.longitude_deg = east_deg_;
@@ -421,7 +428,7 @@ double BoatModel::ForceDrag(double alpha_aoa_rad, double speed) {
     alpha_aoa_rad = -alpha_aoa_rad;
   }
   double c_drag = 0.02; // linear flow ranges forward & backwaards
-  if (kLinearRudder < alpha_aoa_rad && alpha_aoa_rad < M_PI - kLinearRudder) { // stall range
+  if (kLinearRudder < alpha_aoa_rad && alpha_aoa_rad < M_PI - kLinearRudder) // stall range
     c_drag = 1.8 * sin(alpha_aoa_rad) * sin(alpha_aoa_rad);
   }
   //if (debug) printf("N: c_drag: %6.4f \n", c_drag);
