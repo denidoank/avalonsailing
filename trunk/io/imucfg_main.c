@@ -3,7 +3,16 @@
 // that can be found in the LICENSE file.
 //
 // Open serial port and configure IMU 
+// Cf. MTi-G User Manual and Technical Documentation, Document MT0137P, Revision H, 15 Oct 2010 
+// and the MT Low-Level Communication Protocol, see mtcp.h.
+// Both can be obtained from www.xsens.com
 // 
+// According to Low-Level Comm. Proto guide section 4.3.7, p32., and User Manual section 2.2.6, p10:
+//    Marine            (17)  
+//    Aerospace_nobaro  (10)
+// Both use IMU, GPS and Magnetometer, but not pressure or no-slip assumption.  The user 
+// manual suggests that marine is for 'significant velocities', so we default to aerospace_nobaro.
+//
 
 #include <assert.h>
 #include <errno.h>
@@ -211,7 +220,7 @@ int main(int argc, char* argv[]) {
 	int factoryreset = 0;
 	int reset = 0;
 	int skipf = 19;
-	int scenario = 10;  // aerospace_nobaro
+	int scenario = IMU_XKFSCENARIO_AEROSPACE_NOBARO;  
 	uint16_t mode     = IMU_OUTPUT_MODE;
 	uint32_t settings = IMU_OUTPUT_SETTINGS;
 	float lev_x = -15.0;
