@@ -430,7 +430,6 @@ double BoatModel::ForceDrag(double alpha_aoa_rad, double speed) {
   double c_drag = 0.02; // linear flow ranges forward & backwaards
   if (kLinearRudder < alpha_aoa_rad && alpha_aoa_rad < M_PI - kLinearRudder) // stall range
     c_drag = 1.8 * sin(alpha_aoa_rad) * sin(alpha_aoa_rad);
-  }
   //if (debug) printf("N: c_drag: %6.4f \n", c_drag);
 
   return c_drag * speed * speed * (kAreaR * kRhoWater / 2);
