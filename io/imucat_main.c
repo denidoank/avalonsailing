@@ -3,9 +3,8 @@
 // that can be found in the LICENSE file.
 //
 // Open serial port and decode IMU MTData messages
-//
-// NOTE: wrt the IMU manual, the gyroscopic rates (rad/s) and the orientation angles (deg) are
-// reversed in sign, and the Y-axis of the coordinate system is flipped: x-forward, y-left, z-up.
+// Default mode and settings are defined in mtcp.h and set
+// by imucfg_main.c. 
 //
 
 #include <errno.h>
@@ -65,6 +64,7 @@ usage(void)
 		"\t-d debug            (don't syslog)\n"
 		"\t-m output_mode      default 0x....\n"
 		"\t-s output_settings  default 0x....\n"
+	"Default mode and settings are defined in mtcp.h\n"
 		, argv0);
 	exit(2);
 }
@@ -97,21 +97,21 @@ imu_decode_variables(uint8_t* b, int len, uint16_t mode, uint32_t settings, stru
 	if (mode & IMU_OM_CAL) {  
 		if (!(settings & IMU_OS_CM_DISACC)) {
 			checklen(IMU_OS_CM_DISACC, 3*4);
-			vars->acc_x_m_s2  =  decode_float(&b);
-			vars->acc_y_m_s2  = -decode_float(&b);   // avalon flipped y
-			vars->acc_z_m_s2  =  decode_float(&b);
+			vars->acc_x_m_s2  = decode_float(&b);
+			vars->acc_y_m_s2  = decode_float(&b); 
+			vars->acc_z_m_s2  = decode_float(&b);
 		}
 		if (!(settings & IMU_OS_CM_DISGYR)) {
 			checklen(IMU_OS_CM_DISGYR, 3*4);
-			vars->gyr_x_rad_s = -decode_float(&b);  // avalon negated angles
-			vars->gyr_y_rad_s = -decode_float(&b);  // avalon negated angles
-			vars->gyr_z_rad_s = -decode_float(&b);  // avalon negated angles
+			vars->gyr_x_rad_s = decode_float(&b);
+			vars->gyr_y_rad_s = decode_float(&b);
+			vars->gyr_z_rad_s = decode_float(&b);
 		}
 		if (!(settings & IMU_OS_CM_DISMAG)) {
 			checklen(IMU_OS_CM_DISMAG, 3*4);
-			vars->mag_x_au =  decode_float(&b);
-			vars->mag_y_au = -decode_float(&b);    // avalon flipped y
-			vars->mag_z_au =  decode_float(&b);      
+			vars->mag_x_au = decode_float(&b);
+			vars->mag_y_au = decode_float(&b);
+			vars->mag_z_au = decode_float(&b);      
 		}
 
 		if (mode & IMU_OM_ORI) {
@@ -122,9 +122,9 @@ imu_decode_variables(uint8_t* b, int len, uint16_t mode, uint32_t settings, stru
 				break;
 			case IMU_OS_OR_EULER:
 				checklen(IMU_OS_OR_EULER, 3*4);
-				vars->roll_deg  = -decode_float(&b);  // avalon negated angles
-				vars->pitch_deg = -decode_float(&b);  // avalon negated angles
-				vars->yaw_deg   = -decode_float(&b);  // avalon negated angles
+				vars->roll_deg  = decode_float(&b);
+				vars->pitch_deg = decode_float(&b);
+				vars->yaw_deg   = decode_float(&b);
 				break;
 			case IMU_OS_OR_MATRIX:
 				checklen(IMU_OS_OR_MATRIX, 9*4);
@@ -148,9 +148,9 @@ imu_decode_variables(uint8_t* b, int len, uint16_t mode, uint32_t settings, stru
 
 	if (mode & IMU_OM_VEL) {
 		checklen( IMU_OM_VEL,3*4);
-		vars->vel_x_m_s =  decode_float(&b);
-		vars->vel_y_m_s = -decode_float(&b);    // avalon flipped y
-		vars->vel_z_m_s =  decode_float(&b);
+		vars->vel_x_m_s = decode_float(&b);
+		vars->vel_y_m_s = decode_float(&b);
+		vars->vel_z_m_s = decode_float(&b);
 	}
 
 	if (mode & IMU_OM_STS) {

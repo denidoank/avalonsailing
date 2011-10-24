@@ -67,7 +67,10 @@ enum {
 	IMU_OS_AU_DIS1 = (1<<10),
 	IMU_OS_AU_DIS2 = (1<<11),
 
-	//  rest: we don't use either
+	// Use X North, Z down “North East Down” (NED) convention for both  LTP and MT body fixed coordinate system
+	// (default is X north, Z up)
+	IMU_OS_NED = 1UL<<31,
+
 };
 
 // User Guide section 2.2.6 and Comm.Guide section 4.3.7
@@ -76,12 +79,13 @@ enum {
 	IMU_XKFSCENARIO_AEROSPACE_NOBARO = 10,
 };
 
+// Default settings shared by imucat_main.c and imucfg_main.c.
 // we use: temp, calibr.data orientation data, position data velocity data, status data, timestamp=utc time
-// orientation mode = euler, datafmt = standard, send acc, gyr and mag
+// orientation mode = euler, datafmt = standard, send acc, gyr and mag, use North-East-Down coordinates
 // mt msg len = 82  (0xFA 0xFF 0x32 0x4D ...
 enum {
 	IMU_OUTPUT_MODE = IMU_OM_TMP|IMU_OM_CAL|IMU_OM_ORI|IMU_OM_POS|IMU_OM_VEL|IMU_OM_STS,
-	IMU_OUTPUT_SETTINGS = IMU_OS_TS_UTC|IMU_OS_OR_EULER,
+	IMU_OUTPUT_SETTINGS = IMU_OS_TS_UTC|IMU_OS_OR_EULER|IMU_OS_NED,
 };
 
 
