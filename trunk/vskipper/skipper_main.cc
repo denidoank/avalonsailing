@@ -184,8 +184,7 @@ int main(int argc, char* argv[]) {
   HelmsmanCtlProto ctl = INIT_HELMSMANCTLPROTO;
   ctl.timestamp_ms = us.timestamp_ms;
   ctl.alpha_star_deg = RunVSkipper(us, ais, debug).deg();
-  int dummy;
-  printf(OFMT_HELMSMANCTLPROTO(ctl, &dummy));
+  printf(OFMT_HELMSMANCTLPROTO(ctl));
 
   return 0;
 }

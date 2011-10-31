@@ -16,12 +16,12 @@ struct WindProto {
   {0, NAN, -1, NAN, 0}
 
 // For use in printf and friends.
-#define OFMT_WINDPROTO(x, n) \
-	"wind: timestamp_ms:%lld angle_deg:%.3lf speed_m_s:%.2lf valid:%d%n\n", \
-	(x).timestamp_ms, (x).angle_deg, (x).speed_m_s, (x).valid, (n)
+#define OFMT_WINDPROTO(x) \
+	"wind: timestamp_ms:%lld angle_deg:%.3lf speed_m_s:%.2lf valid:%d\n", \
+	(x).timestamp_ms, (x).angle_deg, (x).speed_m_s, (x).valid
 
 #define IFMT_WINDPROTO(x, n) \
-	"wind: timestamp_ms:%lld angle_deg:%lf speed_m_s:%lf valid:%d %n", \
+	"wind: timestamp_ms:%lld angle_deg:%lf speed_m_s:%lf valid:%d\n%n", \
 	&(x)->timestamp_ms, &(x)->angle_deg, &(x)->speed_m_s, &(x)->valid, (n)
 
 #endif // PROTO_WIND_H

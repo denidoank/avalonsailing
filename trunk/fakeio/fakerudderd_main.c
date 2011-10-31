@@ -197,8 +197,7 @@ int main(int argc, char* argv[]) {
 		if (now < last + 100) changed = 0;
                 if (changed) {
 			last = now;
-			int nn = 0;
-			printf(OFMT_RUDDERPROTO_STS(actual, &nn));
+                        printf(OFMT_RUDDERPROTO_STS(actual));
                 }
 
 	}  // main loop

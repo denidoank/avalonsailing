@@ -234,8 +234,7 @@ int main(int argc, char** argv) {
             remote_status.command = kPowerCycleMode;
           if (isupper(message.at(0))) {  // Status report / ack.
             char status_cstr[1024];
-            unsigned int n;
-            sprintf(status_cstr, OFMT_REMOTEPROTO(remote_status, &n));
+            sprintf(status_cstr, OFMT_REMOTEPROTO(remote_status));
             status = status_cstr;
             // Force sending a report in 5 seconds.
             status_time = now -status_interval + 5;
@@ -248,10 +247,13 @@ int main(int argc, char** argv) {
     now = time(NULL);
     if (now < remote_cmd_time || now - remote_cmd_time >= remote_cmd_interval) {
       // Print the last received command.
-      unsigned int n;
       char out[1024];
-      snprintf(out, sizeof(out), OFMT_REMOTEPROTO(remote_status, &n));
-      puts(out);
+      if (snprintf(out, sizeof(out), OFMT_REMOTEPROTO(remote_status)) <
+          static_cast<int>(sizeof(out) - 1)) {
+        puts(out);
+      } else {
+        syslog(LOG_ERR, "Remote status not sent because of short buffer");
+      }
       remote_cmd_time = now;
     }
 

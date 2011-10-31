@@ -239,8 +239,7 @@ int main(int argc, char* argv[]) {
 				if (debug) fprintf(stderr, "Invalid WIMWV sentence: '%s'\n", line);
 				continue;
 			}
-			int nn;
-			printf(OFMT_WINDPROTO(vars, &nn));
+                        printf(OFMT_WINDPROTO(vars));
 			continue;
 		}
 

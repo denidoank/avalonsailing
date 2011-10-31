@@ -96,9 +96,8 @@ int main(int argc, char* argv[]) {
 	if (signal(SIGBUS, fault) == SIG_ERR)  crash("signal(SIGBUS)");
 	if (signal(SIGSEGV, fault) == SIG_ERR)  crash("signal(SIGSEGV)");
 
-	int nn = 0;
 	struct RudderProto ctl = { now_ms(), 80, -80, NAN };
-	printf(OFMT_RUDDERPROTO_CTL(ctl, &nn));
+        printf(OFMT_RUDDERPROTO_CTL(ctl));
 
 	struct WindProto wind  = INIT_WINDPROTO;
 	struct RudderProto sts = INIT_RUDDERPROTO;
@@ -113,6 +112,7 @@ int main(int argc, char* argv[]) {
 
 		if (debug) fprintf(stderr, "Got line:%s\n", line);
 
+                int nn;
 		int n = sscanf(line, IFMT_WINDPROTO(&wind, &nn));
 		if (n != 4) n = sscanf(line, IFMT_RUDDERPROTO_STS(&sts, &nn));
 		if (n != 4) continue;
@@ -122,7 +122,7 @@ int main(int argc, char* argv[]) {
 		ctl.sail_deg = sts.sail_deg + wind.angle_deg;  // TODO sign?
 
 		ctl.timestamp_ms = now_ms();
-		printf(OFMT_RUDDERPROTO_CTL(ctl, &nn));
+                printf(OFMT_RUDDERPROTO_CTL(ctl));
 	}
 
 	crash("Terminating.");

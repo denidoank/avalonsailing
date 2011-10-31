@@ -134,7 +134,7 @@ int main(int argc, char* argv[]) {
 		last = now;
 
 		struct WindProto wind = { now, angle_deg - rudd.sail_deg - imud.yaw_deg, -1, speed_m_s, 1 };
-		printf(OFMT_WINDPROTO(wind, &nn));
+                printf(OFMT_WINDPROTO(wind));
 	}
 
 	crash("Terminating.");

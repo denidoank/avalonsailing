@@ -263,8 +263,7 @@ int main(int argc, char* argv[]) {
 
     if (changed) {
       actual.timestamp_ms = now;
-      int nn = 0;
-      printf(OFMT_RUDDERPROTO_STS(actual, &nn));
+      printf(OFMT_RUDDERPROTO_STS(actual));
     }
 
   }  // main loop

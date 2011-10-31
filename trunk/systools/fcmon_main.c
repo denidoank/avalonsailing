@@ -91,8 +91,7 @@ int fc_status(FILE *fc) {
     if (debug > 1) fprintf(stderr, "'%s'\n", buffer);
 
     if (found_mask == 15) {
-      int n;
-      printf(OFMT_FUELCELLPROTO(fc_status, &n));
+      printf(OFMT_FUELCELLPROTO(fc_status));
 
       while (1) { // clean up input until there is nothing left
         pfd.fd = fileno(fc);

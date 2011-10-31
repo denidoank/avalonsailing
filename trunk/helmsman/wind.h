@@ -23,20 +23,23 @@ struct WindSensor {
   void Reset() {
     mag_m_s = 0;  
     alpha_deg = 0;
+    valid = false;
   }
   std::string ToString() const {
   char line[1024];
-  int s = snprintf(line, sizeof line, "mag_m_s:%f alpha_deg:%f \n",
-                   mag_m_s, alpha_deg);
+  int s = snprintf(line, sizeof line, "mag_m_s:%f alpha_deg:%f valid:%d\n",
+                   mag_m_s, alpha_deg, valid ? 1 : 0);
   return std::string(line, s);
   }
   void ToProto(WindProto* wind_sensor_proto) const {
     wind_sensor_proto->angle_deg = alpha_deg;
     wind_sensor_proto->speed_m_s = mag_m_s;
+    wind_sensor_proto->valid = valid;
   }
   
-  double mag_m_s;     // in m/s
+  double mag_m_s;    // in m/s
   double alpha_deg;  // [0, 360], where the wind is coming FROM
+  bool valid;        // sensor selfcheck output
 };
 
 // Controller needs metric units and radians.
@@ -48,13 +51,16 @@ struct WindRad {
     CHECK_GE(wind.mag_m_s, 0);
     mag_m_s = KnotsToMeterPerSecond(wind.mag_m_s);  
     alpha_rad = SymmetricRad(Deg2Rad(wind.alpha_deg));
+    valid = wind.valid;
   }
   void Reset() {
     mag_m_s = 0;  
     alpha_rad = 0;
+    valid = false;
   }
-  double alpha_rad;   // [-pi, pi]
+  double alpha_rad;   // [-pi, pi)
   double mag_m_s;     // in m/s
+  bool valid;
 };
 
 #endif  // HELMSMAN_WIND_H

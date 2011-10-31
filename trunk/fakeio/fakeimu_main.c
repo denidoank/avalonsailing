@@ -203,7 +203,7 @@ int main(int argc, char* argv[]) {
 		
 		if (now < last + 1000) continue;
 		last = now;
-		printf(OFMT_IMUPROTO(imu, &nn));
+                printf(OFMT_IMUPROTO(imu));
 	}
 
 	crash("Terminating.");

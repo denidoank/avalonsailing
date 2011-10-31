@@ -25,17 +25,17 @@ struct HelmsmanStatusProto {
 #define INIT_HELMSMAN_STATUSPROTO {0, 0, 0, 0, NAN, NAN}
 
 // For use in printf and friends.
-#define OFMT_HELMSMAN_STATUSPROTO(x, n)                                       \
+#define OFMT_HELMSMAN_STATUSPROTO(x)                                          \
    "helmsman_st: timestamp_ms:%lld tacks:%d jibes:%d inits:%d "               \
-   "direction_true_deg:%.2lf mag_true_m_s:%.2lf%n\n",                         \
+   "direction_true_deg:%.2lf mag_true_m_s:%.2lf\n",                           \
    (x).timestamp_ms, (x).tacks, (x).jibes, (x).inits, (x).direction_true_deg, \
-   (x).mag_true_m_s, (n)
+   (x).mag_true_m_s
 
 
 // For use in scanf.
 #define IFMT_HELMSMAN_STATUSPROTO(x, n)                                       \
   "helmsman_st: timestamp_ms:%lld tacks:%d jibes:%d inits:%d "                \
-  "direction_true_deg:%lf mag_true_m_s:%lf%n",	                              \
+  "direction_true_deg:%lf mag_true_m_s:%lf\n%n",                              \
    &(x)->timestamp_ms, &(x)->tacks, &(x)->jibes, &(x)->inits,                 \
    &(x)->direction_true_deg, &(x)->mag_true_m_s, (n)
 

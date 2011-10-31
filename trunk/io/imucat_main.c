@@ -341,8 +341,7 @@ int main(int argc, char* argv[]) {
 			continue;
 		}
 
-		int nn = 0;
-		printf(OFMT_IMUPROTO(vars, &nn));
+                printf(OFMT_IMUPROTO(vars));
 	}
 
 	crash("Terminating.");

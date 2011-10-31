@@ -18,7 +18,7 @@ struct ModemProto {
 #define INIT_MODEMPROTO {0, 0, 0, false, 0, NAN, NAN, 0}
 
 // For use in printf and friends.
-#define OFMT_MODEMPROTO(x, n)                                  \
+#define OFMT_MODEMPROTO(x)                                     \
         "modem: timestamp_ms:%ld inbox_queue_messages:%d "     \
         "outbox_queue_messages:%d network_registration:%d "    \
         "signal_quality:%d coarse_position_lat:%.3lf "         \
@@ -26,7 +26,7 @@ struct ModemProto {
         (x).timestamp_s, (x).inbox_queue_messages,             \
         (x).outbox_queue_messages, (x).network_registration,   \
         (x).signal_quality, (x).coarse_position_lat,           \
-        (x).coarse_position_lng, (x).position_timestamp_s, (n)
+        (x).coarse_position_lng, (x).position_timestamp_s
 
 #define IFMT_MODEMPROTO(x, n)                                    \
         "modem: timestamp_ms:%ld inbox_queue_messages:%d "       \
