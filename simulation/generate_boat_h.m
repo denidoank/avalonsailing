@@ -26,6 +26,7 @@ fprintf(fid, "// Created by simulation/generate_boat_h.m on \n// %s\n", ts);
 
 fprintf(fid, "namespace {\n");
 
+fprintf(fid, "const double kMass = %g;      // kg \n", B.mass);
 fprintf(fid, "const double kInertiaZ = %g;  // kg m^2\n", B.inertia_z);
 fprintf(fid, "const double kAreaR = %g;     // m^2\n", B.area_R);
 fprintf(fid, "const double kNumberR = %g;   // number of rudders\n", B.number_R);

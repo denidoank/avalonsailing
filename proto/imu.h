@@ -33,7 +33,7 @@ struct IMUProto {
   {0,NAN,NAN,NAN,NAN,NAN,NAN,NAN,NAN,NAN,NAN,NAN,NAN,NAN,NAN,NAN,NAN,NAN,NAN,NAN,0,0}
 
 // For use in printf and friends.
-#define OFMT_IMUPROTO(x, n)					 \
+#define OFMT_IMUPROTO(x)					 \
 	"imu: timestamp_ms:%lld temp_c:%.3lf "			 \
 	"acc_x_m_s2:%.3lf acc_y_m_s2:%.3lf acc_z_m_s2:%.3lf "	 \
 	"gyr_x_rad_s:%.3lf gyr_y_rad_s:%.3lf gyr_z_rad_s:%.3lf " \
@@ -41,15 +41,14 @@ struct IMUProto {
 	"roll_deg:%.3lf pitch_deg:%.3lf yaw_deg:%.3lf "		 \
 	"lat_deg:%.6lf lng_deg:%.6lf alt_m:%.3lf "		 \
 	"vel_x_m_s:%.3lf vel_y_m_s:%.3lf vel_z_m_s:%.3lf"	 \
-	"%n\n"							 \
+	"\n"							 \
 	, (x).timestamp_ms, (x).temp_c			 \
 	, (x).acc_x_m_s2, (x).acc_y_m_s2, (x).acc_z_m_s2	\
 	, (x).gyr_x_rad_s, (x).gyr_y_rad_s, (x).gyr_z_rad_s	\
 	, (x).mag_x_au, (x).mag_y_au, (x).mag_z_au	\
 	, (x).roll_deg, (x).pitch_deg, (x).yaw_deg		\
 	, (x).lat_deg, (x).lng_deg, (x).alt_m		\
-	, (x).vel_x_m_s, (x).vel_y_m_s, (x).vel_z_m_s	\
-	, (n)
+	, (x).vel_x_m_s, (x).vel_y_m_s, (x).vel_z_m_s
 
 #define IFMT_IMUPROTO(x, n)					 \
 	"imu: timestamp_ms:%lld temp_c:%lf "			 \
@@ -58,7 +57,7 @@ struct IMUProto {
 	"mag_x_au:%lf mag_y_au:%lf mag_z_au:%lf "	 \
 	"roll_deg:%lf pitch_deg:%lf yaw_deg:%lf "		 \
 	"lat_deg:%lf lng_deg:%lf alt_m:%lf "		 \
-	"vel_x_m_s:%lf vel_y_m_s:%lf vel_z_m_s:%lf "	 \
+	"vel_x_m_s:%lf vel_y_m_s:%lf vel_z_m_s:%lf\n"	 \
 	"%n"							 \
 	, &(x)->timestamp_ms, &(x)->temp_c			 \
 	, &(x)->acc_x_m_s2, &(x)->acc_y_m_s2, &(x)->acc_z_m_s2	\

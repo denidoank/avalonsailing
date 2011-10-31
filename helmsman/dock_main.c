@@ -94,9 +94,8 @@ int main(int argc, char* argv[]) {
 	if (signal(SIGBUS, fault) == SIG_ERR)  crash("signal(SIGBUS)");
 	if (signal(SIGSEGV, fault) == SIG_ERR)  crash("signal(SIGSEGV)");
 	
-	int nn = 0;
 	struct RudderProto ctl = { now_ms(), 0, 0, 0 };
-	printf(OFMT_RUDDERPROTO_CTL(ctl, &nn));
+        printf(OFMT_RUDDERPROTO_CTL(ctl));
 
 	struct RudderProto sts = INIT_RUDDERPROTO;
 
@@ -105,7 +104,7 @@ int main(int argc, char* argv[]) {
 		int64_t now = now_ms();
 		if (now - ctl.timestamp_ms > 2000) {
 			ctl.timestamp_ms = now;
-			printf(OFMT_RUDDERPROTO_CTL(ctl, &nn));
+                        printf(OFMT_RUDDERPROTO_CTL(ctl));
 		}
 			
 		if (ferror(stdin)) clearerr(stdin);
@@ -116,7 +115,8 @@ int main(int argc, char* argv[]) {
 
 		if (debug) fprintf(stderr, "Got line:%s\n", line);
 
-		int n = sscanf(line, IFMT_RUDDERPROTO_STS(&sts, &nn));
+                int nn = 0;
+                int n = sscanf(line, IFMT_RUDDERPROTO_STS(&sts, &nn));
 		if (n != 4) continue;  // not for us
 
 		if (fabs(sts.rudder_l_deg - ctl.rudder_l_deg) < (180.0/256.0)) 

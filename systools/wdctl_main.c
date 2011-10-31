@@ -55,7 +55,7 @@ usage(void)
           "\t-t timeout      default 120s\n"
           "Keep system alive as long as there are new "
           "lines of data coming to stdin.\n"
-          , argv0, argv0);
+          , argv0);
   exit(2);
 }
 

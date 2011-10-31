@@ -33,12 +33,12 @@ static const int kPowerCycleMode = 5;
 #define INIT_REMOTEPROTO {0, kNormalControlMode, NAN}
 
 // For use in printf and friends.
-#define OFMT_REMOTEPROTO(x, n)                                \
-  "remote: timestamp_s:%ld command:%d alpha_star:%.2lf%n\n",  \
-    (x).timestamp_s, (x).command, (x).alpha_star_deg, (n)
+#define OFMT_REMOTEPROTO(x)                                 \
+  "remote: timestamp_s:%ld command:%d alpha_star:%.2lf\n",  \
+    (x).timestamp_s, (x).command, (x).alpha_star_deg
 
 #define IFMT_REMOTEPROTO(x, n)                                 \
-  "remote: timestamp_s:%ld command:%d alpha_star:%lf%n\n",       \
+  "remote: timestamp_s:%ld command:%d alpha_star:%lf\n%n",     \
    &(x)->timestamp_s, &(x)->command, &(x)->alpha_star_deg, (n)
 
 #endif // PROTO_REMOTE_H

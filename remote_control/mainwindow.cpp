@@ -237,8 +237,7 @@ void MainWindow::onRudderCtlActivated(double) {
 
   size_t BufSize = 256;
   char buf[BufSize];
-  int length;
-  ::snprintf(buf, BufSize, OFMT_RUDDERPROTO_CTL(command, &length));
+  ::snprintf(buf, BufSize, OFMT_RUDDERPROTO_CTL(command));
   state_->writeToBus(buf);
 }
 
@@ -248,8 +247,7 @@ void MainWindow::onTargetHeadingRotated(double angle) {
 
   size_t BufSize = 256;
   char buf[BufSize];
-  int length;
-  ::snprintf(buf, BufSize, OFMT_HELMSMANCTLPROTO(proto, &length));
+  ::snprintf(buf, BufSize, OFMT_HELMSMANCTLPROTO(proto));
   state_->writeToBus(buf);
 }
 
@@ -285,8 +283,7 @@ void MainWindow::sendRemoteProto(int command) {
   proto.alpha_star_deg = rudder_controller_->angle();
   size_t BufSize = 256;
   char buf[BufSize];
-  int length;
-  ::snprintf(buf, BufSize, OFMT_REMOTEPROTO(proto, &length));
+  ::snprintf(buf, BufSize, OFMT_REMOTEPROTO(proto));
   state_->writeToBus(buf);
 }
 

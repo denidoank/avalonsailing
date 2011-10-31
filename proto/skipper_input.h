@@ -27,14 +27,14 @@ struct SkipperInputProto {
 #define INIT_SKIPPER_INPUTPROTO {0, NAN, NAN, NAN, NAN}
 
 // For use in printf and friends.
-#define OFMT_SKIPPER_INPUTPROTO(x, n)  \
-  "skipper_input: timestamp_ms:%lld longitude_deg:%lf latitude_deg:%lf angle_true_deg:%.2lf mag_true_kn:%.2lf%n\n", \
-   (x).timestamp_ms, (x).longitude_deg, (x).latitude_deg, (x).angle_true_deg, (x).mag_true_kn, (n)
+#define OFMT_SKIPPER_INPUTPROTO(x)  \
+  "skipper_input: timestamp_ms:%lld longitude_deg:%lf latitude_deg:%lf angle_true_deg:%.2lf mag_true_kn:%.2lf\n", \
+   (x).timestamp_ms, (x).longitude_deg, (x).latitude_deg, (x).angle_true_deg, (x).mag_true_kn
 
 
 // For use in scanf.
 #define IFMT_SKIPPER_INPUTPROTO(x, n)                             \
-  "skipper_input: timestamp_ms:%lld longitude_deg:%lf latitude_deg:%lf angle_true_deg:%lf mag_true_kn:%lf%n",	   \
+  "skipper_input: timestamp_ms:%lld longitude_deg:%lf latitude_deg:%lf angle_true_deg:%lf mag_true_kn:%lf\n%n",	   \
    &(x).timestamp_ms, &(x).longitude_deg, &(x).latitude_deg, &(x).angle_true_deg, &(x).mag_true_kn, (n)
 
 #endif // PROTO_SKIPPER_INPUT_H

@@ -170,11 +170,12 @@ int main(int argc, char* argv[]) {
     controller_input.ToProto(&wind_sensor, &drives_actual, &imu);
 
     if (rounds % 10 == 0)
-      printf(OFMT_WINDPROTO(wind_sensor, &nn));
-    if (rounds % 10 == 0)
-       printf(OFMT_RUDDERPROTO_STS(drives_actual, &nn));        // actuals
+      printf(OFMT_WINDPROTO(wind_sensor));
+    if (rounds % 10 == 0) {
+       printf(OFMT_RUDDERPROTO_STS(drives_actual));        // actuals
+    }
     if (rounds % 4 == 0)
-      printf(OFMT_IMUPROTO(imu, &nn));
+      printf(OFMT_IMUPROTO(imu));
     ++rounds;
   }
 

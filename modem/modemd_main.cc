@@ -180,11 +180,16 @@ int main(int argc, char** argv) {
     status.outbox_queue_messages = outbox.NumMessages();
     status.timestamp_s = time(NULL);
 
-    int n = 0;
     char out[1024];
-    snprintf(out, sizeof(out), OFMT_MODEMPROTO(status, &n));
-    if (n > static_cast<int>(sizeof(out))) break;
-    puts(out);
+    int len_unlimited = snprintf(out, sizeof(out), OFMT_MODEMPROTO(status));
+    if (len_unlimited >= static_cast<int>(sizeof(out)) - 200) {
+      syslog(LOG_ERR, "Modem output buffer almost full");
+    }
+    if (len_unlimited < static_cast<int>(sizeof(out)) - 1) {
+      puts(out);
+    } else {
+      syslog(LOG_ERR, "Modem output message clipped. Not sent.");
+    }
 
     // Idle loop.
     m.IdleLoop();

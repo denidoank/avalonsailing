@@ -65,16 +65,16 @@ void crash(const char* fmt, ...) {
 
 void usage(void) {
   fprintf(stderr,
-         "usage: %s [options]\n"
-         "options:\n"
-         "\t-C /working/dir     (default /var/run)\n"
-         "\t-S /path/to/socket  (default /working/dir/%s\n"
-         "\t-W /path/to/wind    (default /working/dir/wind\n"
-         "\t-I /path/to/imud    (default /working/dir/imud\n"
-         "\t-R /path/to/rudderd (default /working/dir/rudderd\n"
-         "\t-f forward wind/imu/rudderd messages to clients\n"
-         "\t-d debug (don't go daemon, don't syslog)\n"
-         , argv0, argv0);
+    "usage: %s [options]\n"
+    "options:\n"
+    "\t-C /working/dir     (default /var/run)\n"
+    "\t-S /path/to/socket  (default /working/dir/%s\n"
+    "\t-W /path/to/wind    (default /working/dir/wind\n"
+    "\t-I /path/to/imud    (default /working/dir/imud\n"
+    "\t-R /path/to/rudderd (default /working/dir/rudderd\n"
+    "\t-f forward wind/imu/rudderd messages to clients\n"
+    "\t-d debug (don't go daemon, don't syslog)\n"
+    , argv0, argv0);
   exit(2);
 }
 
@@ -105,9 +105,9 @@ int clsockopen_wait(const char* path) {
 }
 
 void set_fd(fd_set* s, int* maxfd, FILE* f) {
-        int fd = fileno(f);
-        FD_SET(fd, s);
-        if (*maxfd < fd) *maxfd = fd;
+  int fd = fileno(f);
+  FD_SET(fd, s);
+  if (*maxfd < fd) *maxfd = fd;
 }
 
 // -----------------------------------------------------------------------------
@@ -169,18 +169,18 @@ int main(int argc, char* argv[]) {
   argv0 = strrchr(argv[0], '/');
   if (argv0) ++argv0; else argv0 = argv[0];
 
-  while ((ch = getopt(argc, argv, "A:C:H:dfhv")) != -1){
-      switch (ch) {
-      case 'C': cwd = optarg; break;
-      case 'A': path_to_aisd    = optarg; break;
-      case 'H': path_to_helmsmand = optarg; break;
-      case 'd': ++debug; break;
-      case 'f': ++forward; break;
-      case 'v': ++verbose; break;
-      case 'h':
-      default:
-         usage();
-      }
+  while ((ch = getopt(argc, argv, "A:C:H:dfhv")) != -1) {
+    switch (ch) {
+    case 'C': cwd = optarg; break;
+    case 'A': path_to_aisd    = optarg; break;
+    case 'H': path_to_helmsmand = optarg; break;
+    case 'd': ++debug; break;
+    case 'f': ++forward; break;
+    case 'v': ++verbose; break;
+    case 'h':
+    default:
+      usage();
+    }
   }
 
   if (argc != optind) usage();
@@ -247,8 +247,8 @@ int main(int argc, char* argv[]) {
     if (FD_ISSET(fileno(held), &rfds)) {
       char line[1024];
       while (fgets(line, sizeof line, held)) {
-	      int n = sscan_skipper_input(line, &skipper_input);
-	      if (!n && debug) fprintf(stderr, "Ignoring garbage from helmsmand: %s\n", line);
+        int n = sscan_skipper_input(line, &skipper_input);
+        if (!n && debug) fprintf(stderr, "Ignoring garbage from helmsmand: %s\n", line);
       }
       if (feof(held) || (ferror(held) && errno!= EAGAIN)) crash("reading from helmsmand");
     }
@@ -256,13 +256,13 @@ int main(int argc, char* argv[]) {
     SkipperInternal::Run(skipper_input, ais, &alpha_star_deg);
 
     // send desired angle to helmsman
-    if (fprintf(held,"timestamp_ms:%lld alpha_star_deg:%lf\n", now_ms(), alpha_star_deg) <= 0)
+    if (fprintf(held, "timestamp_ms:%lld alpha_star_deg:%lf\n", now_ms(), alpha_star_deg) <= 0)
       crash("Could not send skipper_out_text");
     skipper_out_pending = true;
 
-    if (debug) 
+    if (debug)
       fprintf(stderr,"timestamp_ms:%lld alpha_star_deg:%lf\n", now_ms(), alpha_star_deg);
-    
+
   }  // for ever
 
   crash("Main loop exit");

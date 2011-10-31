@@ -223,55 +223,64 @@ int main(int argc, char* argv[]) {
       r = lb_read(fileno(stdin), &lbuf);
       if (r == 0) {
 	const char *line = lbuf.line;
+        nn = 0;
+        while (strlen(line) > 0) {
+          if (sscanf(line, IFMT_WINDPROTO(&wind_sensor, &nn)) > 0) {
+            fprintf(stderr, "wind_line:%s\n", line);
+            ctrl_in.wind_sensor.Reset();
+            ctrl_in.wind_sensor.alpha_deg = SymmetricDeg(NormalizeDeg(wind_sensor.angle_deg));
+            ctrl_in.wind_sensor.mag_m_s = wind_sensor.speed_m_s;
+            ctrl_in.wind_sensor.valid = wind_sensor.valid;
 
-	if (sscanf(line, IFMT_WINDPROTO(&wind_sensor, &nn)) > 0) {
-	  ctrl_in.wind_sensor.Reset();
-	  ctrl_in.wind_sensor.alpha_deg = SymmetricDeg(NormalizeDeg(wind_sensor.angle_deg));
-	  ctrl_in.wind_sensor.mag_m_s = wind_sensor.speed_m_s;
+          } else if (sscanf(line, IFMT_IMUPROTO(&imu, &nn)) > 0) {
+            ctrl_in.imu.Reset();
+            ctrl_in.imu.temperature_c = imu.temp_c;
 
-	} else if (sscanf(line, IFMT_IMUPROTO(&imu, &nn)) > 0) {
-	  ctrl_in.imu.Reset();
-	  ctrl_in.imu.temperature_c = imu.temp_c;
-	  
-	  ctrl_in.imu.acceleration.x_m_s2 = imu.acc_x_m_s2;
-	  ctrl_in.imu.acceleration.y_m_s2 = imu.acc_y_m_s2;
-	  ctrl_in.imu.acceleration.z_m_s2 = imu.acc_z_m_s2;
+            ctrl_in.imu.acceleration.x_m_s2 = imu.acc_x_m_s2;
+            ctrl_in.imu.acceleration.y_m_s2 = imu.acc_y_m_s2;
+            ctrl_in.imu.acceleration.z_m_s2 = imu.acc_z_m_s2;
 
-	  ctrl_in.imu.gyro.omega_x_rad_s  = imu.gyr_x_rad_s;
-	  ctrl_in.imu.gyro.omega_y_rad_s  = imu.gyr_y_rad_s;
-	  ctrl_in.imu.gyro.omega_z_rad_s  = imu.gyr_z_rad_s;
+            ctrl_in.imu.gyro.omega_x_rad_s  = imu.gyr_x_rad_s;
+            ctrl_in.imu.gyro.omega_y_rad_s  = imu.gyr_y_rad_s;
+            ctrl_in.imu.gyro.omega_z_rad_s  = imu.gyr_z_rad_s;
 
-	  ctrl_in.imu.attitude.phi_x_rad = Deg2Rad(imu.roll_deg);
-	  ctrl_in.imu.attitude.phi_y_rad = Deg2Rad(imu.pitch_deg);
-	  ctrl_in.imu.attitude.phi_z_rad = SymmetricRad(Deg2Rad(imu.yaw_deg));
+            ctrl_in.imu.attitude.phi_x_rad = Deg2Rad(imu.roll_deg);
+            ctrl_in.imu.attitude.phi_y_rad = Deg2Rad(imu.pitch_deg);
+            ctrl_in.imu.attitude.phi_z_rad = SymmetricRad(Deg2Rad(imu.yaw_deg));
 
-	  ctrl_in.imu.position.latitude_deg = imu.lat_deg;
-	  ctrl_in.imu.position.longitude_deg = imu.lng_deg;
-	  ctrl_in.imu.position.altitude_m = imu.alt_m;
+            ctrl_in.imu.position.latitude_deg = imu.lat_deg;
+            ctrl_in.imu.position.longitude_deg = imu.lng_deg;
+            ctrl_in.imu.position.altitude_m = imu.alt_m;
 
-	  ctrl_in.imu.velocity.x_m_s = imu.vel_x_m_s;
-	  ctrl_in.imu.velocity.y_m_s = imu.vel_y_m_s;
-	  ctrl_in.imu.velocity.z_m_s = imu.vel_z_m_s;
+            ctrl_in.imu.velocity.x_m_s = imu.vel_x_m_s;
+            ctrl_in.imu.velocity.y_m_s = imu.vel_y_m_s;
+            ctrl_in.imu.velocity.z_m_s = imu.vel_z_m_s;
 
-	  ctrl_in.imu.speed_m_s = imu.vel_x_m_s;
+            ctrl_in.imu.speed_m_s = imu.vel_x_m_s;
 
-	} else if (sscanf(line, IFMT_RUDDERPROTO_STS(&sts, &nn)) > 0) {
-	  ctrl_in.drives.gamma_rudder_left_rad  = Deg2Rad(sts.rudder_l_deg);
-	  ctrl_in.drives.gamma_rudder_right_rad = Deg2Rad(sts.rudder_r_deg);
-	  ctrl_in.drives.gamma_sail_rad         = Deg2Rad(sts.sail_deg);
-	  ctrl_in.drives.homed_rudder_left = !isnan(sts.rudder_l_deg);
-	  ctrl_in.drives.homed_rudder_right = !isnan(sts.rudder_r_deg);
-	  ctrl_in.drives.homed_sail = !isnan(sts.sail_deg);
+          } else if (sscanf(line, IFMT_RUDDERPROTO_STS(&sts, &nn)) > 0) {
+            ctrl_in.drives.gamma_rudder_left_rad  = Deg2Rad(sts.rudder_l_deg);
+            ctrl_in.drives.gamma_rudder_right_rad = Deg2Rad(sts.rudder_r_deg);
+            ctrl_in.drives.gamma_sail_rad         = Deg2Rad(sts.sail_deg);
+            ctrl_in.drives.homed_rudder_left = !isnan(sts.rudder_l_deg);
+            ctrl_in.drives.homed_rudder_right = !isnan(sts.rudder_r_deg);
+            ctrl_in.drives.homed_sail = !isnan(sts.sail_deg);
+            fprintf(stderr, "HMDI L: %g %c", ctrl_in.drives.gamma_rudder_left_rad, ctrl_in.drives.homed_rudder_left ? 'V' : 'I');
 
-	} else if (sscanf(line, IFMT_HELMSMANCTLPROTO(&ctl, &nn)) > 0) {
-          if (control_mode != kOverrideSkipperMode &&
-              !isnan(ctl.alpha_star_deg))
-            ctrl_in.alpha_star_rad = Deg2Rad(ctl.alpha_star_deg);
-	} else if (sscanf(line, IFMT_REMOTEPROTO(&remote, &nn)) > 0) {
-	  HandleRemoteControl(remote, &control_mode);
-	  if (control_mode == kOverrideSkipperMode)
-	    ctrl_in.alpha_star_rad = Deg2Rad(remote.alpha_star_deg);
-	}
+          } else if (sscanf(line, IFMT_HELMSMANCTLPROTO(&ctl, &nn)) > 0) {
+            if (control_mode != kOverrideSkipperMode &&
+                !isnan(ctl.alpha_star_deg))
+              ctrl_in.alpha_star_rad = Deg2Rad(ctl.alpha_star_deg);
+          } else if (sscanf(line, IFMT_REMOTEPROTO(&remote, &nn)) > 0) {
+            HandleRemoteControl(remote, &control_mode);
+            if (control_mode == kOverrideSkipperMode)
+              ctrl_in.alpha_star_rad = Deg2Rad(remote.alpha_star_deg);
+          } else {
+            fprintf(stderr, "Unreadable input %s\n", line);
+          }
+          line += nn;
+        }
+
       } else
 	if (r != EAGAIN) crash("Error reading stdin");
     }
@@ -283,7 +292,7 @@ int main(int argc, char* argv[]) {
     ShipControl::Run(ctrl_in, &ctrl_out);
     RudderProto ctl;
     ctrl_out.drives_reference.ToProto(&ctl);
-    printf(OFMT_RUDDERPROTO_CTL(ctl, &nn));
+    printf(OFMT_RUDDERPROTO_CTL(ctl));
 
     if (loops % 10 == 0) {
       SkipperInputProto to_skipper = {
@@ -293,15 +302,15 @@ int main(int argc, char* argv[]) {
         ctrl_out.skipper_input.angle_true_deg,
         ctrl_out.skipper_input.mag_true_kn
       };
-      printf(OFMT_SKIPPER_INPUTPROTO(to_skipper, &nn));
+      printf(OFMT_SKIPPER_INPUTPROTO(to_skipper));
     }
     if (loops % 10 == 5) {
       HelmsmanStatusProto hsts = INIT_HELMSMAN_STATUSPROTO;
       ctrl_out.status.ToProto(&hsts);
       hsts.timestamp_ms = now_ms();
-      printf(OFMT_HELMSMAN_STATUSPROTO(hsts, &nn));
+      printf(OFMT_HELMSMAN_STATUSPROTO(hsts));
     }
-    // A simple ++loops would do the job unil loops wraps around only. 
+    // A simple ++loops would do the job until loops wraps around only.
     loops = loops > 999 ? 0 : loops+1;
   }  // for ever
 
