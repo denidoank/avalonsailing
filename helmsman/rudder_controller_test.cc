@@ -10,20 +10,11 @@
 #include "helmsman/controller_io.h"
 #include "lib/testing/testing.h"
 
-void Expect(double sail_deg,
-            double r_left_deg,
-            double r_right_deg,
-            const ControllerOutput& out) {
-  EXPECT_FLOAT_EQ(Deg2Rad(sail_deg), out.drives_reference.gamma_sail_star_rad);
-  EXPECT_FLOAT_EQ(Deg2Rad(r_left_deg),
-                  out.drives_reference.gamma_rudder_star_left_rad);
-  EXPECT_FLOAT_EQ(Deg2Rad(r_right_deg),
-                  out.drives_reference.gamma_rudder_star_right_rad);
-}
-
 
 TEST(RudderController, All) {
   RudderController c;
+  // This test is independent of default controller parameters.
+  c.SetFeedback(452.39, 563.75, 291.71, true);
   double phi_star = 0;
   double omega_star = 0;
   double phi = 0;
@@ -104,6 +95,11 @@ TEST(RudderController, All) {
             phi, omega,
             speed, &gamma);
   EXPECT_FLOAT_EQ(-0.103977, gamma);  //
+  c.Reset();
+  c.Control(0.1, -0.1,
+            phi, omega,
+            speed, &gamma);
+  EXPECT_FLOAT_EQ(0.0670231, gamma);  //
 
   c.Reset();
   // less speed, bigger angle.
@@ -116,21 +112,75 @@ TEST(RudderController, All) {
   // Even less speed, bigger angle at gamma_0 limit.
   c.Control(0.1, 0.1,
             phi, omega,
-            0.2 * speed, &gamma);
-  // -27 degrees (7 from NACA profile, 20 for gamma_0) would be 0.471238898038469
-  // ?
-  // TODO: Check this result.
-  EXPECT_FLOAT_EQ(-0.46562, gamma);
+            0.1 * speed, &gamma);
+  // -27 degrees (7 from NACA profile, 20 for gamma_0)
+  EXPECT_FLOAT_EQ(-0.471239, gamma);
 
   c.Reset();
   // Negative speed, at limit.
   c.Control(0.1, 0.1,
             phi, omega,
             -0.2 * speed, &gamma);
-  EXPECT_FLOAT_EQ(0.168914, gamma);
+  EXPECT_FLOAT_EQ(0.51798, gamma);
+}
+
+TEST(RudderController, ReverseSpeed) {
+  RudderController c;
+  // Now this test is independent of the default controller parameters.
+  c.SetFeedback(452.39, 563.75, 291.71, true);
+  double phi_star = 0;
+  double omega_star = 0;
+  double phi = 0;
+  double omega = 0;
+  double speed = -2;
+  double gamma = -1;
+
+  for (int i = 0; i < 300; ++i) {
+    c.Control(phi_star, omega_star,
+              phi, omega,
+              speed, &gamma);
+    EXPECT_FLOAT_EQ(0, gamma);  // no creeping integration error
+  }
+
+  c.Control(1, omega_star,
+            phi, omega,
+            speed, &gamma);
+  // at limit
+  EXPECT_FLOAT_EQ(0.174533, gamma);
+  c.Control(1, omega_star,
+            phi, omega,
+            speed, &gamma);
+  EXPECT_FLOAT_EQ(0.174533, gamma);
+  c.Control(1, omega_star,
+            phi, omega,
+            speed, &gamma);
+  EXPECT_FLOAT_EQ(0.174533, gamma);
+  c.Control(1, omega_star,
+            phi, omega,
+            speed, &gamma);
+  EXPECT_FLOAT_EQ(0.174533, gamma);
+  // more tests ...
+
+  c.Reset();
+  c.Control(0.1, 0,
+            phi, omega,
+            speed, &gamma);
+  EXPECT_FLOAT_EQ(0.0397258, gamma);
+  c.Reset();
+  c.Control(0.1, 0.1,
+            phi, omega,
+            speed, &gamma);
+  EXPECT_FLOAT_EQ(0.141438, gamma);  //
+  c.Reset();
+  c.Control(0.1, -0.1,
+            phi, omega,
+            speed, &gamma);
+  EXPECT_FLOAT_EQ(-0.0619868, gamma);  //
+
 }
 
 int main(int argc, char* argv[]) {
   RudderController_All();
+  RudderController_ReverseSpeed();
   return 0;
 }

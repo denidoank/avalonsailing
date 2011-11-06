@@ -40,6 +40,24 @@ TEST(QuickSlidingAverageFilter, FiftyPercentLength10) {
   }
 }
   
+TEST(QuickSlidingAverageFilter, StepResponse) {
+  QuickSlidingAverageFilter f(10);
+  for (int i = 0; i < 20; ++i) {
+    double out = f.Filter(4);
+    if (i == 4) {
+      EXPECT_FLOAT_EQ(4, out);  // in contrast to 4 * 0.5 for the SlidingAverageFilter
+      EXPECT_TRUE(f.ValidOutput());
+    }
+  }
+  for (int i = 0; i < 20; ++i) {
+    double out = f.Filter(11);
+    if (i == 10) {
+      EXPECT_FLOAT_EQ(11, out);  // in contrast to 4 * 0.5 for the SlidingAverageFilter
+      EXPECT_TRUE(f.ValidOutput());
+    }
+  }
+}
+
 TEST(QuickSlidingAverageFilter, FiftyPercentLength11) {
   QuickSlidingAverageFilter f(11);
   for (int i = 0; i < 20; ++i) {

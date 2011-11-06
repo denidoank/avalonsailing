@@ -18,13 +18,16 @@ TEST(NewGammaSail, Tack) {
   double angle_app;
   double mag_app;
   SailController sail_controller;
+  double aoa_optimal = Deg2Rad(10);
+  sail_controller.SetOptimalAngleOfAttack(aoa_optimal);
+
   Apparent(alpha_true, mag_true,
            alpha_boat, mag_boat,
            alpha_boat,
            &angle_app, &mag_app);
   double old_gamma_sail = sail_controller.BestGammaSail(angle_app, mag_app);
 
-  double new_alpha_boat = alpha_boat - Deg2Rad(120);
+  double new_alpha_boat = alpha_boat - Deg2Rad(120);  // to -60deg
   double new_gamma_sail = -1;
   double delta_gamma_sail = -1;
   ManeuverType type = kTack;
@@ -37,15 +40,15 @@ TEST(NewGammaSail, Tack) {
                &sail_controller,
                &new_gamma_sail,
                &delta_gamma_sail);
-  EXPECT_IN_INTERVAL(41, Rad2Deg(new_gamma_sail), 43);
-  EXPECT_IN_INTERVAL(82, Rad2Deg(delta_gamma_sail), 86);
+  EXPECT_IN_INTERVAL(41, Rad2Deg(new_gamma_sail), 60 - aoa_optimal);
+  EXPECT_IN_INTERVAL(82, Rad2Deg(delta_gamma_sail), 98);
   EXPECT_FLOAT_EQ(old_gamma_sail, -new_gamma_sail);
 
 
   new_gamma_sail = -1;
   delta_gamma_sail = -1;
   type = kChange;
-  new_alpha_boat = alpha_boat - Deg2Rad(140);
+  new_alpha_boat = alpha_boat - Deg2Rad(140);  // to -80deg
   NewGammaSailWithOldGammaSail(alpha_true, mag_true,
                alpha_boat, mag_boat,
                new_alpha_boat,
@@ -54,7 +57,7 @@ TEST(NewGammaSail, Tack) {
                &sail_controller,
                &new_gamma_sail,
                &delta_gamma_sail);
-  EXPECT_IN_INTERVAL(61, Rad2Deg(new_gamma_sail), 62);
+  EXPECT_IN_INTERVAL(61, Rad2Deg(new_gamma_sail), 80 - aoa_optimal);  // expect 20 deg more than before
   EXPECT_IN_INTERVAL(100, Rad2Deg(delta_gamma_sail), 110);
 }
 
@@ -66,6 +69,8 @@ TEST(NewGammaSail, Jibe) {
   double angle_app;
   double mag_app;
   SailController sail_controller;
+  double aoa_optimal = Deg2Rad(10);
+  sail_controller.SetOptimalAngleOfAttack(aoa_optimal);
   Apparent(alpha_true, mag_true,
            alpha_boat, mag_boat,
            alpha_boat,
@@ -122,8 +127,8 @@ TEST(NewGammaSail, Jibe) {
                &sail_controller,
                &new_gamma_sail,
                &delta_gamma_sail);
-  EXPECT_IN_INTERVAL(-56, Rad2Deg(new_gamma_sail), -55);
-  EXPECT_IN_INTERVAL(247, Rad2Deg(delta_gamma_sail), 249);
+  EXPECT_IN_INTERVAL(-60, Rad2Deg(new_gamma_sail), -50);
+  EXPECT_IN_INTERVAL(240, Rad2Deg(delta_gamma_sail), 260);
 
   /* Correct jibe, sail turns over the bow, delta gamma is positive and
      has a magnitude of more than 180 degrees.
@@ -180,7 +185,7 @@ TEST(NewGammaSail, Jibe) {
                &new_gamma_sail,
                &delta_gamma_sail);
   EXPECT_IN_INTERVAL(-94, Rad2Deg(new_gamma_sail), -92);
-  EXPECT_IN_INTERVAL(-57, Rad2Deg(delta_gamma_sail), -55);
+  EXPECT_IN_INTERVAL(-65, Rad2Deg(delta_gamma_sail), -50);
   EXPECT_EQ(kChange, type);
 
   alpha_true = M_PI;  // North wind vector
@@ -207,7 +212,7 @@ TEST(NewGammaSail, Jibe) {
                &new_gamma_sail,
                &delta_gamma_sail);
   EXPECT_IN_INTERVAL(92, Rad2Deg(new_gamma_sail), 93);
-  EXPECT_IN_INTERVAL(-231, Rad2Deg(delta_gamma_sail), -229);
+  EXPECT_IN_INTERVAL(-240, Rad2Deg(delta_gamma_sail), -225);
   EXPECT_EQ(kJibe, type);
 
   new_gamma_sail = -1;
@@ -228,7 +233,7 @@ TEST(NewGammaSail, Jibe) {
                &new_gamma_sail,
                &delta_gamma_sail);
   EXPECT_IN_INTERVAL(-93, Rad2Deg(new_gamma_sail), -92);
-  EXPECT_IN_INTERVAL(-56, Rad2Deg(delta_gamma_sail), -55);
+  EXPECT_IN_INTERVAL(-65, Rad2Deg(delta_gamma_sail), -51);
 }
 
 TEST(NewGammaSail, Change) {
@@ -239,6 +244,8 @@ TEST(NewGammaSail, Change) {
   double angle_app;
   double mag_app;
   SailController sail_controller;
+  double aoa_optimal = Deg2Rad(10);
+  sail_controller.SetOptimalAngleOfAttack(aoa_optimal);
   Apparent(alpha_true, mag_true,
            alpha_boat, mag_boat,
            alpha_boat,
@@ -257,8 +264,8 @@ TEST(NewGammaSail, Change) {
                &sail_controller,
                &new_gamma_sail,
                &delta_gamma_sail);
-  EXPECT_IN_INTERVAL(85, Rad2Deg(new_gamma_sail), 86);
-  EXPECT_IN_INTERVAL(22, Rad2Deg(delta_gamma_sail), 23);
+  EXPECT_IN_INTERVAL(76, Rad2Deg(new_gamma_sail), 90);
+  EXPECT_IN_INTERVAL(12, Rad2Deg(delta_gamma_sail), 27);
   EXPECT_EQ(kChange, type);
 
   new_gamma_sail = -1;
@@ -273,8 +280,8 @@ TEST(NewGammaSail, Change) {
                &sail_controller,
                &new_gamma_sail,
                &delta_gamma_sail);
-  EXPECT_IN_INTERVAL(65, Rad2Deg(new_gamma_sail), 66);
-  EXPECT_IN_INTERVAL(2, Rad2Deg(delta_gamma_sail), 3);
+  EXPECT_IN_INTERVAL(57, Rad2Deg(new_gamma_sail), 70);
+  EXPECT_IN_INTERVAL(2, Rad2Deg(delta_gamma_sail), 6);
   EXPECT_EQ(kChange, type);
 
 
@@ -290,8 +297,8 @@ TEST(NewGammaSail, Change) {
                &sail_controller,
                &new_gamma_sail,
                &delta_gamma_sail);
-  EXPECT_IN_INTERVAL(47, Rad2Deg(new_gamma_sail), 48);
-  EXPECT_IN_INTERVAL(-17, Rad2Deg(delta_gamma_sail), -15);
+  EXPECT_IN_INTERVAL(39, Rad2Deg(new_gamma_sail), 52);
+  EXPECT_IN_INTERVAL(-17, Rad2Deg(delta_gamma_sail), -12);
   EXPECT_EQ(kChange, type);
 }
 
@@ -309,6 +316,8 @@ void LogNewGammaSail() {
   for (double turn = 100; turn < 260; turn += 5) {
     double new_alpha_boat = alpha_boat - Deg2Rad(turn);
     SailController sail_controller;
+    double aoa_optimal = Deg2Rad(10);
+    sail_controller.SetOptimalAngleOfAttack(aoa_optimal);
     double new_gamma_sail = -1;
     double delta_gamma_sail = -1;
 

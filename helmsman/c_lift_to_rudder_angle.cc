@@ -6,6 +6,7 @@
 
 #include "helmsman/c_lift_to_rudder_angle.h"
 #include "helmsman/naca0010.h"
+#include "common/sign.h"
 #include "common/unknown.h"
 
 namespace naca0010 {
@@ -49,16 +50,15 @@ void CLiftToRudderAngle(double c_lift,
     c_lift_per_rad = naca0010::kCLiftPerRad;
   }
 
-  double alpha_unlimited = c_lift / c_lift_per_rad;
+  double alpha_unlimited = c_lift / c_lift_per_rad * Sign(speed_m_s);
   if (alpha_unlimited < -limit) {
     *alpha_rad = -limit;
-    *limited = -1;
+    *limited = -Sign(speed_m_s);
   } else if (alpha_unlimited > limit) {
     *alpha_rad = limit;
-    *limited = +1;
+    *limited = Sign(speed_m_s);
   } else {
     *alpha_rad = alpha_unlimited;
     *limited = 0;
   }
 }
-

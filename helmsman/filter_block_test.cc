@@ -12,6 +12,7 @@
 #include "helmsman/apparent.h"
 #include "helmsman/boat.h"   // kWindSensorOffsetRad
 #include "helmsman/controller_io.h"
+#include "helmsman/sampling_period.h"
 #include "lib/testing/testing.h"
 
 void SetEnv(const Polar& wind_true,
@@ -60,8 +61,8 @@ TEST(FilterBlock, All) {
   EXPECT_FLOAT_EQ(0, filtered.mag_true);
   EXPECT_FLOAT_EQ(0, filtered.angle_app);
   EXPECT_FLOAT_EQ(0, filtered.mag_app);
-  EXPECT_FLOAT_EQ(0, filtered.angle_sensor);
-  EXPECT_FLOAT_EQ(0, filtered.mag_sensor);
+  EXPECT_FLOAT_EQ(0, filtered.angle_aoa);
+  EXPECT_FLOAT_EQ(0, filtered.mag_aoa);
   EXPECT_FLOAT_EQ(0, filtered.longitude_deg);
   EXPECT_FLOAT_EQ(0, filtered.latitude_deg);
   EXPECT_FLOAT_EQ(0, filtered.phi_x_rad);
@@ -76,35 +77,43 @@ TEST(FilterBlock, All) {
   EXPECT_FLOAT_EQ(kUnknown, filtered.mag_true);
   EXPECT_FLOAT_EQ(kUnknown, filtered.angle_app);
   EXPECT_FLOAT_EQ(0, filtered.mag_app);
-  EXPECT_FLOAT_EQ(0, filtered.angle_sensor);
-  EXPECT_FLOAT_EQ(0, filtered.mag_sensor);
+  EXPECT_FLOAT_EQ(0, filtered.angle_aoa);
+  EXPECT_FLOAT_EQ(0, filtered.mag_aoa);
   EXPECT_FLOAT_EQ(0, filtered.longitude_deg);
   EXPECT_FLOAT_EQ(0, filtered.latitude_deg);
   EXPECT_FLOAT_EQ(0, filtered.phi_x_rad);
   EXPECT_FLOAT_EQ(0, filtered.phi_y_rad);
-  EXPECT_FLOAT_EQ(0, filtered.temperature_c);
+  EXPECT_FLOAT_EQ(20, filtered.temperature_c);
   EXPECT_EQ(false, filtered.valid);
+  EXPECT_FLOAT_EQ(false, b.ValidTrueWind());
 
   // The time until all filters are valid depends on the filter constants and
   // the sampling period, but eventually after a few second, the filters should
   // be filled and valid.
+  // The sail drive needs to be ready first (because we
+  // cannot know the wind direction otherwise)
+  // All drives get ready.
+  in.drives.homed_sail = true;
+  in.drives.homed_rudder_left = true;
+  in.drives.homed_rudder_right = true;
   for (int i = 0; i < 20; ++i)
     b.Filter(in, &filtered);
   EXPECT_FLOAT_EQ(0, filtered.phi_z_boat);
   EXPECT_FLOAT_EQ(0, filtered.mag_boat);
   EXPECT_FLOAT_EQ(0, filtered.omega_boat);
-  EXPECT_FLOAT_EQ(kUnknown, filtered.alpha_true);
-  EXPECT_FLOAT_EQ(kUnknown, filtered.mag_true);
-  EXPECT_FLOAT_EQ(kUnknown, filtered.angle_app);
+  EXPECT_FLOAT_EQ(0, filtered.alpha_true);
+  EXPECT_FLOAT_EQ(0, filtered.mag_true);
+  EXPECT_FLOAT_EQ(0, filtered.angle_app);
   EXPECT_FLOAT_EQ(0, filtered.mag_app);
-  EXPECT_FLOAT_EQ(0, filtered.angle_sensor);
-  EXPECT_FLOAT_EQ(0, filtered.mag_sensor);
+  EXPECT_FLOAT_EQ(0, filtered.angle_aoa);
+  EXPECT_FLOAT_EQ(0, filtered.mag_aoa);
   EXPECT_FLOAT_EQ(0, filtered.longitude_deg);
   EXPECT_FLOAT_EQ(0, filtered.latitude_deg);
   EXPECT_FLOAT_EQ(0, filtered.phi_x_rad);
   EXPECT_FLOAT_EQ(0, filtered.phi_y_rad);
   EXPECT_FLOAT_EQ(20, filtered.temperature_c);
   EXPECT_FLOAT_EQ(true, filtered.valid);
+  EXPECT_FLOAT_EQ(false, b.ValidTrueWind());
 
   // Everything in rad here.
   Polar wind_true(0, 2);  // The wind vector forward to North, with 2m/s.
@@ -113,6 +122,30 @@ TEST(FilterBlock, All) {
                           // the boats x-axis, 1m/s magnitude.
   double gamma_sail = Deg2Rad(0);
   SetEnv(wind_true, boat, gamma_sail, &in);
+
+  // The time until all filters are valid depends on the filter constants and
+  // the sampling period, but eventually after a few second, the filters should
+  // be filled and valid.
+  for (int i = 0; i < 200 / kSamplingPeriod; ++i)
+    b.Filter(in, &filtered);
+  printf("%g\n", 100/kSamplingPeriod);
+  EXPECT_FLOAT_EQ(0, filtered.phi_z_boat);
+  EXPECT_FLOAT_EQ(1, filtered.mag_boat);
+  EXPECT_FLOAT_EQ(0, filtered.omega_boat);
+  EXPECT_FLOAT_EQ(0, filtered.angle_app);
+  EXPECT_FLOAT_EQ(1, filtered.mag_app);
+  EXPECT_FLOAT_EQ(M_PI, filtered.angle_aoa);
+  EXPECT_FLOAT_EQ(1, filtered.mag_aoa);
+  EXPECT_FLOAT_EQ(0, filtered.longitude_deg);
+  EXPECT_FLOAT_EQ(0, filtered.latitude_deg);
+  EXPECT_FLOAT_EQ(0, filtered.phi_x_rad);
+  EXPECT_FLOAT_EQ(0, filtered.phi_y_rad);
+  EXPECT_FLOAT_EQ(20, filtered.temperature_c);
+  EXPECT_FLOAT_EQ(true, filtered.valid);
+  EXPECT_FLOAT_EQ(true, b.ValidTrueWind());
+  // EXPECT_FLOAT_EQ(0, filtered.alpha_true); both are undefined here
+  // EXPECT_FLOAT_EQ(2, filtered.mag_true);
+
   for (int i = 0; i < 20; ++i) {
     b.Filter(in, &filtered);
     // printf("%6.4f\n", filtered.mag_app);
@@ -120,27 +153,28 @@ TEST(FilterBlock, All) {
   EXPECT_FLOAT_EQ(0, filtered.phi_z_boat);
   EXPECT_FLOAT_EQ(1, filtered.mag_boat);
   EXPECT_FLOAT_EQ(0, filtered.omega_boat);
-  EXPECT_FLOAT_EQ(kUnknown, filtered.alpha_true);
-  EXPECT_FLOAT_EQ(kUnknown, filtered.mag_true);
-  EXPECT_FLOAT_EQ(kUnknown, filtered.angle_app);
-  EXPECT_FLOAT_EQ(1.0, filtered.mag_app);
-  EXPECT_FLOAT_EQ(M_PI - kWindSensorOffsetRad, filtered.angle_sensor);
-  EXPECT_FLOAT_EQ(1.0, filtered.mag_sensor);
+  EXPECT_FLOAT_EQ(0, filtered.alpha_true);
+  EXPECT_FLOAT_EQ(2, filtered.mag_true);
+  EXPECT_FLOAT_EQ(0, filtered.angle_app);
+  EXPECT_FLOAT_EQ(1, filtered.mag_app);
+  EXPECT_FLOAT_EQ(M_PI - kWindSensorOffsetRad, filtered.angle_aoa);
+  EXPECT_FLOAT_EQ(1.0, filtered.mag_aoa);
   EXPECT_FLOAT_EQ(0, filtered.longitude_deg);
   EXPECT_FLOAT_EQ(0, filtered.latitude_deg);
   EXPECT_FLOAT_EQ(0, filtered.phi_x_rad);
   EXPECT_FLOAT_EQ(0, filtered.phi_y_rad);
   EXPECT_FLOAT_EQ(20, filtered.temperature_c);
   EXPECT_EQ(true, filtered.valid);
+  EXPECT_FLOAT_EQ(true, b.ValidTrueWind());
 
   // With sail angle information we can calculate the true wind.
   in.drives.homed_sail = true;
   b.Filter(in, &filtered);
   EXPECT_FLOAT_EQ(0, filtered.angle_app);
   EXPECT_FLOAT_EQ(1.0, filtered.mag_app);
-  EXPECT_FLOAT_EQ(M_PI - kWindSensorOffsetRad, filtered.angle_sensor);
-  EXPECT_FLOAT_EQ(1.0, filtered.mag_sensor);
-  EXPECT_EQ(false, b.ValidTrueWind());  // Must fail now!!
+  EXPECT_FLOAT_EQ(M_PI - kWindSensorOffsetRad, filtered.angle_aoa);
+  EXPECT_FLOAT_EQ(1.0, filtered.mag_aoa);
+  EXPECT_EQ(true, b.ValidTrueWind());  // Must fail now!!
   // slow filter for true wind
   for (int i = 0; i < 2000; ++i) {
     b.Filter(in, &filtered);
@@ -157,19 +191,20 @@ TEST(FilterBlock, All) {
   // the boats x-axis, sqrt(2) * 2m/s magnitude.
   SetEnv(wind_true, boat, gamma_sail, &in);
   printf("From East wind\n");
-  for (int i = 0; i < 20; ++i) {
+  for (int i = 0; i < 10 / kSamplingPeriod; ++i) {
     b.Filter(in, &filtered);
     printf("app: %6.4f %6.4f true: %6.4f\n",
            filtered.mag_app, filtered.angle_app, filtered.mag_true);
   }
   EXPECT_FLOAT_EQ(-M_PI * 3.0 / 4, filtered.angle_app);
   EXPECT_FLOAT_EQ(2.0 * sqrt(2), filtered.mag_app);
-  EXPECT_FLOAT_EQ(-M_PI * 3.0 / 4  + M_PI - kWindSensorOffsetRad - gamma_sail,
-                  filtered.angle_sensor);
-  EXPECT_FLOAT_EQ(2.0 * sqrt(2), filtered.mag_sensor);
   // 1000 ticks for the 100s average period + 5 ticks for the median-of-5 filter
-  for (int i = 0; i < 1005 + 20; ++i)
+  for (int i = 0; i < 110 / kSamplingPeriod; ++i)
     b.Filter(in, &filtered);
+  // true wind and aoa are slowly filtered, so we have to wait a bit.
+  EXPECT_FLOAT_EQ(M_PI / 4 - kWindSensorOffsetRad - gamma_sail,
+                  filtered.angle_aoa);
+  EXPECT_FLOAT_EQ(2.0 * sqrt(2), filtered.mag_aoa);
   EXPECT_FLOAT_EQ(-M_PI / 2, filtered.alpha_true);
   EXPECT_FLOAT_EQ(2.0, filtered.mag_true);
 
@@ -185,14 +220,14 @@ TEST(FilterBlock, All) {
   EXPECT_FLOAT_EQ(-M_PI * 3.0 / 4, filtered.angle_app);
   EXPECT_FLOAT_EQ(2.0 * sqrt(2), filtered.mag_app);
   // but on the wind sensor direction.
-  EXPECT_FLOAT_EQ(-M_PI * 3.0 / 4  + M_PI - kWindSensorOffsetRad - gamma_sail,
-                  filtered.angle_sensor);
-  EXPECT_FLOAT_EQ(2.0 * sqrt(2), filtered.mag_sensor);
+  for (int i = 0; i < 110 / kSamplingPeriod; ++i)
+    b.Filter(in, &filtered);
+  EXPECT_FLOAT_EQ(M_PI / 4  - kWindSensorOffsetRad - gamma_sail,
+                  filtered.angle_aoa);
+  EXPECT_FLOAT_EQ(2.0 * sqrt(2), filtered.mag_aoa);
 }
-
 
 int main(int argc, char* argv[]) {
   FilterBlock_All();
   return 0;
 }
-

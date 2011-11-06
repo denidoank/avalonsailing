@@ -26,7 +26,6 @@
 #include "lib/filter/quick_sliding_average_filter.h"
 #include "lib/filter/wrap_around_filter.h"
 
-static const int kChannels = 10;
 
 class FilterBlock {
  public:
@@ -36,40 +35,24 @@ class FilterBlock {
   bool ValidTrueWind();
 
  private:
-  bool initial_;
+  bool valid_;
+  bool imu_fault_;
   const int len_short_;  // filter length (1s)
+  const int len_middle_; // TODO heel filter
   const int len_long_;   // filter length (100s) for true wind
-  Median5Filter median_[kChannels];
-  Median5Filter median_mag_true_;
-  SlidingAverageFilter average_0_;
-  SlidingAverageFilter average_1_;
-  SlidingAverageFilter average_2_;
-  SlidingAverageFilter average_3_;
-  SlidingAverageFilter average_4_;
-  SlidingAverageFilter average_5_;
-  SlidingAverageFilter average_6_;
-  SlidingAverageFilter average_7_;
-  SlidingAverageFilter average_8_;
-  SlidingAverageFilter average_9_;
-  SlidingAverageFilter average_mag_true_;
+  SlidingAverageFilter av_short_;
+  SlidingAverageFilter av_middle_;
+  SlidingAverageFilter av_long_;
+  SlidingAverageFilter av_long_aoa_;
 
-  // 2 channels (the heading phi_z and the wind direction) are angles that can
+  // The wind directions are angles that can
   // wrap around at 360 degrees and need a wrap around filter.
-  // 1 slow filter channel for the true wind direction, needs a wrap around filter.
-  Median5Filter median_wr_1_;
-  Median5Filter median_wr_2_;
-  Median5Filter median_wr_3_;
-  
-  WrapAroundFilter wrap_med_1_;
-  WrapAroundFilter wrap_med_2_;
-  WrapAroundFilter wrap_med_3_;
-
-  QuickSlidingAverageFilter average_wr_1_;
-  QuickSlidingAverageFilter average_wr_2_;
-  QuickSlidingAverageFilter average_wr_3_;
-  WrapAroundFilter wrap_1_;
-  WrapAroundFilter wrap_2_;
-  WrapAroundFilter wrap_3_;
+  SlidingAverageFilter average_short_;
+  QuickSlidingAverageFilter average_long_;
+  QuickSlidingAverageFilter average_long_aoa_;
+  WrapAroundFilter wrap_short_av_;
+  WrapAroundFilter wrap_long_av_;
+  WrapAroundFilter wrap_long_av_aoa_;
 };
 
 

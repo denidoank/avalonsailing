@@ -37,6 +37,8 @@ void SetEnv(const Polar& wind_true,
 
 TEST(NormalController, All) {
   RudderController rudder_controller;
+  rudder_controller.SetFeedback(452.39, 563.75, 291.71, true);
+
   SailController sail_controller;
   NormalController c(&rudder_controller, &sail_controller);
   ControllerInput in;
@@ -66,12 +68,6 @@ TEST(NormalController, All) {
   in.alpha_star_rad = 0.01;
 
   c.Run(in, filtered, &out);
-  // Values depend on the control amplification coefficients, so we have to
-  // relax the test conditions later.
-  EXPECT_FLOAT_EQ(452.39, kStateFeedback1);
-  EXPECT_FLOAT_EQ(563.75, kStateFeedback2);
-  EXPECT_FLOAT_EQ(291.71, kStateFeedback3);
-  
 
   EXPECT_FLOAT_EQ(-0.295634, Rad2Deg(out.drives_reference.gamma_rudder_star_left_rad));
   EXPECT_EQ(out.drives_reference.gamma_rudder_star_left_rad,

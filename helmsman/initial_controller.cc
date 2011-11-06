@@ -85,18 +85,27 @@ void InitialController::Run(const ControllerInput& in,
       }
       break;
     case TURTLE:
-      if (debug) fprintf(stderr, "phase TURTLE\n");
-      // Turn into a sailable direction if necessary.
-      if (fabs(angle_app) > Deg2Rad(120) ||
-          WindStrength(kCalmWind, filtered.mag_app) == kCalmWind) {
-        gamma_rudder = kReverseMotionRudderAngle * sign_;
-        gamma_sail = sail_controller_->BestGammaSailForReverseMotion(angle_app, filtered.mag_app);
-        break;
-      } else {
-        phase_ = KOGGE;
-        count_ = 0;
-        if (debug) fprintf(stderr, "TURTLE to KOGGE %d\n", sign_);
-        // intentional falltrough
+      {
+        // Turn boat out of irons, if necessary.
+        // If the boat points into the wind, turn the sail sideways and
+        // put the rudder at a big angle such that the boat turns.
+        if (debug) fprintf(stderr, "phase TURTLE\n");
+        // For weak winds we need a bearing around a dead run +- 90degrees, to
+        // get enough speed in every situation.
+        // For stronger winds we have enough momentum pushing back.
+        const double run_sector = filtered.mag_app > 5 ? Deg2Rad(120) : Deg2Rad(90);
+        // Turn into a sailable direction if necessary.
+        if (fabs(angle_app) > run_sector ||
+            WindStrength(kCalmWind, filtered.mag_app) == kCalmWind) {
+          gamma_rudder = kReverseMotionRudderAngle * sign_;
+          gamma_sail = sail_controller_->BestGammaSailForReverseMotion(angle_app, filtered.mag_app);
+          break;
+        } else {
+          phase_ = KOGGE;
+          count_ = 0;
+          if (debug) fprintf(stderr, "TURTLE to KOGGE %d\n", sign_);
+          // intentional falltrough
+        }
       }
     case KOGGE:
       if (debug) fprintf(stderr, "phase KOGGE\n");
@@ -116,7 +125,6 @@ void InitialController::Run(const ControllerInput& in,
      fprintf(stderr, "out gamma_sail:%lf deg\n", Rad2Deg(gamma_sail));
      fprintf(stderr, "out gamma_rudder_star left/right:%lf deg\n", Rad2Deg(gamma_rudder));
    }
-
 }
 
 

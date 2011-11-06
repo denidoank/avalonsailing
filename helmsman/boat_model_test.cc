@@ -9,12 +9,10 @@
 #include <math.h>
 #include <stdio.h>
 #include "common/unknown.h"
-
 #include "common/convert.h"
 #include "common/polar.h"
 #include "helmsman/apparent.h"
 #include "helmsman/controller_io.h"
-
 #include "lib/testing/testing.h"
 
 
@@ -61,7 +59,7 @@ TEST(BoatModel, Pushed) {
                   0,                // omega_ / rad, turning rate, + turns right 
                   0,                // phi_z_ / rad, heading relative to North, + turns right
                   0,                // v_x_ / m/s,   speed  
-                  0);               // gamma_sail_ / rad, e.g. -90 degrees here 
+                  0);               // gamma_sail_ / rad
   
   DriveReferenceValuesRad ref;
   Polar true_wind(0, 0);           // forward wind blows from South to North, 10m/s
@@ -100,7 +98,7 @@ TEST(BoatModel, SailEast) {
                   0,                // omega_ / rad, turning rate, + turns right 
                   0,                // phi_z_ / rad, heading relative to North, + turns right
                   0,                // v_x_ / m/s,   speed  
-                  0);               // gamma_sail_ / rad, e.g. -90 degrees here 
+                  0);               // gamma_sail_ / rad 
   
   DriveReferenceValuesRad ref;
   Polar true_wind(0, 10);           // forward wind blows from South to North, 10m/s
@@ -145,7 +143,7 @@ TEST(BoatModel, PulledRudderRight) {
                   0,                // omega_ / rad, turning rate, + turns right 
                   0,                // phi_z_ / rad, heading relative to North, + turns right
                   0,                // v_x_ / m/s,   speed  
-                  0);               // gamma_sail_ / rad, e.g. -90 degrees here 
+                  0);               // gamma_sail_ / rad
   
   DriveReferenceValuesRad ref;
   Polar true_wind(0, 0);           // forward wind blows from South to North, 10m/s
@@ -189,7 +187,7 @@ TEST(BoatModel, SailWest) {
                   0,                // omega_ / rad, turning rate, + turns right 
                   0,                // phi_z_ / rad, heading relative to North, + turns right
                   0,                // v_x_ / m/s,   speed  
-                  0);               // gamma_sail_ / rad, e.g. -90 degrees here 
+                  0);               // gamma_sail_ / rad
   
   DriveReferenceValuesRad ref;
   Polar true_wind(0, 10);           // forward wind blows from South to North, 10m/s
@@ -233,7 +231,7 @@ TEST(BoatModel, SailNorth) {
                   0,                // omega_ / rad, turning rate, + turns right 
                   0,                // phi_z_ / rad, heading relative to North, + turns right
                   0,                // v_x_ / m/s,   speed  
-                  0);               // gamma_sail_ / rad, e.g. -90 degrees here 
+                  0);               // gamma_sail_ / rad
   
   DriveReferenceValuesRad ref;
   Polar true_wind(0, 10);           // forward wind blows from South to North, 10m/s
@@ -278,7 +276,7 @@ TEST(BoatModel, PushedRudderRight) {
                   0,                // omega_ / rad, turning rate, + turns right 
                   0,                // phi_z_ / rad, heading relative to North, + turns right
                   0,                // v_x_ / m/s,   speed  
-                  0);               // gamma_sail_ / rad, e.g. -90 degrees here 
+                  0);               // gamma_sail_ / rad
   
   DriveReferenceValuesRad ref;
   Polar true_wind(0, 0);
@@ -322,7 +320,7 @@ TEST(BoatModel, PulledRudderRightX) {
                   0,                // omega_ / rad, turning rate, + turns right 
                   0,                // phi_z_ / rad, heading relative to North, + turns right
                   0,                // v_x_ / m/s,   speed  
-                  0);               // gamma_sail_ / rad, e.g. -90 degrees here 
+                  0);               // gamma_sail_ / rad
   
   DriveReferenceValuesRad ref;
   Polar true_wind(0, 0);           // forward wind blows from South to North, 10m/s
@@ -356,17 +354,17 @@ TEST(BoatModel, PulledRudderRightX) {
 }
 
 // The boat sails straight at 1m/s initial speed, then returns.
-// Sail east, with the sail at the wrong angle
+// Sail east, with the sail at the *wrong* angle.
 TEST(BoatModel, SailEastReversed) {
   // Set initial boat state.
   BoatModel model(kSamplingPeriod,
                   0,                // omega_ / rad, turning rate, + turns right 
                   0,                // phi_z_ / rad, heading relative to North, + turns right
                   0,                // v_x_ / m/s,   speed  
-                  0);               // gamma_sail_ / rad, e.g. -90 degrees here 
+                  0);               // gamma_sail_ / rad, 
   
   DriveReferenceValuesRad ref;
-  Polar true_wind(0, 10);           // forward wind blows from South to North, 10m/s
+  Polar true_wind(0, 10);           // The wind blows from South to North, at 10m/s.
   ControllerInput in;
   
   model.PrintHeader();
@@ -393,11 +391,11 @@ TEST(BoatModel, SailEastReversed) {
     model.Print(t); 
   }
   printf("\nExpect to start eastbound, then return "
-         "and a speed of roughly 2.2 m/s.");
+         "and a speed of roughly -0.7 m/s (slow because of backwards motion).");
   model.PrintHeader(); 
   model.Print(t); 
   EXPECT_IN_INTERVAL(80, Rad2Deg(model.GetPhiZ()), 100);
-  EXPECT_IN_INTERVAL(-2.5, model.GetSpeed(), -1.5);
+  EXPECT_IN_INTERVAL(-1, model.GetSpeed(), -0.5);
   printf("\n\n");
 }
 
@@ -407,7 +405,7 @@ TEST(BoatModel, SailNorthReversed) {
                   0,                // omega_ / rad, turning rate, + turns right 
                   0,                // phi_z_ / rad, heading relative to North, + turns right
                   0,                // v_x_ / m/s,   speed  
-                  0);               // gamma_sail_ / rad, e.g. -90 degrees here 
+                  0);               // gamma_sail_ / rad 
   
   DriveReferenceValuesRad ref;
   Polar true_wind(-M_PI, 10);       // backwards wind blows from North to South, 10m/s
@@ -437,11 +435,11 @@ TEST(BoatModel, SailNorthReversed) {
     model.Print(t); 
   }
   printf("\nExpect to sail straight North intially and then reverse "
-         "at a speed of roughly -2.0 m/s.");
+         "at a speed of roughly -0.8 m/s.");
   model.PrintHeader(); 
   model.Print(t); 
   EXPECT_IN_INTERVAL(-10, Rad2Deg(model.GetPhiZ()), 10);
-  EXPECT_IN_INTERVAL(-3, model.GetSpeed(), -1);
+  EXPECT_IN_INTERVAL(-1, model.GetSpeed(), -0.6);
   printf("\n\n");
 }
 
@@ -451,7 +449,7 @@ TEST(BoatModel, SailNorthReversedRudderPositive) {
                   0,                // omega_ / rad, turning rate, + turns right 
                   0,                // phi_z_ / rad, heading relative to North, + turns right
                   0,                // v_x_ / m/s,   speed  
-                  0);               // gamma_sail_ / rad, e.g. -90 degrees here 
+                  0);               // gamma_sail_ / rad 
   
   DriveReferenceValuesRad ref;
   Polar true_wind(-M_PI, 10);       // backwards wind blows from North to South, 10m/s
