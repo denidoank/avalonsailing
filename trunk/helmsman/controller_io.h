@@ -64,8 +64,8 @@ struct FilteredMeasurements {
     mag_true = 0;
     angle_app = 0;
     mag_app = 0;
-    angle_sensor = 0;
-    mag_sensor = 0;
+    angle_aoa = 0;
+    mag_aoa = 0;
     longitude_deg = 0;
     latitude_deg = 0;
     phi_x_rad = 0;
@@ -84,9 +84,10 @@ struct FilteredMeasurements {
   // apparent wind angle, boat frame
   double angle_app;
   double mag_app;
-  // sensor wind angle, mast frame
-  double angle_sensor;
-  double mag_sensor;
+  // Angle of attack relative to the boom axis (sensor wind angle, mast frame)
+  // Positive angle-of-attack pushes left when the sail is straight.
+  double angle_aoa;
+  double mag_aoa;
   // GPS data
   double longitude_deg;
   double latitude_deg;

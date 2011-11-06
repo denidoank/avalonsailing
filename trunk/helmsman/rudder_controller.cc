@@ -21,7 +21,21 @@ extern int debug;
 // the boat of 20m plus some simulated test results.
 const double kLimitGamma0 = Deg2Rad(20);
 
-RudderController::RudderController() : limited_(0), eps_integral_phi_(0) {}
+
+// for tests
+void RudderController::SetFeedback(double k1, double k2, double k3, bool feed_forward) {
+  state_feedback_[0] = k1;
+  state_feedback_[1] = k2;
+  state_feedback_[2] = k3;
+  feed_forward_ = feed_forward;
+}
+
+RudderController::RudderController() : limited_(0), eps_integral_phi_(0),
+  feed_forward_(true) {
+  state_feedback_[0] = kStateFeedback1;
+  state_feedback_[1] = kStateFeedback2;
+  state_feedback_[2] = kStateFeedback3;
+}
 
 // Linearize the plant
 void RudderController::TorqueToGammaRudder(double torque,
@@ -33,7 +47,7 @@ void RudderController::TorqueToGammaRudder(double torque,
   // F = kNumberR * kAreaR * (kRhoWater / 2) * speed^2 * C_lift(alpha, speed)
   double c_lift = 2 * force / (kNumberR * kAreaR * kRhoWater * speed * speed);
   CLiftToRudderAngle(c_lift, speed, gamma_rudder_rad, limited);
-  //printf("TorqueToGammaRudder:%6.4f -> %6.4fdeg %d\n",
+  //fprintf(stderr, "TorqueToGammaRudder:%6.4f -> %6.4fdeg %d\n",
   //       torque, Rad2Deg(*gamma_rudder_rad), *limited);
 }
 
@@ -79,12 +93,12 @@ void RudderController::Control(double phi_star,
     eps_integral_phi_ = 0;
 
 
-  // printf("eps_phi %6.4f %6.4f %d \n",  eps_phi, eps_integral_phi_, limited_);
+  // fprintf(stderr, "eps_phi %6.4f %6.4f %d \n",  eps_phi, eps_integral_phi_, limited_);
   // Calculate torque around the z-axis which corrects the control error.
   // State vector: [omega, phi, int_phi]
-  double torque = eps_omega         * kStateFeedback1 +
-                  eps_phi           * kStateFeedback2 +
-                  eps_integral_phi_ * kStateFeedback3;
+  double torque = eps_omega         * state_feedback_[0] +
+                  eps_phi           * state_feedback_[1] +
+                  eps_integral_phi_ * state_feedback_[2];
 
   // Known disturbance torques (from sail)
   double disturbance_torque = 0;
@@ -102,7 +116,7 @@ void RudderController::Control(double phi_star,
   // axis z points down, positive omega turns the boat to starboard,d
   // a positive omega must create a negative gamma_0.
   // For low speeds the angle gets too big and is clamped.
-  double gamma_0 = atan2(omega_star * kLeverR, speed);
+  double gamma_0 = -atan2(omega_star * kLeverR, speed);
   if (speed < 0) {
     // The rudder is used in a reversed position in this situation.
     gamma_0 = SymmetricRad(gamma_0 - M_PI);
@@ -110,19 +124,20 @@ void RudderController::Control(double phi_star,
 
   if (gamma_0 > kLimitGamma0) {
     gamma_0 = kLimitGamma0;
-    if (debug) fprintf(stderr, "+limit gamma 0");
+    if (debug) fprintf(stderr, "+limit gamma 0\n");
   }
   if (gamma_0 < -kLimitGamma0) {
     gamma_0 = -kLimitGamma0;
-    if (debug) fprintf(stderr, "-limit gamma 0");
+    if (debug) fprintf(stderr, "-limit gamma 0\n");
   }
 
-  // need negative gamma for positive torque
-  *gamma_rudder_rad = -(gamma_rudder + gamma_0);
+  // need negative gamma_rudder for positive torque
+  if (debug) fprintf(stderr, "gamma 0 : %g\n", gamma_0);
+  *gamma_rudder_rad = gamma_0 - gamma_rudder;
 }
 
 void RudderController::Reset() {
-  //printf("\nReset.\n");
+  //fprintf(stderr, "\nReset.\n");
   eps_integral_phi_ = 0;
   limited_ = 0;
 };

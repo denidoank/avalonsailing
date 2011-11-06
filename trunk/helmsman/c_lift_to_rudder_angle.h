@@ -7,12 +7,10 @@
 #define HELMSMAN_CLIFT_TO_RUDDER_ANGLE_H_
 
 // limited is
-// -1 for limitation at the lower limit of alpha
+// -1 for limitation at the lower limit of CLift
 //  0 for the unlimited case
-// +1 for a limitation at the positive limit.
-//
-// Sign convention for the case of negative speed: CLift is positive for
-// positive angles and negative speeds.
+// +1 for a limitation at the positive limit (i.e. the produced alpha
+//    makes a smaller than the desired CLift).
 
 void CLiftToRudderAngle(double CLift,
                         double speed,

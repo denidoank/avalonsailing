@@ -26,6 +26,8 @@ class RudderController {
                double* gamma_rudder_rad);  // the control variable rudder angle
   // Reset integral control output part.
   void Reset();
+  // For tests independent of controller design.
+  void SetFeedback(double k1, double k2, double k3, bool feed_forward);
  private:
   // Linearize the plant
   void TorqueToGammaRudder(double torque_Nm, // desired torque to turn the boat
@@ -40,6 +42,9 @@ class RudderController {
   // Roughly equal to the clamped integral of the heading error,
   // integral of phi.
   double eps_integral_phi_;
+  double state_feedback_[3];
+  bool feed_forward_;
+
 };
 
 #endif  // HELMSMAN_RUDDER_CONTROL_H

@@ -6,9 +6,8 @@
 
 #include "helmsman/c_lift_to_rudder_angle.h"
 
-#include "common/unknown.h"
-
 #include "common/convert.h"
+#include "common/unknown.h"
 #include "lib/testing/testing.h"
 
 
@@ -16,7 +15,7 @@
 // Columns: C_Lift, angle/degree, limited ,
 // at 0.5, 1, 2, 3, 6 kts water speed.
 void LogCLiftDiagram() {
-  double speeds_kn[] = {0.5, 1, 2, 3, 6};
+  double speeds_kn[] = {-1, 0.5, 1, 2, 3, 6};
   for (size_t i = 0; i < sizeof(speeds_kn) / sizeof(speeds_kn[0]); ++i) {
     double water_speed = KnotsToMeterPerSecond(speeds_kn[i]);
     printf("\n For water_speed: %g m/s\n", water_speed);
@@ -38,9 +37,23 @@ void LogCLiftDiagram() {
 // Columns: C_Lift, angle/degree, limited ,
 // at 0.5, 1, 2, 3, 6 kts water speed.
 void LogCLiftOverSpeedDiagram() {
+  printf("Desired C_lift = 1.5. This is never feasible, i.e. we are always limited./n");
+  printf("speed / m/s, angle/degree, limited\n");
   for (double water_speed = -10; water_speed < 10; water_speed += 1) {
-    printf("speed / m/s, angle/degree, limited\n");
     double c_lift = 1.5;  // thus we will always be limited
+    int limited;
+    double rudder_angle;
+    CLiftToRudderAngle (c_lift,
+                        water_speed,
+                        &rudder_angle,
+                        &limited);
+    printf("%6.3g,%6.3g,%6d\n",
+           water_speed, Rad2Deg(rudder_angle), limited);
+  }
+  printf("Desired C_lift = 0.5 . Never limited./n");
+  printf("speed / m/s, angle/degree, limited\n");
+  for (double water_speed = -10; water_speed < 10; water_speed += 1) {
+    double c_lift = 0.5;
     int limited;
     double rudder_angle;
     CLiftToRudderAngle (c_lift,
@@ -72,7 +85,7 @@ TEST(CLiftToAngleTest, All) {
                      water_speed_m_s,
                      &rudder_angle,
                      &limited);
-  EXPECT_FLOAT_EQ(9.61538, Rad2Deg(rudder_angle));
+  EXPECT_FLOAT_EQ(-9.61538, Rad2Deg(rudder_angle));
   EXPECT_EQ(0, limited);
 
   c_lift = 1.5;

@@ -11,6 +11,11 @@ const double kStateFeedback1 = 452.39;
 const double kStateFeedback2 = 563.75;
 const double kStateFeedback3 = 291.71;
 
+//const double kStateFeedback1 = 55.792205666559717;
+//const double kStateFeedback2 = 9.098629796956850;
+//const double kStateFeedback3 = 0.418555180352782;
+
+
 
 // Closed loop 10s response time. 
 // const double kStateFeedback1 = 226.195;

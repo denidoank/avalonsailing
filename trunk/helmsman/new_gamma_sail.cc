@@ -28,19 +28,19 @@ void NewGammaSail(double alpha_true, double mag_true,
   Apparent(alpha_true, mag_true, alpha_boat, mag_boat, alpha_boat, &alpha_app, &mag_app);
   // apparent.Print("\nold_apparent");
   double old_gamma_sail = sail_controller->BestGammaSail(alpha_app, mag_app);
-  // printf("old gamma: %6.2g deg\n", Rad2Deg(old_gamma_sail));   
+  // fprintf(stderr, "old gamma: %6.2g deg\n", Rad2Deg(old_gamma_sail));   
   double new_alpha_app;
   double new_mag_app;
   Apparent(alpha_true, mag_true, new_alpha_boat, new_mag_boat, new_alpha_boat, &new_alpha_app, &new_mag_app);
 
-  // printf("alpha_app %6.2f deg , new_alpha_app %6.2f\n", Rad2Deg(alpha_app), Rad2Deg(new_alpha_app));   
+  // fprintf(stderr, "alpha_app %6.2f deg , new_alpha_app %6.2f\n", Rad2Deg(alpha_app), Rad2Deg(new_alpha_app));   
  
   *new_gamma_sail = sail_controller->
       BestGammaSail(new_alpha_app, new_mag_app);
-  // printf("new gamma: %6.2f deg\n", Rad2Deg(*new_gamma_sail));   
+  // fprintf(stderr, "new gamma: %6.2f deg\n", Rad2Deg(*new_gamma_sail));   
   double delta = *new_gamma_sail - old_gamma_sail;   // TODO check usage of  DeltaOldNewRad here!
-  // printf("old gamma: %6.2f deg\n", Rad2Deg(old_gamma_sail));   
-  // printf("delta: %6.2f deg %g\n", Rad2Deg(delta), Sign(delta));   
+  // fprintf(stderr, "old gamma: %6.2f deg\n", Rad2Deg(old_gamma_sail));   
+  // fprintf(stderr, "delta: %6.2f deg %g\n", Rad2Deg(delta), Sign(delta));   
   
   if (maneuver_type == kJibe)
     *delta_gamma_sail = delta - 2 * M_PI * Sign(delta);
@@ -65,19 +65,19 @@ void NewGammaSailWithOldGammaSail(
   double mag_app;
   Apparent(alpha_true, mag_true, alpha_boat, mag_boat, alpha_boat, &alpha_app, &mag_app);
   // apparent.Print("\nold_apparent");
-  // printf("old gamma: %6.2g deg\n", Rad2Deg(old_gamma_sail));   
+  // fprintf(stderr, "old gamma: %6.2g deg\n", Rad2Deg(old_gamma_sail));   
   double new_alpha_app;
   double new_mag_app;
   Apparent(alpha_true, mag_true, new_alpha_boat, new_mag_boat, new_alpha_boat, &new_alpha_app, &new_mag_app);
 
-  // printf("alpha_app %6.2f deg , new_alpha_app %6.2f\n", Rad2Deg(alpha_app), Rad2Deg(new_alpha_app));   
+  // fprintf(stderr, "alpha_app %6.2f deg , new_alpha_app %6.2f\n", Rad2Deg(alpha_app), Rad2Deg(new_alpha_app));   
  
   *new_gamma_sail = sail_controller->
       BestGammaSail(new_alpha_app, new_mag_app);
-  // printf("new gamma: %6.2f deg\n", Rad2Deg(*new_gamma_sail));   
+  // fprintf(stderr, "new gamma: %6.2f deg\n", Rad2Deg(*new_gamma_sail));   
   double delta = *new_gamma_sail - old_gamma_sail;
-  // printf("old gamma: %6.2f deg\n", Rad2Deg(old_gamma_sail));   
-  // printf("delta: %6.2f deg %g\n", Rad2Deg(delta), Sign(delta));   
+  // fprintf(stderr, "old gamma: %6.2f deg\n", Rad2Deg(old_gamma_sail));   
+  // fprintf(stderr, "delta: %6.2f deg %g\n", Rad2Deg(delta), Sign(delta));   
   
   if (maneuver_type == kJibe)
     *delta_gamma_sail = delta - 2 * M_PI * Sign(delta);
