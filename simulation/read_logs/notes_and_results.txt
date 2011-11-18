@@ -1,0 +1,108 @@
+
+
+Log results:
+
+20186 samples
+ 
+Sampling time
+=============
+Test started at: Fri May 22 16:46:42 2009
+
+Usually T = 60ms (16.67 Hz)
+min 50ms
+max 1.0768s
+Big spikes (3 times more than 1 s within 20000 samples, 3 times double T)
+
+Location
+========
+
+On Lake Uri (Urnersee, southern end of Lake Lucerne)
+start east of Isleten, in the middle of the lake.
+lat_0 =  46.920
+lon_0 =  8.6068
+North: 046deg 55min 10.675sec
+East:  008deg 36min 24.599sec
+
+
+Wind
+====
+The wind comes from north west.
+According to
+http://rp5.ch/archive.php?wmo_id=6672&lang=de
+
+The weather in Altdorf was as follows:
+
+22 Mai,
+        hour  °C    mmHg  mmHg@sealevel  rH/% wind direction  *   **  clouds        
+Freitag	23	  19.5	725.7	763.6	         73	  NW	            0	 	17	100%.	 	 	 	 	 	 	 	1500-2000	 	 	18.0	14.5	 	 	 	 	 
+        17	  22.8	723.8	761.1	         59	  NNW	            5	 	18	50%.	 	 	 	 	 	 	 	2000-2500	 	 	20.0	14.4	 	 	 	 	 
+
+"* average over 2 minutes, in 10-12m hight in m/s
+** peak wind speed, in m/s
+
+Sisikon
+        17	  9.5	  595.3	 	             98	  S	              2	 	23	 	 	 	 	 	 	 	 	 	 	 	 	9.2	
+
+So the wind data for Altdorf and sisikon contradict each other. In any case the
+wind at the lake will differ from the wind at the measurement stations.
+
+The wind direction from NW fits to the terrain profile.
+For the average wind strength we may assume anything from 2 - 8 m/s.
+
+
+
+
+Moving direction
+================
+% N until 120s, heel +9° to starboard
+% W until 650s, heel -6°
+% N (E) until 1000s, heel +6° 
+% omega turn to west
+% N until 1200s
+
+
+Height
+======
+
+max error over 20 minutes: +- 10m
+Real value is const +- 0.25m.
+No correlation with other data
+stddev = 3.5m
+Conclusion: Error (stddev) of x and y in the same range.
+
+
+phi_y less than 2 degree (unbelievable, was rad/deg problem in ETH SW)
+So in reality it was 
+
+omega_z
+=======
+
+The yaw rate can easily be +- 15 degrees/s .
+The yaw rate in the logs was in rad/s and had the opposite sign to phi_z!
+phi_z and the integrated om_z match (within 3 degrees over 20 s).
+
+turning by 40 degrees took e.g. 2s. 
+
+
+
+Heel
+====
+
+best calculated from acceleration acc_y and acc_z.
+E.g. first 100s: -9 degrees (acc_z 0 -9.8/s) 
+
+Note z-axis shows up (Avalon convention is down).
+
+So we measure a acc_z around -9.8m/s^2 all the time.
+y-axis goes to starboard, so a positive acc_y means heel to the right/starboard
+and a positive phi_x.
+phi_x_from_acc = -rad2deg * atan2(acc_y, -acc_z);
+
+
+
+
+|phi_y| is smaller than 2 degrees. 
+
+
+
+
