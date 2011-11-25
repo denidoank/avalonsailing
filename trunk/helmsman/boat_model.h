@@ -31,8 +31,8 @@ class BoatModel {
             double phi_z_ = 0, 
             double v_x_ = 0.,
             double gamma_sail_ = 0.2,
-            double gamma_rudder_left_ = 0.03,
-            double gamma_rudder_right_ = -0.05,
+            double gamma_rudder_left_ = 0.0,
+            double gamma_rudder_right_ = 0.0,
             Location = kBrest);
   // N.B. braking is not simulated correctly!
   // (The drag force is not considered in the rudder force model)
