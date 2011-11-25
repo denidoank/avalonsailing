@@ -9,14 +9,14 @@
 #include "helmsman/controller_io.h"
 #include "lib/testing/testing.h"
 
-void Expect(double sail_deg,
-            double r_left_deg,
-            double r_right_deg,
+void Expect(double sail_rad,
+            double r_left_rad,
+            double r_right_rad,
             const ControllerOutput& out) {
-  EXPECT_FLOAT_EQ(Deg2Rad(sail_deg), out.drives_reference.gamma_sail_star_rad);
-  EXPECT_FLOAT_EQ(Deg2Rad(r_left_deg),
+  EXPECT_FLOAT_EQ(sail_rad, out.drives_reference.gamma_sail_star_rad);
+  EXPECT_FLOAT_EQ(r_left_rad,
                   out.drives_reference.gamma_rudder_star_left_rad);
-  EXPECT_FLOAT_EQ(Deg2Rad(r_right_deg),
+  EXPECT_FLOAT_EQ(r_right_rad,
                   out.drives_reference.gamma_rudder_star_right_rad);
 }
 
@@ -36,12 +36,12 @@ TEST(ShipControl, All) {
   ShipControl::Brake();
 
   ShipControl::Run(in, &out);
-  Expect(0, 80, -80, out);
+  Expect(0, kRudderBrakeAngleRad, -kRudderBrakeAngleRad, out);
 
   ShipControl::Brake();
 
   ShipControl::Run(in, &out);
-  Expect(0, 80, -80, out);
+  Expect(0, kRudderBrakeAngleRad, -kRudderBrakeAngleRad, out);
 
   ShipControl::Docking();
 

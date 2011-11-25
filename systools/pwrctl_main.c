@@ -57,7 +57,7 @@ usage(void)
           "circuits: epos, sensors, cpu\n"
           "options:\n"
           "\t-d debug            (don't syslog)\n"
-          , argv0, argv0);
+          , argv0);
   exit(2);
 }
 

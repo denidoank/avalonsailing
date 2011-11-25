@@ -18,12 +18,20 @@
 
 extern int debug;
 
-// General minimal time for a turn
-const double kDurationNormal = 2;
+// General minimal time for a turn, in s
+const static double kDurationNormal = 2;
+// A tack changes the apparent wind angle and that angle measurement is
+// filtered and delayed, such that the sail angle calculated from it is
+// temporarily incorrect. When the stabilization passed then the
+// apparent wind angle is has become correct and we follow it,
+// as usual.
+// After a tack (or other maneuver) the sail angle is held stable for this time.
+const static double kStabilizationPeriod = 2;
 
 ReferenceValues::ReferenceValues()
-    : tick_(0),
+    : tick_(1E6),
       all_ticks_(0),
+      stabilization_ticks_((kStabilizationPeriod + kSamplingPeriod / 2) / kSamplingPeriod),
       acc_(0.0),
       phi_z_(0.0),
       gamma_sail_(0.0),
@@ -90,11 +98,11 @@ void ReferenceValues::NewPlan(double phi_z_1,
 }
 
 bool ReferenceValues::RunningPlan() {
-  return tick_ < all_ticks_;
+  return tick_ < all_ticks_ + stabilization_ticks_;
 }
 
 void ReferenceValues::GetReferenceValues(double* phi_z_star, double* omega_z_star, double* gamma_sail_star) {
-  if (!RunningPlan()) {
+  if (tick_ >= all_ticks_ + stabilization_ticks_) {
     phi_z_ = phi_z_final_;  // This eliminates accumulated errors in the frequent floating point additions.
     gamma_sail_ = SymmetricRad(gamma_sail_final_);
     *phi_z_star = phi_z_;
@@ -104,20 +112,24 @@ void ReferenceValues::GetReferenceValues(double* phi_z_star, double* omega_z_sta
   }
 
   double a;
-  if (tick_ < all_ticks_ / 6)
+  if (tick_ < all_ticks_ / 6) {
     a = acc_;
-  else if (tick_ < all_ticks_ * 5 / 6)
+  } else if (tick_ < all_ticks_ * 5 / 6) {
     a = 0;
-  else if (tick_ < all_ticks_)
+  } else if (tick_ < all_ticks_) {
     a = -acc_;
-  else {
+  } else if (tick_ < all_ticks_ + stabilization_ticks_) {
+    a = 0;
+    omega_ = 0;
+    omega_sail_increment_ = 0;
+  } else {
     CHECK(0);  // no RunningPlan
   }
   omega_ += a * kSamplingPeriod;
   phi_z_ += omega_ * kSamplingPeriod;
   phi_z_ = SymmetricRad(phi_z_);
   gamma_sail_ += omega_sail_increment_;
-  if (tick_ < 1E5)
+  if (tick_ < 1E6)
     ++tick_;
 
   *phi_z_star = phi_z_;

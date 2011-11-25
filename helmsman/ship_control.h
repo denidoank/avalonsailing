@@ -16,6 +16,7 @@
 #include "helmsman/docking_controller.h"
 #include "helmsman/initial_controller.h"
 #include "helmsman/normal_controller.h"
+#include "helmsman/idle_controller.h"
 
 // Rudder and sail
 #include "helmsman/rudder_controller.h"
@@ -25,19 +26,22 @@
 enum MetaState {
   kBraking = 0,
   kDocking,
-  kNormal
+  kNormal,
+  kIdle
 };
 
 class ShipControl {
  public:
   // Returns true if the ControllerOutput changed.
-  static bool Run(const ControllerInput& in, ControllerOutput* out);
+  static void Run(const ControllerInput& in, ControllerOutput* out);
 
   static void Brake()    { meta_state_ = kBraking; }
   static void Docking()  { meta_state_ = kDocking; }
-  static void Normal()   { meta_state_ = kNormal;  }
+  static void Normal()   { meta_state_ = kNormal; }
+  static void Idle()     { meta_state_ = kIdle; }
 
   static void Reset();  // for tests only
+  static bool Idling();
 
  private:
   static void StateMachine(const ControllerInput& in);
@@ -59,6 +63,7 @@ class ShipControl {
   static BrakeController brake_controller_;
   static DockingController docking_controller_;
   static NormalController normal_controller_;
+  static IdleController idle_controller_;
   static bool OutputChanges(const DriveReferenceValuesRad& prev_out, const DriveReferenceValuesRad& out);
 
 };

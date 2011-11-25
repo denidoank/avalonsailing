@@ -101,6 +101,12 @@ double BestSailableHeading(double alpha_star, double alpha_true) {
   // Stay in sailable zone
   double tack_zone_min = Reverse(alpha_true) - TackZoneRad();
   double tack_zone_max = Reverse(alpha_true) + TackZoneRad();
+  // A small instable zone around the dead run shall be avoided. There are certain dangers here,
+  // (death roll), but if they actually are important for Avalon is unclear.
+  static const double jibe_zone = M_PI - JibeZoneRad();
+  CHECK(jibe_zone > 0);
+  double jibe_zone_min = alpha_true - jibe_zone;
+  double jibe_zone_max = alpha_true + jibe_zone;
   double alpha_star_limited = alpha_star;
 
   // Modify if in the non-sailable range.
@@ -108,7 +114,11 @@ double BestSailableHeading(double alpha_star, double alpha_true) {
       DeltaOldNewRad(tack_zone_max, alpha_star) < 0) {
     alpha_star_limited = NearerRad(alpha_star, tack_zone_min, tack_zone_max);
   }
-  return alpha_star_limited;
+  if (DeltaOldNewRad(jibe_zone_min, alpha_star) > 0 &&
+      DeltaOldNewRad(jibe_zone_max, alpha_star) < 0) {
+    alpha_star_limited = NearerRad(alpha_star, jibe_zone_min, jibe_zone_max);
+  }
+  return SymmetricRad(alpha_star_limited);
 }
 
 double BestSailableHeadingDeg(double alpha_star_deg, double alpha_true_deg){

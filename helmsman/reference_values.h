@@ -46,12 +46,14 @@ void NewPlan(double phi_z_1,
              double delta_gamma_sail,  // gamma sail angles are not normalized
              double speed_m_s);
 
-// returns true if there is a running transition.
+// returns true if there is a running transition. The transition is followed by
+// a brief stabilization period.
 bool RunningPlan();
 
  private:
   int tick_;
   int all_ticks_;
+  int stabilization_ticks_;
 
   double acc_;
   double phi_z_;

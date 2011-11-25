@@ -126,7 +126,9 @@ int main(int argc, char* argv[]) {
                   0,                // omega_ / rad, turning rate, + turns right 
                   0,                // phi_z_ / rad, heading relative to North, + turns right
                   0,                // v_x_ / m/s,   speed  
-                  -M_PI / 2);       // gamma_sail_ / rad, e.g. -90 degrees here 
+                  -M_PI / 2,        // gamma_sail_ / rad, e.g. -90 degrees here
+                  0.03,             // initial rudder angles, left and right,
+                  -0.03);           // can be used to cause initial rotation.
   model.SetLatLon(48.23900, -4.7698);
 
   while (!feof(stdin)) {

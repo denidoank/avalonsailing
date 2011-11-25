@@ -19,6 +19,7 @@ SailController   ShipControl::sail_controller_;
 InitialController ShipControl::initial_controller_(&ShipControl::sail_controller_);
 BrakeController   ShipControl::brake_controller_;
 DockingController ShipControl::docking_controller_;
+IdleController    ShipControl::idle_controller_;
 NormalController  ShipControl::normal_controller_(&ShipControl::rudder_controller_, &ShipControl::sail_controller_);
 
 // This is the state of the ship controller state machine.
@@ -53,8 +54,15 @@ void ShipControl::StateMachine(const ControllerInput& in) {
     }  
     return;
 
+  case kIdle:
+    if (controller_ != &idle_controller_) {
+     Transition(&idle_controller_, in);
+    }
+    return;
+
   case kNormal:
-    if ((controller_ == &brake_controller_) || (controller_ == &docking_controller_)) {
+    if ((controller_ != &initial_controller_) &&
+        (controller_ != &normal_controller_)) {
       Transition(&initial_controller_, in);
     }
     // no return
@@ -81,6 +89,7 @@ void ShipControl::StateMachine(const ControllerInput& in) {
         wind_strength_apparent_ != kCalmWind &&
         filter_block_->ValidTrueWind() &&
         in.alpha_star_rad != kUnknown) {
+      debug = 1;
       Transition(&normal_controller_, in);
       return;
     } 
@@ -102,7 +111,7 @@ void ShipControl::StateMachine(const ControllerInput& in) {
 }
 
 // This needs to run with the sampling period of 100ms.
-bool ShipControl::Run(const ControllerInput& in, ControllerOutput* out) {
+void ShipControl::Run(const ControllerInput& in, ControllerOutput* out) {
   ControllerOutput prev_out = *out;
 
   // Get wind speed and all other actual measurement values.
@@ -126,10 +135,6 @@ bool ShipControl::Run(const ControllerInput& in, ControllerOutput* out) {
   StateMachine(in);
   // Call specialized controller
   controller_->Run(in, filtered_, out);
-    
-  bool changed = prev_out != *out;
-  prev_out = *out;
-  return changed;
 }
 
 // Needed for tests only
@@ -143,3 +148,6 @@ void ShipControl::Reset() {
   controller_ = &initial_controller_; 
 }
 
+bool ShipControl::Idling() {
+  return(controller_ == &idle_controller_);
+}

@@ -70,7 +70,8 @@ void crash(const char* fmt, ...) {
   return;
 }
 
-static void fault(int i) { crash("fault"); }
+static void bus_fault(int i) { crash("bus fault %d", i); }
+static void segv_fault(int i) { crash("segv fault %d", i); }
 
 void usage(void) {
   fprintf(stderr,
@@ -88,27 +89,35 @@ static void set_fd(fd_set* s, int* maxfd, FILE* f) {
         if (*maxfd < fd) *maxfd = fd;
 }
 
-uint64_t now_ms() {
-  timeval tv;
-  if (gettimeofday(&tv, NULL) < 0) crash("gettimeofday");
-  uint64_t ms1 = tv.tv_sec;  ms1 *= 1000;
-  uint64_t ms2 = tv.tv_usec; ms2 /= 1000;
-  return ms1 + ms2;
-}
-
 uint64_t now_micros() {
   timeval tv;
   if (gettimeofday(&tv, NULL) < 0) crash("gettimeofday");
   return tv.tv_sec * 1000000LL + tv.tv_usec;
 }
 
-uint64_t nanos_to_wait(uint64_t last_controller_call_micros) {
+uint64_t now_ms() {
+  return now_micros() / 1000;
+}
+
+static const uint64_t kPeriodMicros = kSamplingPeriod * 1E6;
+
+void AdvanceCallTime(uint64_t* next_call_micros) {
+  *next_call_micros += kPeriodMicros;
+  if (now_micros() > *next_call_micros) {
+    fprintf(stderr, "Irkss!! Too late by %lld micros\n", (now_micros() - *next_call_micros));
+    *next_call_micros = now_micros();
+  }
+}
+
+bool CalculateTimeOut(uint64_t next_call_micros, struct timespec* timeout) {
   uint64_t now = now_micros();
-  const uint64_t period = 100000LL;
-  uint64_t timeout = last_controller_call_micros + period > now ?
-     last_controller_call_micros + period - now :
-     0;
-  return 1000 * timeout;
+  uint64_t until_call = next_call_micros > now ? next_call_micros - now : 0;
+  if (until_call > kPeriodMicros)
+    until_call = kPeriodMicros;
+  CHECK(kSamplingPeriod < 1.0);
+  timeout->tv_sec = 0;
+  timeout->tv_nsec = 1000 * (until_call % 1000000LL);
+  return until_call > 0;
 }
 
 void HandleRemoteControl(RemoteProto remote, int* control_mode) {
@@ -116,6 +125,7 @@ void HandleRemoteControl(RemoteProto remote, int* control_mode) {
     fprintf(stderr, "Helmsman switched to control mode %d\n", remote.command);
   switch (remote.command) {
     case kNormalControlMode:
+    case kOverrideSkipperMode:
       *control_mode = remote.command;
       ShipControl::Normal();
       break;
@@ -128,12 +138,12 @@ void HandleRemoteControl(RemoteProto remote, int* control_mode) {
       *control_mode = remote.command;
       ShipControl::Brake();
       break;
-    case kOverrideSkipperMode:
+    case kIdleHelmsmanMode:
       *control_mode = remote.command;
-      ShipControl::Normal();
+      ShipControl::Idle();
       break;
   default:
-    fprintf(stderr, "Illegal remote control");
+    fprintf(stderr, "Illegal remote control: %d", remote.command);
   }
 }
 
@@ -167,8 +177,8 @@ int main(int argc, char* argv[]) {
 
   if (!debug) openlog(argv0, LOG_PERROR, LOG_LOCAL0);
 
-  if (signal(SIGBUS, fault) == SIG_ERR)  crash("signal(SIGBUS)");
-  if (signal(SIGSEGV, fault) == SIG_ERR)  crash("signal(SIGSEGV)");
+  if (signal(SIGBUS, bus_fault) == SIG_ERR)  crash("signal(SIGBUS)");
+  if (signal(SIGSEGV, segv_fault) == SIG_ERR)  crash("signal(SIGSEGV)");
   if (signal(SIGPIPE, SIG_IGN) == SIG_ERR) crash("signal");
 
   if (debug) {
@@ -199,24 +209,29 @@ int main(int argc, char* argv[]) {
   ctrl_in.alpha_star_rad = Deg2Rad(225);  // Going SouthWest is a good guess (and breaks up a deadlock)
   int control_mode = kNormalControlMode;
   int loops = 0;
-  uint64_t last_run_micros = 0;
+
+  // Run ship controller exactly once every 100ms
+  uint64_t next_call_micros = now_micros() + kPeriodMicros;
+  struct timespec timeout;
+  CalculateTimeOut(next_call_micros, &timeout);
 
   struct LineBuffer lbuf;
   memset(&lbuf, 0, sizeof lbuf);
 
   for (;;) {
 
-    struct timespec timeout = { 0, nanos_to_wait(last_run_micros) }; // Run ship controller exactly once every 100ms
     fd_set rfds;
     int max_fd = -1;
     FD_ZERO(&rfds);
     set_fd(&rfds, &max_fd, stdin);
-
     sigset_t empty_mask;
     sigemptyset(&empty_mask);
     int r = pselect(max_fd + 1, &rfds,  NULL, NULL, &timeout, &empty_mask);
-    if (r == -1 && errno != EINTR) crash("pselect");
-
+    if (r == -1 && errno != EINTR) {
+      fprintf(stderr, "crash with %lx %lx\n", long(timeout.tv_sec), timeout.tv_nsec);
+      fprintf(stderr, "crash with errno %ld \n", long(errno));
+      crash("pselect");
+    }
     if (debug>2) fprintf(stderr, "Woke up %d\n", r);
 
     if (FD_ISSET(fileno(stdin), &rfds)) {
@@ -224,7 +239,7 @@ int main(int argc, char* argv[]) {
       if (r == 0) {
 	const char *line = lbuf.line;
         nn = 0;
-        while (strlen(line) > 0) {
+        while (strlen(line) > 5) {  // > 0 would work as well
           if (sscanf(line, IFMT_WINDPROTO(&wind_sensor, &nn)) > 0) {
             fprintf(stderr, "wind_line:%s\n", line);
             ctrl_in.wind_sensor.Reset();
@@ -265,7 +280,6 @@ int main(int argc, char* argv[]) {
             ctrl_in.drives.homed_rudder_left = !isnan(sts.rudder_l_deg);
             ctrl_in.drives.homed_rudder_right = !isnan(sts.rudder_r_deg);
             ctrl_in.drives.homed_sail = !isnan(sts.sail_deg);
-            fprintf(stderr, "HMDI L: %g %c", ctrl_in.drives.gamma_rudder_left_rad, ctrl_in.drives.homed_rudder_left ? 'V' : 'I');
 
           } else if (sscanf(line, IFMT_HELMSMANCTLPROTO(&ctl, &nn)) > 0) {
             if (control_mode != kOverrideSkipperMode &&
@@ -276,7 +290,16 @@ int main(int argc, char* argv[]) {
             if (control_mode == kOverrideSkipperMode)
               ctrl_in.alpha_star_rad = Deg2Rad(remote.alpha_star_deg);
           } else {
-            fprintf(stderr, "Unreadable input %s\n", line);
+            // Any unexpected input (messages not sent to us, or debug output that
+            // accidentally was sent to stdout instead of stderr comes here.
+            fprintf(stderr, "Unreadable input \n>>>%s<<<\n", line);
+            char* first_newline = strchr(line, '\n');
+            if (first_newline) {
+              nn = first_newline - line + 1;
+            } else {
+              nn = strlen(line);  // If the rubbish has no trailing newline, then the correct
+              // message following immediately gets discarded as well, unfortunately.
+            }
           }
           line += nn;
         }
@@ -285,37 +308,38 @@ int main(int argc, char* argv[]) {
 	if (r != EAGAIN) crash("Error reading stdin");
     }
 
-    if (nanos_to_wait(last_run_micros) > 100)
-      continue;
-    ctrl_out.Reset();
-    last_run_micros = now_micros();
-    ShipControl::Run(ctrl_in, &ctrl_out);
-    RudderProto ctl;
-    ctrl_out.drives_reference.ToProto(&ctl);
-    printf(OFMT_RUDDERPROTO_CTL(ctl));
+    if (!CalculateTimeOut(next_call_micros, &timeout)) {
+      ctrl_out.Reset();
+      ShipControl::Run(ctrl_in, &ctrl_out);
+      AdvanceCallTime(&next_call_micros);
 
-    if (loops % 10 == 0) {
-      SkipperInputProto to_skipper = {
-        now_ms(),
-        ctrl_out.skipper_input.longitude_deg,
-        ctrl_out.skipper_input.latitude_deg,
-        ctrl_out.skipper_input.angle_true_deg,
-        ctrl_out.skipper_input.mag_true_kn
-      };
-      printf(OFMT_SKIPPER_INPUTPROTO(to_skipper));
+      if (!ShipControl::Idling()) {
+        RudderProto ctl;
+        ctrl_out.drives_reference.ToProto(&ctl);
+        printf(OFMT_RUDDERPROTO_CTL(ctl));
+      }
+      if (loops % 20 == 0) {
+        SkipperInputProto to_skipper = {
+          now_ms(),
+          ctrl_out.skipper_input.longitude_deg,
+          ctrl_out.skipper_input.latitude_deg,
+          ctrl_out.skipper_input.angle_true_deg,
+          ctrl_out.skipper_input.mag_true_kn
+        };
+        printf(OFMT_SKIPPER_INPUTPROTO(to_skipper));
+      }
+      if (loops % 20 == 5) {
+        HelmsmanStatusProto hsts = INIT_HELMSMAN_STATUSPROTO;
+        ctrl_out.status.ToProto(&hsts);
+        hsts.timestamp_ms = now_ms();
+        printf(OFMT_HELMSMAN_STATUSPROTO(hsts));
+      }
+      // A simple ++loops would do the job until loops wraps around only.
+      loops = loops > 999 ? 0 : loops+1;
     }
-    if (loops % 10 == 5) {
-      HelmsmanStatusProto hsts = INIT_HELMSMAN_STATUSPROTO;
-      ctrl_out.status.ToProto(&hsts);
-      hsts.timestamp_ms = now_ms();
-      printf(OFMT_HELMSMAN_STATUSPROTO(hsts));
-    }
-    // A simple ++loops would do the job until loops wraps around only.
-    loops = loops > 999 ? 0 : loops+1;
   }  // for ever
 
   crash("Main loop exit");
 
   return 0;
 }
-

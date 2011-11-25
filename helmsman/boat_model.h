@@ -34,8 +34,6 @@ class BoatModel {
             double gamma_rudder_left_ = 0.0,
             double gamma_rudder_right_ = 0.0,
             Location = kBrest);
-  // N.B. braking is not simulated correctly!
-  // (The drag force is not considered in the rudder force model)
   void Simulate(const DriveReferenceValuesRad& drives_reference, 
                 Polar true_wind,
                 ControllerInput* in);

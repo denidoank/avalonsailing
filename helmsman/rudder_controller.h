@@ -5,6 +5,13 @@
 #ifndef HELMSMAN_RUDDER_CONTROL_H
 #define HELMSMAN_RUDDER_CONTROL_H
 
+// At this speed a rudder angle of 0.01 rad causes a torque of 10Nm.
+// This speed is practical for controller tests with
+// c.SetFeedback(0, 1000, 0, false) because then the expected rudder angles
+// become nice numbers.
+static const double kMagicTestSpeed = 1.1164745086921;  // m/s
+
+
 class RudderController {
  public:
   RudderController();

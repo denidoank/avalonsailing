@@ -15,15 +15,23 @@
 // Final state: Rudders at +- 80 degrees, sail has angle of attack = 0 to
 // the apparent wind in order to produce as little as possible force.
 
+static const double kRudderBrakeAngleRad = Deg2Rad(60);
+
 class BrakeController : public Controller {
  public:
   virtual ~BrakeController();
+  virtual void Entry(const ControllerInput& in,
+                     const FilteredMeasurements& filtered);
   virtual void Run(const ControllerInput& in,
                    const FilteredMeasurements& filtered,
                    ControllerOutput* out);
   virtual const char* Name() {
     return "Brake";
   };
+ private:
+  int sign_;
+  int count_;
+  double gamma_sail_rad_;
 };
 
 #endif  // HELMSMAN_BRAKE_CONTROLLER_H

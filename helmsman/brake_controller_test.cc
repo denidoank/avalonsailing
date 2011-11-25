@@ -53,8 +53,8 @@ TEST(BrakeController, All) {
 
   c.Run(in, filtered, &out);
 
-  EXPECT_FLOAT_EQ(80, Rad2Deg(out.drives_reference.gamma_rudder_star_left_rad));
-  EXPECT_FLOAT_EQ(-80, Rad2Deg(out.drives_reference.gamma_rudder_star_right_rad));
+  EXPECT_FLOAT_EQ(60, Rad2Deg(out.drives_reference.gamma_rudder_star_left_rad));
+  EXPECT_FLOAT_EQ(-60, Rad2Deg(out.drives_reference.gamma_rudder_star_right_rad));
   // sail kept in flag position, opposing the apparent wind.
   EXPECT_FLOAT_EQ(-180, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
 

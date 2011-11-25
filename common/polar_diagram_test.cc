@@ -106,8 +106,10 @@ LogPolarDiagram();
 }
 
 TEST(PolarDiagramTest, BestSailable) {
+  const double JibeZoneWidth = 180 - JibeZoneDeg();
   //                               alpha_star, alpha_true
-  EXPECT_FLOAT_EQ(0, BestSailableHeadingDeg(0, 0));
+  EXPECT_FLOAT_EQ( JibeZoneWidth, BestSailableHeadingDeg(+1, 0));
+  EXPECT_FLOAT_EQ(-JibeZoneWidth, BestSailableHeadingDeg(-1, 0));
   EXPECT_FLOAT_EQ(0, BestSailableHeadingDeg(0, 90));
   EXPECT_FLOAT_EQ(0, BestSailableHeadingDeg(0, 120));
   EXPECT_FLOAT_EQ(TackZoneDeg(), BestSailableHeadingDeg(0, 180));
@@ -115,7 +117,6 @@ TEST(PolarDiagramTest, BestSailable) {
   EXPECT_FLOAT_EQ(1 - TackZoneDeg(), BestSailableHeadingDeg(0, -179));
   
   EXPECT_FLOAT_EQ(50, BestSailableHeadingDeg(50, 0));
-  
 }
 
 int main(int argc, char* argv[]) {

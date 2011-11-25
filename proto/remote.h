@@ -13,13 +13,13 @@
 struct RemoteProto {
   time_t timestamp_s;
   // Command type:
-  // bit 0-3:
   //  0 = not valid
   //  1 = normal mode (autonomous)
-  //  2 = docking mode (sails, ruders straight)
-  //  3 = brake mode 
-  //  4 = override bearing mode
+  //  2 = docking mode (sail and rudders straight)
+  //  3 = brake mode, heave-to
+  //  4 = override desired bearing mode from the skipper
   //  5 = power cycle/reboot
+  //  6 = idle helmsman, i.e. manual control of rudder and sail
   int command;
   double alpha_star_deg;  // valid if command = 4 only.
 };
@@ -29,6 +29,7 @@ static const int kDockingControlMode = 2;
 static const int kBrakeControlMode = 3;
 static const int kOverrideSkipperMode = 4;
 static const int kPowerCycleMode = 5;
+static const int kIdleHelmsmanMode = 6;
 
 #define INIT_REMOTEPROTO {0, kNormalControlMode, NAN}
 
