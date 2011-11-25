@@ -293,7 +293,7 @@ int main(int argc, char* argv[]) {
             // Any unexpected input (messages not sent to us, or debug output that
             // accidentally was sent to stdout instead of stderr comes here.
             fprintf(stderr, "Unreadable input \n>>>%s<<<\n", line);
-            char* first_newline = strchr(line, '\n');
+            const char* first_newline = strchr(line, '\n');
             if (first_newline) {
               nn = first_newline - line + 1;
             } else {
