@@ -23,19 +23,21 @@ lon_0 =  8.6068
 North: 046deg 55min 10.675sec
 East:  008deg 36min 24.599sec
 
+lat_end =  46.929
+lon_end =  8.6021
+North_end: 046deg 55min 42.935sec
+East_end:  008deg 36min 7.700sec
+
 
 Wind
 ====
 The wind comes from north west.
 According to
 http://rp5.ch/archive.php?wmo_id=6672&lang=de
+the weather in Altdorf at 17:00 was as follows:
 
-The weather in Altdorf was as follows:
-
-22 Mai,
-        hour  °C    mmHg  mmHg@sealevel  rH/% wind direction  *   **  clouds        
-Freitag	23	  19.5	725.7	763.6	         73	  NW	            0	 	17	100%.	 	 	 	 	 	 	 	1500-2000	 	 	18.0	14.5	 	 	 	 	 
-        17	  22.8	723.8	761.1	         59	  NNW	            5	 	18	50%.	 	 	 	 	 	 	 	2000-2500	 	 	20.0	14.4	 	 	 	 	 
+hour  °C    mmHg  mmHg@sealevel  rH/% wind direction  *   **  clouds        
+17	  22.8	723.8	761.1	         59	  NNW	            5	 	18	50%.	 	 	 	 	 	 	 	2000-2500	 	 	20.0	14.4	 	 	 	 	 
 
 "* average over 2 minutes, in 10-12m hight in m/s
 ** peak wind speed, in m/s
@@ -43,13 +45,19 @@ Freitag	23	  19.5	725.7	763.6	         73	  NW	            0	 	17	100%.	 	 	 	 	
 Sisikon
         17	  9.5	  595.3	 	             98	  S	              2	 	23	 	 	 	 	 	 	 	 	 	 	 	 	9.2	
 
-So the wind data for Altdorf and sisikon contradict each other. In any case the
+So the wind data for Altdorf and Sisikon contradict each other. In any case the
 wind at the lake will differ from the wind at the measurement stations.
 
 The wind direction from NW fits to the terrain profile.
 For the average wind strength we may assume anything from 2 - 8 m/s.
+The boat speed was beween 0.7 and 1.8m/s.
 
+See also http://www.seegarten-isleten.ch/index.php?option=com_wrapper&Itemid=100
+Perfect data there:
 
+wind speed 16:45 : mean 16kn   peak: 18kn  from direction 315°   +-11°
+           17:00 : mean 10kn   peak: 16kn  from direction 292.5° +-11°
+temp. 23° Luft 13° wasser
 
 
 Moving direction
@@ -71,9 +79,6 @@ stddev = 3.5m
 Conclusion: Error (stddev) of x and y in the same range.
 
 
-phi_y less than 2 degree (unbelievable, was rad/deg problem in ETH SW)
-So in reality it was 
-
 omega_z
 =======
 
@@ -81,8 +86,7 @@ The yaw rate can easily be +- 15 degrees/s .
 The yaw rate in the logs was in rad/s and had the opposite sign to phi_z!
 phi_z and the integrated om_z match (within 3 degrees over 20 s).
 
-turning by 40 degrees took e.g. 2s. 
-
+Turning by 40 degrees took e.g. 2s. 
 
 
 Heel
@@ -100,9 +104,8 @@ phi_x_from_acc = -rad2deg * atan2(acc_y, -acc_z);
 
 
 
+Drift
+=====
 
-|phi_y| is smaller than 2 degrees. 
-
-
-
+Sideways drift was in the range of 4.2 to 5.5 degrees.
 
