@@ -71,6 +71,8 @@ private slots:
   void on_actionBrake_triggered();
   void on_actionDocking_triggered();
   void on_actionAuto_pilot_triggered();
+  void on_actionIdleHelmsman_triggered();
+
   void on_actionConfig_triggered();
   void updateView();
   void updateGraphics();

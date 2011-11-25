@@ -96,8 +96,8 @@ struct FilteredMeasurements {
   double phi_y_rad;     // pitch
   double temperature_c; // in deg C
   
-  bool valid;           // All the filters have been filled up and contain
-                        // reliable data. 
+  bool valid;           // All the filters (except the true wind filter) have been
+                        // filled up and contain reliable data.
 };
 
 #endif  // HELMSMAN_CONTROLLER_IO_H

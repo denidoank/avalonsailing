@@ -2,20 +2,20 @@
 // Use of this source code is governed by the Apache License 2.0
 // that can be found in the LICENSE file.
 // Steffen Grundmann, May 2011
-#ifndef HELMSMAN_DOCKING_CONTROLLER_H
-#define HELMSMAN_DOCKING_CONTROLLER_H
+#ifndef HELMSMAN_IDLE_CONTROLLER_H
+#define HELMSMAN_IDLE_CONTROLLER_H
 
 #include "helmsman/controller.h"
 
-class DockingController : public Controller {
+class IdleController : public Controller {
  public:
-  virtual ~DockingController();
+  virtual ~IdleController();
   virtual void Run(const ControllerInput& in,
                    const FilteredMeasurements& filtered,
                    ControllerOutput* out);
   virtual const char* Name() {
-    return "Docking";
+    return "Idle";
   };
 };
 
-#endif  // HELMSMAN_DOCKING_CONTROLLER_H
+#endif  // HELMSMAN_IDLE_CONTROLLER_H

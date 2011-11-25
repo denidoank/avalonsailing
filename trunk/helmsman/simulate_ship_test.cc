@@ -3,6 +3,9 @@
 // that can be found in the LICENSE file.
 // Steffen Grundmann, June 2011
 
+// This test just checks that we are able to pick up speed
+// within 40 s. The initial controller is tested.
+
 
 #include "helmsman/boat_model.h"
 #include "helmsman/ship_control.h"
@@ -58,13 +61,12 @@ void InitialControllerTest(double wind_direction_deg,
 
 TEST(SimShip, Wind_0) {
   InitialControllerTest(-179,  // wind vector direction, in degrees
-                        1.2);   // minimum speed, m/s
+                        0.8);   // minimum speed, m/s
 
   // all initial wind directions are handled correctly.
   for (double wind_direction = -180; wind_direction < 180; wind_direction += 1)
-    InitialControllerTest(wind_direction, 1.2);  // speeds vary from 1.3 to m/s.
+    InitialControllerTest(wind_direction, 0.8);  // speeds vary around 0.9 m/s.
 }
-
 
 int main(int argc, char* argv[]) {
   SimShip_Wind_0();

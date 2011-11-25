@@ -33,6 +33,7 @@ const double kShortFilterPeriod = 1.0;   // s
 const double kMiddleFilterPeriod = 30.0;
 const double kLongFilterPeriod = 100.0;  // s, N.B. The state Initial cannot be
                                          // shorter than this time period.
+static int debug = 0;
 }  // namespace
 
 #define ASSIGN_NOT_NAN(lhs, rhs) \
@@ -61,7 +62,7 @@ void FilterBlock::Filter(const ControllerInput& in,
     ASSIGN_NOT_NAN(fil->omega_boat,    in.imu.gyro.omega_z_rad_s);      // yaw rate, rotational speed around z axis
     ASSIGN_NOT_NAN(fil->temperature_c, in.imu.temperature_c);           // in deg Celsius
 
-    fprintf(stderr, "filter in:%c homed: %c sensor: %g %g\n", in.wind_sensor.valid ? 'V' : 'I', in.drives.homed_sail ? 'V' : 'I', in.wind_sensor.alpha_deg, in.wind_sensor.mag_m_s);
+    // fprintf(stderr, "filter in:%c homed: %c sensor: %g %g\n", in.wind_sensor.valid ? 'V' : 'I', in.drives.homed_sail ? 'V' : 'I', in.wind_sensor.alpha_deg, in.wind_sensor.mag_m_s);
 
     // The wind sensor updates the wind once per second.
     double alpha_wind_rad = NormalizeRad(Deg2Rad(in.wind_sensor.alpha_deg));
@@ -71,6 +72,9 @@ void FilterBlock::Filter(const ControllerInput& in,
     fil->mag_aoa = av_long_aoa_.Filter(mag_wind_m_s);
 
     imu_fault_ = isnan(in.imu.attitude.phi_z_rad) || isnan(in.imu.speed_m_s);
+    if (imu_fault_)
+      fprintf(stderr, "imu NaN, IMU fault\n");
+
     if (in.drives.homed_sail && in.wind_sensor.valid) {
       // The wind sensor is telling where the wind is coming *from*, but we work
       // with motion vectors pointing here the wind is going *to*, that is why we have M_PI here.
@@ -87,10 +91,10 @@ void FilterBlock::Filter(const ControllerInput& in,
                   Polar(fil->phi_z_boat, fil->mag_boat),  // could consider drift here, but y-speed is flaky.
                   fil->phi_z_boat,
                   &wind_true);
-        fprintf(stderr, "trueIn %g, %g,\n", wind_true.AngleRad(), wind_true.Mag());
         fil->alpha_true = SymmetricRad(wrap_long_av_.Filter(NormalizeRad(wind_true.AngleRad())));
         fil->mag_true = av_long_.Filter(wind_true.Mag());
-        fprintf(stderr, "trueOut %g, %g,\n", fil->alpha_true, fil->mag_true);
+        if (debug)
+          fprintf(stderr, "trueInOut %g, %g, %g, %g\n", wind_true.AngleRad(), wind_true.Mag(), fil->alpha_true, fil->mag_true);
         // The validity of the true wind takes some time and is checked separately with
         // ValidTrueWind().
       }
@@ -106,7 +110,7 @@ void FilterBlock::Filter(const ControllerInput& in,
     }
     fil->valid = valid_;
 
-    fprintf(stderr, "%c true: %g %g, app: %g %g \n", valid_?'V':'I', fil->alpha_true, fil->mag_true, fil->angle_app, fil->mag_app);
+    // fprintf(stderr, "%c true: %g %g, app: %g %g \n", valid_?'V':'I', fil->alpha_true, fil->mag_true, fil->angle_app, fil->mag_app);
 }
 
 FilterBlock::FilterBlock()

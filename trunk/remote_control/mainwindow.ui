@@ -26,7 +26,7 @@
      <x>0</x>
      <y>0</y>
      <width>830</width>
-     <height>27</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -61,6 +61,8 @@
    <addaction name="actionDocking"/>
    <addaction name="actionOverride_bearing"/>
    <addaction name="actionBrake"/>
+   <addaction name="actionIdleHelmsman"/>
+   <addaction name="separator"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
   <widget class="QDockWidget" name="dockWidget_5">
@@ -150,6 +152,18 @@
    </property>
    <property name="text">
     <string>Brake</string>
+   </property>
+  </action>
+  <action name="actionIdleHelmsman">
+   <property name="icon">
+    <iconset resource="icons.qrc">
+     <normaloff>:/icons/override.png</normaloff>:/icons/override.png</iconset>
+   </property>
+   <property name="text">
+    <string>HMOff</string>
+   </property>
+   <property name="toolTip">
+    <string>Helmsmann Off</string>
    </property>
   </action>
  </widget>

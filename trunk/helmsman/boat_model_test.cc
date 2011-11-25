@@ -18,8 +18,8 @@
 
 namespace {
 const double kSamplingPeriod = 0.1;
+const double kHomingTime = 25;
 }
-
 
 
 TEST(BoatModel, Zeros) {
@@ -60,7 +60,7 @@ TEST(BoatModel, Pushed) {
                   0,                // phi_z_ / rad, heading relative to North, + turns right
                   0,                // v_x_ / m/s,   speed  
                   0);               // gamma_sail_ / rad
-  
+
   DriveReferenceValuesRad ref;
   Polar true_wind(0, 0);           // forward wind blows from South to North, 10m/s
   ControllerInput in;
@@ -69,7 +69,7 @@ TEST(BoatModel, Pushed) {
   double t;
   // Wait for homing to be finished, otherwise the rudders turn and cause
   // a direction change.
-  for (t = 0; t < 10; t += kSamplingPeriod) {
+  for (t = 0; t < kHomingTime; t += kSamplingPeriod) {
     model.Simulate(ref, 
                    true_wind,
                    &in);
@@ -99,7 +99,7 @@ TEST(BoatModel, SailEast) {
                   0,                // phi_z_ / rad, heading relative to North, + turns right
                   0,                // v_x_ / m/s,   speed  
                   0);               // gamma_sail_ / rad 
-  
+
   DriveReferenceValuesRad ref;
   Polar true_wind(0, 10);           // forward wind blows from South to North, 10m/s
   ControllerInput in;
@@ -108,7 +108,7 @@ TEST(BoatModel, SailEast) {
   double t;
   // Wait for homing to be finished, otherwise the rudders turn and cause
   // a direction change.
-  for (t = 0; t < 10; t += kSamplingPeriod) {
+  for (t = 0; t < kHomingTime; t += kSamplingPeriod) {
     model.Simulate(ref, 
                    true_wind,
                    &in);
@@ -144,7 +144,7 @@ TEST(BoatModel, PulledRudderRight) {
                   0,                // phi_z_ / rad, heading relative to North, + turns right
                   0,                // v_x_ / m/s,   speed  
                   0);               // gamma_sail_ / rad
-  
+
   DriveReferenceValuesRad ref;
   Polar true_wind(0, 0);           // forward wind blows from South to North, 10m/s
   ControllerInput in;
@@ -153,7 +153,7 @@ TEST(BoatModel, PulledRudderRight) {
   double t;
   // Wait for homing to be finished, otherwise the rudders turn and cause
   // a direction change.
-  for (t = 0; t < 10; t += kSamplingPeriod) {
+  for (t = 0; t < kHomingTime; t += kSamplingPeriod) {
     for (int i = 0; i < oversampling; ++i)
       model.Simulate(ref, 
                      true_wind,
@@ -188,7 +188,7 @@ TEST(BoatModel, SailWest) {
                   0,                // phi_z_ / rad, heading relative to North, + turns right
                   0,                // v_x_ / m/s,   speed  
                   0);               // gamma_sail_ / rad
-  
+
   DriveReferenceValuesRad ref;
   Polar true_wind(0, 10);           // forward wind blows from South to North, 10m/s
   ControllerInput in;
@@ -197,7 +197,7 @@ TEST(BoatModel, SailWest) {
   double t;
   // Wait for homing to be finished, otherwise the rudders turn and cause
   // a direction change.
-  for (t = 0; t < 10; t += kSamplingPeriod) {
+  for (t = 0; t < kHomingTime; t += kSamplingPeriod) {
     model.Simulate(ref, 
                    true_wind,
                    &in);
@@ -232,7 +232,7 @@ TEST(BoatModel, SailNorth) {
                   0,                // phi_z_ / rad, heading relative to North, + turns right
                   0,                // v_x_ / m/s,   speed  
                   0);               // gamma_sail_ / rad
-  
+
   DriveReferenceValuesRad ref;
   Polar true_wind(0, 10);           // forward wind blows from South to North, 10m/s
   ControllerInput in;
@@ -241,7 +241,7 @@ TEST(BoatModel, SailNorth) {
   double t;
   // Wait for homing to be finished, otherwise the rudders turn and cause
   // a direction change.
-  for (t = 0; t < 10; t += kSamplingPeriod) {
+  for (t = 0; t < kHomingTime; t += kSamplingPeriod) {
     model.Simulate(ref, 
                    true_wind,
                    &in);
@@ -277,7 +277,7 @@ TEST(BoatModel, PushedRudderRight) {
                   0,                // phi_z_ / rad, heading relative to North, + turns right
                   0,                // v_x_ / m/s,   speed  
                   0);               // gamma_sail_ / rad
-  
+
   DriveReferenceValuesRad ref;
   Polar true_wind(0, 0);
   ControllerInput in;
@@ -286,7 +286,7 @@ TEST(BoatModel, PushedRudderRight) {
   double t;
   // Wait for homing to be finished, otherwise the rudders turn and cause
   // a direction change.
-  for (t = 0; t < 10; t += kSamplingPeriod) {
+  for (t = 0; t < kHomingTime; t += kSamplingPeriod) {
     model.Simulate(ref, 
                    true_wind,
                    &in);
@@ -308,7 +308,7 @@ TEST(BoatModel, PushedRudderRight) {
   model.PrintHeader(); 
   model.Print(t); 
   EXPECT_LT(Rad2Deg(SymmetricRad(model.GetPhiZ())), -10);
-  EXPECT_IN_INTERVAL(0, model.GetSpeed(), 0.5);
+  EXPECT_IN_INTERVAL(0.3, model.GetSpeed(), 1.0);
   printf("\n\n");
 }
 
@@ -321,7 +321,7 @@ TEST(BoatModel, PulledRudderRightX) {
                   0,                // phi_z_ / rad, heading relative to North, + turns right
                   0,                // v_x_ / m/s,   speed  
                   0);               // gamma_sail_ / rad
-  
+
   DriveReferenceValuesRad ref;
   Polar true_wind(0, 0);           // forward wind blows from South to North, 10m/s
   ControllerInput in;
@@ -330,7 +330,7 @@ TEST(BoatModel, PulledRudderRightX) {
   double t;
   // Wait for homing to be finished, otherwise the rudders turn and cause
   // a direction change.
-  for (t = 0; t < 10; t += kSamplingPeriod) {
+  for (t = 0; t < kHomingTime; t += kSamplingPeriod) {
     model.Simulate(ref, 
                    true_wind,
                    &in);
@@ -362,7 +362,7 @@ TEST(BoatModel, SailEastReversed) {
                   0,                // phi_z_ / rad, heading relative to North, + turns right
                   0,                // v_x_ / m/s,   speed  
                   0);               // gamma_sail_ / rad, 
-  
+
   DriveReferenceValuesRad ref;
   Polar true_wind(0, 10);           // The wind blows from South to North, at 10m/s.
   ControllerInput in;
@@ -371,12 +371,11 @@ TEST(BoatModel, SailEastReversed) {
   double t;
   // Wait for homing to be finished, otherwise the rudders turn and cause
   // a direction change.
-  for (t = 0; t < 10; t += kSamplingPeriod) {
+  for (t = 0; t < kHomingTime; t += kSamplingPeriod) {
     model.Simulate(ref, 
                    true_wind,
                    &in);
   }
-  // gamma rudder +
   ref.gamma_rudder_star_left_rad = Deg2Rad(0);
   ref.gamma_rudder_star_right_rad = Deg2Rad(0);
   ref.gamma_sail_star_rad = Deg2Rad(-45);
@@ -395,7 +394,7 @@ TEST(BoatModel, SailEastReversed) {
   model.PrintHeader(); 
   model.Print(t); 
   EXPECT_IN_INTERVAL(80, Rad2Deg(model.GetPhiZ()), 100);
-  EXPECT_IN_INTERVAL(-1, model.GetSpeed(), -0.5);
+  EXPECT_IN_INTERVAL(-2, model.GetSpeed(), -0.5);
   printf("\n\n");
 }
 
@@ -415,7 +414,7 @@ TEST(BoatModel, SailNorthReversed) {
   double t;
   // Wait for homing to be finished, otherwise the rudders turn and cause
   // a direction change.
-  for (t = 0; t < 10; t += kSamplingPeriod) {
+  for (t = 0; t < kHomingTime; t += kSamplingPeriod) {
     model.Simulate(ref, 
                    true_wind,
                    &in);
@@ -435,11 +434,11 @@ TEST(BoatModel, SailNorthReversed) {
     model.Print(t); 
   }
   printf("\nExpect to sail straight North intially and then reverse "
-         "at a speed of roughly -0.8 m/s.");
+         "at a speed of roughly -1.6 m/s.");
   model.PrintHeader(); 
   model.Print(t); 
   EXPECT_IN_INTERVAL(-10, Rad2Deg(model.GetPhiZ()), 10);
-  EXPECT_IN_INTERVAL(-1, model.GetSpeed(), -0.6);
+  EXPECT_IN_INTERVAL(-2, model.GetSpeed(), -0.6);
   printf("\n\n");
 }
 
@@ -459,7 +458,7 @@ TEST(BoatModel, SailNorthReversedRudderPositive) {
   double t;
   // Wait for homing to be finished, otherwise the rudders turn and cause
   // a direction change.
-  for (t = 0; t < 10; t += kSamplingPeriod) {
+  for (t = 0; t < kHomingTime; t += kSamplingPeriod) {
     model.Simulate(ref, 
                    true_wind,
                    &in);

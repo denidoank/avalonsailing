@@ -131,9 +131,13 @@ void RudderController::Control(double phi_star,
     if (debug) fprintf(stderr, "-limit gamma 0\n");
   }
 
-  // need negative gamma_rudder for positive torque
-  if (debug) fprintf(stderr, "gamma 0 : %g\n", gamma_0);
-  *gamma_rudder_rad = gamma_0 - gamma_rudder;
+  if (feed_forward_) {
+    // need negative gamma_rudder for positive torque
+    if (debug) fprintf(stderr, "gamma 0 : %g\n", gamma_0);
+    *gamma_rudder_rad = gamma_0 - gamma_rudder;
+  } else {
+    *gamma_rudder_rad = -gamma_rudder;
+  }
 }
 
 void RudderController::Reset() {

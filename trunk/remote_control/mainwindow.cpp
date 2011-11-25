@@ -260,27 +260,73 @@ void MainWindow::on_actionConnect_triggered(bool checked)
 }
 
 
+// Force angle into [0, 360).
+double NormalizeDeg(double alpha_deg) {
+  double x = fmod(alpha_deg, 360.0);
+  if (x >= 0)
+    return x;
+  else
+    return 360.0 + x;
+}
+
+// Force result into [-180, 180).
+double SymmetricDeg(double alpha_deg) {
+  return NormalizeDeg(alpha_deg + 180.0) - 180.0;
+}
+
+
 void MainWindow::keyPressEvent(QKeyEvent* event) {
+  switch(event->key()) {
+  case Qt::Key_C:
+  case Qt::Key_Z:
+  case Qt::Key_X:
+  case Qt::Key_A:
+  case Qt::Key_D:
+          sendRemoteProto(kIdleHelmsmanMode); break;
+
+  case Qt::Key_H:
+  case Qt::Key_J:
+  case Qt::Key_K:
+  case Qt::Key_L:
+          sendRemoteProto(kOverrideSkipperMode); break;
+
+  case Qt::Key_Space:
+          sendRemoteProto(kBrakeControlMode); break;
+  }
   switch(event->key()) {
   case Qt::Key_C:
           rudder_controller_->setAngle(rudder_controller_->angle() - 2); break;
   case Qt::Key_Z:
           rudder_controller_->setAngle(rudder_controller_->angle() + 2); break;
   case Qt::Key_X:
-          rudder_controller_->setAngle(0);
-          break;
+          rudder_controller_->setAngle(0); break;
 
   case Qt::Key_A:
-          boom_controller_->setAngle(boom_controller_->angle() - 5); break;
+          boom_controller_->setAngle(
+                SymmetricDeg(boom_controller_->angle() - 5)); break;
   case Qt::Key_D:
-          boom_controller_->setAngle(boom_controller_->angle() + 5); break;
+          boom_controller_->setAngle(
+                SymmetricDeg(boom_controller_->angle() + 5)); break;
+
+  case Qt::Key_H:
+          heading_controller_->setAngle(
+                SymmetricDeg(heading_controller_->angle() - 10)); break;
+  case Qt::Key_J:
+          heading_controller_->setAngle(
+                SymmetricDeg(heading_controller_->angle() - 2)); break;
+  case Qt::Key_K:
+          heading_controller_->setAngle(
+                SymmetricDeg(heading_controller_->angle() + 2)); break;
+  case Qt::Key_L:
+          heading_controller_->setAngle(
+                SymmetricDeg(heading_controller_->angle() + 10)); break;
   }
 }
 
 void MainWindow::sendRemoteProto(int command) {
   RemoteProto proto = INIT_REMOTEPROTO;
   proto.command = command;
-  proto.alpha_star_deg = rudder_controller_->angle();
+  proto.alpha_star_deg = heading_controller_->angle();
   size_t BufSize = 256;
   char buf[BufSize];
   ::snprintf(buf, BufSize, OFMT_REMOTEPROTO(proto));
@@ -305,3 +351,9 @@ void MainWindow::on_actionOverride_bearing_triggered()
 {
   sendRemoteProto(kOverrideSkipperMode);
 }
+
+void MainWindow::on_actionIdleHelmsman_triggered()
+{
+  sendRemoteProto(kIdleHelmsmanMode);
+}
+

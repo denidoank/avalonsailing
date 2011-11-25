@@ -37,39 +37,43 @@ void SetEnv(const Polar& wind_true,
 
 TEST(NormalController, All) {
   RudderController rudder_controller;
+  // coefficients for omega_z, phi_z, int(phi_z)
   rudder_controller.SetFeedback(452.39, 563.75, 291.71, true);
 
   SailController sail_controller;
   NormalController c(&rudder_controller, &sail_controller);
+  // This removes the rate limit for the reference value and allows
+  // not sailable directions.
+  c.SkipAlphaStarShaping(true);
   ControllerInput in;
   FilteredMeasurements filtered;
   ControllerOutput out;
 
-  Polar wind_true(0, 2);  // wind vector forward to North, with 2m/s
-  Polar boat(0, 1);       // boat going forward as well, with 1 m/s.
-                          // So the apparent wind vector is at 0 degree to
+  Polar wind_true(0, 2);       // Wind vector forward to North, with 2m/s.
+  Polar boat(Deg2Rad(0), 1);  // Boat going forward as well, with 1 m/s.
+                          // So the apparent wind vector is at about -20 degrees to
                           // the boats x-axis, 1m/s magnitude.
   SetEnv(wind_true, boat, &in, &filtered, &out);
-  // straight ahead
-  in.alpha_star_rad = 0;
+  // straight ahead, in the forbidden zone around the dead run.
+  in.alpha_star_rad = Deg2Rad(0);
   c.Run(in, filtered, &out);
-
+  // The reference value of  is in the forbidden jibe zone and is replaced
+  // by +15 degrees. Thus the negative rudder angle.
   EXPECT_FLOAT_EQ(0, Rad2Deg(out.drives_reference.gamma_rudder_star_left_rad));
   EXPECT_FLOAT_EQ(0, Rad2Deg(out.drives_reference.gamma_rudder_star_right_rad));
   // Sail in spinakker mode
   EXPECT_FLOAT_EQ(-93, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
-  c.Run(in, filtered, &out);
-  c.Run(in, filtered, &out);
+
   c.Run(in, filtered, &out);
   EXPECT_FLOAT_EQ(0, Rad2Deg(out.drives_reference.gamma_rudder_star_left_rad));
   EXPECT_FLOAT_EQ(0, Rad2Deg(out.drives_reference.gamma_rudder_star_right_rad));
   // Sail in spinakker mode
   EXPECT_FLOAT_EQ(-93, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
-  in.alpha_star_rad = 0.01;
+  in.alpha_star_rad = 0.001;
 
   c.Run(in, filtered, &out);
 
-  EXPECT_FLOAT_EQ(-0.295634, Rad2Deg(out.drives_reference.gamma_rudder_star_left_rad));
+  EXPECT_FLOAT_EQ(-0.0423465, Rad2Deg(out.drives_reference.gamma_rudder_star_left_rad));
   EXPECT_EQ(out.drives_reference.gamma_rudder_star_left_rad,
             out.drives_reference.gamma_rudder_star_right_rad);
   // Sail in spinakker mode
@@ -77,23 +81,20 @@ TEST(NormalController, All) {
 
   in.alpha_star_rad = 0.0;
   c.Run(in, filtered, &out);
-  EXPECT_FLOAT_EQ(-0.0145448, Rad2Deg(out.drives_reference.gamma_rudder_star_left_rad));
+  EXPECT_FLOAT_EQ(-0.00208339, Rad2Deg(out.drives_reference.gamma_rudder_star_left_rad));
   EXPECT_EQ(out.drives_reference.gamma_rudder_star_left_rad,
             out.drives_reference.gamma_rudder_star_right_rad);
   // Sail in spinakker mode
   EXPECT_FLOAT_EQ(-93, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
   c.Run(in, filtered, &out);
-  EXPECT_FLOAT_EQ(-0.0145448, Rad2Deg(out.drives_reference.gamma_rudder_star_left_rad));
-  in.alpha_star_rad = -0.01;
+  EXPECT_FLOAT_EQ(-0.00208339, Rad2Deg(out.drives_reference.gamma_rudder_star_left_rad));
+  in.alpha_star_rad = -0.001;
   c.Run(in, filtered, &out);
-  EXPECT_FLOAT_EQ(0.281089, Rad2Deg(out.drives_reference.gamma_rudder_star_left_rad));
+  EXPECT_FLOAT_EQ(0.0402631, Rad2Deg(out.drives_reference.gamma_rudder_star_left_rad));
   in.alpha_star_rad = 0;
   c.Run(in, filtered, &out);
   EXPECT_FLOAT_EQ(0.0, Rad2Deg(out.drives_reference.gamma_rudder_star_left_rad));
 
- 
-  
-  /*
   wind_true = Polar(-M_PI / 2, 2);  // wind vector to West, with 2m/s
   boat = Polar(0, 2);               // boat going North, with 2 m/s
   // so the apparent wind vector is at -135 degree to
@@ -102,12 +103,84 @@ TEST(NormalController, All) {
 
   c.Run(in, filtered, &out);
   // sail opposing the apparent wind.
-  EXPECT_FLOAT_EQ(45, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
-  */
+  EXPECT_FLOAT_EQ(25, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
+}
+
+TEST(NormalController, Synthetic) {
+  // With the magic test speed and the amplification coefficients set right
+  // the rudder angle will be equal to the negatice control error.
+  RudderController rudder_controller;
+  // coefficients for omega_z, phi_z, int(phi_z)
+  rudder_controller.SetFeedback(0, 1000, 0, false);
+
+  SailController sail_controller;
+  NormalController c(&rudder_controller, &sail_controller);
+  // This removes the rate limit for the reference value and allows
+  // not sailable directions.
+  c.SkipAlphaStarShaping(true);
+  ControllerInput in;
+  FilteredMeasurements filtered;
+  ControllerOutput out;
+
+  Polar wind_true(0, 2);       // Wind vector forward to North, with 2m/s.
+  Polar boat(Deg2Rad(0), kMagicTestSpeed);  // Boat going forward as well, with about 1.1 m/s.
+                          // So the apparent wind vector is at about -20 degrees to
+                          // the boats x-axis, 1m/s magnitude.
+  SetEnv(wind_true, boat, &in, &filtered, &out);
+  // straight ahead, in the forbidden zone around the dead run.
+  in.alpha_star_rad = Deg2Rad(0);
+  c.Run(in, filtered, &out);
+  // The reference value of  is in the forbidden jibe zone and is replaced
+  // by +15 degrees. Thus the negative rudder angle.
+  EXPECT_FLOAT_EQ(0, Rad2Deg(out.drives_reference.gamma_rudder_star_left_rad));
+  EXPECT_FLOAT_EQ(0, Rad2Deg(out.drives_reference.gamma_rudder_star_right_rad));
+  // Sail in spinakker mode
+  EXPECT_FLOAT_EQ(-93, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
+
+  c.Run(in, filtered, &out);
+  EXPECT_FLOAT_EQ(0, Rad2Deg(out.drives_reference.gamma_rudder_star_left_rad));
+  EXPECT_FLOAT_EQ(0, Rad2Deg(out.drives_reference.gamma_rudder_star_right_rad));
+  // Sail in spinakker mode
+  EXPECT_FLOAT_EQ(-93, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
+  in.alpha_star_rad = 0.001;
+
+  c.Run(in, filtered, &out);
+
+  EXPECT_FLOAT_EQ(-0.001, out.drives_reference.gamma_rudder_star_left_rad);
+  EXPECT_EQ(out.drives_reference.gamma_rudder_star_left_rad,
+            out.drives_reference.gamma_rudder_star_right_rad);
+  // Sail in spinakker mode
+  EXPECT_FLOAT_EQ(-93, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
+
+  in.alpha_star_rad = 0.0;
+  c.Run(in, filtered, &out);
+  EXPECT_FLOAT_EQ(-0.0, out.drives_reference.gamma_rudder_star_left_rad);
+  EXPECT_EQ(out.drives_reference.gamma_rudder_star_left_rad,
+            out.drives_reference.gamma_rudder_star_right_rad);
+  // Sail in spinakker mode
+  EXPECT_FLOAT_EQ(-93, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
+  c.Run(in, filtered, &out);
+  EXPECT_FLOAT_EQ(-0.0, out.drives_reference.gamma_rudder_star_left_rad);
+  in.alpha_star_rad = -0.001;
+  c.Run(in, filtered, &out);
+  EXPECT_FLOAT_EQ(0.001, out.drives_reference.gamma_rudder_star_left_rad);
+  in.alpha_star_rad = 0;
+  c.Run(in, filtered, &out);
+  EXPECT_FLOAT_EQ(0.0, out.drives_reference.gamma_rudder_star_left_rad);
+
+  wind_true = Polar(-M_PI / 2, 2);  // wind vector to West, with 2m/s
+  boat = Polar(0, 2);               // boat going North, with 2 m/s
+  // so the apparent wind vector is at -135 degree to
+  // the boats x-axis, sqrt(2) * 2m/s magnitude.
+  SetEnv(wind_true, boat, &in, &filtered, &out);
+
+  c.Run(in, filtered, &out);
+  // sail opposing the apparent wind.
+  EXPECT_FLOAT_EQ(25, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
 }
 
 int main(int argc, char* argv[]) {
   NormalController_All();
+  NormalController_Synthetic();
   return 0;
 }
-
