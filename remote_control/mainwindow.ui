@@ -26,7 +26,7 @@
      <x>0</x>
      <y>0</y>
      <width>830</width>
-     <height>22</height>
+     <height>27</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -62,7 +62,6 @@
    <addaction name="actionOverride_bearing"/>
    <addaction name="actionBrake"/>
    <addaction name="actionIdleHelmsman"/>
-   <addaction name="separator"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
   <widget class="QDockWidget" name="dockWidget_5">
@@ -157,7 +156,7 @@
   <action name="actionIdleHelmsman">
    <property name="icon">
     <iconset resource="icons.qrc">
-     <normaloff>:/icons/override.png</normaloff>:/icons/override.png</iconset>
+     <normaloff>:/icons/idle.png</normaloff>:/icons/idle.png</iconset>
    </property>
    <property name="text">
     <string>HMOff</string>
