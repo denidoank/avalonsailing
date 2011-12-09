@@ -13,6 +13,8 @@
 // NMEA protocol: http://www.serialmon.com/protocols/nmea0183.html
 // GPS NMEA messages: http://www.gpsinformation.org/dale/nmea.htm
 //
+#include "proto/compass.h"
+
 #include <errno.h>
 #include <fcntl.h>
 #include <stdarg.h>
@@ -34,8 +36,7 @@ static const char* argv0;
 static int verbose = 0;
 static int debug = 0;
 
-static void
-crash(const char* fmt, ...)
+static void crash(const char* fmt, ...)
 {
   va_list ap;
   char buf[1000];
@@ -54,21 +55,19 @@ crash(const char* fmt, ...)
   return;
 }
 
-static void
-usage(void)
+static void usage(void)
 {
   fprintf(stderr,
           "usage: %s [options] /dev/ttyXX\n"
           "options:\n"
-          "\t-b baudrate         (default 19200)\n"
-          "\t-d debug            (don't syslog, -dd is open serial as plain file)\n"
-          , argv0);
+          "\t-b baudrate    (default 19200)\n"
+          "\t-d debug       (don't syslog, -dd is open serial as plain file)\n",
+          argv0);
   exit(2);
 }
 
 
-static int64_t
-now_ms() 
+static int64_t now_ms() 
 {
   struct timeval tv;
   if (gettimeofday(&tv, NULL) < 0) crash("no working clock");
@@ -101,24 +100,14 @@ char* valid_nmea(char* line) {
   return start + 1;
 }
 
-struct CompassProto {
-  uint64_t timestamp_ms;
-  double yaw_deg;
-  double pitch_deg;
-  double roll_deg;
-  double temp_c;
-};
-
-// For use in printf and friends.
-#define OFMT_COMPASSPROTO(x, n)                                            \
-  "timestamp_ms:%lld roll_deg:%.3lf pitch_deg:%.3lf yaw_deg:%.3lf temp_c:%.3lf%n", \
-    (x).timestamp_ms, (x).roll_deg, (x).pitch_deg,\
-    (x).yaw_deg, (x).temp_c, (n)
 
 int parse_compass(char* sentence, struct CompassProto* cp) {
-  return  sscanf(sentence, "C%lfP%lfR%lfT%lf",
-                 &cp->yaw_deg, &cp->pitch_deg,
-                 &cp->roll_deg, &cp->temp_c) == 4;
+  if (sscanf(sentence, "C%lfP%lfR%lfT%lf",
+             &cp->yaw_deg, &cp->pitch_deg, &cp->roll_deg, &cp->temp_c) == 4) {
+    cp->timestamp_ms = now_ms();
+    return 1;
+  }
+  return 0;
 }
 
 
@@ -165,15 +154,6 @@ int main(int argc, char* argv[]) {
     t.c_iflag = 0;
     t.c_oflag = 0;
     t.c_lflag = 0;
-
-    /*
-    cfmakeraw(&t);
-
-    t.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
-    t.c_oflag &= ~OPOST;
-    t.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
-    t.c_cflag &= ~(CSIZE | PARENB); 
-    */
     t.c_cflag |= CLOCAL|CREAD|CS8;
 
     switch (baudrate) {
@@ -206,7 +186,9 @@ int main(int argc, char* argv[]) {
 
     char line[100];
     if (!fgets(line, sizeof line, nmea)) {
-      if (debug) fprintf(stderr, "Error reading from port: %s\n", strerror(errno));
+      if (debug) {
+        fprintf(stderr, "Error reading from port: %s\n", strerror(errno));
+      }
       continue;
     }
 
@@ -219,14 +201,12 @@ int main(int argc, char* argv[]) {
     garbage = 0;
 
     if (strncmp(start, "C", 1) == 0) {
-      struct CompassProto vars = { now_ms(), 0, 0, 0, 0};
+      struct CompassProto vars = INIT_COMPASSPROTO;
       if (!parse_compass(start, &vars)) {
         if (debug) fprintf(stderr, "Invalid C sentence: '%s'\n", line);
         continue;
       }
-      int n = 0;
-      snprintf(out, sizeof out, OFMT_COMPASSPROTO(vars, &n));
-      if (n > sizeof out) crash("compass proto bufer too small");
+      snprintf(out, sizeof out, OFMT_COMPASSPROTO(vars));
       puts(out);
       continue;
     }
