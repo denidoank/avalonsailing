@@ -1,0 +1,36 @@
+This is v2 of the epos control programs.  This now consists of a suite of programs
+connected with ../linebusd to the 'ebus'.  The ebus protocol is of the form understood
+by the eposcom programs:   
+
+   serial:register[subregister]
+
+   0xffff:0xaaaa[1]                interpreted by eposcom as a request to read register
+   0xffff:0xaaaa[1] := value       interpreted by eposcom as a request to write register
+   0xffff:0xaaaa[1] = value        emitted by eposcom to acknowledge read or write
+   0xffff:0xaaaa[1] # error        emitted by eposcom in case of error reading or writing
+   # comment line                  ignored by eposcom, can be used to encaps other messages        
+  
+and '#' lines (used to piggyback rudderctl messages from the lbus to the ebus
+
+the entire suite is to be run as follows
+
+    LBUS=/var/run/lbus # (linebusd $LBUS should run already)
+
+    EBUS=/var/run/ebus
+    linebusd $EBUS
+
+    plug $EBUS eposcom /dev/ttyUSB2  &  # first rudder epos
+    plug $EBUS eposcom /dev/ttyUSB3  &  # second rudder epos
+    plug $EBUS eposcom /dev/ttyUSB4  &  # sail epos
+
+    eposprobe | plug -o $EBUS &                 # periodically issue status register probe commands
+    plug -i $EBUS | ruddersts | plug -o $LBUS & # decode status registers to ruddersts: messages
+ 
+    plug -i $LBUS | rudderctlfwd | plug -o $EBUS &  # forward rudderctl: messages to ebus, prefixed with '#'
+
+    plug $EBUS rudderctl -l &  # left rudder       # homing and positioning of rudder
+    plug $EBUS rudderctl -r &  # right rudder      # same
+    plug $EBUS sailctl  &      # sail              # positioning for sail
+
+(TBD:)
+    plug -i $EBUS | eposmon    # summarize and report epos communication errors to syslog
