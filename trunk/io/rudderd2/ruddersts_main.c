@@ -144,30 +144,31 @@ int main(int argc, char* argv[]) {
 		int changed = 0;
 
 		if (serial == motor_params[BMMH].serial_number && reg == REG_BMMHPOS) {
-			changed = upd(&sts.sail_deg, qc_to_angle(motor_params[BMMH], value));
+			changed = upd(&sts.sail_deg, qc_to_angle(&motor_params[BMMH], normalize_qc(&motor_params[BMMH], value)));
 		} else if (serial == motor_params[LEFT].serial_number && reg == REG_STATUS) {
 			homed[LEFT] = value&STATUS_HOMEREF;
 			changed = (!homed[LEFT] && !isnan(sts.rudder_l_deg));
-			if (changed) sts.ruder_l_deg = NAN;
+			if (changed) sts.rudder_l_deg = NAN;
 		} else if (serial == motor_params[RIGHT].serial_number && reg == REG_STATUS) {
 			homed[RIGHT] = value&STATUS_HOMEREF;
 			changed = (!homed[RIGHT] && !isnan(sts.rudder_r_deg));
-			if (changed) sts.ruder_r_deg = NAN;
+			if (changed) sts.rudder_r_deg = NAN;
 		} else if (serial == motor_params[LEFT].serial_number && reg == REG_CURRPOS && homed[LEFT]) {
-			changed = upd(&sts.rudder_l_deg, qc_to_angle(motor_params[LEFT], value));
+			changed = upd(&sts.rudder_l_deg, qc_to_angle(&motor_params[LEFT], value));
 		} else if (serial == motor_params[RIGHT].serial_number && reg == REG_CURRPOS && homed[RIGHT]) {
-			changed = upd(&sts.rudder_r_deg, qc_to_angle(motor_params[RIGHT], value));
+			changed = upd(&sts.rudder_r_deg, qc_to_angle(&motor_params[RIGHT], value));
 		}
 
 		if (!changed && (last_us + max_us > now)) {
 			continue;
 		}
-
+		
+		sts.timestamp_ms = now / 1000;
+	       
 		if (last_us + min_us > now)
 			continue;
 
-		int dum;
-		printf(OFMT_RUDDERPROTO_STS(sts, &dum));
+		printf(OFMT_RUDDERPROTO_STS(sts));
 		last_us = now_us();
 	}
 
