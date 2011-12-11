@@ -29,9 +29,7 @@ static const char* argv0;
 static int verbose = 0;
 static int debug = 0;
 
-static void
-crash(const char* fmt, ...)
-{
+static void crash(const char* fmt, ...) {
 	va_list ap;
 	char buf[1000];
 	va_start(ap, fmt);
@@ -51,9 +49,7 @@ crash(const char* fmt, ...)
 
 static void fault() { crash("fault"); }
 
-static void
-usage(void)
-{
+static void usage(void) {
 	fprintf(stderr,
 		"usage: plug -i /path/to/ebus | %s [options] | plug -o /path/to/lbus \n"
 		"options:\n"
@@ -63,19 +59,17 @@ usage(void)
 	exit(2);
 }
 
-static int64_t
-now_us() 
-{
+static int64_t now_us() {
         struct timeval tv;
         if (gettimeofday(&tv, NULL) < 0) crash("no working clock");
 
-        int64_t ms1 = tv.tv_sec;  ms1 *= 1000000;
-        int64_t ms2 = tv.tv_usec;
-        return ms1 + ms2;
+        int64_t us1 = tv.tv_sec;  us1 *= 1000000;
+        int64_t us2 = tv.tv_usec;
+        return us1 + us2;
 }
 
 // update x and return true if abs(difference) > .1
-int upd(double* x, double y) {
+static int upd(double* x, double y) {
 	double r = y - *x;
 	*x = y;
 	return r*r > .01;
