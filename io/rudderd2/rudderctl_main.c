@@ -316,12 +316,11 @@ const int64_t MAX_INTERVAL = 15*60*1000;
 int main(int argc, char* argv[]) {
 
 	int ch;
-	int which = -1;
 
 	argv0 = strrchr(argv[0], '/');
 	if (argv0) ++argv0; else argv0 = argv[0];
 
-	while ((ch = getopt(argc, argv, "dhv")) != -1){
+	while ((ch = getopt(argc, argv, "dhlrv")) != -1){
 		switch (ch) {
 		case 'd': ++debug; break;
 		case 'l': params = &motor_params[LEFT]; break;
