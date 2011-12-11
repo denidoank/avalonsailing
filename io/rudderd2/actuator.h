@@ -6,6 +6,8 @@
 
 #include <stdint.h>
 
+#include "eposclient.h"
+
 enum { LEFT = 0, RIGHT = 1, SAIL = 2, BMMH = 3 };
 
 // Home is the extreme outer position for both rudders.  the
@@ -28,12 +30,6 @@ extern MotorParams motor_params[];
 int32_t angle_to_qc(MotorParams* p, double angle_deg);
 double  qc_to_angle(MotorParams* p, int32_t pos_qc);
 int32_t normalize_qc(MotorParams* p, int32_t qc);
-
-// All (uint16_t index , uint8_t subindex)  are folded into an uint_32 in this api.
-#define REGISTER(index, subindex) (((index) << 8) | ((subindex)&0xff))
-
-#define INDEX(reg) (((reg)>>8) & 0xffff)
-#define SUBINDEX(reg) ((reg) & 0xff)
 
 enum {
         REG_CONTROL = REGISTER(0x6040, 0),
@@ -58,12 +54,5 @@ enum {
 
         REG_BMMHPOS = REGISTER(0x6004, 0),
 };
-
-#define EBUS_GET_OFMT(serial, reg) \
-	"0x%x:0x%x[%d]\n", (serial), INDEX(reg), SUBINDEX(reg)
-
-#define EBUS_SET_OFMT(serial, reg, value) \
-	"0x%x:0x%x[%d] := 0x%x\n", (serial), INDEX(reg), SUBINDEX(reg), (value)
-
 
 #endif // IO_RUDDERD2_ACTUATOR_H

@@ -2,16 +2,18 @@
 // Use of this source code is governed by the Apache License 2.0
 // that can be found in the LICENSE file.
 
-#include <assert.h>
-
 #include "actuator.h"
 
+#include <assert.h>
+
 struct MotorParams motor_params[] = {
-//      { "LEFT",  0x09011145, 100.0, -80.0, 0, -288000 },
-//      { "RIGHT", 0x09010537, -90.0,  90.0, 0,  288000 },
-// limiting inner angle
+#if 0
+	{ "LEFT",  0x09011145, 100.0, -80.0, 0, -288000 },
+	{ "RIGHT", 0x09010537, -90.0,  90.0, 0,  288000 },
+#else  // limiting inner angle
         { "LEFT",  0x09011145, 100.0, -50.0, 0, -288000*150/180 },
         { "RIGHT", 0x09010537, -90.0,  50.0, 0,  288000*140/180 },
+#endif
 // sail and bmmh *must* be 360 degree ranges
         { "SAIL",  0x09010506,  -180, 180.0, 615000, -615000 },
         { "BMMH",  0x00001227,  -180, 180.0, 2048, -2048 }, // 4096 tics for a complete rotation
