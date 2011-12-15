@@ -168,10 +168,10 @@ int main(int argc, char* argv[]) {
 
 
 		 if (!err) {
-			 printf("0x%x:%d[%d] = 0x%x\n", serial, index, subindex, value);
+			 printf("0x%x:0x%x[%d] = 0x%x\n", serial, index, subindex, value);
 		 } else {
 			 const char* ec = epos_strerror(err);
-			 printf("0x%x:%d[%d] # 0x%x: %s\n", serial, index, subindex, err, ec);
+			 printf("0x%x:0x%x[%d] # 0x%x: %s\n", serial, index, subindex, err, ec);
 		 }
 	 }
 
