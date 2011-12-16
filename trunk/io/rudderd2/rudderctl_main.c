@@ -94,10 +94,6 @@ static int processinput() {
 enum { DEFUNCT = 0, HOMING, TARGETTING, REACHED };
 const char* status[] = { "DEFUNCT", "HOMING", "TARGETTING", "REACHED" };
 
-const uint32_t MAX_CURRENT_MA     = 3000;
-const double MAX_ABS_SPEED_DEG_S  = 30;
-const double MAX_ABS_ACCEL_DEG_S2 = 500;
-
 // todo, use -d flag and fprintf
 #define VLOGF(...) do {} while (0)
 
@@ -113,6 +109,7 @@ static int rudder_control(double* actual_angle_deg)
 {
         int r;
         uint32_t status;
+        uint32_t error;
         uint32_t control;
         uint32_t opmode;
         int32_t curr_pos_qc;
@@ -127,6 +124,8 @@ static int rudder_control(double* actual_angle_deg)
                 VLOGF("rudder_control: clearing fault");
                 device_invalidate_register(dev, REG_CONTROL);   // force re-issue
                 device_set_register(dev, REG_CONTROL, CONTROL_CLEARFAULT);
+                device_invalidate_register(dev, REG_ERROR);   // force re-issue
+		device_get_register(dev, REG_ERROR, &error);  // we won't read it but eposmon will pick up the response.
                 device_invalidate_register(dev, REG_STATUS);
                 return DEFUNCT;
         }
@@ -153,8 +152,8 @@ static int rudder_control(double* actual_angle_deg)
 
 	// TODO; in case of an intermittent power failure, we should invalidate all registers so these get re-set.
         r &= device_set_register(dev, REGISTER(0x2080, 0), 1000); // current_threshold       User specific [500 mA]
-        r &= device_set_register(dev, REGISTER(0x2081, 0), 0); // home_position User specific [0 qc]
-        r &= device_set_register(dev, REGISTER(0x6065, 0), 2*delta); // max_following_error User specific [2000 qc]
+        r &= device_set_register(dev, REGISTER(0x2081, 0), 0); 	     // home_position User specific [0 qc]
+        r &= device_set_register(dev, REGISTER(0x6065, 0), 20*delta); // max_following_error User specific [2000 qc]
         r &= device_set_register(dev, REGISTER(0x6067, 0), delta);   // position window [qc], see 14.66
         r &= device_set_register(dev, REGISTER(0x6068, 0), 50);      // position time window [ms], see 14.66
         r &= device_set_register(dev, REGISTER(0x607C, 0), 0);       // home_offset User specific [0 qc]
