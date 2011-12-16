@@ -71,31 +71,40 @@ struct Stats {
 } stats[4];
 
 static const char* status_bits[] = {
-        "Ready to switch on",
-        "Switched on",
-        "Operation enable",
-        "Fault",
-        "Voltage enabled (power stage on)",
-        "Quick stop",
-        "Switch on disable",
-        "not used (Warning)",
-        "Offset current measured",
-        "Remote (NMT Slave State Operational)",
-        "Target reached",
-        "Internal limit active",
-        "Set-point/ ack Speed/ Homing attained",
-        "Following error/ Not used/ Homing error",
-        "Refresh cycle of power stage",
-        "Position referenced to home position",
+	"READY",	//        "Ready to switch on",
+	"ON",		//        "Switched on",
+	"ENABLE",	//        "Operation enable",
+	"FAULT", 	//        "Fault",
+	"VOLTAGE",	//        "Voltage enabled (power stage on)",
+	"QUICKSTOP",	//        "Quick stop",
+	"DISABLE",	//        "Switch on disable",
+	"<NOTUSED>",	//        "not used (Warning)",
+	"MEASURED",	//        "Offset current measured",
+	"REMOTE",	//        "Remote (NMT Slave State Operational)",
+	"REACHED",	//        "Target reached",
+	"LIMITED",	//        "Internal limit active",
+	"ATTAINED",	//        "Set-point/ ack Speed/ Homing attained",
+	"ERROR",	//        "Following error/ Not used/ Homing error",
+	"REFRESH",	//        "Refresh cycle of power stage",
+	"HOMEREF",	//        "Position referenced to home position",
         NULL
 };
 
-/* static const char* error_bits[] = { */
-/*         "GENERIC", "CURRENT", "VOLTAGE", "TEMPERATURE", */
-/*         "COMMUNICATION", "PROFILE", "RESERVED", "MOTION", */
-/*         NULL */
-/* }; */
+static const char* error_bits[] = {
+	"GENERIC", "CURRENT", "VOLTAGE", "TEMPERATURE",
+         "COMMUNICATION", "PROFILE", "RESERVED", "MOTION",
+	NULL
+ };
 
+char* strbits(const char** m, uint32_t val) {
+	static char buf[2048];
+	char* b = buf;
+	*b = 0;
+	for (; *m; ++m, val>>=1)
+		if (val & 1)
+			b += snprintf(b, sizeof(buf)-(b-buf),"%s, ", *m);
+	return buf;
+}
 // -----------------------------------------------------------------------------
 
 int main(int argc, char* argv[]) {
@@ -165,13 +174,11 @@ int main(int argc, char* argv[]) {
 			 stats[i].ack++;
 			 if(REGISTER(index,subindex) == REG_STATUS && (value_l & STATUS_FAULT)) {
 				 stats[i].fault++;
-				 char buf[2048];
-				 char* b = buf;
-				 const char** m;
-				 for (m = status_bits; *m; ++m, value_l>>=1)
-					 if (value_l & 1)
-						 b += snprintf(b, sizeof(buf)-(b-buf),"%s, ", *m);
-				 syslog(LOG_ERR, "%s: FAULT: %s", motor_params[i].label, buf);
+				 syslog(LOG_ERR, "%s: Fault: %s", motor_params[i].label, strbits(status_bits, value_l));
+			 }
+			 // rudderctl asks for error on fault
+			 if(REGISTER(index,subindex) == REG_ERROR) {
+				 syslog(LOG_ERR, "%s: Error: %s", motor_params[i].label, strbits(error_bits, value_l));
 			 }
 			 break;
 		 case '#':
