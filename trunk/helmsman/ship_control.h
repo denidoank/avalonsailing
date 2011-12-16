@@ -17,6 +17,7 @@
 #include "helmsman/initial_controller.h"
 #include "helmsman/normal_controller.h"
 #include "helmsman/idle_controller.h"
+#include "helmsman/test_controller.h"
 
 // Rudder and sail
 #include "helmsman/rudder_controller.h"
@@ -64,6 +65,7 @@ class ShipControl {
   static DockingController docking_controller_;
   static NormalController normal_controller_;
   static IdleController idle_controller_;
+  static TestController test_controller_;
   static bool OutputChanges(const DriveReferenceValuesRad& prev_out, const DriveReferenceValuesRad& out);
 
 };
