@@ -21,9 +21,10 @@ BrakeController   ShipControl::brake_controller_;
 DockingController ShipControl::docking_controller_;
 IdleController    ShipControl::idle_controller_;
 NormalController  ShipControl::normal_controller_(&ShipControl::rudder_controller_, &ShipControl::sail_controller_);
+TestController    ShipControl::test_controller_(&ShipControl::sail_controller_);
 
 // This is the state of the ship controller state machine.
-Controller* ShipControl::controller_ = &ShipControl::initial_controller_;
+Controller* ShipControl::controller_ = &ShipControl::test_controller_;
 
 FilteredMeasurements ShipControl::filtered_;
 FilterBlock* ShipControl::filter_block_ = new FilterBlock;
@@ -61,19 +62,25 @@ void ShipControl::StateMachine(const ControllerInput& in) {
     return;
 
   case kNormal:
-    if ((controller_ != &initial_controller_) &&
-        (controller_ != &normal_controller_)) {
+    if (controller_ != &initial_controller_ &&
+        controller_ != &normal_controller_ &&
+        controller_ != &test_controller_) {
       Transition(&initial_controller_, in);
     }
     // no return
   }
 
   // Normal states
-  if (controller_ != &initial_controller_) {
+  if (controller_ != &initial_controller_ && controller_ != &test_controller_) {
     if (!in.drives.homed_sail || (!in.drives.homed_rudder_left && !in.drives.homed_rudder_right)) {
       Transition(&initial_controller_, in);
       return;
     }
+  }
+
+  if (controller_ == &test_controller_) {
+    if (controller_->Done())
+      Transition(&initial_controller_, in);
   }
 
   // all other transition decisions, possibly delegated to the controllers

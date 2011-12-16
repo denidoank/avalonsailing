@@ -173,7 +173,7 @@ int main(int argc, char* argv[]) {
 
     if (rounds % 10 == 0)
       printf(OFMT_WINDPROTO(wind_sensor));
-    if (rounds % 10 == 0) {
+    if (rounds % 1 == 0) {
        printf(OFMT_RUDDERPROTO_STS(drives_actual));        // actuals
     }
     if (rounds % 4 == 0)
