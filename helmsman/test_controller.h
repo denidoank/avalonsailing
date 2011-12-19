@@ -89,6 +89,7 @@ class TestController : public Controller {
   double test_sign_;    // Sign(test_delta_);
   vector<double> test_times_;
   vector<double> thresholds_;
+  vector<double> actuals_;
   Probe start_error_;
   Probe final_error_;
   bool test_success_;
