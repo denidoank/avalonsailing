@@ -29,6 +29,7 @@ const double kZeroTimeoutCount = 10.0 / kSamplingPeriod;
 // This depends on the homing speed (?)
 // and the angle range of the rudders (see actuator.c, 150 degrees) .
 const double kHomingTimeoutCount = 30.0 / kSamplingPeriod;
+const double kRepeatTestAfterFailureCount = 30.0 / kSamplingPeriod;  // TODO SWITCH BACK TO 5 minutes!
 
 uint64_t now_millis() {
   timeval tv;
@@ -48,14 +49,14 @@ const char* TestController::all_phase_names_[] = {"HOME",
 
 const TestController::DriveTestParam TestController::test_param_[] = {
   // drive       start_rad      final_rad  timeout_s   name
-  {RUDDER_LEFT,  0,             Deg2Rad( 15), 10, "rudder left 1"},
-  {RUDDER_LEFT,  Deg2Rad( 15),  Deg2Rad(-15), 10, "rudder left 2"},
+  {RUDDER_LEFT,  0,             Deg2Rad( 30), 5, "rudder left 1"},
+  {RUDDER_LEFT,  Deg2Rad( 30),  Deg2Rad(-30), 5, "rudder left 2"},
 
-  {RUDDER_RIGHT, 0,             Deg2Rad(-15), 10, "rudder right 1"},
-  {RUDDER_RIGHT, Deg2Rad(-15),  Deg2Rad( 15), 10, "rudder right 2"},
+  {RUDDER_RIGHT, 0,             Deg2Rad(-30), 5, "rudder right 1"},
+  {RUDDER_RIGHT, Deg2Rad(-30),  Deg2Rad( 30), 5, "rudder right 2"},
 
-  {SAIL,         0,             Deg2Rad( 30), 10, "sail 1"},
-  {SAIL,         Deg2Rad( 30),  Deg2Rad(-30), 15, "sail 2"}
+  {SAIL,         0,             Deg2Rad( 30), 6, "sail 1"},
+  {SAIL,         Deg2Rad( 30),  Deg2Rad(-30), 12, "sail 2"}
 };
 
 // stay at start for 0.25 timeout
@@ -106,8 +107,6 @@ void TestController::SetupTest() {
   CHECK_EQ(4, thresholds_.size());
   start_error_.Reset();
   final_error_.Reset();
-  test_success_ = true;
-  test_result_text_.clear();
 }
 
 bool TestController::Until(double fraction_of_timeout) {
@@ -137,6 +136,7 @@ bool TestController::PrepareNextTest() {
     return true;
   } else {
     test_index_ = 0;
+    test_success_ = true;
     return false;
   }
 }
@@ -228,12 +228,20 @@ void TestController::StoreTestResults() {
   test_success_ = test_success_ && success;
 
   char buffer[400];
-  snprintf(buffer, sizeof(buffer), "%s: delay: %6.2lfms speed: %6.2lfdeg/s, errors: %lf %lf\n\n\n",
+  snprintf(buffer, sizeof(buffer), "%15s: delay: %6.2lfms speed: %6.2lfdeg/s, errors: %lf %lf",
            test_param_[test_index_].name, t_response, speed,
            Rad2Deg(start_error_.Value()), Rad2Deg(final_error_.Value()));
   test_result_text_.push_back(string(buffer));
   fprintf(stderr, "%s\n\n\n", buffer);
 }
+
+void TestController::PrintTestSummary() {
+  fprintf(stderr, "\nTEST SUMMARY\ntest %s.\n", test_success_ ? "succeeded" : "failed");
+  for (int i = 0; i < test_result_text_.size(); ++i)
+    fprintf(stderr, "%s\n", test_result_text_[i].c_str());
+  test_result_text_.clear();
+}
+
 
 void TestController::Run(const ControllerInput& in,
                          const FilteredMeasurements& filtered,
@@ -241,8 +249,6 @@ void TestController::Run(const ControllerInput& in,
 
   if (debug) fprintf(stderr, "----TestController::Run-------\n");
 
-  //double gamma_sail = 0;
-  //double gamma_rudder = 0;
   out->Reset();
   if (!filtered.valid) {
     return;
@@ -261,8 +267,6 @@ void TestController::Run(const ControllerInput& in,
     fprintf(stderr, "AppFiltered: %fdeg %fm/s\n", Rad2Deg(filtered.angle_app), filtered.mag_app);
   }
   
-  //double angle_app = SymmetricRad(filtered.angle_app);
-
   /*
   At Buoy:
   homing
@@ -277,9 +281,6 @@ void TestController::Run(const ControllerInput& in,
   - wind true alpha == phi_z - 180, stable and fits to real wind
   */
 
-  // SetLimits(Phase) start, end, timeout
-  // runtest
-  // results Phase
   if (debug) fprintf(stderr, "phase %s\n", all_phase_names_[phase_]);
   switch (phase_) {
     case HOME:
@@ -305,7 +306,7 @@ void TestController::Run(const ControllerInput& in,
       break;
     case ZERO:
       if (count_ > kZeroTimeoutCount) {
-        fprintf(stderr, "Drives do not go to zero after homing, Abort test controller.");
+        fprintf(stderr, "Drives do not go to zero after homing, Test controller failed.");
         NextPhase(FAILED);
         break;
       }
@@ -322,7 +323,7 @@ void TestController::Run(const ControllerInput& in,
       break;
     case ZERO_2:
       if (count_ > kZeroTimeoutCount) {
-        fprintf(stderr, "Drives do not go to zero after tests, Abort test controller.");
+        fprintf(stderr, "Drives do not go to zero after tests, Test controller failed.");
         NextPhase(FAILED);
         break;
       }
@@ -333,16 +334,20 @@ void TestController::Run(const ControllerInput& in,
       ZeroOut(out);
       break;
     case WIND_SENSOR:
-      NextPhase(DONE);
-      // Check results here! DONE or FAILED
-      // NIY
+      PrintTestSummary();
+      if (test_success_)
+        NextPhase(DONE);
+      else
+        NextPhase(FAILED);
       break;
     case DONE:
       ZeroOut(out);
       break;
     case FAILED:
       ZeroOut(out);
-      // Try again after a while. Use Reset(). NIY
+      // Try again after a while.
+      if (count_ > kRepeatTestAfterFailureCount)
+        Reset();
       break;
     default:
       CHECK(0);

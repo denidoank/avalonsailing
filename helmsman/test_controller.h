@@ -68,6 +68,7 @@ class TestController : public Controller {
   bool PrepareNextTest();
   bool DoDriveTest(const ControllerInput& in, ControllerOutput* out);
   void StoreTestResults();
+  void PrintTestSummary();
 
   static const char* all_phase_names_[];
   static const DriveTestParam test_param_[];

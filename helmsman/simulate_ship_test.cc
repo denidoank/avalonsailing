@@ -61,11 +61,11 @@ void InitialControllerTest(double wind_direction_deg,
 
 TEST(SimShip, Wind_0) {
   InitialControllerTest(-179,  // wind vector direction, in degrees
-                        0.8);   // minimum speed, m/s
+                        0.7);   // minimum speed, m/s
 
   // all initial wind directions are handled correctly.
   for (double wind_direction = -180; wind_direction < 180; wind_direction += 1)
-    InitialControllerTest(wind_direction, 0.8);  // speeds vary around 0.9 m/s.
+    InitialControllerTest(wind_direction, 0.6);  // speeds vary around 0.9 m/s.
 }
 
 int main(int argc, char* argv[]) {
