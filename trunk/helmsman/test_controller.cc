@@ -47,15 +47,17 @@ const char* TestController::all_phase_names_[] = {"HOME",
                                                   "FAILURE",
                                                   "DONE"};
 
+// Our timing resolution is the kSamplingPeriod, so we should move for at least
+// 1 s to get less than 10% error from sampling.
 const TestController::DriveTestParam TestController::test_param_[] = {
   // drive       start_rad      final_rad  timeout_s   name
-  {RUDDER_LEFT,  0,             Deg2Rad( 30), 5, "rudder left 1"},
-  {RUDDER_LEFT,  Deg2Rad( 30),  Deg2Rad(-30), 5, "rudder left 2"},
+  {RUDDER_LEFT,  0,             Deg2Rad( 30), 5,  "rudder left 1"},
+  {RUDDER_LEFT,  Deg2Rad( 30),  Deg2Rad(-30), 5,  "rudder left 2"},
 
-  {RUDDER_RIGHT, 0,             Deg2Rad(-30), 5, "rudder right 1"},
-  {RUDDER_RIGHT, Deg2Rad(-30),  Deg2Rad( 30), 5, "rudder right 2"},
+  {RUDDER_RIGHT, 0,             Deg2Rad(-30), 5,  "rudder right 1"},
+  {RUDDER_RIGHT, Deg2Rad(-30),  Deg2Rad( 30), 5,  "rudder right 2"},
 
-  {SAIL,         0,             Deg2Rad( 30), 6, "sail 1"},
+  {SAIL,         0,             Deg2Rad( 30), 6,  "sail 1"},
   {SAIL,         Deg2Rad( 30),  Deg2Rad(-30), 12, "sail 2"}
 };
 
@@ -96,8 +98,10 @@ void TestController::SetupTest() {
   test_sign_ = Sign(delta);
   test_times_.clear();
   thresholds_.clear();
+  actuals_.clear();
   for (size_t n = 0; n < ARRAY_SIZE(fractions_); ++n) {
     test_times_.push_back(-1);
+    actuals_.push_back(-1);
     if (n == 0)
       thresholds_.push_back(test_sign_ * (test_start_ + Deg2Rad(1) * test_sign_));
     else
@@ -105,6 +109,8 @@ void TestController::SetupTest() {
   }
   CHECK_GT(test_timeout_, 4);
   CHECK_EQ(4, thresholds_.size());
+  CHECK_EQ(4, actuals_.size());
+  CHECK_EQ(4, test_times_.size());
   start_error_.Reset();
   final_error_.Reset();
 }
@@ -191,6 +197,7 @@ bool TestController::DoDriveTest(const ControllerInput& in,
     for (size_t i = 0; i < thresholds_.size(); ++i) {
       if (test_times_[i] < 0 && actual * test_sign_ > thresholds_[i]) {
         test_times_[i] = now_millis() - test_time_start_ms_;
+        actuals_[i] = (actual - test_start_) * test_sign_;
       }
     }
   } else {
@@ -211,14 +218,22 @@ bool TestController::DoDriveTest(const ControllerInput& in,
 void TestController::StoreTestResults() {
   fprintf(stderr, "\n\n\n %s\n", test_param_[test_index_].name);
   for (size_t i = 0; i < thresholds_.size(); ++i) {
-    fprintf(stderr, "%6.0lf deg %6.2lfms,\n", Rad2Deg(thresholds_[i]), test_times_[i]);
+    fprintf(stderr, "%6.0lf deg %6.2lfms, %6.2lf deg,\n",
+            Rad2Deg(thresholds_[i]), test_times_[i], Rad2Deg(actuals_[i]));
   }
-  // Measure response time from start to 10%, speed from 30% to 90%.
-  double t_response = test_times_[0];
+  // Measure response time from start to 1 degree, speed from 30% to 90%.
+  double t_response;
   double speed = -1;  // rotational, in deg/s
-  if (test_times_[3] - test_times_[1] > 0)
-      speed = Rad2Deg(thresholds_[3] - thresholds_[1]) /
+  if (test_times_[3] - test_times_[1] > 0) {
+      speed = Rad2Deg(actuals_[3] - actuals_[1]) /
           ((test_times_[3] - test_times_[1]) / 1000.0);
+      // deduct angle bigger than 1 degree.
+      t_response = test_times_[0] - 1000 * (Rad2Deg(actuals_[0]) - 1) / speed ;
+      // fprintf(stderr, "*** %lf %lf %lf %lf\n", test_times_[0], Rad2Deg(actuals_[0]), speed, t_response);
+  } else {
+    t_response = test_times_[0];
+  }
+
   // Check test results
   double expected_speed = test_param_[test_index_].drive == SAIL ?
       kOmegaMaxSail:    // 13.8 deg/s 0.241661 rad/s
