@@ -100,57 +100,26 @@ const double MAX_ABS_ACCEL_DEG_S2 = 500;
 // todo, use -d flag and fprintf
 #define VLOGF(...) do {} while (0)
 
-int sail_control(double* actual_angle_deg) {
+int sail_init() {
 
         int r;
         uint32_t status;
         uint32_t error;
-        uint32_t control;
-        uint32_t opmode;
-        int32_t curr_pos_qc;
-        int32_t curr_targ_qc;
-        int32_t curr_abspos_qc;
 
-        VLOGF("sail_control(%f)", target_angle_deg);
+        VLOGF("sail_init");
 
         if (!device_get_register(motor, REG_STATUS, &status))
                 return DEFUNCT;
-
-        if (!device_get_register(motor, REG_ERROR, &error))
-                return DEFUNCT;
-
-        VLOGF("sail_control(%f) status 0x%x", target_angle_deg, status);
-	if (error)
-		VLOGF("sail_control: Error %d: 0x%x", i, error);
 
         if (status & STATUS_FAULT) {
                 VLOGF("sail_control: clearing fault");
                 device_invalidate_register(motor, REG_CONTROL);   // force re-issue
                 device_set_register(motor, REG_CONTROL, CONTROL_CLEARFAULT);
+		device_invalidate_register(motor, REG_ERROR);   // force re-issue
+		device_get_register(motor, REG_ERROR, &error);  // we won't read it but eposmon will pick up the response.
                 device_invalidate_register(motor, REG_STATUS);
-                device_invalidate_register(motor, REG_ERROR);
                 return DEFUNCT;
         }
-
-        r  = device_get_register(motor, REG_CONTROL, &control);
-        r &= device_get_register(motor, REG_OPMODE,  &opmode);
-        r &= device_get_register(motor, REG_CURRPOS, (uint32_t*)&curr_pos_qc);
-        r &= device_get_register(motor, REG_TARGPOS, (uint32_t*)&curr_targ_qc);
-        {
-                // bmmh position is 30 bit signed,0 .. 0x4000 0000 -> 0x2000 0000 => -0x2000 0000
-                r &= device_get_register(bmmh, REG_BMMHPOS, (uint32_t*)&curr_abspos_qc);
-                if (curr_abspos_qc >= (1<<29)) curr_abspos_qc -= (1<<30);
-                curr_abspos_qc = normalize_qc(&motor_params[BMMH], curr_abspos_qc);
-        }
-
-        if (!r) {
-                VLOGF("sail control: incomplete status\n");
-                return DEFUNCT;
-        }
-
-        *actual_angle_deg = qc_to_angle(&motor_params[BMMH], curr_abspos_qc);
-
-        VLOGF("sail_control(%f <- %f)", target_angle_deg, *actual_angle_deg);
 
         r = device_set_register(motor, REG_OPMODE, OPMODE_PPM);
 
@@ -176,6 +145,60 @@ int sail_control(double* actual_angle_deg) {
                 device_set_register(motor, REG_CONTROL, CONTROL_SHUTDOWN);
                 return DEFUNCT;
         }
+
+	return TARGETTING;
+}
+
+int sail_control(double* actual_angle_deg) {
+
+        int r;
+        uint32_t status;
+        uint32_t error;
+        uint32_t control;
+        uint32_t opmode;
+        int32_t curr_pos_qc;
+        int32_t curr_targ_qc;
+        int32_t curr_abspos_qc;
+
+        VLOGF("sail_control(%f)", target_angle_deg);
+
+        if (!device_get_register(motor, REG_STATUS, &status))
+                return DEFUNCT;
+
+	VLOGF("sail_control(%f) status 0x%x", target_angle_deg, status);
+
+        if (status & STATUS_FAULT) {
+                VLOGF("sail_control: clearing fault");
+                device_invalidate_register(motor, REG_CONTROL);   // force re-issue
+                device_set_register(motor, REG_CONTROL, CONTROL_CLEARFAULT);
+		device_invalidate_register(motor, REG_ERROR);   // force re-issue
+		device_get_register(motor, REG_ERROR, &error);  // we won't read it but eposmon will pick up the response.
+                device_invalidate_register(motor, REG_STATUS);
+                return HOMING;
+        }
+
+        r  = device_get_register(motor, REG_CONTROL, &control);
+        r &= device_get_register(motor, REG_OPMODE,  &opmode);
+        r &= device_get_register(motor, REG_CURRPOS, (uint32_t*)&curr_pos_qc);
+        r &= device_get_register(motor, REG_TARGPOS, (uint32_t*)&curr_targ_qc);
+        {
+                // bmmh position is 30 bit signed,0 .. 0x4000 0000 -> 0x2000 0000 => -0x2000 0000
+                r &= device_get_register(bmmh, REG_BMMHPOS, (uint32_t*)&curr_abspos_qc);
+                if (curr_abspos_qc >= (1<<29)) curr_abspos_qc -= (1<<30);
+                curr_abspos_qc = normalize_qc(&motor_params[BMMH], curr_abspos_qc);
+        }
+
+        if (!r) {
+                VLOGF("sail control: incomplete status\n");
+                return DEFUNCT;
+        }
+
+	if (opmode != OPMODE_PPM)
+		return HOMING;
+
+        *actual_angle_deg = qc_to_angle(&motor_params[BMMH], curr_abspos_qc);
+
+        VLOGF("sail_control(%f <- %f)", target_angle_deg, *actual_angle_deg);
 
 	if (isnan(target_angle_deg)) return REACHED;
 
@@ -246,10 +269,10 @@ int sail_control(double* actual_angle_deg) {
         return (status & STATUS_TARGETREACHED) ? REACHED : TARGETTING;
 }
 
+// -----------------------------------------------------------------------------
+
 const int64_t WARN_INTERVAL = 5000;
 const int64_t MAX_INTERVAL = 15*60*1000;
-
-// -----------------------------------------------------------------------------
 
 int main(int argc, char* argv[]) {
 
@@ -281,36 +304,39 @@ int main(int argc, char* argv[]) {
 	motor = bus_open_device(bus, motor_params[SAIL].serial_number);
 	bmmh  = bus_open_device(bus, motor_params[BMMH].serial_number);
 
-	int last_state = DEFUNCT;
 	int64_t last_reached = now_ms();
 	int64_t warn_interval = WARN_INTERVAL;
-
-	double angle_deg;
+	double angle_deg = NAN;
+	int state = DEFUNCT;
 
 	for(;;) {
-		if(!processinput())
-			continue;
+		syslog(LOG_WARNING, "Initializing sail.");
 
-		int state = sail_control(&angle_deg);
+		while (state != TARGETTING)
+			if (processinput())
+				state = sail_init();
 
-		if(debug)
-			fprintf(stderr, "sail: %s %.3lf\n", status[state], angle_deg);
+		syslog(LOG_WARNING, "Done initalizing sail.");
 
-		if(state != DEFUNCT)
-			last_state = state;
+		while (state != HOMING) {
+			if (processinput())
+				state = sail_control(&angle_deg);
 
-		int64_t now = now_ms();
+			if (isnan(target_angle_deg))
+			    continue;
 
-		if(state == REACHED  || (now < last_reached)) {
-			last_reached = now;
-			warn_interval = WARN_INTERVAL;
-		}
+			int64_t now = now_ms();
+			
+			if (state == REACHED  || (now < last_reached)) {
+				last_reached = now;
+				warn_interval = WARN_INTERVAL;
+			}
 
-		if(now - last_reached > warn_interval) {
-			syslog(LOG_WARNING, "Unable to target sail");
-			last_reached = now;  // shut up
-			if (warn_interval < MAX_INTERVAL)
-				warn_interval *= 2;
+			if (now - last_reached > warn_interval) {
+				syslog(LOG_WARNING, "Unable to target sail.");
+				last_reached = now;  // shut up warning
+				if (warn_interval < MAX_INTERVAL) warn_interval *= 2;
+			}
 		}
 	}
 
