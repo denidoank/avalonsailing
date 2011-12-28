@@ -71,6 +71,9 @@ static MotorParams* params = NULL;
 static Device* dev = NULL;
 static double target_angle_deg = NAN;
 
+// aim for about 12 bits of resolution: 180/4096 ~ .043
+const double TOLERANCE_DEG = .04;  // aiming precision in targetting rudder
+
 static int processinput() {
 	char line[1024];
 	if (!fgets(line, sizeof(line), stdin))
@@ -97,13 +100,125 @@ const char* status[] = { "DEFUNCT", "HOMING", "TARGETTING", "REACHED" };
 // todo, use -d flag and fprintf
 #define VLOGF(...) do {} while (0)
 
-// Desired state:
-// - get all state
-// - Status::Homeref bit set
-//            -> if not, opmode == HOMING && homing in progress
-// - PositionTarget set to target_angle_deg
-// - Status::TargetReached bit set
-// - Powered off
+// Work towards a state where the homed bit is set and we're in PPM mode
+static int rudder_init()
+{
+        int r;
+        uint32_t status;
+        uint32_t error;
+        uint32_t control;
+        uint32_t opmode;
+
+        VLOGF("rudder_init");
+
+        if (!device_get_register(dev, REG_STATUS, &status))
+                return DEFUNCT;
+
+        if (status & STATUS_FAULT) {
+		VLOGF("rudder_init clearing fault");
+                device_invalidate_register(dev, REG_CONTROL);   // force re-issue
+                device_set_register(dev, REG_CONTROL, CONTROL_CLEARFAULT);
+                device_invalidate_register(dev, REG_ERROR);   // force re-issue
+		device_get_register(dev, REG_ERROR, &error);  // we won't read it but eposmon will pick up the response.
+                device_invalidate_register(dev, REG_STATUS);
+                return DEFUNCT;
+        }
+
+        r  = device_get_register(dev, REG_CONTROL, &control);
+        r &= device_get_register(dev, REG_OPMODE,  &opmode);
+
+        if (!r) return DEFUNCT;
+
+        int32_t minpos = (params->home_pos_qc < params->extr_pos_qc)
+                ? params->home_pos_qc : params->extr_pos_qc;
+        int32_t maxpos = (params->home_pos_qc > params->extr_pos_qc)
+                ? params->home_pos_qc : params->extr_pos_qc;
+
+        int32_t delta  = angle_to_qc(params, TOLERANCE_DEG);
+        minpos -= 10*delta;
+        maxpos += 10*delta;
+        int32_t method = (params->home_pos_qc < params->extr_pos_qc) ? 1 : 2;
+
+        r &= device_set_register(dev, REGISTER(0x2080, 0), 3000);   // current_threshold       User specific [500 mA]
+        r &= device_set_register(dev, REGISTER(0x2081, 0), 0); 	    // home_position User specific [0 qc]
+        r &= device_set_register(dev, REGISTER(0x6065, 0), 50*delta); // max_following_error User specific [2000 qc]
+        r &= device_set_register(dev, REGISTER(0x6067, 0), delta);  // position window [qc], see 14.66
+        r &= device_set_register(dev, REGISTER(0x6068, 0), 50);     // position time window [ms], see 14.66
+        r &= device_set_register(dev, REGISTER(0x607C, 0), 0);      // home_offset User specific [0 qc]
+        r &= device_set_register(dev, REGISTER(0x607D, 1), minpos); // min_position_limit User specific [-2147483648 qc]
+        r &= device_set_register(dev, REGISTER(0x607D, 2), maxpos); // max_position_limit User specific [2147483647 qc]
+        r &= device_set_register(dev, REGISTER(0x607F, 0), 15000);  // max_profile_velocity  Motor specific [25000 rpm]
+        r &= device_set_register(dev, REGISTER(0x6081, 0),  5000);  // profile_velocity Desired Velocity [1000 rpm]
+        r &= device_set_register(dev, REGISTER(0x6083, 0), 10000);  // profile_acceleration User specific [10000 rpm/s]
+        r &= device_set_register(dev, REGISTER(0x6084, 0), 10000);  // profile_deceleration User specific [10000 rpm/s]
+        r &= device_set_register(dev, REGISTER(0x6085, 0), 10000);  // quickstop_deceleration User specific [10000 rpm/s]
+        r &= device_set_register(dev, REGISTER(0x6086, 0), 0);      // motion_profile_type  User specific [0]
+        r &= device_set_register(dev, REGISTER(0x6098, 0), method); // homing_method           see firmware doc
+        r &= device_set_register(dev, REGISTER(0x6099, 1),   200);  // switch_search_speed     User specific [100 rpm]
+        r &= device_set_register(dev, REGISTER(0x6099, 2),    10);  // zero_search_speed       User specific [10 rpm]
+        r &= device_set_register(dev, REGISTER(0x609A, 0), 10000);  // homing_acceleration     User specific [1000 rpm/s]
+
+        if (!r) {
+                device_invalidate_register(dev, REG_CONTROL);
+                device_set_register(dev, REG_CONTROL, CONTROL_SHUTDOWN);
+                return DEFUNCT;
+        }
+        VLOGF("rudder_init configured");
+
+        if (!(status & STATUS_HOMEREF)) {
+                if (opmode != OPMODE_HOMING) {
+                        VLOGF("rudder_init set opmode homing");
+                        device_set_register(dev, REG_OPMODE, OPMODE_HOMING);
+                        device_invalidate_register(dev, REG_CONTROL);
+                        device_set_register(dev, REG_CONTROL, CONTROL_SHUTDOWN);
+                        device_invalidate_register(dev, REG_STATUS);
+                        return HOMING;
+                }
+
+                switch (control) {
+                case CONTROL_SHUTDOWN:
+                        VLOGF("rudder_init homing, switchon");
+                        device_set_register(dev, REG_CONTROL, CONTROL_SWITCHON);
+                        break;
+
+                case CONTROL_SWITCHON:
+                        VLOGF("rudder_init homing, start");
+                        device_set_register(dev, REG_CONTROL, CONTROL_START);
+                        break;
+
+                case CONTROL_START:
+                        VLOGF("rudder_init homing, waiting");
+                        if (!(status & STATUS_HOMINGERROR))
+                                break;
+                        VLOGF("rudder_init homing error: %x", status);
+                        // fallthrough
+
+                default:
+                        VLOGF("rudder_init homing bad state: control %x, status %x", control, status);
+                        device_invalidate_register(dev, REG_OPMODE);
+                        device_set_register(dev, REG_OPMODE, OPMODE_HOMING);
+                        device_invalidate_register(dev, REG_CONTROL);
+                        device_set_register(dev, REG_CONTROL, CONTROL_SHUTDOWN);
+                }
+
+                device_invalidate_register(dev, REG_STATUS);
+                return HOMING;
+
+        } // not HOMEREF'ed
+
+        VLOGF("rudder_init homeref ok.");
+
+        if (opmode != OPMODE_PPM) {
+                VLOGF("rudder_init set opmode PPM");
+                device_set_register(dev, REG_OPMODE, OPMODE_PPM);
+                device_invalidate_register(dev, REG_CONTROL);
+                device_set_register(dev, REG_CONTROL, CONTROL_SHUTDOWN);
+                device_invalidate_register(dev, REG_STATUS);
+		return DEFUNCT;
+        }
+
+	return TARGETTING;
+}
 
 static int rudder_control(double* actual_angle_deg)
 {
@@ -115,7 +230,7 @@ static int rudder_control(double* actual_angle_deg)
         int32_t curr_pos_qc;
         int32_t curr_targ_qc;
 
-        VLOGF("rudder_control(%s %f)", params->label, target_angle_deg);
+        VLOGF("rudder_control");
 
         if (!device_get_register(dev, REG_STATUS, &status))
                 return DEFUNCT;
@@ -130,6 +245,9 @@ static int rudder_control(double* actual_angle_deg)
                 return DEFUNCT;
         }
 
+	if (!(status & STATUS_HOMEREF))
+		return HOMING;
+
         r  = device_get_register(dev, REG_CONTROL, &control);
         r &= device_get_register(dev, REG_OPMODE,  &opmode);
         r &= device_get_register(dev, REG_CURRPOS, (uint32_t*)&curr_pos_qc);
@@ -137,112 +255,25 @@ static int rudder_control(double* actual_angle_deg)
 
         if (!r) return DEFUNCT;
 
-        VLOGF("rudder_control(%s) got state %x(%d %f) %x(%d %f)", params->label,
-              curr_pos_qc, curr_pos_qc, qc_to_angle(params, curr_pos_qc),
-              curr_targ_qc, curr_targ_qc, qc_to_angle(params, curr_targ_qc));
-
-        int32_t minpos = (params->home_pos_qc < params->extr_pos_qc)
-                ? params->home_pos_qc : params->extr_pos_qc;
-        int32_t maxpos = (params->home_pos_qc > params->extr_pos_qc)
-                ? params->home_pos_qc : params->extr_pos_qc;
-        int32_t delta  = (maxpos - minpos) / 4096;  // aim for 12 bits of resolution, see tolerance below.
-        minpos -= 10*delta;
-        maxpos += 10*delta;
-        int32_t method = (params->home_pos_qc < params->extr_pos_qc) ? 1 : 2;  // TODO check 23/27
-
-	// TODO; in case of an intermittent power failure, we should invalidate all registers so these get re-set.
-        r &= device_set_register(dev, REGISTER(0x2080, 0), 1000); // current_threshold       User specific [500 mA]
-        r &= device_set_register(dev, REGISTER(0x2081, 0), 0); 	     // home_position User specific [0 qc]
-        r &= device_set_register(dev, REGISTER(0x6065, 0), 20*delta); // max_following_error User specific [2000 qc]
-        r &= device_set_register(dev, REGISTER(0x6067, 0), delta);   // position window [qc], see 14.66
-        r &= device_set_register(dev, REGISTER(0x6068, 0), 50);      // position time window [ms], see 14.66
-        r &= device_set_register(dev, REGISTER(0x607C, 0), 0);       // home_offset User specific [0 qc]
-        r &= device_set_register(dev, REGISTER(0x607D, 1), minpos); // min_position_limit User specific [-2147483648 qc]
-        r &= device_set_register(dev, REGISTER(0x607D, 2), maxpos); // max_position_limit User specific [2147483647 qc]
-        r &= device_set_register(dev, REGISTER(0x607F, 0), 15000); // max_profile_velocity  Motor specific [25000 rpm]
-        r &= device_set_register(dev, REGISTER(0x6081, 0), 10000);  // profile_velocity Desired Velocity [1000 rpm]
-        r &= device_set_register(dev, REGISTER(0x6083, 0), 10000);  // profile_acceleration User specific [10000 rpm/s]
-        r &= device_set_register(dev, REGISTER(0x6084, 0), 10000);  // profile_deceleration User specific [10000 rpm/s]
-        r &= device_set_register(dev, REGISTER(0x6085, 0), 10000);  // quickstop_deceleration User specific [10000 rpm/s]
-        r &= device_set_register(dev, REGISTER(0x6086, 0), 0);      // motion_profile_type  User specific [0]
-        r &= device_set_register(dev, REGISTER(0x6098, 0), method); // homing_method           see firmware doc
-        r &= device_set_register(dev, REGISTER(0x6099, 1), 200); // switch_search_speed     User specific [100 rpm]
-        r &= device_set_register(dev, REGISTER(0x6099, 2), 10); // zero_search_speed       User specific [10 rpm]
-        r &= device_set_register(dev, REGISTER(0x609A, 0), 10000); // homing_acceleration     User specific [1000 rpm/s]
-
-        if (!r) {
-                device_invalidate_register(dev, REG_STATUS);
-                device_invalidate_register(dev, REG_CONTROL);
-                device_set_register(dev, REG_CONTROL, CONTROL_SHUTDOWN);
-                return DEFUNCT;
-        }
-        VLOGF("rudder_control(%s) configured", params->label);
-
-        *actual_angle_deg = NAN;
-
-        if (!(status & STATUS_HOMEREF)) {
-                if (opmode != OPMODE_HOMING) {
-                        VLOGF("rudder_control(%s) set opmode homing", params->label);
-                        device_set_register(dev, REG_OPMODE, OPMODE_HOMING);
-                        device_invalidate_register(dev, REG_CONTROL);
-                        device_set_register(dev, REG_CONTROL, CONTROL_SHUTDOWN);
-                        device_invalidate_register(dev, REG_STATUS);
-                        return HOMING;
-                }
-
-                switch (control) {
-                case CONTROL_SHUTDOWN:
-                        VLOGF("rudder_control(%s) homing, switchon", params->label);
-                        device_set_register(dev, REG_CONTROL, CONTROL_SWITCHON);
-                        break;
-
-                case CONTROL_SWITCHON:
-                        VLOGF("rudder_control(%s) homing, start", params->label);
-                        device_set_register(dev, REG_CONTROL, CONTROL_START);
-                        break;
-
-                case CONTROL_START:
-                        VLOGF("rudder_control(%s) homing, waiting", params->label);
-                        if (!(status & STATUS_HOMINGERROR))
-                                break;
-                        VLOGF("rudder_control(%s) homing error: %x", params->label, status);
-                        // fallthrough
-
-                default:
-                        VLOGF("rudder_control(%s) homing bad state: control %x, status %x",
-                              params->label, control, status);
-                        device_invalidate_register(dev, REG_OPMODE);
-                        device_set_register(dev, REG_OPMODE, OPMODE_HOMING);
-                        device_invalidate_register(dev, REG_CONTROL);
-                        device_set_register(dev, REG_CONTROL, CONTROL_SHUTDOWN);
-                }
-
-                device_invalidate_register(dev, REG_STATUS);
-                return HOMING;
-
-        } // not HOMEREF'ed
-
-        VLOGF("rudder_control: homeref ok.");
         *actual_angle_deg = qc_to_angle(params, curr_pos_qc);
 
-        if (opmode != OPMODE_PPM) {
-                VLOGF("rudder_control(%s) set opmode PPM", params->label);
-                device_set_register(dev, REG_OPMODE, OPMODE_PPM);
-                device_invalidate_register(dev, REG_CONTROL);
-                device_set_register(dev, REG_CONTROL, CONTROL_SHUTDOWN);
-                device_invalidate_register(dev, REG_STATUS);
-                return TARGETTING;
-        }
+	if (opmode != OPMODE_PPM)
+		return HOMING;
+
+        VLOGF("rudder_control current position %x(%d %f) current target %x(%d %f)",
+              curr_pos_qc,  curr_pos_qc,  qc_to_angle(params, curr_pos_qc),
+              curr_targ_qc, curr_targ_qc, qc_to_angle(params, curr_targ_qc));
+
 
 	if (isnan(target_angle_deg)) return REACHED;
 
         // no matter where we are, if current target is away from new target angle, we're not there
-        const double tolerance = (1.0/4096.0); // imagine we have about 12 bits of resolution
+
         double targ_diff = target_angle_deg - qc_to_angle(params, curr_targ_qc);
-        targ_diff /= params->extr_angle_deg - params->home_angle_deg;
+     
         if (targ_diff < 0) targ_diff = -targ_diff;
-        if (targ_diff > tolerance) {
-                VLOGF("rudder_control(%s) target reached, but wrong target", params->label);
+        if (targ_diff > TOLERANCE_DEG) {
+                VLOGF("rudder_control target reached, but wrong target");
                 status &= ~STATUS_TARGETREACHED;
                 control &= ~0x30;  // if we started, pretend we're just switched on
                 device_invalidate_register(dev, REG_CONTROL);
@@ -251,10 +282,9 @@ static int rudder_control(double* actual_angle_deg)
         // targetreached is set, but are we really there?
         if (status & STATUS_TARGETREACHED) {
                 double actual_diff = qc_to_angle(params, curr_pos_qc) - qc_to_angle(params, curr_targ_qc);
-                actual_diff /= params->extr_angle_deg - params->home_angle_deg;
                 if (actual_diff < 0) actual_diff = -actual_diff;
-                if (actual_diff > tolerance) {
-                        VLOGF("rudder_control(%s) target reached, but actual is wrong", params->label);
+                if (actual_diff > TOLERANCE_DEG) {
+                        VLOGF("rudder_control target reached, but actual is wrong");
                         status &= ~STATUS_TARGETREACHED;
                 }
         }
@@ -262,13 +292,12 @@ static int rudder_control(double* actual_angle_deg)
         if (!(status & STATUS_TARGETREACHED)) {
                 switch (control) {
                 case CONTROL_SHUTDOWN:
-                        VLOGF("rudder_control(%s) targetting, switchon", params->label);
+                        VLOGF("rudder_control targetting, switchon");
                         device_set_register(dev, REG_CONTROL, CONTROL_SWITCHON);
                         break;
 
                 case CONTROL_SWITCHON:
-                        VLOGF("rudder_control(%s) setting target position %f -> %f",
-                              params->label, qc_to_angle(params, curr_targ_qc), target_angle_deg);
+                        VLOGF("rudder_control setting target position %f -> %f", qc_to_angle(params, curr_targ_qc), target_angle_deg);
                         device_invalidate_register(dev, REG_TARGPOS);
                         device_set_register(dev, REG_TARGPOS, angle_to_qc(params, target_angle_deg));
                         device_set_register(dev, REG_CONTROL, CONTROL_START);
@@ -277,13 +306,12 @@ static int rudder_control(double* actual_angle_deg)
 
                 case CONTROL_START:
                 case CONTROL_SWITCHON | 0x0010:
-                        VLOGF("rudder_control(%s) targetting, waiting", params->label);
+                        VLOGF("rudder_control targetting, waiting");
                         if (!(status & STATUS_HOMINGERROR))
                                 break;
                         // fallthrough
                 default:
-                        VLOGF("rudder_control(%s) targetting bad state: control %x, status %x",
-                              params->label, control, status);
+                        VLOGF("rudder_control targetting bad state: control %x, status %x", control, status);
                         device_invalidate_register(dev, REG_CURRPOS);
                         device_invalidate_register(dev, REG_OPMODE);
                         device_invalidate_register(dev, REG_CONTROL);
@@ -297,20 +325,19 @@ static int rudder_control(double* actual_angle_deg)
                 return TARGETTING;
         }
 
-        VLOGF("rudder_control(%s) target reached, shutdown", params->label);
+        VLOGF("rudder_control target reached, shutdown");
         device_set_register(dev, REG_CONTROL, CONTROL_SHUTDOWN);
-        // we're homeref, position is close enough, and we (braked &) powered off
+        // we're homeref, position is close enough, and we powered off
 
         device_invalidate_register(dev, REG_CURRPOS);
         device_invalidate_register(dev, REG_STATUS);
         return REACHED;
 }
 
+// -----------------------------------------------------------------------------
 
 const int64_t WARN_INTERVAL = 5000;
 const int64_t MAX_INTERVAL = 15*60*1000;
-
-// -----------------------------------------------------------------------------
 
 int main(int argc, char* argv[]) {
 
@@ -338,48 +365,50 @@ int main(int argc, char* argv[]) {
 	if (signal(SIGBUS, fault) == SIG_ERR)  crash("signal(SIGBUS)");
 	if (signal(SIGSEGV, fault) == SIG_ERR)  crash("signal(SIGSEGV)");
 
-	if (!debug) openlog(argv0, LOG_PERROR, LOG_DAEMON);
+	char label[1024];
+	snprintf(label, sizeof label, "%s(%s)", argv0, params->label);
+
+	if (!debug) openlog(label, LOG_PERROR, LOG_DAEMON);
 
 	setlinebuf(stdout);
 	bus = bus_new(stdout);	
 	dev = bus_open_device(bus, params->serial_number);
 
-	int last_state = DEFUNCT;
 	int64_t last_reached = now_ms();
 	int64_t warn_interval = WARN_INTERVAL;
+	double angle_deg = NAN;
+	int state = DEFUNCT;
 
-	double angle_deg;
+	for (;;) {
+		syslog(LOG_WARNING, "Initializing rudder.");
 
-	for(;;) {
-		if(!processinput())
-			continue;
+		device_invalidate_all(dev);
 
-		int state = rudder_control(&angle_deg);
+		while (state != TARGETTING)
+			if (processinput())
+				state = rudder_init();
 
-		if(debug)
-			fprintf(stderr, "rudder %s: %s %.3lf\n", params->label, status[state], angle_deg);
-		
-		if(state == HOMING && last_state != HOMING)
-			syslog(LOG_WARNING, "Started homing %s rudder.", params->label);
+		syslog(LOG_WARNING, "Done initalizing rudder.");
 
-		if(state != HOMING && last_state == HOMING)
-			syslog(LOG_WARNING, "Done homing %s rudder.", params->label);
+		while (state != HOMING) {
+			if (processinput())
+				state = rudder_control(&angle_deg);
 
-		if(state != DEFUNCT)
-			last_state = state;
+			if (isnan(target_angle_deg))
+			    continue;
 
-		int64_t now = now_ms();
+			int64_t now = now_ms();
+			
+			if (state == REACHED  || (now < last_reached)) {
+				last_reached = now;
+				warn_interval = WARN_INTERVAL;
+			}
 
-		if(state == REACHED  || (now < last_reached)) {
-			last_reached = now;
-			warn_interval = WARN_INTERVAL;
-		}
-
-		if(now - last_reached > warn_interval) {
-			syslog(LOG_WARNING, "Unable to target %s rudder.", params->label);
-			last_reached = now;  // shut up
-			if (warn_interval < MAX_INTERVAL)
-				warn_interval *= 2;
+			if (now - last_reached > warn_interval) {
+				syslog(LOG_WARNING, "Unable to target rudder.");
+				last_reached = now;  // shut up warning
+				if (warn_interval < MAX_INTERVAL) warn_interval *= 2;
+			}
 		}
 	}
 
