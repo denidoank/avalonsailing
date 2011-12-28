@@ -6,6 +6,7 @@
 #include "helmsman/test_controller.h"
 
 #include <stdio.h>
+#include <string.h>
 #include <sys/time.h>
 
 #include "common/delta_angle.h"

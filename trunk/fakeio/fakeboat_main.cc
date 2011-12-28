@@ -20,6 +20,9 @@
 #include <unistd.h>
 
 #include "common/check.h"
+#include "common/convert.h"
+#include "common/normalize.h"
+#include "proto/meteo.h"
 #include "../proto/rudder.h"
 #include "../proto/imu.h"
 #include "../proto/wind.h"
@@ -98,11 +101,11 @@ int main(int argc, char* argv[]) {
   if (signal(SIGBUS, fault) == SIG_ERR)  crash("signal(SIGBUS)");
   if (signal(SIGSEGV, fault) == SIG_ERR)  crash("signal(SIGSEGV)");
 
-  int nn = 0;
   int64_t last = now_ms();
   int rounds = 0;
    
   // Model
+  struct MeteoProto  meteo_info = INIT_METEOPROTO;         // in
   struct RudderProto drives_reference = INIT_RUDDERPROTO;  // in
   struct RudderProto drives_actual = INIT_RUDDERPROTO;     // out, and internal input
   struct WindProto   wind_sensor = INIT_WINDPROTO;         // out
@@ -117,9 +120,11 @@ int main(int argc, char* argv[]) {
     0, 0
   };
 
+  meteo_info.true_wind_deg = 0.0;  // Wind from North.
+  meteo_info.true_wind_speed_kt = MeterPerSecondToKnots(10.0);  // 10 m/s.
+  meteo_info.turbulence = 0.0;  // Stable conditions.
   ControllerInput controller_input;
   controller_input.alpha_star_rad = Deg2Rad(90);  // go East!
-  Polar true_wind = Polar(Deg2Rad(180), 10);  // North wind blows South.
   DriveReferenceValuesRad drives_ref;
 
   BoatModel model(kSamplingPeriod,
@@ -151,13 +156,43 @@ int main(int argc, char* argv[]) {
         crash("Reading input");
       
       if (debug) fprintf(stderr, "Got line:%s\n", line);
-      
-      sscanf(line, IFMT_RUDDERPROTO_CTL(&drives_reference, &nn));
+
+      RudderProto drives_reference_input = INIT_RUDDERPROTO;
+      MeteoProto meteo_input = INIT_METEOPROTO;
+      int nn = 0;
+      char* line_ptr = line;
+
+      while (strlen(line_ptr) > 0) {
+        if (sscanf(line_ptr,
+                   IFMT_RUDDERPROTO_CTL(&drives_reference_input, &nn)) > 0) {
+          drives_reference = drives_reference_input;
+        } else if (sscanf(line_ptr, IFMT_METEOPROTO(&meteo_input, &nn)) > 0) {
+          meteo_info = meteo_input;
+        } else {
+          fprintf(stderr, "Unreadable input: \"%s\"\n", line_ptr);
+          nn = strlen(line_ptr);
+        }
+        line_ptr += nn;
+      }
     }
 
     int64_t now = now_ms();
     if (now < last + 100) continue;
     last = now;
+
+    // Meteo simulation
+    double wind_deg = meteo_info.true_wind_deg;
+    double wind_speed_kt = meteo_info.true_wind_speed_kt;
+    if (meteo_info.turbulence > 0) {  // Simple turbulent model.
+      double turbulence =
+          meteo_info.turbulence * (rand() * 1.0 / RAND_MAX - 0.5);
+      wind_deg += turbulence;
+      wind_speed_kt += turbulence;
+      if (wind_speed_kt < 0.0)
+        wind_speed_kt = 0.0;
+    }
+    Polar true_wind = Polar(Deg2Rad(NormalizeDeg(wind_deg + 180.0)),
+                            KnotsToMeterPerSecond(wind_speed_kt));
 
     drives_ref.FromProto(drives_reference);
     model.Simulate(drives_ref, 

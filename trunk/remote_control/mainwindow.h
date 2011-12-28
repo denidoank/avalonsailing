@@ -47,12 +47,18 @@ private:
   QGraphicsLineItem* target_heading_;
   QGraphicsLineItem* wind_;
   QGraphicsLineItem* true_wind_;
+  QGraphicsTextItem* true_wind_speed_;
 
   AngleController* boom_controller_;
   AngleController* heading_controller_;
   AngleController* rudder_controller_;
 
   QGraphicsEllipseItem* skipper_disc_;
+
+  // MeteoInfo
+  double true_wind_direction_deg_;
+  double true_wind_speed_kt_;
+  int meteo_turbulence_;
 
   QTimer update_timer_;
   QPointF scroll_pos_;
@@ -62,6 +68,7 @@ private:
 
   void drawBoat();
   void sendRemoteProto(int command);
+  void sendMeteoProto();
 
 public slots:
   void onRudderCtlActivated(double angle);
