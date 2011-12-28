@@ -113,19 +113,13 @@ int main(int argc, char* argv[]) {
 		}
 
 		printf(EBUS_GET_OFMT(motor_params[LEFT].serial_number, REG_STATUS));
-		printf(EBUS_GET_OFMT(motor_params[LEFT].serial_number, REG_ERROR));
 		printf(EBUS_GET_OFMT(motor_params[LEFT].serial_number, REG_CURRPOS));
 
 		printf(EBUS_GET_OFMT(motor_params[RIGHT].serial_number, REG_STATUS));
-		printf(EBUS_GET_OFMT(motor_params[RIGHT].serial_number, REG_ERROR));
 		printf(EBUS_GET_OFMT(motor_params[RIGHT].serial_number, REG_CURRPOS));
 
 		printf(EBUS_GET_OFMT(motor_params[SAIL].serial_number, REG_STATUS));
-		printf(EBUS_GET_OFMT(motor_params[SAIL].serial_number, REG_ERROR));
-		printf(EBUS_GET_OFMT(motor_params[SAIL].serial_number, REG_CURRPOS));
-
 		printf(EBUS_GET_OFMT(motor_params[BMMH].serial_number, REG_BMMHPOS));
-		printf(EBUS_GET_OFMT(motor_params[BMMH].serial_number, REG_ERROR));
 
 		fflush(stdout);
 		last_us = now_us();

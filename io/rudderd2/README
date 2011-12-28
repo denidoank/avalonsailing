@@ -32,5 +32,4 @@ the entire suite is to be run as follows
     plug $EBUS rudderctl -r &  # right rudder      # same
     plug $EBUS sailctl  &      # sail              # positioning for sail
 
-(TBD:)
     plug -o $EBUS | eposmon    # summarize and report epos communication errors to syslog

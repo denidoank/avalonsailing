@@ -98,7 +98,7 @@ enum { DEFUNCT = 0, HOMING, TARGETTING, REACHED };
 const char* status[] = { "DEFUNCT", "HOMING", "TARGETTING", "REACHED" };
 
 // todo, use -d flag and fprintf
-#define VLOGF(...) do {} while (0)
+#define VLOGF(...) syslog(LOG_DEBUG, __VA_ARGS__)
 
 // Work towards a state where the homed bit is set and we're in PPM mode
 static int rudder_init()
