@@ -15,6 +15,7 @@
 
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include "../fakeio/proto/meteo.h"
 #include "../proto/rudder.h"
 #include "../proto/helmsman.h"
 #include "../proto/remote.h"
@@ -33,6 +34,9 @@ MainWindow::MainWindow(ClientState* state, QWidget *parent) :
 
   connect(&update_timer_, SIGNAL(timeout()), SLOT(updateGraphics()));
   update_timer_.setInterval(50);
+  true_wind_direction_deg_ = 0.0;
+  true_wind_speed_kt_ = 19.43;  // 10 mps.
+  meteo_turbulence_ = 0;
 }
 
 MainWindow::~MainWindow()
@@ -93,7 +97,12 @@ void MainWindow::updateGraphics() {
   target_rudder_left_->setRotation(state_->getDouble("rudderctl", "rudder_l_deg"));
   target_rudder_right_->setRotation(state_->getDouble("rudderctl", "rudder_r_deg"));
   skipper_disc_->setRotation(-state_->getDouble("imu", "yaw_deg"));
-  true_wind_->setRotation(state_->getDouble("skipper_input", "angle_true_deg"));
+  char wind_speed_str[128];
+  sprintf(wind_speed_str, "%3.1lfkt T%d",
+          true_wind_speed_kt_, meteo_turbulence_);
+  true_wind_speed_->setPlainText(wind_speed_str);
+  true_wind_->setRotation(state_->getDouble("skipper_input", "angle_true_deg") +
+                          true_wind_direction_deg_);
 
   QPointF speed(state_->getDouble("imu", "vel_y_m_s"), state_->getDouble("imu", "vel_x_m_s"));
 
@@ -218,6 +227,8 @@ void MainWindow::drawBoat() {
   skipper_disc_->setPos(-160, 0);
   true_wind_ = new QGraphicsLineItem(0, 0, 0, -45, skipper_disc_, &scene_);
   true_wind_->setPen(wind_pen);
+  true_wind_speed_ = new QGraphicsTextItem("19.0kt T0", skipper_disc_);
+  true_wind_speed_->setPos(-true_wind_speed_->boundingRect().width() / 2, 40);
 
   QPixmap background(":/images/water_texture.png");
   QBrush background_brush(background);
@@ -294,6 +305,40 @@ void MainWindow::keyPressEvent(QKeyEvent* event) {
           sendRemoteProto(kBrakeControlMode); break;
   }
   switch(event->key()) {
+  case Qt::Key_1:
+          true_wind_direction_deg_ -= 1.0;
+          if (true_wind_direction_deg_ < 0.0)
+            true_wind_direction_deg_ += 360.0;
+          sendMeteoProto();
+          break;
+  case Qt::Key_2:
+          true_wind_direction_deg_ += 1.0;
+          if (true_wind_direction_deg_ >= 360.0)
+            true_wind_direction_deg_ -= 360.0;
+          sendMeteoProto();
+          break;
+  case Qt::Key_3:
+          true_wind_speed_kt_ -= 0.5;
+          if (true_wind_speed_kt_ < 0.0)
+            true_wind_speed_kt_ = 0.0;
+          sendMeteoProto();
+          break;
+  case Qt::Key_4:
+          true_wind_speed_kt_ += 0.5;
+          sendMeteoProto();
+          break;
+  case Qt::Key_5:
+          meteo_turbulence_ -= 1;
+          if (meteo_turbulence_ < 0)
+            meteo_turbulence_ = 0;
+          sendMeteoProto();
+          break;
+  case Qt::Key_6:
+          meteo_turbulence_ += 1;
+          sendMeteoProto();
+          break;
+  }
+  switch(event->key()) {
   case Qt::Key_C:
           rudder_controller_->setAngle(rudder_controller_->angle() - 2); break;
   case Qt::Key_Z:
@@ -330,6 +375,18 @@ void MainWindow::sendRemoteProto(int command) {
   size_t BufSize = 256;
   char buf[BufSize];
   ::snprintf(buf, BufSize, OFMT_REMOTEPROTO(proto));
+  state_->writeToBus(buf);
+}
+
+void MainWindow::sendMeteoProto() {
+  MeteoProto proto = INIT_METEOPROTO;
+  proto.timestamp_s = time(NULL);
+  proto.true_wind_deg = true_wind_direction_deg_;
+  proto.true_wind_speed_kt = true_wind_speed_kt_;
+  proto.turbulence = meteo_turbulence_;
+  size_t BufSize = 256;
+  char buf[BufSize];
+  ::snprintf(buf, BufSize, OFMT_METEOPROTO(proto));
   state_->writeToBus(buf);
 }
 
