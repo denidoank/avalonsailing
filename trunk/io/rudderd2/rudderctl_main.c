@@ -37,14 +37,9 @@ static void crash(const char* fmt, ...) {
 	char buf[1000];
 	va_start(ap, fmt);
 	vsnprintf(buf, sizeof(buf), fmt, ap);
-	if (debug)
-		fprintf(stderr, "%s:%s%s%s\n", argv0, buf,
-			(errno) ? ": " : "",
-			(errno) ? strerror(errno):"" );
-	else
-		syslog(LOG_CRIT, "%s%s%s\n", buf,
-		       (errno) ? ": " : "",
-		       (errno) ? strerror(errno):"" );
+	syslog(LOG_CRIT, "%s%s%s\n", buf,
+	       (errno) ? ": " : "",
+	       (errno) ? strerror(errno):"" );
 	exit(1);
 	va_end(ap);
 	return;
@@ -53,7 +48,7 @@ static void crash(const char* fmt, ...) {
 static void fault() { crash("fault"); }
 
 static void usage(void) {
-	fprintf(stderr,	"usage: plug /path/to/ebus | %s {-l | -r} \n", argv0);
+	fprintf(stderr,	"usage: plug /path/to/ebus -- %s {-l | -r} \n", argv0);
 	exit(2);
 }
 
@@ -72,7 +67,7 @@ static Device* dev = NULL;
 static double target_angle_deg = NAN;
 
 // aim for about 12 bits of resolution: 180/4096 ~ .043
-const double TOLERANCE_DEG = .04;  // aiming precision in targetting rudder
+const double TOLERANCE_DEG = .05;  // aiming precision in targetting rudder
 
 static int processinput() {
 	char line[1024];
@@ -97,8 +92,6 @@ static int processinput() {
 enum { DEFUNCT = 0, HOMING, TARGETTING, REACHED };
 const char* status[] = { "DEFUNCT", "HOMING", "TARGETTING", "REACHED" };
 
-// todo, use -d flag and fprintf
-#define VLOGF(...) syslog(LOG_DEBUG, __VA_ARGS__)
 
 // Work towards a state where the homed bit is set and we're in PPM mode
 static int rudder_init()
@@ -109,13 +102,13 @@ static int rudder_init()
         uint32_t control;
         uint32_t opmode;
 
-        VLOGF("rudder_init");
+        syslog(LOG_DEBUG, "rudder_init");
 
         if (!device_get_register(dev, REG_STATUS, &status))
                 return DEFUNCT;
 
         if (status & STATUS_FAULT) {
-		VLOGF("rudder_init clearing fault");
+		syslog(LOG_DEBUG, "rudder_init clearing fault");
                 device_invalidate_register(dev, REG_CONTROL);   // force re-issue
                 device_set_register(dev, REG_CONTROL, CONTROL_CLEARFAULT);
                 device_invalidate_register(dev, REG_ERROR);   // force re-issue
@@ -135,6 +128,7 @@ static int rudder_init()
                 ? params->home_pos_qc : params->extr_pos_qc;
 
         int32_t delta  = angle_to_qc(params, TOLERANCE_DEG);
+	if(delta < 0) delta = -delta;
         minpos -= 10*delta;
         maxpos += 10*delta;
         int32_t method = (params->home_pos_qc < params->extr_pos_qc) ? 1 : 2;
@@ -163,11 +157,11 @@ static int rudder_init()
                 device_set_register(dev, REG_CONTROL, CONTROL_SHUTDOWN);
                 return DEFUNCT;
         }
-        VLOGF("rudder_init configured");
+        syslog(LOG_DEBUG, "rudder_init configured");
 
         if (!(status & STATUS_HOMEREF)) {
                 if (opmode != OPMODE_HOMING) {
-                        VLOGF("rudder_init set opmode homing");
+                        syslog(LOG_DEBUG, "rudder_init set opmode homing");
                         device_set_register(dev, REG_OPMODE, OPMODE_HOMING);
                         device_invalidate_register(dev, REG_CONTROL);
                         device_set_register(dev, REG_CONTROL, CONTROL_SHUTDOWN);
@@ -177,24 +171,24 @@ static int rudder_init()
 
                 switch (control) {
                 case CONTROL_SHUTDOWN:
-                        VLOGF("rudder_init homing, switchon");
+                        syslog(LOG_DEBUG, "rudder_init homing, switchon");
                         device_set_register(dev, REG_CONTROL, CONTROL_SWITCHON);
                         break;
 
                 case CONTROL_SWITCHON:
-                        VLOGF("rudder_init homing, start");
+                        syslog(LOG_DEBUG, "rudder_init homing, start");
                         device_set_register(dev, REG_CONTROL, CONTROL_START);
                         break;
 
                 case CONTROL_START:
-                        VLOGF("rudder_init homing, waiting");
+                        syslog(LOG_DEBUG, "rudder_init homing, waiting");
                         if (!(status & STATUS_HOMINGERROR))
                                 break;
-                        VLOGF("rudder_init homing error: %x", status);
+                        syslog(LOG_DEBUG, "rudder_init homing error: %x", status);
                         // fallthrough
 
                 default:
-                        VLOGF("rudder_init homing bad state: control %x, status %x", control, status);
+                        syslog(LOG_DEBUG, "rudder_init homing bad state: control %x, status %x", control, status);
                         device_invalidate_register(dev, REG_OPMODE);
                         device_set_register(dev, REG_OPMODE, OPMODE_HOMING);
                         device_invalidate_register(dev, REG_CONTROL);
@@ -206,10 +200,10 @@ static int rudder_init()
 
         } // not HOMEREF'ed
 
-        VLOGF("rudder_init homeref ok.");
+        syslog(LOG_DEBUG, "rudder_init homeref ok.");
 
         if (opmode != OPMODE_PPM) {
-                VLOGF("rudder_init set opmode PPM");
+                syslog(LOG_DEBUG, "rudder_init set opmode PPM");
                 device_set_register(dev, REG_OPMODE, OPMODE_PPM);
                 device_invalidate_register(dev, REG_CONTROL);
                 device_set_register(dev, REG_CONTROL, CONTROL_SHUTDOWN);
@@ -230,13 +224,13 @@ static int rudder_control(double* actual_angle_deg)
         int32_t curr_pos_qc;
         int32_t curr_targ_qc;
 
-        VLOGF("rudder_control");
+        syslog(LOG_DEBUG, "rudder_control");
 
         if (!device_get_register(dev, REG_STATUS, &status))
                 return DEFUNCT;
 
         if (status & STATUS_FAULT) {
-                VLOGF("rudder_control: clearing fault");
+                syslog(LOG_DEBUG, "rudder_control: clearing fault");
                 device_invalidate_register(dev, REG_CONTROL);   // force re-issue
                 device_set_register(dev, REG_CONTROL, CONTROL_CLEARFAULT);
                 device_invalidate_register(dev, REG_ERROR);   // force re-issue
@@ -260,7 +254,7 @@ static int rudder_control(double* actual_angle_deg)
 	if (opmode != OPMODE_PPM)
 		return HOMING;
 
-        VLOGF("rudder_control current position %x(%d %f) current target %x(%d %f)",
+        syslog(LOG_DEBUG, "rudder_control current position %x(%d %f) current target %x(%d %f)",
               curr_pos_qc,  curr_pos_qc,  qc_to_angle(params, curr_pos_qc),
               curr_targ_qc, curr_targ_qc, qc_to_angle(params, curr_targ_qc));
 
@@ -273,7 +267,7 @@ static int rudder_control(double* actual_angle_deg)
      
         if (targ_diff < 0) targ_diff = -targ_diff;
         if (targ_diff > TOLERANCE_DEG) {
-                VLOGF("rudder_control target reached, but wrong target");
+                syslog(LOG_DEBUG, "rudder_control target reached, but wrong target");
                 status &= ~STATUS_TARGETREACHED;
                 control &= ~0x30;  // if we started, pretend we're just switched on
                 device_invalidate_register(dev, REG_CONTROL);
@@ -284,7 +278,7 @@ static int rudder_control(double* actual_angle_deg)
                 double actual_diff = qc_to_angle(params, curr_pos_qc) - qc_to_angle(params, curr_targ_qc);
                 if (actual_diff < 0) actual_diff = -actual_diff;
                 if (actual_diff > TOLERANCE_DEG) {
-                        VLOGF("rudder_control target reached, but actual is wrong");
+                        syslog(LOG_DEBUG, "rudder_control target reached, but actual is wrong");
                         status &= ~STATUS_TARGETREACHED;
                 }
         }
@@ -292,12 +286,12 @@ static int rudder_control(double* actual_angle_deg)
         if (!(status & STATUS_TARGETREACHED)) {
                 switch (control) {
                 case CONTROL_SHUTDOWN:
-                        VLOGF("rudder_control targetting, switchon");
+                        syslog(LOG_DEBUG, "rudder_control targetting, switchon");
                         device_set_register(dev, REG_CONTROL, CONTROL_SWITCHON);
                         break;
 
                 case CONTROL_SWITCHON:
-                        VLOGF("rudder_control setting target position %f -> %f", qc_to_angle(params, curr_targ_qc), target_angle_deg);
+                        syslog(LOG_DEBUG, "rudder_control setting target position %f -> %f", qc_to_angle(params, curr_targ_qc), target_angle_deg);
                         device_invalidate_register(dev, REG_TARGPOS);
                         device_set_register(dev, REG_TARGPOS, angle_to_qc(params, target_angle_deg));
                         device_set_register(dev, REG_CONTROL, CONTROL_START);
@@ -306,12 +300,12 @@ static int rudder_control(double* actual_angle_deg)
 
                 case CONTROL_START:
                 case CONTROL_SWITCHON | 0x0010:
-                        VLOGF("rudder_control targetting, waiting");
+                        syslog(LOG_DEBUG, "rudder_control targetting, waiting");
                         if (!(status & STATUS_HOMINGERROR))
                                 break;
                         // fallthrough
                 default:
-                        VLOGF("rudder_control targetting bad state: control %x, status %x", control, status);
+                        syslog(LOG_DEBUG, "rudder_control targetting bad state: control %x, status %x", control, status);
                         device_invalidate_register(dev, REG_CURRPOS);
                         device_invalidate_register(dev, REG_OPMODE);
                         device_invalidate_register(dev, REG_CONTROL);
@@ -325,7 +319,7 @@ static int rudder_control(double* actual_angle_deg)
                 return TARGETTING;
         }
 
-        VLOGF("rudder_control target reached, shutdown");
+        syslog(LOG_DEBUG, "rudder_control target reached, shutdown");
         device_set_register(dev, REG_CONTROL, CONTROL_SHUTDOWN);
         // we're homeref, position is close enough, and we powered off
 
@@ -367,8 +361,8 @@ int main(int argc, char* argv[]) {
 
 	char label[1024];
 	snprintf(label, sizeof label, "%s(%s)", argv0, params->label);
-
-	if (!debug) openlog(label, LOG_PERROR, LOG_DAEMON);
+	openlog(label, debug?LOG_PERROR:0, LOG_LOCAL2);
+	if(!debug) setlogmask(LOG_UPTO(LOG_NOTICE));
 
 	setlinebuf(stdout);
 	bus = bus_new(stdout);	
@@ -383,6 +377,9 @@ int main(int argc, char* argv[]) {
 		syslog(LOG_WARNING, "Initializing rudder.");
 
 		device_invalidate_all(dev);
+
+		uint32_t dum;
+		device_get_register(dev, REG_STATUS, &dum);  // Kick off communications
 
 		while (state != TARGETTING)
 			if (processinput())

@@ -28,14 +28,9 @@ static void crash(const char* fmt, ...) {
         char buf[1000];
         va_start(ap, fmt);
         vsnprintf(buf, 1000, fmt, ap);
-	if (debug)
-		fprintf(stderr, "%s:%s%s%s\n", argv0, buf,
-			(errno) ? ": " : "",
-			(errno) ? strerror(errno):"" );
-	else
-		syslog(LOG_CRIT, "%s%s%s\n", buf,
-		       (errno) ? ": " : "",
-		       (errno) ? strerror(errno):"" );
+	syslog(LOG_CRIT, "%s%s%s\n", buf,
+	       (errno) ? ": " : "",
+	       (errno) ? strerror(errno):"" );
         exit(1);
         va_end(ap);
         return;
@@ -48,7 +43,7 @@ void usage(void) {
         exit(1);
 }
 
-// Map serial numbers to nodeids.
+// Map serial numbers to nodeids.  We don't probe beyond number 9.
 static uint32_t nodeidmap[] = {
 	-1, -1, -1, -1,
 	-1, -1, -1, -1,
@@ -82,7 +77,7 @@ int main(int argc, char* argv[]) {
 
 	 setlinebuf(stdout);
 
-	 if (!debug) openlog(argv0, LOG_PERROR, LOG_DAEMON);
+	 openlog(argv0, debug?LOG_PERROR:0, LOG_LOCAL2);
 
 	 if (signal(SIGBUS, fault) == SIG_ERR)  crash("signal(SIGBUS)");
 	 if (signal(SIGSEGV, fault) == SIG_ERR)  crash("signal(SIGSEGV)");
@@ -94,10 +89,7 @@ int main(int argc, char* argv[]) {
 	 for (nodeid = 1; nodeid < nelem(nodeidmap); ++nodeid) {
 		 uint32_t err = epos_readobject(fd, 0x1018, 4, nodeid, nodeidmap + nodeid);
 		 if (err != 0) continue;
-		 if (debug)
-			 fprintf(stderr, "port:%s nodeid:%d serial:0x%x\n", argv[0], nodeid, nodeidmap[nodeid]);
-		 else
-			 syslog(LOG_INFO, "port:%s nodeid:%d serial:0x%x\n", argv[0], nodeid, nodeidmap[nodeid]);
+		 syslog(LOG_INFO, "port:%s nodeid:%d serial:0x%x\n", argv[0], nodeid, nodeidmap[nodeid]);
 	 }
 
 	 while (!feof(stdin)) {
@@ -155,17 +147,14 @@ int main(int argc, char* argv[]) {
 			 break;
 		 }
 
-		 default:
-			 if (debug)
-				 fprintf(stderr, "Unparsable line at field %d:%s", n, line);
-			 else {
-				 static int max = 100;
-				 if (max-- > 0)
-					 syslog(LOG_WARNING, "Unparsable line at field %d:%s", n, line);
-			 }
+		 default: {
+			 static int max = 100;
+			 if (max-- > 0)
+				 syslog(LOG_WARNING, "Unparsable line at field %d:%s", n, line);
 			 continue;
 		 }
 
+		 }  // switch
 
 		 if (!err) {
 			 printf("0x%x:0x%x[%d] = 0x%x\n", serial, index, subindex, value);

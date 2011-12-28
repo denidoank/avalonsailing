@@ -36,14 +36,9 @@ static void crash(const char* fmt, ...) {
 	char buf[1000];
 	va_start(ap, fmt);
 	vsnprintf(buf, sizeof(buf), fmt, ap);
-	if (debug)
-		fprintf(stderr, "%s:%s%s%s\n", argv0, buf,
-			(errno) ? ": " : "",
-			(errno) ? strerror(errno):"" );
-	else
-		syslog(LOG_CRIT, "%s%s%s\n", buf,
-		       (errno) ? ": " : "",
-		       (errno) ? strerror(errno):"" );
+	syslog(LOG_CRIT, "%s%s%s\n", buf,
+	       (errno) ? ": " : "",
+	       (errno) ? strerror(errno):"" );
 	exit(1);
 	va_end(ap);
 	return;
@@ -97,8 +92,7 @@ const uint32_t MAX_CURRENT_MA     = 3000;
 const double MAX_ABS_SPEED_DEG_S  = 30;
 const double MAX_ABS_ACCEL_DEG_S2 = 500;
 
-// todo, use -d flag and fprintf
-#define VLOGF(...) do {} while (0)
+const double TOLERANCE_DEG = 1.0;
 
 int sail_init() {
 
@@ -106,13 +100,13 @@ int sail_init() {
         uint32_t status;
         uint32_t error;
 
-        VLOGF("sail_init");
+        syslog(LOG_DEBUG, "sail_init");
 
         if (!device_get_register(motor, REG_STATUS, &status))
                 return DEFUNCT;
 
         if (status & STATUS_FAULT) {
-                VLOGF("sail_control: clearing fault");
+                syslog(LOG_DEBUG, "sail_control: clearing fault");
                 device_invalidate_register(motor, REG_CONTROL);   // force re-issue
                 device_set_register(motor, REG_CONTROL, CONTROL_CLEARFAULT);
 		device_invalidate_register(motor, REG_ERROR);   // force re-issue
@@ -123,9 +117,12 @@ int sail_init() {
 
         r = device_set_register(motor, REG_OPMODE, OPMODE_PPM);
 
-        r &= device_set_register(motor, REGISTER(0x2080, 0), 3000); // current_threshold       User specific [500 mA]
+	int32_t tol = angle_to_qc(&motor_params[SAIL], TOLERANCE_DEG);
+	if(tol < 0) tol = -tol;
+
+        r &= device_set_register(motor, REGISTER(0x2080, 0), 5000); // current_threshold       User specific [500 mA]
         r &= device_set_register(motor, REGISTER(0x6065, 0), 0xffffffff); // max_following_error User specific [2000 qc]
-        r &= device_set_register(motor, REGISTER(0x6067, 0), 2000);   // position window [qc], see 14.66
+        r &= device_set_register(motor, REGISTER(0x6067, 0), tol);        // position window [qc], see 14.66
         r &= device_set_register(motor, REGISTER(0x6068, 0), 50);      // position time window [ms], see 14.66
         r &= device_set_register(motor, REGISTER(0x607D, 1), 0x80000000); // min_position_limit [-2147483648 qc]
         r &= device_set_register(motor, REGISTER(0x607D, 2), 0x7fffffff); // max_position_limit  [2147483647 qc]
@@ -160,15 +157,15 @@ int sail_control(double* actual_angle_deg) {
         int32_t curr_targ_qc;
         int32_t curr_abspos_qc;
 
-        VLOGF("sail_control(%f)", target_angle_deg);
+        syslog(LOG_DEBUG, "sail_control(%f)", target_angle_deg);
 
         if (!device_get_register(motor, REG_STATUS, &status))
                 return DEFUNCT;
 
-	VLOGF("sail_control(%f) status 0x%x", target_angle_deg, status);
+	syslog(LOG_DEBUG, "sail_control(%f) status 0x%x", target_angle_deg, status);
 
         if (status & STATUS_FAULT) {
-                VLOGF("sail_control: clearing fault");
+                syslog(LOG_DEBUG, "sail_control: clearing fault");
                 device_invalidate_register(motor, REG_CONTROL);   // force re-issue
                 device_set_register(motor, REG_CONTROL, CONTROL_CLEARFAULT);
 		device_invalidate_register(motor, REG_ERROR);   // force re-issue
@@ -189,7 +186,7 @@ int sail_control(double* actual_angle_deg) {
         }
 
         if (!r) {
-                VLOGF("sail control: incomplete status\n");
+                syslog(LOG_DEBUG, "sail control: incomplete status\n");
                 return DEFUNCT;
         }
 
@@ -198,11 +195,11 @@ int sail_control(double* actual_angle_deg) {
 
         *actual_angle_deg = qc_to_angle(&motor_params[BMMH], curr_abspos_qc);
 
-        VLOGF("sail_control(%f <- %f)", target_angle_deg, *actual_angle_deg);
+        syslog(LOG_DEBUG, "sail_control(%f <- %f)", target_angle_deg, *actual_angle_deg);
 
 	if (isnan(target_angle_deg)) return REACHED;
 
-        VLOGF("sail_control: configuration ok target %sreached",
+        syslog(LOG_DEBUG, "sail_control: configuration ok target %sreached",
               (status & STATUS_TARGETREACHED) ? "NOT ": "" );
 
         // we should operate the motor to make this angle zero
@@ -210,7 +207,7 @@ int sail_control(double* actual_angle_deg) {
         while (target_delta_deg < -180.0) target_delta_deg += 360.0;
         while (target_delta_deg >  180.0) target_delta_deg -= 360.0;
 
-        VLOGF("sail_control: target delta: %f", target_delta_deg);
+        syslog(LOG_DEBUG, "sail_control: target delta: %f", target_delta_deg);
 
         int32_t new_targ_qc = curr_pos_qc + angle_to_qc(&motor_params[SAIL], target_delta_deg);
         int32_t delta_targ_qc = new_targ_qc - curr_targ_qc;
@@ -224,42 +221,42 @@ int sail_control(double* actual_angle_deg) {
                 }
         }
 
-        VLOGF("sail_control: curr_pos_qc: %d curr_targ_qc: %d new_targ_qc: %d delta_targ_qc: %d",
+        syslog(LOG_DEBUG, "sail_control: curr_pos_qc: %d curr_targ_qc: %d new_targ_qc: %d delta_targ_qc: %d",
               curr_pos_qc, curr_targ_qc, new_targ_qc, delta_targ_qc);
 
 
         if (!(status & STATUS_TARGETREACHED)) {
-                VLOGF("sail_control: Status not reached, going to %d", new_targ_qc);
+                syslog(LOG_DEBUG, "sail_control: Status not reached, going to %d", new_targ_qc);
                 if (!device_set_register(motor, REGISTER(0x2078, 1), 0)) {
-                        VLOGF("sail_control: wait for break off");
+                        syslog(LOG_DEBUG, "sail_control: wait for break off");
                         return TARGETTING;
                 }
-                VLOGF("sail_control: break off confirmed");
+                syslog(LOG_DEBUG, "sail_control: break off confirmed");
 
                 switch(control) {
                 case CONTROL_SHUTDOWN:
-                        VLOGF("sail_control: shutdown->switchon");
+                        syslog(LOG_DEBUG, "sail_control: shutdown->switchon");
                         device_set_register(motor, REG_CONTROL, CONTROL_SWITCHON);
                         break;
                 case CONTROL_SWITCHON:
-                        VLOGF("sail_control: switchon -> start");
+                        syslog(LOG_DEBUG, "sail_control: switchon -> start");
                         device_invalidate_register(motor, REG_TARGPOS);
                         device_set_register(motor, REG_TARGPOS, new_targ_qc);
                         device_set_register(motor, REG_CONTROL, CONTROL_START);
                         break;
                 case CONTROL_START:
-                        VLOGF("sail_control: moving, patience");
+                        syslog(LOG_DEBUG, "sail_control: moving, patience");
                         break;
                 default:  // weird, shutdown first
-                        VLOGF("sail_control: ? (%x) -> shutdown", control);
+                        syslog(LOG_DEBUG, "sail_control: ? (%x) -> shutdown", control);
                         device_set_register(motor, REG_CONTROL, CONTROL_SHUTDOWN);
                         break;
                 }
         } else {
-                VLOGF("sail_control: Status Reached");
+                syslog(LOG_DEBUG, "sail_control: Status Reached");
                 device_set_register(motor, REG_CONTROL, CONTROL_SHUTDOWN);
                 if (device_set_register(motor, REGISTER(0x2078, 1), (1<<12)))  // brake on
-                        VLOGF("sail_control: brake on");
+                        syslog(LOG_DEBUG, "sail_control: brake on");
         }
 
         device_invalidate_register(bmmh,  REG_BMMHPOS);
@@ -297,7 +294,8 @@ int main(int argc, char* argv[]) {
 	if (signal(SIGBUS, fault) == SIG_ERR)  crash("signal(SIGBUS)");
 	if (signal(SIGSEGV, fault) == SIG_ERR)  crash("signal(SIGSEGV)");
 
-	if (!debug) openlog(argv0, LOG_PERROR, LOG_DAEMON);
+	openlog(argv0, debug?LOG_PERROR:0, LOG_LOCAL2);
+	if(!debug) setlogmask(LOG_UPTO(LOG_NOTICE));
 
 	setlinebuf(stdout);
 	bus = bus_new(stdout);
@@ -311,6 +309,11 @@ int main(int argc, char* argv[]) {
 
 	for(;;) {
 		syslog(LOG_WARNING, "Initializing sail.");
+
+		device_invalidate_all(motor);
+		device_invalidate_all(bmmh);
+		uint32_t dum;
+		device_get_register(motor, REG_STATUS, &dum);  // Kick off communications
 
 		while (state != TARGETTING)
 			if (processinput())
