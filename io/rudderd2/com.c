@@ -14,25 +14,7 @@
 
 #include "com.h"
 
-#ifdef DEBUG
-static void
-vlogf(const char* fmt, ...)
-{
-        va_list ap;
-        char buf[1000];
-        va_start(ap, fmt);
-        vsnprintf(buf, 1000, fmt, ap);
-        fprintf(stderr, "%s%s%s\n", buf,
-                (errno) ? ": " : "",
-                (errno) ? strerror(errno): "" );
-        va_end(ap);
-        return;
-}
-
-#define VLOGF(fmt, ...) vlogf(fmt, __VA_ARGS__)
-#else
 #define VLOGF(fmt, ...) do {} while(0)
-#endif
 
 int
 epos_open(const char* path_to_dev)

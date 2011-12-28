@@ -35,14 +35,9 @@ crash(const char* fmt, ...)
 	char buf[1000];
 	va_start(ap, fmt);
 	vsnprintf(buf, sizeof(buf), fmt, ap);
-	if (debug)
-		fprintf(stderr, "%s:%s%s%s\n", argv0, buf,
-			(errno) ? ": " : "",
-			(errno) ? strerror(errno):"" );
-	else
-		syslog(LOG_CRIT, "%s%s%s\n", buf,
-		       (errno) ? ": " : "",
-		       (errno) ? strerror(errno):"" );
+	syslog(LOG_CRIT, "%s%s%s\n", buf,
+	       (errno) ? ": " : "",
+	       (errno) ? strerror(errno):"" );
 	exit(1);
 	va_end(ap);
 	return;
@@ -101,7 +96,7 @@ int main(int argc, char* argv[]) {
 	if (signal(SIGBUS, fault) == SIG_ERR)  crash("signal(SIGBUS)");
 	if (signal(SIGSEGV, fault) == SIG_ERR)  crash("signal(SIGSEGV)");
 
-	if (!debug) openlog(argv0, LOG_PERROR, LOG_DAEMON);
+	openlog(argv0, debug?LOG_PERROR:0, LOG_LOCAL2);
 
 	int64_t delta_us = 1000000/freq_hz;
 	int64_t last_us = 0;
