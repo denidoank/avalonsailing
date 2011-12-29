@@ -57,24 +57,28 @@ int bus_receive(Bus* bus, char* line) {
 	uint32_t value = value_l;
 	uint32_t idx = REGISTER(index, subindex);
 
-	Device* dev;
-	Register* reg;
+	Device* dev = NULL;
 	for (dev = bus->devices; dev; dev = dev->next)
-		if (dev->serial == serial) {
-			for (reg = dev->registers; reg; reg = reg->next)
-				if (reg->reg == idx) {
-					if (op[0] == '=') {
-						reg->value = value;
-						reg->state = VALID;
-					} else {
-						reg->state = INVALID;
-					}
-					return 1;
-				}
+		if (dev->serial == serial)
 			break;
-		}
 
-	return 0;
+	if(!dev) return 0;
+
+	Register* reg = NULL;
+	for (reg = dev->registers; reg; reg = reg->next)
+		if (reg->reg == idx)
+			break;
+
+	if (!reg) return 0;
+	
+	if (op[0] == '=') {
+		reg->value = value;
+		reg->state = VALID;
+	} else {
+		reg->state = INVALID;
+	}
+
+	return 1;
 }
 
 // time in ms since first call.

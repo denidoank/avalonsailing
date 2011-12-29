@@ -94,6 +94,10 @@ const double MAX_ABS_ACCEL_DEG_S2 = 500;
 
 const double TOLERANCE_DEG = 1.0;
 
+// Set config and opmode
+// Returns
+//	DEFUNCT:  waiting for response to epos query
+//	TARGETTING:  ready for sail_control
 int sail_init() {
 
         int r;
@@ -146,6 +150,7 @@ int sail_init() {
 	return TARGETTING;
 }
 
+// update 
 int sail_control(double* actual_angle_deg) {
 
         int r;
@@ -173,9 +178,14 @@ int sail_control(double* actual_angle_deg) {
                 device_invalidate_register(motor, REG_STATUS);
                 return HOMING;
         }
+	
+        if(!device_get_register(motor, REG_OPMODE,  &opmode))
+		return DEFUNCT;
+
+	if (opmode != OPMODE_PPM)
+		return HOMING;
 
         r  = device_get_register(motor, REG_CONTROL, &control);
-        r &= device_get_register(motor, REG_OPMODE,  &opmode);
         r &= device_get_register(motor, REG_CURRPOS, (uint32_t*)&curr_pos_qc);
         r &= device_get_register(motor, REG_TARGPOS, (uint32_t*)&curr_targ_qc);
         {
@@ -185,13 +195,7 @@ int sail_control(double* actual_angle_deg) {
                 curr_abspos_qc = normalize_qc(&motor_params[BMMH], curr_abspos_qc);
         }
 
-        if (!r) {
-                syslog(LOG_DEBUG, "sail control: incomplete status\n");
-                return DEFUNCT;
-        }
-
-	if (opmode != OPMODE_PPM)
-		return HOMING;
+        if (!r) return DEFUNCT;
 
         *actual_angle_deg = qc_to_angle(&motor_params[BMMH], curr_abspos_qc);
 
@@ -238,15 +242,18 @@ int sail_control(double* actual_angle_deg) {
                         syslog(LOG_DEBUG, "sail_control: shutdown->switchon");
                         device_set_register(motor, REG_CONTROL, CONTROL_SWITCHON);
                         break;
+
                 case CONTROL_SWITCHON:
                         syslog(LOG_DEBUG, "sail_control: switchon -> start");
                         device_invalidate_register(motor, REG_TARGPOS);
                         device_set_register(motor, REG_TARGPOS, new_targ_qc);
                         device_set_register(motor, REG_CONTROL, CONTROL_START);
                         break;
+
                 case CONTROL_START:
                         syslog(LOG_DEBUG, "sail_control: moving, patience");
                         break;
+
                 default:  // weird, shutdown first
                         syslog(LOG_DEBUG, "sail_control: ? (%x) -> shutdown", control);
                         device_set_register(motor, REG_CONTROL, CONTROL_SHUTDOWN);
@@ -336,7 +343,7 @@ int main(int argc, char* argv[]) {
 			}
 
 			if (now - last_reached > warn_interval) {
-				syslog(LOG_WARNING, "Unable to target sail.");
+				syslog(LOG_WARNING, "Unable to reach target %.2lf actual %.2lf", target_angle_deg, angle_deg);
 				last_reached = now;  // shut up warning
 				if (warn_interval < MAX_INTERVAL) warn_interval *= 2;
 			}
