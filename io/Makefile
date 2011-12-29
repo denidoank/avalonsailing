@@ -1,2 +1,2 @@
-# Not on Mac: LDFLAGS+=-static
+#LDFLAGS+=-static
 include ../mk/Makefile.inc

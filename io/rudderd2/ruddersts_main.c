@@ -101,7 +101,7 @@ int main(int argc, char* argv[]) {
 	if (signal(SIGBUS, fault) == SIG_ERR)  crash("signal(SIGBUS)");
 	if (signal(SIGSEGV, fault) == SIG_ERR)  crash("signal(SIGSEGV)");
 
-	openlog(argv0, debug?LOG_PERROR:0, LOG_DAEMON);
+	openlog(argv0, debug?LOG_PERROR:0, LOG_LOCAL2);
 
 	setlinebuf(stdout);
 
