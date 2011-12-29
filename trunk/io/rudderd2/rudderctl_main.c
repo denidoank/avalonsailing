@@ -66,7 +66,6 @@ static MotorParams* params = NULL;
 static Device* dev = NULL;
 static double target_angle_deg = NAN;
 
-// aim for about 12 bits of resolution: 180/4096 ~ .043
 const double TOLERANCE_DEG = .05;  // aiming precision in targetting rudder
 
 static int processinput() {
@@ -94,6 +93,10 @@ const char* status[] = { "DEFUNCT", "HOMING", "TARGETTING", "REACHED" };
 
 
 // Work towards a state where the homed bit is set and we're in PPM mode
+// Returns
+//    DEFUNCT:  waiting for epos response to register query
+//    HOMING:   in initalizing sequence
+//    TARGETTING:  ready for rudder_control
 static int rudder_init()
 {
         int r;
@@ -101,8 +104,6 @@ static int rudder_init()
         uint32_t error;
         uint32_t control;
         uint32_t opmode;
-
-        syslog(LOG_DEBUG, "rudder_init");
 
         if (!device_get_register(dev, REG_STATUS, &status))
                 return DEFUNCT;
@@ -214,6 +215,12 @@ static int rudder_init()
 	return TARGETTING;
 }
 
+// Try to set the motion towards target_angle if neccesary
+// Returns
+//     DEFUNCT:  waiting for response to epos query
+//     HOMING:   HOMEREF bit or PPM mode lost, please go execute rudder_init
+//     TARGETTING:  in motion towards target
+//     REACHED:   reached target angle to within tolerance
 static int rudder_control(double* actual_angle_deg)
 {
         int r;
@@ -230,7 +237,7 @@ static int rudder_control(double* actual_angle_deg)
                 return DEFUNCT;
 
         if (status & STATUS_FAULT) {
-                syslog(LOG_DEBUG, "rudder_control: clearing fault");
+                syslog(LOG_DEBUG, "rudder_control: clearing fault 0x%x", status);
                 device_invalidate_register(dev, REG_CONTROL);   // force re-issue
                 device_set_register(dev, REG_CONTROL, CONTROL_CLEARFAULT);
                 device_invalidate_register(dev, REG_ERROR);   // force re-issue
@@ -242,17 +249,19 @@ static int rudder_control(double* actual_angle_deg)
 	if (!(status & STATUS_HOMEREF))
 		return HOMING;
 
+        if (!device_get_register(dev, REG_OPMODE,  &opmode))
+		return DEFUNCT;
+
+	if (opmode != OPMODE_PPM)
+		return HOMING;
+
         r  = device_get_register(dev, REG_CONTROL, &control);
-        r &= device_get_register(dev, REG_OPMODE,  &opmode);
         r &= device_get_register(dev, REG_CURRPOS, (uint32_t*)&curr_pos_qc);
         r &= device_get_register(dev, REG_TARGPOS, (uint32_t*)&curr_targ_qc);
 
         if (!r) return DEFUNCT;
 
         *actual_angle_deg = qc_to_angle(params, curr_pos_qc);
-
-	if (opmode != OPMODE_PPM)
-		return HOMING;
 
         syslog(LOG_DEBUG, "rudder_control current position %x(%d %f) current target %x(%d %f)",
               curr_pos_qc,  curr_pos_qc,  qc_to_angle(params, curr_pos_qc),
@@ -262,12 +271,11 @@ static int rudder_control(double* actual_angle_deg)
 	if (isnan(target_angle_deg)) return REACHED;
 
         // no matter where we are, if current target is away from new target angle, we're not there
-
         double targ_diff = target_angle_deg - qc_to_angle(params, curr_targ_qc);
      
         if (targ_diff < 0) targ_diff = -targ_diff;
         if (targ_diff > TOLERANCE_DEG) {
-                syslog(LOG_DEBUG, "rudder_control target reached, but wrong target");
+                syslog(LOG_DEBUG, "rudder_control must update target %.3lf deg", targ_diff);
                 status &= ~STATUS_TARGETREACHED;
                 control &= ~0x30;  // if we started, pretend we're just switched on
                 device_invalidate_register(dev, REG_CONTROL);
@@ -278,7 +286,7 @@ static int rudder_control(double* actual_angle_deg)
                 double actual_diff = qc_to_angle(params, curr_pos_qc) - qc_to_angle(params, curr_targ_qc);
                 if (actual_diff < 0) actual_diff = -actual_diff;
                 if (actual_diff > TOLERANCE_DEG) {
-                        syslog(LOG_DEBUG, "rudder_control target reached, but actual is wrong");
+                        syslog(LOG_DEBUG, "rudder_control target reached, but actual is wrong by %.3lf deg", actual_diff);
                         status &= ~STATUS_TARGETREACHED;
                 }
         }
@@ -291,38 +299,33 @@ static int rudder_control(double* actual_angle_deg)
                         break;
 
                 case CONTROL_SWITCHON:
-                        syslog(LOG_DEBUG, "rudder_control setting target position %f -> %f", qc_to_angle(params, curr_targ_qc), target_angle_deg);
+                        syslog(LOG_DEBUG, "rudder_control setting target position %lf -> %lf", qc_to_angle(params, curr_targ_qc), target_angle_deg);
                         device_invalidate_register(dev, REG_TARGPOS);
                         device_set_register(dev, REG_TARGPOS, angle_to_qc(params, target_angle_deg));
                         device_set_register(dev, REG_CONTROL, CONTROL_START);
-                        device_invalidate_register(dev, REG_CURRPOS);
                         break;
 
                 case CONTROL_START:
                 case CONTROL_SWITCHON | 0x0010:
                         syslog(LOG_DEBUG, "rudder_control targetting, waiting");
                         if (!(status & STATUS_HOMINGERROR))
-                                break;
-                        // fallthrough
+				break;
+			//fallthrough
                 default:
-                        syslog(LOG_DEBUG, "rudder_control targetting bad state: control %x, status %x", control, status);
-                        device_invalidate_register(dev, REG_CURRPOS);
-                        device_invalidate_register(dev, REG_OPMODE);
+                        syslog(LOG_NOTICE, "rudder_control targetting bad state: control 0x%x, status 0x%x", control, status);
                         device_invalidate_register(dev, REG_CONTROL);
-                        device_set_register(dev, REG_OPMODE, OPMODE_PPM);
                         device_set_register(dev, REG_CONTROL, CONTROL_SHUTDOWN);
                 }
 
                 device_invalidate_register(dev, REG_CURRPOS);
                 device_invalidate_register(dev, REG_STATUS);
-                device_get_register(dev, REG_STATUS, &status);
                 return TARGETTING;
         }
 
         syslog(LOG_DEBUG, "rudder_control target reached, shutdown");
         device_set_register(dev, REG_CONTROL, CONTROL_SHUTDOWN);
-        // we're homeref, position is close enough, and we powered off
 
+        // we're homeref, position is close enough, and we powered off
         device_invalidate_register(dev, REG_CURRPOS);
         device_invalidate_register(dev, REG_STATUS);
         return REACHED;
@@ -402,7 +405,7 @@ int main(int argc, char* argv[]) {
 			}
 
 			if (now - last_reached > warn_interval) {
-				syslog(LOG_WARNING, "Unable to target rudder.");
+				syslog(LOG_WARNING, "Unable to reach target %.3lf actual %.3lf", target_angle_deg, angle_deg);
 				last_reached = now;  // shut up warning
 				if (warn_interval < MAX_INTERVAL) warn_interval *= 2;
 			}
