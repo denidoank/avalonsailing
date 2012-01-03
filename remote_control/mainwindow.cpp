@@ -227,8 +227,12 @@ void MainWindow::drawBoat() {
   skipper_disc_->setPos(-160, 0);
   true_wind_ = new QGraphicsLineItem(0, 0, 0, -45, skipper_disc_, &scene_);
   true_wind_->setPen(wind_pen);
-  true_wind_speed_ = new QGraphicsTextItem("19.0kt T0", skipper_disc_);
-  true_wind_speed_->setPos(-true_wind_speed_->boundingRect().width() / 2, 40);
+  true_wind_speed_ = new QGraphicsTextItem("19.0kt T0");
+  scene_.addItem(true_wind_speed_);
+  true_wind_speed_->setPos(-160 + true_wind_->boundingRect().width() / 2 -
+                           true_wind_speed_->boundingRect().width() / 2,
+                           true_wind_->boundingRect().height() / 2 +
+                           true_wind_speed_->boundingRect().height() / 2);
 
   QPixmap background(":/images/water_texture.png");
   QBrush background_brush(background);
