@@ -74,7 +74,7 @@ decode_float(uint8_t** dd)
 {
 	uint8_t* d = *dd;
 	uint8_t f[4] = { d[3], d[2], d[1], d[0] };
-	if(debug) fprintf(stderr, "decode float: %02x %02x %02x %02x  : %lf\n", d[0],d[1],d[2],d[3], *(float*)f);
+	if(debug>1) fprintf(stderr, "decode float: %02x %02x %02x %02x  : %lf\n", d[0],d[1],d[2],d[3], *(float*)f);
 	(*dd) += 4;
 	return *(float*) f;
 }
@@ -191,8 +191,7 @@ imu_decode_variables(uint8_t* b, int len, uint16_t mode, uint32_t settings, stru
 				0,  //int tm_yday;        /* day in the year */
 				0,  //int tm_isdst;       /* daylight saving time */
 			};
-			if (debug) fprintf(stderr, "s:%d m:%d h:%d d:%d m:%d y:%d\n", b[10], b[9], b[8], b[7], b[6], (b[4]<<8) + b[5]);
-			if (debug) fprintf(stderr, "utc: %s\n", asctime(&t));
+			if (debug) fprintf(stderr, "\ns:%d m:%d h:%d d:%d m:%d y:%d utc:%s", b[10], b[9], b[8], b[7], b[6], (b[4]<<8) + b[5], asctime(&t)+4);
 			int64_t time_s = timegm(&t);
 			int64_t ns = (b[0]<<24) + (b[1]<<16) + (b[2]<<8) + b[3];
 			time_s *= 1000;
@@ -203,7 +202,7 @@ imu_decode_variables(uint8_t* b, int len, uint16_t mode, uint32_t settings, stru
 		b += 12;
 	}
 
-	if (debug) fprintf(stderr, "bytes left: %d\n", e-b);
+	if (debug && e!=b) fprintf(stderr, "bytes left: %d\n", e-b);
 
 	return 0;
 }
@@ -261,7 +260,7 @@ int main(int argc, char* argv[]) {
 		crash("open(%s, ...)", argv[0]);
 
 	// Set serial parameters.
-	if (debug<2) {
+	if (debug<3) {
 		struct termios t;
 		if (tcgetattr(port, &t) < 0) crash("tcgetattr(%s)", argv[0]);
 		cfmakeraw(&t);
@@ -340,6 +339,8 @@ int main(int argc, char* argv[]) {
 			if (debug) fprintf(stderr, "Could not decode MTData, discarding %d bytes\n", len);
 			continue;
 		}
+
+		if(debug) fprintf(stderr, "status:0x%x:%s%s%s\n", vars.status, (vars.status & 1) ? " selftest":"", (vars.status&2)? " XKF":"", (vars.status&4)?" GPS":"");
 
                 printf(OFMT_IMUPROTO(vars));
 	}
