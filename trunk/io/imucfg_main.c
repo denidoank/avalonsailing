@@ -11,7 +11,8 @@
 //    Marine            (17)  
 //    Aerospace_nobaro  (10)
 // Both use IMU, GPS and Magnetometer, but not pressure or no-slip assumption.  The user 
-// manual suggests that marine is for 'significant velocities', so we default to aerospace_nobaro.
+// manual suggests that marine is for 'significant velocities'.  XSens customer support
+// mentioned marine requires to upload a magnetic declination, which we don't.
 //
 
 #include <assert.h>
@@ -68,7 +69,7 @@ usage(void)
 		"\t-d debug            (don't syslog)\n"
 		"\t-m output_mode      default 0x....\n"
 		"\t-s output_settings  default 0x....\n"
-		"\t-c sCenario         default 10 (aerospace nobaro)\n"
+		"\t-c sCenario         default 17 (marine, use 10 for aerospace nobaro)\n"
 		"\t-k sKipfactor       default 19\n"
 		"\t-x, -y, -z  lever arm\n"
 		"\t-F       issue factory reset and exit (do not set anything)\n"
@@ -220,7 +221,7 @@ int main(int argc, char* argv[]) {
 	int factoryreset = 0;
 	int reset = 0;
 	int skipf = 19;
-	int scenario = IMU_XKFSCENARIO_AEROSPACE_NOBARO;  
+	int scenario = IMU_XKFSCENARIO_MARINE; 
 	uint16_t mode     = IMU_OUTPUT_MODE;
 	uint32_t settings = IMU_OUTPUT_SETTINGS;
 	float lev_x = -15.0;
@@ -230,7 +231,7 @@ int main(int argc, char* argv[]) {
 	argv0 = strrchr(argv[0], '/');
 	if (argv0) ++argv0; else argv0 = argv[0];
 
-	while ((ch = getopt(argc, argv, "c:b:dFhk:m:Rs:vx:y:z:")) != -1){
+	while ((ch = getopt(argc, argv, "c:b:dFhk:m:NRs:vx:y:z:")) != -1){
 		switch (ch) {
 		case 'b': baudrate = atoi(optarg); break;
 		case 'c': scenario = atoi(optarg); break;
@@ -242,6 +243,9 @@ int main(int argc, char* argv[]) {
 		case 'x': lev_x = atof(optarg); break;
 		case 'y': lev_y = atof(optarg); break;
 		case 'z': lev_z = atof(optarg); break;
+		case 'N': // toggle IMU_OS_NED bit
+			settings ^= IMU_OS_NED;
+			break;
 		case 'm':
 		  mode = strtol(optarg, NULL, 0); 
 		  if (errno == ERANGE) crash("can't parse %s as a number\n", optarg);

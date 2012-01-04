@@ -340,7 +340,23 @@ int main(int argc, char* argv[]) {
 			continue;
 		}
 
-		if(debug) fprintf(stderr, "status:0x%x:%s%s%s\n", vars.status, (vars.status & 1) ? " selftest":"", (vars.status&2)? " XKF":"", (vars.status&4)?" GPS":"");
+		// unless in debug mode, if we have the status byte, clear fields that are not reliable
+		if(!debug && (mode & IMU_OM_STS)) {
+			if (!(vars.status&IMU_STS_XKF)) {
+				vars.roll_deg  = vars.pitch_deg = vars.yaw_deg = NAN;
+				vars.vel_x_m_s = vars.vel_y_m_s = vars.vel_z_m_s = NAN;
+			}
+
+			if (!(vars.status & (IMU_STS_XKF|IMU_STS_GPS))) {
+				vars.lat_deg = vars.lng_deg = vars.alt_m = NAN;
+			}
+		}
+
+		if(debug)
+			fprintf(stderr, "status:0x%x:%s%s%s\n", vars.status,
+				(vars.status&IMU_STS_SELFTEST) ? " selftest":"",
+				(vars.status&IMU_STS_XKF)? " XKF":"",
+				(vars.status&IMU_STS_GPS)?" GPS":"");
 
                 printf(OFMT_IMUPROTO(vars));
 	}
