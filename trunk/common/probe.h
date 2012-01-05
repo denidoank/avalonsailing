@@ -13,6 +13,7 @@ public:
   void Reset();
   void Measure(double in);
   double Value();
+  int Samples();
 private:
   int samples_;
   double sum_;
