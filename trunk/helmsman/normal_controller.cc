@@ -135,13 +135,12 @@ bool NormalController::ShapeAlphaStar(double alpha_star,
   LimitRateWrapRad(alpha_star, alpha_star_rate_limit_, &alpha_star_rate_limited_);
 
   // Stay in sailable zone
-  alpha_star_sailable_ = BestSailableHeadingWithHysteresis(alpha_star_rate_limited_,
-                                                           alpha_true_wind,
-                                                           alpha_star_sailable_);
+  double new_alpha_star_restricted = BestSailableHeading(alpha_star_rate_limited_, alpha_true_wind);
 
-  bool jump = IsJump(alpha_star_restricted_, alpha_star_sailable_);
-  alpha_star_restricted_ = alpha_star_sailable_;
-  *alpha_star_restricted = alpha_star_sailable_;
+  bool jump = IsJump(alpha_star_restricted_, new_alpha_star_restricted);
+  alpha_star_restricted_ = new_alpha_star_restricted;
+  *alpha_star_restricted = new_alpha_star_restricted;
+
   return jump;
 }
 
