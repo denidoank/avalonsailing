@@ -55,6 +55,7 @@ struct ControllerOutput {
   HelmsmanStatus status;
 };
 
+// elements (except lat long) in internal units (rad, m, s)
 struct FilteredMeasurements {
   void Reset() {
     phi_z_boat = 0;
@@ -72,8 +73,9 @@ struct FilteredMeasurements {
     phi_y_rad = 0;
     temperature_c = 0;
     valid = false;
+    valid_true_wind = false;
   }
-  // Applied filters (T1 roughly 1s) to all data but the true wind direction.
+  // Applied filters (T1 roughly 1s) to some data.
   // true speed, global frame
   double phi_z_boat;
   double mag_boat;
@@ -86,6 +88,7 @@ struct FilteredMeasurements {
   double mag_app;
   // Angle of attack relative to the boom axis (sensor wind angle, mast frame)
   // Positive angle-of-attack pushes left when the sail is straight.
+  // Slow filter.
   double angle_aoa;
   double mag_aoa;
   // GPS data
@@ -98,6 +101,7 @@ struct FilteredMeasurements {
   
   bool valid;           // All the filters (except the true wind filter) have been
                         // filled up and contain reliable data.
+  bool valid_true_wind; // true wind info is reliable and well filtered.
 };
 
 #endif  // HELMSMAN_CONTROLLER_IO_H

@@ -4,7 +4,7 @@
 // Author: grundmann@google.com (Steffen Grundmann)
 // December 2011
 
-
+#include <math.h>
 #include "common/probe.h"
 #include "common/check.h"
 
@@ -22,7 +22,12 @@ void Probe::Measure(double in) {
   ++samples_;
 }
 
+int Probe::Samples() {
+  return samples_;
+}
+
 double Probe::Value() {
-  CHECK_GT(samples_, 0);
+  if (samples_ == 0)
+    return NAN;
   return sum_ / samples_;
 }

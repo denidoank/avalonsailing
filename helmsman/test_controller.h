@@ -39,7 +39,7 @@ class TestController : public Controller {
     HOME,          // home the drives, settle the filters.
     ZERO,          // all drives to zero, to have a clean initial state for the drive tests.
     DRIVE_TESTS,   // test response time and maximum speed of all 3 drives
-    ZERO_2,        // all drives to zero, to have a clean initial state for the sensor tests.
+    ZERO_2,        // all drives to zero, to have a clean initial state for the wind sensor tests.
     WIND_SENSOR,   // plausibilty check of wind sensor data
     FAILED,        // failure terminal state (retry later)
     DONE           // success terminal state, may continue to InitialController.
@@ -68,6 +68,13 @@ class TestController : public Controller {
   bool PrepareNextTest();
   bool DoDriveTest(const ControllerInput& in, ControllerOutput* out);
   void StoreTestResults();
+
+  void SetupWindTest();
+  bool DoWindTest(const ControllerInput& in,
+                  const FilteredMeasurements& filtered,
+                  ControllerOutput* out);
+  void StoreWindTestResults();
+
   void PrintTestSummary();
 
   static const char* all_phase_names_[];
@@ -92,6 +99,16 @@ class TestController : public Controller {
   vector<double> actuals_;
   Probe start_error_;
   Probe final_error_;
+
+  Probe angle_aoa_[3];
+  Probe mag_aoa_[3];
+  Probe angle_app_[3];
+  Probe mag_app_[3];
+  Probe angle_true_[3];
+  Probe mag_true_[3];
+  Probe angle_boat_[3];
+  Probe mag_boat_[3];
+
   bool test_success_;
   vector<string> test_result_text_;
 };

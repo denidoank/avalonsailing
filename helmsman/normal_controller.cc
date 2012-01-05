@@ -135,11 +135,13 @@ bool NormalController::ShapeAlphaStar(double alpha_star,
   LimitRateWrapRad(alpha_star, alpha_star_rate_limit_, &alpha_star_rate_limited_);
 
   // Stay in sailable zone
-  double new_alpha_star_restricted = BestSailableHeading(alpha_star_rate_limited_, alpha_true_wind);
+  alpha_star_sailable_ = BestSailableHeadingWithHysteresis(alpha_star_rate_limited_,
+                                                           alpha_true_wind,
+                                                           alpha_star_sailable_);
 
-  bool jump = IsJump(alpha_star_restricted_, new_alpha_star_restricted);
-  alpha_star_restricted_ = new_alpha_star_restricted;
-  *alpha_star_restricted = new_alpha_star_restricted;
+  bool jump = IsJump(alpha_star_restricted_, alpha_star_sailable_);
+  alpha_star_restricted_ = alpha_star_sailable_;
+  *alpha_star_restricted = alpha_star_sailable_;
   return jump;
 }
 
@@ -151,11 +153,11 @@ ManeuverType NormalController::ReferenceValueSwitch(double alpha_star,
                                                     double* phi_z_star,
                                                     double* omega_z_star,
                                                     double* gamma_sail_star) {
-
   bool jump = false;
   double alpha_star_restricted = alpha_star;
-  if (!skip_alpha_star_shaping_)
+  if (!skip_alpha_star_shaping_) {
     jump = ShapeAlphaStar(alpha_star, alpha_true, &alpha_star_restricted);
+  }
   if (debug) fprintf(stderr, "* %6.2lf %6.2lf %6.2lf\n", alpha_star, alpha_star_rate_limited_, alpha_star_restricted);
 
   ManeuverType maneuver_type = kChange;

@@ -25,12 +25,15 @@ extern int debug;  // global shared
 
 namespace {
 
-const double kZeroTolerance = Deg2Rad(5);
+const double kZeroTolerance = Deg2Rad(2);
 const double kZeroTimeoutCount = 10.0 / kSamplingPeriod;
 // This depends on the homing speed (?)
 // and the angle range of the rudders (see actuator.c, 150 degrees) .
 const double kHomingTimeoutCount = 30.0 / kSamplingPeriod;
+const double kZero2Count = (1.5 * Deg2Rad(30)) / (kOmegaMaxSail * kSamplingPeriod);
+
 const double kRepeatTestAfterFailureCount = 30.0 / kSamplingPeriod;  // TODO SWITCH BACK TO 5 minutes!
+
 
 uint64_t now_millis() {
   timeval tv;
@@ -182,7 +185,6 @@ bool TestController::DoDriveTest(const ControllerInput& in,
     default:
       CHECK(0);
   }
-  *reference = test_final_;
 
   // Test sequence:
   // rest for 1/4 of the timeout,
@@ -202,6 +204,7 @@ bool TestController::DoDriveTest(const ControllerInput& in,
       }
     }
   } else {
+    *reference = test_final_;
     StoreTestResults();
     return PrepareNextTest();
   }
@@ -222,7 +225,7 @@ void TestController::StoreTestResults() {
     fprintf(stderr, "%6.0lf deg %6.2lfms, %6.2lf deg,\n",
             Rad2Deg(thresholds_[i]), test_times_[i], Rad2Deg(actuals_[i]));
   }
-  // Measure response time from start to 1 degree, speed from 30% to 90%.
+  // Measure response time from start to 1 degree, speed from 30% to 90% of the step.
   double t_response;
   double speed = -1;  // rotational, in deg/s
   if (test_times_[3] - test_times_[1] > 0) {
@@ -238,8 +241,8 @@ void TestController::StoreTestResults() {
   // Check test results
   double expected_speed = test_param_[test_index_].drive == SAIL ?
       kOmegaMaxSail:    // 13.8 deg/s 0.241661 rad/s
-      kOmegaMaxRudder;  // 30 deg/s 0.523599 rad/s
-  bool success = t_response < 400 &&  // 400ms for the first degree
+      kOmegaMaxRudder;  // 30   deg/s 0.523599 rad/s
+  bool success = t_response < 400 &&            // 400ms to turn by the first degree
                  speed > 0.8 * expected_speed;  // 20% tolerance (10% from sampling)
   test_success_ = test_success_ && success;
 
@@ -253,9 +256,149 @@ void TestController::StoreTestResults() {
 
 void TestController::PrintTestSummary() {
   fprintf(stderr, "\nTEST SUMMARY\ntest %s.\n", test_success_ ? "succeeded" : "failed");
-  for (int i = 0; i < test_result_text_.size(); ++i)
+  for (size_t i = 0; i < test_result_text_.size(); ++i)
     fprintf(stderr, "%s\n", test_result_text_[i].c_str());
   test_result_text_.clear();
+}
+
+// Wind sensor and imu test
+// It is assumed that the boat is attached to the buoy and
+// can turn freely. It is also assumed that the boat finds its new equlibrium
+// after wind direction changes within a minute.
+// IMU must deliver a direction information by now.
+/*
+At Buoy:
+*sail=0, wait 100s, or until true wind is available, then measure for 10s
+- speed == 0
+- angle of attack is around zero
+- wind app alpha = 180 (boat is free to turn)
+- mag app > 0
+- mag app == mag true (speed is zero)
+- wind true alpha == phi_z - 180, stable and fits to real wind
+*/
+
+void TestController::SetupWindTest() {
+  if (debug) fprintf(stderr, "Setup wind & boat testing\n");
+  test_timeout_ = 60;
+  for (int i = 0; i < 3; ++i) {
+    angle_aoa_[i].Reset();
+    mag_aoa_[i].Reset();
+    angle_app_[i].Reset();
+    mag_app_[i].Reset();
+    angle_true_[i].Reset();
+    mag_true_[i].Reset();
+    angle_boat_[i].Reset();
+    mag_boat_[i].Reset();
+  }
+}
+
+bool TestController::DoWindTest(const ControllerInput& in,
+                                const FilteredMeasurements& filtered,
+                                ControllerOutput* out) {
+  //test_param_
+  if (debug) fprintf(stderr, "testing wind and imu\n");
+  // input and output
+  double actual = 0;
+
+  fprintf(stderr, "count %d\n", count_);
+  if (count_ <= 1)
+    SetupWindTest();
+
+  actual = in.drives.homed_sail ? in.drives.gamma_sail_rad : 0;
+  double* reference = &out->drives_reference.gamma_sail_star_rad;
+  *reference = 0;
+  // Make turns easier by turning the rudders sideways.
+  out->drives_reference.gamma_rudder_star_left_rad = Deg2Rad(80);
+  out->drives_reference.gamma_rudder_star_right_rad = Deg2Rad(-80);
+
+  // Test sequence:
+  // rest for 1/10 of the timeout, then turn sail to the right
+  // (boat turns left)
+  // then turn sail to the left (boat must turn to the right).
+  if (Until(0.1)) {
+    *reference = 0;
+  } else if (Until(0.4)) {
+    *reference = M_PI / 4;
+  } else if (Until(1)) {
+    *reference = -M_PI / 4;
+  } else {
+    *reference = 0;
+    StoreWindTestResults();
+    return false;
+  }
+
+  // measure straight wind
+  // If the boats bow is fixed to the buoy, the boat turns slowly like a
+  // wind vane.
+  // Need valid wind info, enough wind strength and true wind info for this.
+  if (In(0.0, 0.09)) {
+    if (fabs(actual) > Deg2Rad(1)) {
+      fprintf(stderr, "Sail drive error, Not straight (%lf) ", Rad2Deg(actual));
+      return false;
+    }
+    angle_aoa_[0].Measure(filtered.angle_aoa);
+    mag_aoa_[0].Measure(filtered.mag_aoa);
+    angle_app_[0].Measure(filtered.angle_app);
+    mag_app_[0].Measure(filtered.mag_app);
+    angle_true_[0].Measure(filtered.alpha_true);
+    mag_true_[0].Measure(filtered.mag_true);
+    angle_boat_[0].Measure(filtered.phi_z_boat);
+    mag_boat_[0].Measure(filtered.mag_boat);
+  } else if (In(0.3, 0.39)) {
+    if (fabs(actual - M_PI / 4) > Deg2Rad(1)) {
+      fprintf(stderr, "Sail drive error, Not right (%lf) ", Rad2Deg(actual));
+      return false;
+    }
+    angle_aoa_[1].Measure(filtered.angle_aoa);
+    mag_aoa_[1].Measure(filtered.mag_aoa);
+    angle_app_[1].Measure(filtered.angle_app);
+    mag_app_[1].Measure(filtered.mag_app);
+    angle_true_[1].Measure(filtered.alpha_true);
+    mag_true_[1].Measure(filtered.mag_true);
+    angle_boat_[1].Measure(filtered.phi_z_boat);
+    mag_boat_[1].Measure(filtered.mag_boat);
+  } else if (In(0.90, 0.99)) {
+    if (fabs(actual + M_PI / 4) > Deg2Rad(1)) {
+      fprintf(stderr, "Sail drive error, Not left (%lf) ", Rad2Deg(actual));
+      return false;
+    }
+    angle_aoa_[2].Measure(filtered.angle_aoa);
+    mag_aoa_[2].Measure(filtered.mag_aoa);
+    angle_app_[2].Measure(filtered.angle_app);
+    mag_app_[2].Measure(filtered.mag_app);
+    angle_true_[2].Measure(filtered.alpha_true);
+    mag_true_[2].Measure(filtered.mag_true);
+    angle_boat_[2].Measure(filtered.phi_z_boat);
+    mag_boat_[2].Measure(filtered.mag_boat);
+  }
+  return true;
+}
+
+void TestController::StoreWindTestResults() {
+  int last_good_test = 3;
+  char buffer[400];
+  for (int i = 0; i < 3; ++i)
+    if (mag_aoa_[i].Samples() == 0) {
+      snprintf(buffer, sizeof(buffer), "Sail drive failure, wind test %d aborted.", i);
+      last_good_test = i;
+      test_result_text_.push_back(string(buffer));
+    }
+
+  // As the boat doesn't move, sensor wind magnitude and apparent wind magnitude
+  // should be always the same (identical filters). The true wind magnitude might
+  // deviate because of the different filter constant.
+  for (int i = 0; i < last_good_test; ++i) {
+    snprintf(buffer, sizeof(buffer), "%d aoa/app/true/boat magnitudes/ m/s: %6.2lf / %6.2lf / %6.2lf / %6.2lf",
+             i, mag_aoa_[i].Value(), mag_app_[i].Value(), mag_true_[i].Value(), mag_boat_[i].Value());
+    test_result_text_.push_back(string(buffer));
+  }
+  for (int i = 0; i < last_good_test; ++i) {
+    snprintf(buffer, sizeof(buffer), "%d aoa/app/true/boat angle/ deg     : %6.2lf / %6.2lf / %6.2lf / %6.2lf",
+             i, Rad2Deg(angle_aoa_[i].Value()), Rad2Deg(angle_app_[i].Value()),
+             Rad2Deg(angle_true_[i].Value()), Rad2Deg(angle_boat_[i].Value()));
+    test_result_text_.push_back(string(buffer));
+  }
+  fprintf(stderr, "%s\n\n\n", buffer);
 }
 
 
@@ -271,7 +414,7 @@ void TestController::Run(const ControllerInput& in,
   }
   if (!in.drives.homed_sail ||
       (!in.drives.homed_rudder_left && !in.drives.homed_rudder_right)) {
-    if (debug) fprintf(stderr, "Drives not ready\n %s %s %s",
+    if (debug) fprintf(stderr, "Drives not ready\n %s %s %s\n",
 		      in.drives.homed_rudder_left ? "" : "sail",
 		      in.drives.homed_rudder_left ? "" : "left",
 		      in.drives.homed_rudder_left ? "" : "right");
@@ -283,20 +426,6 @@ void TestController::Run(const ControllerInput& in,
     fprintf(stderr, "AppFiltered: %fdeg %fm/s\n", Rad2Deg(filtered.angle_app), filtered.mag_app);
   }
   
-  /*
-  At Buoy:
-  homing
-  rudder left and right
-  sail
-  *sail=0, wait 100s, or until true wind is available, then measure for 10s
-  - speed == 0
-  - angle of attack is around zero
-  - wind app alpha = 180 (boat is free to turn)
-  - mag app > 0
-  - mag app == mag true (speed is zero)
-  - wind true alpha == phi_z - 180, stable and fits to real wind
-  */
-
   if (debug) fprintf(stderr, "phase %s\n", all_phase_names_[phase_]);
   switch (phase_) {
     case HOME:
@@ -334,27 +463,40 @@ void TestController::Run(const ControllerInput& in,
       break;
     case DRIVE_TESTS:
       if (!DoDriveTest(in, out)) {
+        PrintTestSummary();
         NextPhase(ZERO_2);
       }
       break;
     case ZERO_2:
-      if (count_ > kZeroTimeoutCount) {
+      if (!test_success_) {
+        fprintf(stderr, "Drive tests failed, Test controller failed.");
+        NextPhase(FAILED);
+        break;
+      }
+      if (!AreDrivesAtZero(in) && count_ > kZeroTimeoutCount) {
         fprintf(stderr, "Drives do not go to zero after tests, Test controller failed.");
         NextPhase(FAILED);
         break;
       }
-      // At least one rudder must work.
-      if (AreDrivesAtZero(in)) {
-        NextPhase(WIND_SENSOR);
+      if (AreDrivesAtZero(in) &&
+          count_ > kZero2Count &&
+          filtered.valid &&
+          filtered.valid_true_wind) {
+        // Wind must blow.
+        if (WindStrength(kNormalWind, filtered.mag_app) == kNormalWind) {
+          NextPhase(WIND_SENSOR);
+        } else {
+          fprintf(stderr, "Skipping wind/imu test, not enough or too much wind.");
+          NextPhase(DONE);
+        }
       }
       ZeroOut(out);
       break;
     case WIND_SENSOR:
-      PrintTestSummary();
-      if (test_success_)
+      if (!DoWindTest(in, filtered, out)) {
+        PrintTestSummary();
         NextPhase(DONE);
-      else
-        NextPhase(FAILED);
+      }
       break;
     case DONE:
       ZeroOut(out);

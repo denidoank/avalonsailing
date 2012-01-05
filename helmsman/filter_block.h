@@ -43,16 +43,16 @@ class FilterBlock {
   SlidingAverageFilter av_short_;
   SlidingAverageFilter av_middle_;
   SlidingAverageFilter av_long_;
-  SlidingAverageFilter av_long_aoa_;
+  SlidingAverageFilter av_middle_aoa_;
 
   // The wind directions are angles that can
   // wrap around at 360 degrees and need a wrap around filter.
   SlidingAverageFilter average_short_;
   QuickSlidingAverageFilter average_long_;
-  QuickSlidingAverageFilter average_long_aoa_;
+  QuickSlidingAverageFilter average_middle_aoa_;
   WrapAroundFilter wrap_short_av_;
   WrapAroundFilter wrap_long_av_;
-  WrapAroundFilter wrap_long_av_aoa_;
+  WrapAroundFilter wrap_middle_av_aoa_;
 };
 
 
