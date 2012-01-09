@@ -9,6 +9,21 @@
 #include <string.h>
 #include <sys/time.h>
 
+static int64_t
+now_us() 
+{
+        struct timeval tv;
+        if (gettimeofday(&tv, NULL) < 0) {
+		fprintf(stderr, "no working clock");
+		exit(1);
+	}
+
+        int64_t ms1 = tv.tv_sec;  ms1 *= 1000000;
+        int64_t ms2 = tv.tv_usec;
+        return ms1 + ms2;
+}
+
+
 enum { INVALID, PENDING, VALID };
 
 typedef struct Register Register;
@@ -18,7 +33,7 @@ struct Register {
 	uint32_t reg;
 	uint32_t value;
 	int state;
-	long issued_ms;
+	int64_t issued_us;
 };
 
 struct Device {
@@ -40,7 +55,7 @@ Bus* bus_new(FILE* ctl) {
 	return bus;
 }
 
-int bus_receive(Bus* bus, char* line) {
+int64_t bus_receive(Bus* bus, char* line) {
 
 	uint32_t serial = 0;
 	int index       = 0;
@@ -71,52 +86,40 @@ int bus_receive(Bus* bus, char* line) {
 
 	if (!reg) return 0;
 	
+	int prev = reg->state;
+
 	if (op[0] == '=') {
 		reg->value = value;
 		reg->state = VALID;
 	} else {
 		reg->state = INVALID;
 	}
+	
+	if (prev != PENDING)  // we got a response to someone elses request
+		return 1;
 
-	return 1;
+	int64_t dt = now_us() - reg->issued_us;
+	if (dt < 2) dt = 2;
+	return dt;  // guard against clock jump
 }
 
-// time in ms since first call.
-static long now_ms() {
-	static struct timeval tv_zero = { 0 , 0 };
-	if (tv_zero.tv_sec == 0) {
-		if (gettimeofday(&tv_zero, NULL) < 0) {
-			fprintf(stderr, "No working clock:%s\n", strerror(errno));
-			exit(1);
-		}
-		return 0;
-	}
+enum { TIMEOUT_US = 1000*1000*1000 };
 
-	struct timeval tv;
-	if (gettimeofday(&tv, NULL) < 0) {
-		fprintf(stderr, "No working clock:%s\n", strerror(errno));
-		exit(1);
-	}
-
-	long ms = tv.tv_usec;
-	ms -= tv_zero.tv_usec;
-	ms /= 1000;
-	return 1000 * (tv.tv_sec - tv_zero.tv_sec) + ms;
-}
-
-enum { TIMEOUT_MS = 1000 };
-
-void bus_clocktick(Bus* bus) {
+int bus_clocktick(Bus* bus) {
 	Device* dev;
 	Register* reg;
-	long t = now_ms();
+	int r = 0;
+	int64_t t = now_us();
 	for (dev = bus->devices; dev; dev = dev->next)
 		for (reg = dev->registers; reg; reg = reg->next) {
 			if (reg->state != PENDING) continue;
 			// guard against clock jumps
-			if ((t < reg->issued_ms) || (t - reg->issued_ms > TIMEOUT_MS))
+			if ((t < reg->issued_us) || (t - reg->issued_us > TIMEOUT_US)) {
 				reg->state = INVALID;
+				++r;
+			}
 		}
+	return r;
 }
 
 Device* bus_open_device(Bus* bus, uint32_t serial) {
@@ -157,7 +160,7 @@ int device_get_register(Device* dev, uint32_t regidx, uint32_t* val) {
 	case INVALID:
 		if (fprintf(dev->bus->ctl, EBUS_GET_OFMT(dev->serial, regidx)) > 0) {
 			reg->state = PENDING;
-			reg->issued_ms = now_ms();
+			reg->issued_us = now_us();
 		}
 		// fallthrough
 	case PENDING:
@@ -178,7 +181,7 @@ int device_set_register(Device* dev, uint32_t regidx, uint32_t val) {
 	if (fprintf(dev->bus->ctl, EBUS_SET_OFMT(dev->serial, regidx, val)) > 0) {
 		reg->value = val;
 		reg->state = PENDING;
-		reg->issued_ms = now_ms();
+		reg->issued_us = now_us();
 	} else {
 		reg->state = INVALID;
 	}

@@ -30,10 +30,13 @@ typedef struct Device Device;
 Bus* bus_new(FILE* ctl);
 
 // parse and dispatch a received line to devices.
-int bus_receive(Bus* bus, char* line);
+// returns 0 if no register updated, or the time difference in uS since the command was issued.
+// if this was a reply to someone elses request, a fake time difference of 1 uS is reported.
+int64_t bus_receive(Bus* bus, char* line);
 
 // Timeout variables to the INVALID state that have been PENDING for more than 1 second.
-void bus_clocktick(Bus* bus);
+// returns the number of requests timed out.
+int bus_clocktick(Bus* bus);
 
 // Connect a new device to the bus. repeated opens are idempotent.
 Device* bus_open_device(Bus* bus, uint32_t serial);
