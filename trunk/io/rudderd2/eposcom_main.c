@@ -9,34 +9,18 @@
 #include <errno.h>
 #include <getopt.h>
 #include <signal.h>
-#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <syslog.h>
 
 #include "com.h"
 #include "seq.h"
+#include "log.h"
 
 //static const char* version = "$Id: $";
 static const char* argv0;
 static int verbose=0;
 static int debug=0;
-
-static void crash(const char* fmt, ...) {
-        va_list ap;
-        char buf[1000];
-        va_start(ap, fmt);
-        vsnprintf(buf, 1000, fmt, ap);
-	syslog(LOG_CRIT, "%s%s%s\n", buf,
-	       (errno) ? ": " : "",
-	       (errno) ? strerror(errno):"" );
-        exit(1);
-        va_end(ap);
-        return;
-}
-
-static void fault(int i) { crash("fault"); }
 
 void usage(void) {
         fprintf(stderr, "usage: echo nodeid index subindex [:= value] | %s [-r] [-p] [-t timeout] /path/to/port\n", argv0);
@@ -89,7 +73,7 @@ int main(int argc, char* argv[]) {
 	 for (nodeid = 1; nodeid < nelem(nodeidmap); ++nodeid) {
 		 uint32_t err = epos_readobject(fd, 0x1018, 4, nodeid, nodeidmap + nodeid);
 		 if (err != 0) continue;
-		 syslog(LOG_INFO, "port:%s nodeid:%d serial:0x%x\n", argv[0], nodeid, nodeidmap[nodeid]);
+		 slog(LOG_INFO, "port:%s nodeid:%d serial:0x%x\n", argv[0], nodeid, nodeidmap[nodeid]);
 	 }
 
 	 while (!feof(stdin)) {
@@ -150,7 +134,7 @@ int main(int argc, char* argv[]) {
 		 default: {
 			 static int max = 100;
 			 if (max-- > 0)
-				 syslog(LOG_WARNING, "Unparsable line at field %d:%s", n, line);
+				 slog(LOG_WARNING, "Unparsable line at field %d:%s", n, line);
 			 continue;
 		 }
 

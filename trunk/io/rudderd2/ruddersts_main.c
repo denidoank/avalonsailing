@@ -6,19 +6,17 @@
 // Use plug -o and plug -i to connect to the busses.
 // 
 
-#include <errno.h>
 #include <signal.h>
-#include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <syslog.h>
 #include <time.h>
 #include <sys/time.h>
 #include <unistd.h>
 
 #include "../../proto/rudder.h"
+#include "log.h"
 #include "actuator.h"
 
 // -----------------------------------------------------------------------------
@@ -28,21 +26,6 @@
 static const char* argv0;
 static int verbose = 0;
 static int debug = 0;
-
-static void crash(const char* fmt, ...) {
-	va_list ap;
-	char buf[1000];
-	va_start(ap, fmt);
-	vsnprintf(buf, sizeof(buf), fmt, ap);
-	syslog(LOG_CRIT, "%s%s%s\n", buf,
-	       (errno) ? ": " : "",
-	       (errno) ? strerror(errno):"" );
-	exit(1);
-	va_end(ap);
-	return;
-}
-
-static void fault() { crash("fault"); }
 
 static void usage(void) {
 	fprintf(stderr,

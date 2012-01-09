@@ -5,18 +5,16 @@
 // Report epos communication errors
 // 
 
-#include <errno.h>
 #include <signal.h>
-#include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <syslog.h>
 #include <time.h>
 #include <sys/time.h>
 #include <unistd.h>
 
+#include "log.h"
 #include "actuator.h"
 
 // -----------------------------------------------------------------------------
@@ -27,21 +25,6 @@ static const char* argv0;
 static int verbose = 0;
 static int debug = 0;
 
-static void crash(const char* fmt, ...) {
-	va_list ap;
-	char buf[1000];
-	va_start(ap, fmt);
-	vsnprintf(buf, sizeof(buf), fmt, ap);
-	syslog(LOG_CRIT, "%s%s%s\n", buf,
-	       (errno) ? ": " : "",
-	       (errno) ? strerror(errno):"" );
-	exit(1);
-	va_end(ap);
-	return;
-}
-
-static void fault() { crash("fault"); }
-
 static void usage(void) {
 	fprintf(stderr,
 		"usage: plug -o /path/to/ebus | %s [options]\n"
@@ -51,7 +34,7 @@ static void usage(void) {
 		, argv0);
 	exit(2);
 }
-
+/*
 static int64_t now_ms() {
         struct timeval tv;
         if (gettimeofday(&tv, NULL) < 0) crash("no working clock");
@@ -60,6 +43,7 @@ static int64_t now_ms() {
         int64_t ms2 = tv.tv_usec; ms2 /= 1000;
         return ms1 + ms2;
 }
+*/
 
 struct Stats {
 	int get, set, ack, err, fault;
@@ -169,17 +153,16 @@ int main(int argc, char* argv[]) {
 			 stats[i].ack++;
 			 if(REGISTER(index,subindex) == REG_STATUS && (value_l & STATUS_FAULT)) {
 				 stats[i].fault++;
-				 syslog(LOG_ERR, "%s: Fault: %s", motor_params[i].label, strbits(status_bits, value_l));
+				 slog(LOG_ERR, "%s: Fault: %s", motor_params[i].label, strbits(status_bits, value_l));
 			 }
 			 // rudderctl asks for error on fault
 			 if(REGISTER(index,subindex) == REG_ERROR) {
-				 syslog(LOG_ERR, "%s: Error: %s", motor_params[i].label, strbits(error_bits, value_l));
+				 slog(LOG_ERR, "%s: Error: %s", motor_params[i].label, strbits(error_bits, value_l));
 			 }
 			 break;
 		 case '#':
 			 stats[i].err++;
-			 // TODO, rate limit
-			 syslog(LOG_ERR, "%s: Communication error: %s", motor_params[i].label, line);
+			 slog(LOG_ERR, "%s: Communication error: %s", motor_params[i].label, line);
 			 break;
 		 }
 		 
