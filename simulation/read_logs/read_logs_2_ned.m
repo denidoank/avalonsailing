@@ -191,7 +191,7 @@ if 0
   lbl("phi_z filt.", "t / s", "phi_z_f / deg");
 endif
 
-if 0
+if 1
   figure()
   plot(t, om_x)
   lbl("om_x", "t / s", "om_x / deg/s");
@@ -217,7 +217,7 @@ if 0
   lbl("om_z filt.", "t / s", "om_z_f / deg/s");
 endif
 
-if 0   % Acceleration filtering
+if 1   % Acceleration filtering
   figure()
   plot(t, acc_x)
   lbl("acc_x", "t / s", "acc_x / m/s^2");
@@ -298,7 +298,7 @@ endfor
 %   pause
 % endfor
 
-if 0  % switch on for check of phi_z versus om_z
+if 1  % switch on for check of phi_z versus om_z
   for r = turn_phases
     r
     disp("start at ");
