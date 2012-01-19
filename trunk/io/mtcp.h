@@ -71,6 +71,10 @@ enum {
 	// (default is X north, Z up)
 	IMU_OS_NED = 1UL<<31,
 
+	// IMU status byte bits
+	IMU_STS_SELFTEST = 1<<0,
+	IMU_STS_XKF = 1<<1,
+	IMU_STS_GPS = 1<<2,
 };
 
 // User Guide section 2.2.6 and Comm.Guide section 4.3.7
