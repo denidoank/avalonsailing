@@ -169,6 +169,17 @@ reap_clients()
 	}
 }
 
+static int64_t
+now_ms() 
+{
+        struct timeval tv;
+        if (gettimeofday(&tv, NULL) < 0) crash("no working clock");
+
+        int64_t ms1 = tv.tv_sec;  ms1 *= 1000;
+        int64_t ms2 = tv.tv_usec; ms2 /= 1000;
+        return ms1 + ms2;
+}
+
 // -----------------------------------------------------------------------------
 //   Main.
 //   Parse options, open socket, optionally go daemon
@@ -235,6 +246,9 @@ int main(int argc, char* argv[]) {
 
 	if (signal(SIGPIPE, SIG_IGN) == SIG_ERR) crash("signal");
 
+	int dropped = 0;
+	int64_t last_reported_ms = now_ms();
+
 	// Main Loop
 	for(;;) {
 
@@ -279,6 +293,7 @@ int main(int argc, char* argv[]) {
 				if (cl == cl2) continue;
 				if (cl2->fd < 0) continue;
 				if (lb_pending(&cl2->out)) {
+					++dropped;
 					if (debug) fprintf(stderr, "Dropping output to client.\n");
 					continue;
 				}
@@ -287,6 +302,16 @@ int main(int argc, char* argv[]) {
 		}
 
 		reap_clients();
+
+		if(dropped) {
+			int64_t now = now_ms();
+			if(now < last_reported_ms) last_reported_ms = now;  // protect against clock jumps
+			if(now - last_reported_ms > 60*1000) {
+				int delta = (now - last_reported_ms) / 1000;
+				syslog(LOG_WARNING, "dropped %d messages in %ds", dropped, delta);
+				last_reported_ms = now;
+			}
+		}
 
 	} // main loop
 
