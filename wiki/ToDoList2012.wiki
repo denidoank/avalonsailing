@@ -1,0 +1,46 @@
+#summary Everything to do to get ready for lake tests in 2012.
+
+= To Do Items =
+
+== Mechanics ==
+ 
+|| *Item* || *Who/when done* ||
+|| Check rudder and find reason why left rudder reacts to commands with delay || lvd/ ||
+|| Change rudder axis design such that we get less slack and better adjustability of the cone wheels. The current version might be too soft (Nut/Feder connection had big slack) || ||
+|| Have 2 new rudder axis manufactured. Replace the old ones. || ||
+|| Make IMU box fixation without magnetizable screws. ||grundmann/ ||
+|| Mount compass in IMU box || grundmann/ ||
+|| Make watertight IMU box (currently 2 sealings leak). Test it. || grundmann/ ||
+|| Fix boom end with black plastic (material purchased) || grundmann/ ||
+|| Additional fixation for solar panels (each needs 2 bolts) ||  ||
+
+== Electric ==
+
+|| *Item* || *Who/when done* ||
+|| Electric schema || ||
+|| Test maximum voltage and have a look with a scope at the supply voltage at full light, fully charged. || ||
+|| Change or replace CPU box such that the processor gets cooling. Currently it reaches 65 degrees Celsius at the outside because the processor box and the cooling plate are separeted by air. || || 
+|| Test bilge pump (better outside than in the lobby) ||  ||
+|| Finally, remove mushroom switch (not seawater tight). ||  ||
+|| Finally, mount new AIS antenna. (material purchased already) Test reception. ||  ||
+
+
+== Software ==
+|| *Item* || *Who/when done* ||
+|| Make helmsman less dependant on speed through water. Test in simulator. || grundmann/ ||
+|| Make compass info out of IMU data. || grundmann/ ||
+|| Make compass mix logic || grundmann/ ||
+|| Fix sail drive zero position || lvd/ ||
+|| Set the drive current limits to reasonable values (drives are rated as 250 and 400W)  || lvd/ ||
+|| The rudder angle ranges need adjustment. The values of 90 and 100 degress are just rough estimates.  || lvd ||
+|| implement and test Drive recovery from temporary outages (power dips, overtemperature) || lvd/ ||
+|| Implement and test storm mode for drives || lvd/ ||
+|| Include new drive start-up into start_avalon.sh || lvd/ ||
+
+== System and Test ==
+
+|| *Item* || *Who/when done* ||
+|| Drive tests, check response times with TestController ||  ||
+|| Logging tests. Check that we can get complete logs from all processes easily and reliably. || ||
+|| Wind sensor test. Check that wind sensor/ RS485 converter / driver / wind cat  work. Check that wind direction is calculated properly with fan. || grundmann/ ||
+|| IMU magnetic output plus compass test. Check that the IMU box containing IMU and compass is producing reliable and correct bearing vectors. || grundmann/ ||
