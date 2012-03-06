@@ -11,7 +11,7 @@
 || Make IMU box fixation without magnetizable screws. ||grundmann/ ||
 || Mount compass in IMU box || grundmann/ ||
 || Make watertight IMU box (currently 2 sealings leak). Test it. || grundmann/ ||
-|| Fix boom end with black plastic (material purchased) || grundmann/ ||
+|| Fix boom end with black plastic (material purchased) || grundmann/2012-03-05 ||
 || Additional fixation for solar panels (each needs 2 bolts) ||  ||
 
 == Electric ==
