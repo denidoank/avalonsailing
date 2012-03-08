@@ -1,6 +1,7 @@
 DEPS+=common
 DEPS+=lib/filter
 DEPS+=lib/util
+DEPS+=lib/testing
 DEPS+=io
 TARGET_ARCH=-m32
 
