@@ -13,6 +13,7 @@
 || Make watertight IMU box (currently 2 sealings leak). Test it. || grundmann/ ||
 || Fix boom end with black plastic (material purchased) || grundmann/2012-03-05 ||
 || Additional fixation for solar panels (each needs 2 bolts) ||  ||
+|| One bolt in bow hatch is missing, would leak water ||  ||
 
 == Electric ==
 
@@ -28,7 +29,7 @@
 == Software ==
 || *Item* || *Who/when done* ||
 || Make helmsman less dependant on speed through water. Test in simulator. || grundmann/ ||
-|| Make compass info out of IMU data. || grundmann/ ||
+|| Make compass info out of IMU data. || grundmann/compass code done 2012/03/08 ||
 || Make compass mix logic || grundmann/ ||
 || Fix sail drive zero position || lvd/ ||
 || Set the drive current limits to reasonable values (drives are rated as 250 and 400W)  || lvd/ ||
