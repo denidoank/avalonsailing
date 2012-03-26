@@ -9,18 +9,19 @@
 || Change rudder axis design such that we get less slack and better adjustability of the cone wheels. The current version might be too soft (Nut/Feder connection had big slack) || ||
 || Have 2 new rudder axis manufactured. Replace the old ones. || ||
 || Make IMU box fixation without magnetizable screws. ||grundmann/ ||
-|| Mount compass in IMU box || grundmann/ ||
-|| Make watertight IMU box (currently 2 sealings leak). Test it. || grundmann/ ||
+|| Mount compass in IMU box || grundmann/Boxes ready ||
+|| Make watertight IMU box (currently 2 sealings leak). Test it. || grundmann/2012-03-19 ||
 || Fix boom end with black plastic (material purchased) || grundmann/2012-03-05 ||
 || Additional fixation for solar panels (each needs 2 bolts) ||  ||
 || One bolt in bow hatch is missing, would leak water ||  ||
+|| Two bolts in starboard front hatch are missing, would leak water ||  ||
 
 == Electric ==
 
 || *Item* || *Who/when done* ||
 || Electric schema || ||
 || Test maximum voltage and have a look with a scope at the supply voltage at full light, fully charged. || ||
-|| Change or replace CPU box such that the processor gets cooling. Currently it reaches 65 degrees Celsius at the outside because the processor box and the cooling plate are separeted by air. || || 
+|| Change or replace CPU box such that the processor gets cooling. Currently it reaches 65 degrees Celsius at the outside because the processor box and the cooling plate are separated by air. || || 
 || Test bilge pump (better outside than in the lobby) ||  ||
 || Finally, remove mushroom switch (not seawater tight). ||  ||
 || Finally, mount new AIS antenna. (material purchased already) Test reception. ||  ||
