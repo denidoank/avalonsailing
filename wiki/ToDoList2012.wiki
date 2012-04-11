@@ -8,8 +8,8 @@
 || Check rudder and find reason why left rudder reacts to commands with delay || lvd/ ||
 || Change rudder axis design such that we get less slack and better adjustability of the cone wheels. The current version might be too soft (Nut/Feder connection had big slack) || ||
 || Have 2 new rudder axis manufactured. Replace the old ones. || ||
-|| Make IMU box fixation without magnetizable screws. ||grundmann/ ||
-|| Mount compass in IMU box || grundmann/Boxes ready ||
+|| Make IMU box fixation without magnetizable screws. ||grundmann/2012-04-02 ||
+|| Mount compass in IMU box || grundmann/2012-04-05 ||
 || Make watertight IMU box (currently 2 sealings leak). Test it. || grundmann/2012-03-19 ||
 || Fix boom end with black plastic (material purchased) || grundmann/2012-03-05 ||
 || Additional fixation for solar panels (each needs 2 bolts) ||  ||
