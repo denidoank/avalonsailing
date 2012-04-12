@@ -79,6 +79,8 @@ int main(int argc, char* argv[]) {
 
 	if (argc < 1) usage();
 
+	if (noin && noout) usage();
+
         int s = socket(AF_LOCAL, SOCK_STREAM, 0);
         if (s < 0) crash("socket");
         struct sockaddr_un addr;

@@ -35,6 +35,7 @@
 static const char* argv0;
 static int verbose = 0;
 static int debug = 0;
+static int timing = 0;
 
 static void
 crash(const char* fmt, ...)
@@ -85,6 +86,7 @@ static struct Client {
 	struct LineBuffer out;
 	struct sockaddr_un addr;
 	socklen_t addrlen;
+	int dropped;
 } *clients = NULL;
 
 static struct Client*
@@ -169,16 +171,6 @@ reap_clients()
 	}
 }
 
-static int64_t
-now_ms() 
-{
-        struct timeval tv;
-        if (gettimeofday(&tv, NULL) < 0) crash("no working clock");
-
-        int64_t ms1 = tv.tv_sec;  ms1 *= 1000;
-        int64_t ms2 = tv.tv_usec; ms2 /= 1000;
-        return ms1 + ms2;
-}
 
 // -----------------------------------------------------------------------------
 //   Main.
@@ -192,9 +184,10 @@ int main(int argc, char* argv[]) {
 	argv0 = strrchr(argv[0], '/');
 	if (argv0) ++argv0; else argv0 = argv[0];
 
-	while ((ch = getopt(argc, argv, "dhv")) != -1){
+	while ((ch = getopt(argc, argv, "dhtv")) != -1){
 		switch (ch) {
 		case 'd': ++debug; break;
+		case 't': ++timing; break;
 		case 'v': ++verbose; break;
 		case 'h':
 		default:
@@ -246,9 +239,6 @@ int main(int argc, char* argv[]) {
 
 	if (signal(SIGPIPE, SIG_IGN) == SIG_ERR) crash("signal");
 
-	int dropped = 0;
-	int64_t last_reported_ms = now_ms();
-
 	// Main Loop
 	for(;;) {
 
@@ -273,45 +263,44 @@ int main(int argc, char* argv[]) {
 
 		if (FD_ISSET(sck, &rfds)) new_client(sck);
 
-		for (cl = clients; cl; cl = cl->next) {
-			if (cl->fd < 0) continue;
-			if (FD_ISSET(cl->fd, &wfds))
+		for (cl = clients; cl; cl = cl->next)
+			if (cl->fd >= 0 && FD_ISSET(cl->fd, &wfds))
 				client_flush(cl);
-		}
 
-		struct Client *cl2;
-		for (cl = clients; cl; cl = cl->next) {
-			if (cl->fd < 0) continue;
-			if (!FD_ISSET(cl->fd, &rfds)) continue;
+		// Find first client that's ready for reading
+		struct Client** cp;
+		for (cp = &clients; *cp; cp = &(*cp)->next)
+			if ((*cp)->fd >= 0 && FD_ISSET((*cp)->fd, &rfds))
+				break;
 
-			const char* line = client_gets(cl);
+		if(*cp) {
+			const char* line = client_gets(*cp);
 			if (!line) continue;
 			while(*line == '\n') ++line;
 			if (!line[0]) continue;
 			if (debug) puts(line);
-			for (cl2 = clients; cl2; cl2 = cl2->next) {
-				if (cl == cl2) continue;
-				if (cl2->fd < 0) continue;
-				if (lb_pending(&cl2->out)) {
-					++dropped;
-					if (debug) fprintf(stderr, "Dropping output to client.\n");
+
+			for (cl = clients; cl; cl = cl->next) {
+				if (cl == *cp) continue;
+				if (cl->fd < 0) continue;
+				if (lb_pending(&cl->out)) {
+					cl->dropped++;
+					if (debug) fprintf(stderr, "Dropping output to client %d.\n", cl->fd);
 					continue;
 				}
-				client_puts(cl2, line);
+				client_puts(cl, line);
 			}
+
+			// move last read client to end of list
+			cl = *cp;
+			*cp = cl->next;
+			cl->next = NULL;
+			while(*cp)
+				cp = &(*cp)->next;
+			*cp = cl;
 		}
 
 		reap_clients();
-
-		if(dropped) {
-			int64_t now = now_ms();
-			if(now < last_reported_ms) last_reported_ms = now;  // protect against clock jumps
-			if(now - last_reported_ms > 60*1000) {
-				int delta = (now - last_reported_ms) / 1000;
-				syslog(LOG_WARNING, "dropped %d messages in %ds", dropped, delta);
-				last_reported_ms = now;
-			}
-		}
 
 	} // main loop
 
