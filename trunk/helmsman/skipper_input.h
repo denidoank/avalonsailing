@@ -6,20 +6,28 @@
 #define HELMSMAN_SKIPPER_INPUT_H
 
 #include <string>
+#include <stdint.h>
 
 struct SkipperInput {
   SkipperInput();
-  SkipperInput(const std::string& kvline);
+  SkipperInput(const char* line);
+  SkipperInput(int64_t timestamp_ms, double longitude_deg, double latitude_deg,
+               double angle_true_deg, double mag_true_kn);
   void Reset();
+  // Returns the number of read characters, 0 if line was in no valid format. 
+  int FromString(const char* line);
   std::string ToString() const;
+
   bool operator!=(const SkipperInput r);
+
+  int64_t timestamp_ms;
   // GPS data in degrees
-  // Both values are 0 initially.
+  // Both values are nan initially.
   double longitude_deg;
   double latitude_deg;
 
   // true wind, global frame
-  // Both values are 0 initially.
+  // Both values are nan initially.
   double angle_true_deg;
   double mag_true_kn;
 };

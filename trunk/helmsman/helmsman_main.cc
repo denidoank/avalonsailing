@@ -32,7 +32,7 @@
 #include "proto/helmsman.h"
 #include "proto/helmsman_status.h"
 #include "proto/remote.h"
-#include "proto/skipper_input.h"
+#include "skipper_input.h"
 
 #include "common/convert.h"
 #include "common/unknown.h"
@@ -237,7 +237,8 @@ int main(int argc, char* argv[]) {
     if (FD_ISSET(fileno(stdin), &rfds)) {
       r = lb_read(fileno(stdin), &lbuf);
       if (r == 0) {
-	const char *line = lbuf.line;
+      const char *line = lbuf.line;
+fprintf(stderr, "Line:>>>%s<<<", line);      
         nn = 0;
         while (strlen(line) > 5) {  // > 0 would work as well
           if (sscanf(line, IFMT_WINDPROTO(&wind_sensor, &nn)) > 0) {
@@ -304,8 +305,9 @@ int main(int argc, char* argv[]) {
           line += nn;
         }
 
-      } else
-	if (r != EAGAIN) crash("Error reading stdin");
+      } else {
+        if (r != EAGAIN) crash("Error reading stdin");
+      }  
     }
 
     if (!CalculateTimeOut(next_call_micros, &timeout)) {
@@ -318,15 +320,15 @@ int main(int argc, char* argv[]) {
         ctrl_out.drives_reference.ToProto(&ctl);
         printf(OFMT_RUDDERPROTO_CTL(ctl));
       }
-      if (loops % 20 == 0) {
-        SkipperInputProto to_skipper = {
-          now_ms(),
-          ctrl_out.skipper_input.longitude_deg,
-          ctrl_out.skipper_input.latitude_deg,
-          ctrl_out.skipper_input.angle_true_deg,
-          ctrl_out.skipper_input.mag_true_kn
-        };
-        printf(OFMT_SKIPPER_INPUTPROTO(to_skipper));
+      if (loops % 20 == 0) {  // Turned off for now
+        SkipperInput to_skipper(
+            now_ms(),
+            ctrl_out.skipper_input.longitude_deg,
+            ctrl_out.skipper_input.latitude_deg,
+            ctrl_out.skipper_input.angle_true_deg,
+            ctrl_out.skipper_input.mag_true_kn
+        );
+        printf(to_skipper.ToString().c_str());
       }
       if (loops % 20 == 5) {
         HelmsmanStatusProto hsts = INIT_HELMSMAN_STATUSPROTO;
