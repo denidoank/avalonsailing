@@ -3,19 +3,21 @@
 // that can be found in the LICENSE file.
 // Steffen Grundmann, June 2011
 
+// Test with runtime measurements.
+// ==============================
 
 #include "helmsman/boat_model.h"
 #include "helmsman/ship_control.h"
 
 #include <math.h>
 #include <stdio.h>
+#include <stdint.h>
 #include "common/convert.h"
 #include "common/delta_angle.h"
 #include "common/polar.h"
-
-
+#include "common/now.h"
 #include "lib/testing/testing.h"
-
+#include "lib/util/stopwatch.h"
 
 namespace {
 const double kSamplingPeriod = 0.1;
@@ -46,6 +48,9 @@ void NormalControllerTest(double wind_direction_deg,
   ShipControl::Normal();
   printf("\nWind direction: %6.0f degree, Wind speed: %4.2f m/s\n",
           wind_direction_deg, wind_strength_m_s);
+  int64_t micros_max = 0;
+  int64_t micros_sum = 0;
+  int rounds = 0;
   double t;
   double t_final = wind_strength_m_s < 5 ? 450 : 240; // weak winds make the slow tack fail.
                                                       // Better make jibes only for slow winds?.
@@ -56,7 +61,12 @@ void NormalControllerTest(double wind_direction_deg,
     model.Simulate(out.drives_reference,
                    true_wind,
                    &in);
+    int64_t start = now_micros();
     ShipControl::Run(in, &out);
+    int64_t micros = now_micros() - start;
+    ++rounds;
+    micros_sum += micros;
+    micros_max = std::max(micros_max, micros);
     if ((print_model /*&& t > 99.0*/) || debug)
       model.Print(t);
   }
@@ -66,6 +76,10 @@ void NormalControllerTest(double wind_direction_deg,
   EXPECT_LT(expected_min_speed_m_s, model.GetSpeed());
   if (fabs(model.GetPhiZ() - in.alpha_star_rad) > Deg2Rad(5))
     printf("final heading %g for wind direction %g\n", Rad2Deg(model.GetPhiZ()), wind_direction_deg);
+  printf("\nRuntimes/microseconds\n=================\n");
+  printf("Average:    %6.4f micros\n", micros_sum / static_cast<double>(rounds));
+  printf("Max:        %lld micros\n", micros_max);
+  printf("\n");
 }
 
 
@@ -141,4 +155,3 @@ int main(int argc, char* argv[]) {
   SimShip_Wind_1();
   return 0;
 }
-
