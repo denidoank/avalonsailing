@@ -238,7 +238,6 @@ int main(int argc, char* argv[]) {
       r = lb_read(fileno(stdin), &lbuf);
       if (r == 0) {
       const char *line = lbuf.line;
-fprintf(stderr, "Line:>>>%s<<<", line);      
         nn = 0;
         while (strlen(line) > 5) {  // > 0 would work as well
           if (sscanf(line, IFMT_WINDPROTO(&wind_sensor, &nn)) > 0) {
@@ -320,7 +319,7 @@ fprintf(stderr, "Line:>>>%s<<<", line);
         ctrl_out.drives_reference.ToProto(&ctl);
         printf(OFMT_RUDDERPROTO_CTL(ctl));
       }
-      if (loops % 20 == 0) {  // Turned off for now
+      if (loops % 20 == 0) {
         SkipperInput to_skipper(
             now_ms(),
             ctrl_out.skipper_input.longitude_deg,
