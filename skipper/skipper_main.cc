@@ -115,28 +115,8 @@ void set_fd(fd_set* s, int* maxfd, FILE* f) {
 // All return false on garbage
 // -----------------------------------------------------------------------------
 
-// See helmsman_main.cc::snprint_helmsmanout
 int sscan_skipper_input(const char *line, SkipperInput* s) {
-  s->Reset();
-  while (*line) {
-    char key[16];
-    double value;
-
-    int skip = 0;
-    int n = sscanf(line, "%16[a-z_]:%lf %n", key, &value, &skip);
-    if (n < 2) return 0;
-    if (skip == 0) return 0;
-    line += skip;
-
-    if (!strcmp(key, "lat_deg")        && !isnan(value)) { s->longitude_deg  = value; continue; }
-    if (!strcmp(key, "lng_deg")        && !isnan(value)) { s->latitude_deg   = value; continue; }
-    if (!strcmp(key, "wind_angle_deg") && !isnan(value)) { s->angle_true_deg = value; continue; }
-    if (!strcmp(key, "wind_speed_m_s")  && !isnan(value)) { s->mag_true_kn    = value; continue; }
-    if (!strcmp(key, "timestamp_ms"))  continue;
-
-    return 0;
-  }
-  return 1;
+  return s->FromString(line) > 0;
 }
 
 
@@ -247,8 +227,9 @@ int main(int argc, char* argv[]) {
     if (FD_ISSET(fileno(held), &rfds)) {
       char line[1024];
       while (fgets(line, sizeof line, held)) {
-        int n = sscan_skipper_input(line, &skipper_input);
-        if (!n && debug) fprintf(stderr, "Ignoring garbage from helmsmand: %s\n", line);
+        bool good_info = sscan_skipper_input(line, &skipper_input);
+        if (!good_info && debug)
+          fprintf(stderr, "Ignoring garbage from helmsman: %s\n", line);
       }
       if (feof(held) || (ferror(held) && errno!= EAGAIN)) crash("reading from helmsmand");
     }
