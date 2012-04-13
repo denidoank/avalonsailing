@@ -29,6 +29,7 @@
 #include <unistd.h>
 
 #include "vskipper.h"
+#include "common/now.h"
 #include "proto/helmsman.h"
 
 const char* version = "$Id: $";
@@ -112,14 +113,6 @@ int sscan_ais(const char *line, uint64_t now_ms, AisInfo* s) {
     // return 0;
   }
   return 1;
-}
-
-uint64_t now_ms() {
-  timeval tv;
-  if (gettimeofday(&tv, NULL) < 0) crash("gettimeofday");
-  uint64_t ms1 = tv.tv_sec;  ms1 *= 1000;
-  uint64_t ms2 = tv.tv_usec; ms2 /= 1000;
-  return ms1 + ms2;
 }
 
 } // namespace

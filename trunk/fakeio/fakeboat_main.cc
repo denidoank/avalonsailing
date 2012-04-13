@@ -22,6 +22,7 @@
 #include "common/check.h"
 #include "common/convert.h"
 #include "common/normalize.h"
+#include "common/now.h"
 #include "proto/meteo.h"
 #include "../proto/rudder.h"
 #include "../proto/imu.h"
@@ -65,16 +66,6 @@ usage(void)
                 "usage: [plug /path/to/linebus] %s\n"
                 , argv0);
         exit(1);
-}
-
-static int64_t now_ms()
-{
-        struct timeval tv;
-        if (gettimeofday(&tv, NULL) < 0) crash("no working clock");
-
-        int64_t ms1 = tv.tv_sec;  ms1 *= 1000;
-        int64_t ms2 = tv.tv_usec; ms2 /= 1000;
-        return ms1 + ms2;
 }
 
 	

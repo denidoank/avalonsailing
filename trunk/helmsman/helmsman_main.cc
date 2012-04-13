@@ -35,6 +35,7 @@
 #include "skipper_input.h"
 
 #include "common/convert.h"
+#include "common/now.h"
 #include "common/unknown.h"
 #include "sampling_period.h"
 #include "ship_control.h"
@@ -87,16 +88,6 @@ static void set_fd(fd_set* s, int* maxfd, FILE* f) {
         int fd = fileno(f);
         FD_SET(fd, s);
         if (*maxfd < fd) *maxfd = fd;
-}
-
-uint64_t now_micros() {
-  timeval tv;
-  if (gettimeofday(&tv, NULL) < 0) crash("gettimeofday");
-  return tv.tv_sec * 1000000LL + tv.tv_usec;
-}
-
-uint64_t now_ms() {
-  return now_micros() / 1000;
 }
 
 static const uint64_t kPeriodMicros = kSamplingPeriod * 1E6;
