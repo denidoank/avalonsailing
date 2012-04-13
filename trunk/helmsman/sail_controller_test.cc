@@ -19,6 +19,7 @@ TEST(SailController, Basic) {
   SailController controller;
   double aoa_optimal = Deg2Rad(10);
   controller.SetOptimalAngleOfAttack(aoa_optimal);
+  EXPECT_FLOAT_EQ(Deg2Rad(10), controller.GetOptimalAngleOfAttack());
 
   EXPECT_EQ(Deg2Rad(-93), controller.BestGammaSail(Deg2Rad(0), 5));
   EXPECT_FLOAT_EQ(Deg2Rad(-91), controller.BestGammaSail(Deg2Rad( 4), 5));

@@ -46,6 +46,7 @@ class SailController {
                                  double mag_wind);
 
   void SetOptimalAngleOfAttack(double optimal_angle_of_attack_rad);
+  double GetOptimalAngleOfAttack();
   void LockInWingMode();
   void UnlockMode();
   void Reset();
