@@ -13,20 +13,15 @@
 #include <time.h>
 #include "common/delta_angle.h"
 #include "common/normalize.h"
-#include "common/polar_diagram.h"
+#include "common/now.h"
 #include "common/limit_rate.h"
+#include "common/polar_diagram.h"
 #include "common/unknown.h"
 #include "helmsman/apparent.h"
 #include "helmsman/new_gamma_sail.h"
 #include "helmsman/sampling_period.h"
 
 extern int debug;
-
-uint64_t now_ms() {
-  timeval tv;
-  gettimeofday(&tv, NULL);
-  return 1000 * tv.tv_sec + tv.tv_usec / 1000;
-}
 
 NormalController::NormalController(RudderController* rudder_controller,
                                    SailController* sail_controller)

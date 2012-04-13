@@ -29,6 +29,7 @@
 #include <unistd.h>
 
 #include "common/convert.h"
+#include "common/now.h"
 #include "common/unknown.h"
 #include "helmsman/skipper_input.h"
 #include "skipper/skipper_internal.h"
@@ -119,14 +120,6 @@ int sscan_skipper_input(const char *line, SkipperInput* s) {
   return s->FromString(line) > 0;
 }
 
-
-uint64_t now_ms() {
-  timeval tv;
-  if (gettimeofday(&tv, NULL) < 0) crash("gettimeofday");
-  uint64_t ms1 = tv.tv_sec;  ms1 *= 1000;
-  uint64_t ms2 = tv.tv_usec; ms2 /= 1000;
-  return ms1 + ms2;
-}
 
 // -----------------------------------------------------------------------------
 } // namespace
