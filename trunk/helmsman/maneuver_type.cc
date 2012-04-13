@@ -26,3 +26,8 @@ ManeuverType FindManeuverType(double old_phi_z,
     return kTack;
   return kChange;  
 }
+
+const char* ManeuverToString(ManeuverType maneuver_type) {
+return maneuver_type == kChange ? "Change"
+                                : maneuver_type == kJibe ? "Jibe" : "Tack";
+}

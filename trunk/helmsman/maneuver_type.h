@@ -15,4 +15,6 @@ ManeuverType FindManeuverType(double old_phi_z,
                               double new_phi_z,
                               double true_direction);
 
+const char* ManeuverToString(ManeuverType maneuver_type);
+
 #endif   // HELMSMAN_MANEUVER_TYPE_H

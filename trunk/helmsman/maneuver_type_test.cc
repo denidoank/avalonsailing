@@ -4,6 +4,7 @@
 // Steffen Grundmann, June 2011
 #include "helmsman/maneuver_type.h"
 
+#include <string.h>
 #include "common/convert.h"
 #include "lib/testing/testing.h"
 
@@ -35,6 +36,10 @@ TEST(FindManeuverType, All) {
 
   true_wind = Deg2Rad(-179);
   EXPECT_EQ(kJibe,   FindManeuverType(Deg2Rad(-100), Deg2Rad(90), true_wind));
+
+  EXPECT_EQ(0, strcmp("Change", ManeuverToString(kChange)));
+  EXPECT_EQ(0, strcmp("Jibe",   ManeuverToString(kJibe)));
+  EXPECT_EQ(0, strcmp("Tack",   ManeuverToString(kTack)));
 }
 
 
