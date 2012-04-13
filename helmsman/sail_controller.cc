@@ -68,15 +68,20 @@ void SailModeLogic::Reset() {
   delay_counter_ = 0;
 }
 
+// The optimal angle of attack for the trimmed sail, subject to
+// optimization, 10 - 25 degrees.
+static const double kAOADefaultRad = Deg2Rad(20);
 
 SailController::SailController()
-    // The optimal angle of attack for the trimmed sail, subject to
-    // optimization, 10 - 25 degrees.
-    : optimal_angle_of_attack_rad_(Deg2Rad(20)),  // degrees.
+    : optimal_angle_of_attack_rad_(kAOADefaultRad),
       sign_(1)  {}
 
 void SailController::SetOptimalAngleOfAttack(double optimal_angle_of_attack_rad) {
   optimal_angle_of_attack_rad_ = optimal_angle_of_attack_rad;
+}
+
+double SailController::GetOptimalAngleOfAttack() {
+  return optimal_angle_of_attack_rad_;
 }
 
 double SailController::BestGammaSail(double alpha_wind_rad, double mag_wind) {
@@ -166,7 +171,7 @@ double SailController::HandleSign(double alpha_wind_rad, bool stabilized) {
 
 void SailController::Reset() {
   logic_.Reset();
-  optimal_angle_of_attack_rad_ = Deg2Rad(10);
+  optimal_angle_of_attack_rad_ = kAOADefaultRad;
   sign_ = 1;
 }
 
