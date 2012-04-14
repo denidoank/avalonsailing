@@ -54,7 +54,7 @@ static int debug = 0;
 void FilterBlock::Filter(const ControllerInput& in,
                          FilteredMeasurements* fil) {
   // NaNs irreversibly poison a filter, so have to prevent that.
-  ASSIGN_NOT_NAN(fil->mag_boat,      in.imu.speed_m_s);               // in m/s, x-component of speed vector
+  ASSIGN_NOT_NAN(fil->mag_boat,      in.imu.velocity.x_m_s);          // in m/s, x-component of speed vector points forward
   ASSIGN_NOT_NAN(fil->longitude_deg, in.imu.position.longitude_deg);  // GPS-Data
   ASSIGN_NOT_NAN(fil->latitude_deg,  in.imu.position.latitude_deg);
   ASSIGN_NOT_NAN(fil->phi_x_rad,     in.imu.attitude.phi_x_rad);      // roll angle, heel;
@@ -72,7 +72,7 @@ void FilterBlock::Filter(const ControllerInput& in,
   fil->angle_aoa = SymmetricRad(wrap_middle_av_aoa_.Filter(SymmetricRad(alpha_wind_rad + kWindSensorOffsetRad)));
   fil->mag_aoa = av_middle_aoa_.Filter(mag_wind_m_s);
 
-  imu_fault_ = isnan(in.imu.attitude.phi_z_rad) || isnan(in.imu.speed_m_s);
+  imu_fault_ = isnan(in.imu.attitude.phi_z_rad) || isnan(in.imu.velocity.x_m_s);
   if (imu_fault_)
     fprintf(stderr, "imu NaN, IMU fault\n");
 

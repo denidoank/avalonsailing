@@ -35,6 +35,12 @@ ${PLUG} ./fakeio/fakeboat &
 # Run the remote_control tool, and configure it.
 CONNECT_CMD=$(pwd)"/io/plug ${LBUS}"
 echo "remote_control config string: ${CONNECT_CMD}"
-./remote_control/remote_control "${CONNECT_CMD}" &
+
+# Linux:
+# ./remote_control/remote_control "${CONNECT_CMD}" &
+
+# For new mac installation
+./remote_control/remote_control.app/Contents/MacOS/remote_control "${CONNECT_CMD}" &
+
 
 ${PLUG} ./helmsman/helmsman

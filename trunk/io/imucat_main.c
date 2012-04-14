@@ -208,6 +208,19 @@ imu_decode_variables(uint8_t* b, int len, uint16_t mode, uint32_t settings, stru
   return 0;
 }
 
+// Convert speed components from NED in boat coordinate system.
+ConvertSpeed(struct IMUProto* vars) {
+  if (isnan(vars->vel_x_m_s) ||
+      isnan(vars->vel_x_m_s) ||
+      isnan(vars->yaw_deg))
+    return;
+  double phi_z = M_PI / 180 * vars->yaw_deg;
+  double v_x =  cos(phi_z) * vars->vel_x_m_s + sin(phi_z) * vars->vel_y_m_s;
+  double v_y = -sin(phi_z) * vars->vel_x_m_s + cos(phi_z) * vars->vel_y_m_s;
+  vars->vel_x_m_s = v_x;
+  vars->vel_y_m_s = v_y;
+}
+
 // -----------------------------------------------------------------------------
 
 int main(int argc, char* argv[]) {
@@ -350,6 +363,7 @@ int main(int argc, char* argv[]) {
 
       if (!(vars.status & (IMU_STS_XKF|IMU_STS_GPS))) {
         vars.lat_deg = vars.lng_deg = vars.alt_m = NAN;
+        // TODO(grundmann): reset timestamp as well
       }
     }
 
@@ -358,6 +372,8 @@ int main(int argc, char* argv[]) {
         (vars.status&IMU_STS_SELFTEST) ? " selftest":"",
         (vars.status&IMU_STS_XKF)? " XKF":"",
         (vars.status&IMU_STS_GPS)?" GPS":"");
+
+    ConvertSpeed(&vars);
 
     printf(OFMT_IMUPROTO(vars));
   }
