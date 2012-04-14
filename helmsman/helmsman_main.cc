@@ -188,7 +188,7 @@ int main(int argc, char* argv[]) {
   }
 
   ControllerInput ctrl_in;
-  ControllerOutput ctrl_out;  // in this scope because it keeps the statistics. 
+  ControllerOutput ctrl_out;  // in this scope because it keeps the statistics.
 
   int nn = 0;
 
@@ -262,8 +262,6 @@ int main(int argc, char* argv[]) {
             ctrl_in.imu.velocity.y_m_s = imu.vel_y_m_s;
             ctrl_in.imu.velocity.z_m_s = imu.vel_z_m_s;
 
-            ctrl_in.imu.speed_m_s = imu.vel_x_m_s;
-
           } else if (sscanf(line, IFMT_RUDDERPROTO_STS(&sts, &nn)) > 0) {
             ctrl_in.drives.gamma_rudder_left_rad  = Deg2Rad(sts.rudder_l_deg);
             ctrl_in.drives.gamma_rudder_right_rad = Deg2Rad(sts.rudder_r_deg);
@@ -294,7 +292,6 @@ int main(int argc, char* argv[]) {
           }
           line += nn;
         }
-
       } else {
         if (r != EAGAIN) crash("Error reading stdin");
       }  

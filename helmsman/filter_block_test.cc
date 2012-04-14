@@ -37,9 +37,9 @@ void SetEnv(const Polar& wind_true,
   in->wind_sensor.alpha_deg = Rad2Deg(NormalizeRad(angle_sensor));
   in->wind_sensor.valid = true;
 
-  in->imu.speed_m_s = boat.Mag();
+  in->imu.velocity.x_m_s = boat.Mag();
   in->imu.attitude.phi_z_rad = boat.AngleRad();
-  
+
   in->drives.gamma_sail_rad = gamma_sail;
 }
 
@@ -209,7 +209,7 @@ TEST(FilterBlock, All) {
   EXPECT_FLOAT_EQ(0.0, filtered.alpha_true);
   EXPECT_FLOAT_EQ(2.0, filtered.mag_true);
   EXPECT_EQ(true, b.ValidTrueWind());
-  
+
   wind_true = Polar(-M_PI / 2, 2);  // wind vector to West, with 2m/s
   boat = Polar(0, 2);               // boat going North, with 2 m/s
   // So the apparent wind vector is at -135 degree to

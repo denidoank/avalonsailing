@@ -48,13 +48,13 @@ double BoatModel::ForceSail(Polar apparent, double gamma_sail) {
   if (fabs(angle_attack) < Deg2Rad(25)) {
     lift = angle_attack / Deg2Rad(25);
   } else {
-    lift = 0.5 * Sign(angle_attack); 
+    lift = 0.5 * Sign(angle_attack);
   }
   return cos(gamma_sail + M_PI/2) *
       lift * apparent.Mag() * apparent.Mag() * 8 * 1.184 / 2;  // 8m2*rho_air/2
 }
 
-double BoatModel::Saturate(double x, double limit) { 
+double BoatModel::Saturate(double x, double limit) {
   CHECK_GT(limit, 0);
   if (x >  limit)
     return  limit;
@@ -79,7 +79,7 @@ void BoatModel::FollowRateLimitedRadWrap(double in, double max_rate, double* fol
   if (delta < -M_PI) {
     delta += 2 * M_PI;
   }
-    
+
   *follows += Saturate(delta, max_rate * period_);
   *follows = SymmetricRad(*follows);
 }
@@ -94,10 +94,10 @@ void BoatModel::SimDrives(const DriveReferenceValuesRad& drives_reference,
 
   if (isnan(drives_reference.gamma_sail_star_rad))
     FollowRateLimitedRadWrap(0,
-                             kOmegaMaxSail, &gamma_sail_); 
+                             kOmegaMaxSail, &gamma_sail_);
   else
     FollowRateLimitedRadWrap(drives_reference.gamma_sail_star_rad,
-                             kOmegaMaxSail, &gamma_sail_); 
+                             kOmegaMaxSail, &gamma_sail_);
   drives->gamma_sail_rad = gamma_sail_;
   drives->homed_sail = true;
 
@@ -136,18 +136,18 @@ void BoatModel::SimDrives(const DriveReferenceValuesRad& drives_reference,
   drives->gamma_rudder_right_rad = gamma_rudder_right_;
 }
 
-void BoatModel::Simulate(const DriveReferenceValuesRad& drives_reference, 
+void BoatModel::Simulate(const DriveReferenceValuesRad& drives_reference,
                          Polar true_wind,
                          ControllerInput* in) {
   debug = 0;
 
   // std::string deb_string = drives_reference.ToString();
-  // fprintf(stderr, "Simulate: %s\n", deb_string.c_str()); 
+  // fprintf(stderr, "Simulate: %s\n", deb_string.c_str());
 
   in->imu.Reset();
   in->wind_sensor.Reset();
   // alpha_star remains
- 
+
   apparent_ = Polar (0, 0);  // apparent wind in the boat frame
   ApparentPolar(true_wind, Polar(phi_z_, v_x_), phi_z_, &apparent_);
 
@@ -175,16 +175,16 @@ void BoatModel::Simulate(const DriveReferenceValuesRad& drives_reference,
   if (v_x_ > 2.5)
     force_x -= (v_x_ - 2.5) * 300.0;
   //fprintf(stderr, "force_x %g\n", force_x);
-  v_x_ += force_x * period_ / kMass; 
-  
+  v_x_ += force_x * period_ / kMass;
+
   // Produce GPS info.
   // Convert a meter of way into the change of latitude, roughly, at equator.
-  const double MeterToDegree = Rad2Deg(1/6378100.0); 
+  const double MeterToDegree = Rad2Deg(1/6378100.0);
   north_deg_ += v_x_ * cos(phi_z_) * period_ * MeterToDegree;
   east_deg_  += v_x_ * sin(phi_z_) * period_ * MeterToDegree;
   x_ += v_x_ * cos(phi_z_) * period_;
   y_ += v_x_ * sin(phi_z_) * period_;
-  
+
   // Sensor signal is:
   // The true wind vector direction - (all the angles our sensor is turned by),
   // where the latter expands to
@@ -193,7 +193,7 @@ void BoatModel::Simulate(const DriveReferenceValuesRad& drives_reference,
   // sensor Offset (rotation of the sensor zero relative to the mast) +
   // pi (sensor direction convention is to indicate where the wind comes from,
   // not where the vector is pointing to as we do with all our stuff)
-  
+
   // The apparent wind vector in the boat system contains the true wind and the
   // boats rotation already. Thus:
   double angle_sensor = apparent_.AngleRad() - (
@@ -205,12 +205,11 @@ void BoatModel::Simulate(const DriveReferenceValuesRad& drives_reference,
   in->wind_sensor.valid = true;
   // fakewind formula
   //  angle_sensor = true_wind.AngleRad() - (
-  //    kWindSensorOffsetRad + gamma_sail_ + M_PI); 
+  //    kWindSensorOffsetRad + gamma_sail_ + M_PI);
   //  in->wind_sensor.alpha_deg = NormalizeDeg(Rad2Deg(angle_sensor));
   //  in->wind_sensor.mag_m_s = true_wind.Mag();
-    
+
   SimDrives(drives_reference, &in->drives);
-  in->imu.speed_m_s = v_x_;
   in->imu.position.longitude_deg = east_deg_;
   in->imu.position.latitude_deg = north_deg_;
   in->imu.position.altitude_m = 0;
@@ -218,6 +217,8 @@ void BoatModel::Simulate(const DriveReferenceValuesRad& drives_reference,
   in->imu.attitude.phi_y_rad = 0;
   in->imu.attitude.phi_z_rad = phi_z_;
   in->imu.velocity.x_m_s = v_x_;
+  // IMU sensor velocity is in NED system, but the IMUcat converts
+  // the speed into boat coordinates.
   in->imu.velocity.y_m_s = 0;
   in->imu.velocity.z_m_s = 0;
   in->imu.acceleration.x_m_s2 = 0;
@@ -227,18 +228,18 @@ void BoatModel::Simulate(const DriveReferenceValuesRad& drives_reference,
   in->imu.gyro.omega_y_rad_s = 0;
   in->imu.gyro.omega_z_rad_s = omega_;
   in->imu.temperature_c = 28;
- 
+
   // fprintf(stderr, "model: latlon:%g/%g phi_z:%g vx: %g om: %g\n", north_deg_, east_deg_, phi_z_, v_x_, omega_);
   // deb_string = in->imu.ToString();
-  // fprintf(stderr, "%s\n", deb_string.c_str()); 
+  // fprintf(stderr, "%s\n", deb_string.c_str());
 
   CHECK_IN_INTERVAL(-80, in->imu.position.longitude_deg, 20);
   CHECK_IN_INTERVAL(0, in->imu.position.latitude_deg, 60);
   CHECK_IN_INTERVAL(-2*M_PI, in->imu.attitude.phi_z_rad, 2*M_PI);
   CHECK_IN_INTERVAL(-10, in->imu.velocity.x_m_s, 10);
-  CHECK_IN_INTERVAL(-10, in->imu.speed_m_s, 10);
+  CHECK_IN_INTERVAL(-10, v_x_, 10);
   //CHECK_IN_INTERVAL(-3.5, in->imu.gyro.omega_z_rad_s, 3.5);  // This is a simulation problem at high speeds
-  
+
 }
 
 void BoatModel::PrintLatLon(double t) {
@@ -308,7 +309,7 @@ void BoatModel::OneRudder(double gamma_rudder, double v_rudder_alpha,
                           double v_rudder_mag,
                           double* force_x, double* force_y) {
   // Angle of attack for the rudder
-  double alpha_aoa = gamma_rudder - v_rudder_alpha;        // (3) 
+  double alpha_aoa = gamma_rudder - v_rudder_alpha;        // (3)
 
   double force_lift = ForceLift(alpha_aoa, v_rudder_mag);  // (4)
   double force_drag = ForceDrag(alpha_aoa, v_rudder_mag);  // (5)

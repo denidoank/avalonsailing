@@ -79,7 +79,7 @@ string BuildStatusMessage(const time_t status_time,
     // Valid if modem geolocation timestamp is less than 12h old.
     status[8] = 'I';  // Iridium.
     lat = modem_status.coarse_position_lat;
-    lng = modem_status.coarse_position_lng;     
+    lng = modem_status.coarse_position_lng;
   }
   // TODO: Add backup GPS location
   // IMU based GPS (main GPS).

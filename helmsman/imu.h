@@ -10,14 +10,13 @@
 #include <string>
 #include "proto/imu.h"
 
-// Original units from IMU, Controllers needs metric units and radians anyway. 
+// Original units from IMU, Controllers needs metric units and radians anyway.
 struct Imu {
   Imu();
   void Reset();
   std::string ToString() const;
-  void ToProto(IMUProto* imu_proto) const; 
+  void ToProto(IMUProto* imu_proto) const;
   void FromProto(const IMUProto& imu_proto);
-  double speed_m_s; // in m/s
   // GPS-Data
   struct Position {
     double longitude_deg;
@@ -32,7 +31,7 @@ struct Imu {
     double phi_z_rad;   // yaw;
   } attitude;
   struct Velocity {
-    double x_m_s;
+    double x_m_s; // boat forward speed over ground, in m/s
     double y_m_s;
     double z_m_s;
   } velocity;           // velocity in NED system, x, y, z in m/s

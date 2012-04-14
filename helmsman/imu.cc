@@ -13,7 +13,6 @@ Imu::Imu() {
 }
 
 void Imu::Reset() {
-  speed_m_s = 0;
   position.longitude_deg = 0;
   position.latitude_deg = 0;
   position.altitude_m = 0;
@@ -37,7 +36,7 @@ void Imu::Reset() {
 
 std::string Imu::ToString() const {
   char line[20*25];
-  int s = snprintf(line, sizeof line, "speed_m_s: %f lat_deg:%f lon_deg:%f alt_m:%f "
+  int s = snprintf(line, sizeof line, "lat_deg:%f lon_deg:%f alt_m:%f "
       "phi_x:%.4f phi_y:%.4f phi_z:%.4f "
       "v_x:%.4f v_y:%.4f v_z:%.4f "
       "acc_x:%.4f acc_y:%.4f acc_z:%.4f "
@@ -45,7 +44,6 @@ std::string Imu::ToString() const {
       "theta: %.3f"
       "mag_x:%.4f mag_y:%.4f mag_z:%.4f "
       "\n",
-      speed_m_s,
       position.longitude_deg, position.latitude_deg, position.altitude_m,
       attitude.phi_x_rad, attitude.phi_y_rad, attitude.phi_z_rad,
       velocity.x_m_s, velocity.y_m_s, velocity.z_m_s,
@@ -75,7 +73,7 @@ void Imu::ToProto(IMUProto* imu_proto) const {
   imu_proto->lng_deg = position.longitude_deg;
   imu_proto->alt_m   = position.altitude_m;
 
-   // Speed components in NED coordinate frame
+   // The imucat converts the speed components into the boat coordinate frame.
   imu_proto->vel_x_m_s = velocity.x_m_s;
   imu_proto->vel_y_m_s = velocity.y_m_s;
   imu_proto->vel_z_m_s = velocity.z_m_s;
@@ -104,11 +102,11 @@ void Imu::FromProto(const IMUProto& imu_proto) {
   position.longitude_deg = imu_proto.lng_deg;
   position.altitude_m    = imu_proto.alt_m;
 
-  // Speed == x component of motion vector for our purposes.
-  speed_m_s = imu_proto.vel_x_m_s;
+  // x-Speed is boat forward speed.
   velocity.x_m_s = imu_proto.vel_x_m_s;
   velocity.y_m_s = imu_proto.vel_y_m_s;
   velocity.z_m_s = imu_proto.vel_z_m_s;
+
 
   mag.raw_x = imu_proto.mag_x_au;
   mag.raw_y = imu_proto.mag_y_au;
