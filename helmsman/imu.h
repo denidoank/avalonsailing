@@ -35,7 +35,7 @@ struct Imu {
     double x_m_s;
     double y_m_s;
     double z_m_s;
-  } velocity;           // velocity in x, y, z in m/s
+  } velocity;           // velocity in NED system, x, y, z in m/s
   struct Acceleration {
     double x_m_s2;
     double y_m_s2;
@@ -46,7 +46,14 @@ struct Imu {
     double omega_y_rad_s;
     double omega_z_rad_s;
   } gyro;               // gyroscope data in x, y, z in rad/s
-  double temperature_c; // in deg C        
+  double temperature_c; // in deg C
+
+  // Magnetic raw data, arbitrary unit
+  struct Magnetic {
+    double raw_x;
+    double raw_y;
+    double raw_z;
+  } mag;
 };
 
 #endif  // HELMSMAN_IMU_H
