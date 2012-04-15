@@ -363,7 +363,7 @@ int main(int argc, char* argv[]) {
 
       if (!(vars.status & (IMU_STS_XKF|IMU_STS_GPS))) {
         vars.lat_deg = vars.lng_deg = vars.alt_m = NAN;
-        // TODO(grundmann): reset timestamp as well
+        vars.timestamp_ms = 0;  // the time is derived from the GPS signal and goes away with that signal.
       }
     }
 
