@@ -156,7 +156,7 @@ max_z  = max(z)
 
 figure()
 plot(east, north)
-lbl("Track", "east / m", "north / m");
+lbl("GPS Track", "east / m", "north / m");
 axis("equal");
 
 %figure()
@@ -365,10 +365,10 @@ if 1
   mv = sqrt(mv);
   mv_b = v_b_x .^ 2 + v_b_y .^ 2;
   mv_b = sqrt(mv_b);
-  %figure()
-  %plot(t, mv, "b", t, mv_b, "g", t, mv ./ mv_b, "r")
-  %lbl("Is this equal blue in green out", "t / s", "v_b_x / m/s");
-  %pause
+  figure()
+  plot(t, mv, "b", t, mv_b, "g", t, mv ./ mv_b, "r")
+  lbl("Is this equal blue in green out", "t / s", "v_b_x / m/s");
+  pause
 
 
 

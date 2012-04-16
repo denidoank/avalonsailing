@@ -6,13 +6,17 @@
 // What shall be filtered?
 // The IMU measurements are outputs of a Kalman-Bucy-filter and as such
 // they are filtered with an unknown delay dependant on the noise.
+// After IMU tests we found out that the speed data are just a very rough
+// approximation of the real motion vector over ground. The bearing (phi_z)
+// and the rotational speeds omega_z need spike suppression and sliding average filters of 1s and 8s respectively.
 // The drive actual values are exact and noise-free.
 // The wind sensor updates once per second and reflects the strong
 // fluctuations of the measured wind overlayed with the errors
-// by the boats motion (masttip, x- and y-axis-rotation, caused by waves).
+// by the boats motion (masttip, x- and y-axis-rotation of the boat, caused by waves).
 // Consequently filtering is applied only for:
 //   1. The true wind to get a very calm general wind direction (averaged at least over 60s).
 //   2. The heel angle calculated from the acceleration vector.
+//
 
 #include "helmsman/filter_block.h"
 
@@ -29,12 +33,57 @@
 
 namespace {
 
-const double kShortFilterPeriod = 1.0;   // s
-const double kMiddleFilterPeriod = 30.0;
-const double kLongFilterPeriod = 100.0;  // s, N.B. The state Initial cannot be
-                                         // shorter than this time period.
+const double kOmegaZFilterPeriod = 8.0;
+//const double kPhiZFilterPeriod = 1.0;
+const double kSpeedFilterPeriod = 60.0;
+
 static int debug = 0;
+
 }  // namespace
+
+
+bool ValidGPS(const ControllerInput& in) {
+  return !isnan(in.imu.position.longitude_deg) && !isnan(in.imu.position.latitude_deg) &&
+         !(in.imu.position.longitude_deg == 0 && in.imu.position.latitude_deg == 0);
+}
+
+
+FilterBlock::FilterBlock()
+  : valid_(false),
+    imu_fault_(false),
+    gps_fault_(false),
+    len_1s_(1.0 / kSamplingPeriod),
+    len_30s_(30.0 / kSamplingPeriod),
+    len_100s_(100.0 / kSamplingPeriod),     // 100s, N.B. The ship control state Initial cannot be
+                                            // shorter than this time period.
+
+    om_z_filter_(kOmegaZFilterPeriod / kSamplingPeriod),
+    speed_filter_(kSpeedFilterPeriod / kSamplingPeriod),
+
+    mag_app_filter_(len_1s_),
+    mag_true_filter_(len_100s_),
+    mag_aoa_filter_(len_30s_),
+
+    phi_z_filter_(),
+    phi_z_wrap_(&phi_z_filter_),
+    angle_app_filter_(len_1s_),
+    angle_app_wrap_(&angle_app_filter_),
+    alpha_true_filter_(len_100s_),
+    alpha_true_wrap_(&alpha_true_filter_),
+    angle_aoa_filter_(len_30s_),
+    angle_aoa_wrap_(&angle_aoa_filter_) {}
+
+
+// Clip magnitude at the maximum possible boat speed.
+double FilterBlock::CensorSpeed(double speed_in) {
+  const double clip_speed = 2.8;  // m/s
+  if (speed_in < -clip_speed)
+    return -clip_speed;
+  if (speed_in > clip_speed)
+    return clip_speed;
+  return speed_in;
+}
+
 
 #define ASSIGN_NOT_NAN(lhs, rhs) \
   if (isnan(rhs)) { \
@@ -53,14 +102,43 @@ static int debug = 0;
 
 void FilterBlock::Filter(const ControllerInput& in,
                          FilteredMeasurements* fil) {
-  // NaNs irreversibly poison a filter, so have to prevent that.
-  ASSIGN_NOT_NAN(fil->mag_boat,      in.imu.velocity.x_m_s);          // in m/s, x-component of speed vector points forward
-  ASSIGN_NOT_NAN(fil->longitude_deg, in.imu.position.longitude_deg);  // GPS-Data
-  ASSIGN_NOT_NAN(fil->latitude_deg,  in.imu.position.latitude_deg);
-  ASSIGN_NOT_NAN(fil->phi_x_rad,     in.imu.attitude.phi_x_rad);      // roll angle, heel;
-  ASSIGN_NOT_NAN(fil->phi_y_rad,     in.imu.attitude.phi_y_rad);      // pitch, nick angle;
-  ASSIGN_NOT_NAN(fil->phi_z_boat,    in.imu.attitude.phi_z_rad);      // yaw, bearing;
-  ASSIGN_NOT_NAN(fil->omega_boat,    in.imu.gyro.omega_z_rad_s);      // yaw rate, rotational speed around z axis
+  fil->Reset();
+  // TODO: signal mixer (IMU + compass) comes here. It overwrites IMU data.
+  imu_fault_ = isnan(in.imu.attitude.phi_z_rad) || isnan(in.imu.velocity.x_m_s);
+  if (imu_fault_)
+    fprintf(stderr, "IMU fault\n");
+  gps_fault_ = !ValidGPS(in);
+  if (gps_fault_)
+    fprintf(stderr, "GPS fault\n");
+
+  // NaNs irreversibly poison filters, so we have to prevent that.
+  if (!gps_fault_) {
+    ASSIGN_NOT_NAN(fil->longitude_deg, in.imu.position.longitude_deg);  // GPS-Data
+    ASSIGN_NOT_NAN(fil->latitude_deg,  in.imu.position.latitude_deg);
+  }
+
+  // If everything else fails we optimistically assume that we are making some speed forward.
+  fil->mag_boat = 1;
+  if (!imu_fault_) {
+    double phi_z = 0;
+    ASSIGN_NOT_NAN(fil->phi_x_rad, in.imu.attitude.phi_x_rad);      // roll angle, heel;
+    ASSIGN_NOT_NAN(fil->phi_y_rad, in.imu.attitude.phi_y_rad);      // pitch, nick angle;
+    ASSIGN_NOT_NAN(phi_z,          in.imu.attitude.phi_z_rad);      // yaw, bearing;
+    fil->phi_z_boat = phi_z_wrap_.Filter(phi_z_filter_.Filter(phi_z));
+
+    fil->mag_boat = CensorSpeed(speed_filter_.Filter(in.imu.velocity.x_m_s));
+    if (debug) {
+      fprintf(stderr, "speed filtered&clipped %g\n", fil->mag_boat);
+    }
+  }
+
+  double om_z = 0;
+  ASSIGN_NOT_NAN(om_z,    in.imu.gyro.omega_z_rad_s);                 // yaw rate, rotational speed around z axis
+  fil->omega_boat = om_z_filter_.Filter(om_z_med_.Filter(om_z));
+  if (debug) {
+    fprintf(stderr, "raw om_z %g filtered %g\n", om_z, fil->omega_boat);
+  }
+
   ASSIGN_NOT_NAN(fil->temperature_c, in.imu.temperature_c);           // in deg Celsius
 
   // fprintf(stderr, "filter in:%c homed: %c sensor: %g %g\n", in.wind_sensor.valid ? 'V' : 'I', in.drives.homed_sail ? 'V' : 'I', in.wind_sensor.alpha_deg, in.wind_sensor.mag_m_s);
@@ -69,12 +147,9 @@ void FilterBlock::Filter(const ControllerInput& in,
   double alpha_wind_rad = NormalizeRad(Deg2Rad(in.wind_sensor.alpha_deg));
   double mag_wind_m_s = in.wind_sensor.mag_m_s;
 
-  fil->angle_aoa = SymmetricRad(wrap_middle_av_aoa_.Filter(SymmetricRad(alpha_wind_rad + kWindSensorOffsetRad)));
-  fil->mag_aoa = av_middle_aoa_.Filter(mag_wind_m_s);
+  fil->angle_aoa = SymmetricRad(angle_aoa_wrap_.Filter(SymmetricRad(alpha_wind_rad + kWindSensorOffsetRad)));
+  fil->mag_aoa = mag_aoa_filter_.Filter(mag_wind_m_s);
 
-  imu_fault_ = isnan(in.imu.attitude.phi_z_rad) || isnan(in.imu.velocity.x_m_s);
-  if (imu_fault_)
-    fprintf(stderr, "imu NaN, IMU fault\n");
 
   if (in.drives.homed_sail && in.wind_sensor.valid) {
     // The wind sensor is telling where the wind is coming *from*, but we work
@@ -89,25 +164,33 @@ void FilterBlock::Filter(const ControllerInput& in,
     if (!imu_fault_) {
       Polar wind_true(0, 0);
       TruePolar(Polar(angle_app,  mag_app),
-                Polar(fil->phi_z_boat, fil->mag_boat),  // could consider drift here, but y-speed is flaky.
+                Polar(fil->phi_z_boat, fil->mag_boat),
                 fil->phi_z_boat,
                 &wind_true);
-      fil->alpha_true = SymmetricRad(wrap_long_av_.Filter(NormalizeRad(wind_true.AngleRad())));
-      fil->mag_true = av_long_.Filter(wind_true.Mag());
+      fil->alpha_true = SymmetricRad(alpha_true_wrap_.Filter(NormalizeRad(wind_true.AngleRad())));
+      fil->mag_true = mag_true_filter_.Filter(wind_true.Mag());
       if (debug)
-        fprintf(stderr, "trueInOut %g, %g, %g, %g\n", wind_true.AngleRad(), wind_true.Mag(), fil->alpha_true, fil->mag_true);
+        fprintf(stderr, "trueInOut alpha mag: %g, %g, app: %g, %g\n", wind_true.AngleRad(), wind_true.Mag(), fil->alpha_true, fil->mag_true);
       // The validity of the true wind takes some time and is flagged separately with
       // valid_true_wind.
+    } else {
+      if (debug)
+        fprintf(stderr, "Imu failed -> no true wind.");
     }
-    fil->angle_app = SymmetricRad(wrap_short_av_.Filter(angle_app));
-    fil->mag_app =  av_short_.Filter(mag_app);
-    valid_ =  wrap_short_av_.ValidOutput() && av_short_.ValidOutput();
+    fil->angle_app = SymmetricRad(angle_app_wrap_.Filter(angle_app));
+    fil->mag_app =  mag_app_filter_.Filter(mag_app);
+    valid_ =  angle_app_wrap_.ValidOutput() && mag_app_filter_.ValidOutput();
   } else {
     fil->alpha_true = kUnknown;  // TODO check that all later processing does not stumble over this.
     fil->mag_true = kUnknown;
     fil->angle_app = kUnknown;
     fil->mag_app =  mag_wind_m_s;
     valid_ = false;
+    if (debug && !in.drives.homed_sail)
+      fprintf(stderr, "!in.drives.homed_sail");
+    if (debug && !in.wind_sensor.valid)
+      fprintf(stderr, "!in.wind_sensor.valid");
+
   }
   fil->valid = valid_;
   fil->valid_true_wind = ValidTrueWind();
@@ -115,23 +198,10 @@ void FilterBlock::Filter(const ControllerInput& in,
   // fprintf(stderr, "%c true: %g %g, app: %g %g \n", valid_?'V':'I', fil->alpha_true, fil->mag_true, fil->angle_app, fil->mag_app);
 }
 
-FilterBlock::FilterBlock()
-  : valid_(false),
-    imu_fault_(false),
-    len_short_(kShortFilterPeriod / kSamplingPeriod),
-    len_middle_(kMiddleFilterPeriod / kSamplingPeriod),
-    len_long_(kLongFilterPeriod / kSamplingPeriod),
-    av_short_(len_short_),
-    av_middle_(len_middle_),
-    av_long_(len_long_),
-    av_middle_aoa_(len_middle_),
-    average_short_(len_short_),
-    average_long_(len_long_),
-    average_middle_aoa_(len_middle_),
-    wrap_short_av_(&average_short_),
-    wrap_long_av_(&average_long_),
-    wrap_middle_av_aoa_(&average_middle_aoa_) {}
-
 bool FilterBlock::ValidTrueWind() {
-  return wrap_long_av_.ValidOutput() && av_long_.ValidOutput() && !imu_fault_ && valid_;
+  return alpha_true_wrap_.ValidOutput() && mag_true_filter_.ValidOutput() && !imu_fault_ && valid_;
+}
+
+bool FilterBlock::ValidSpeed() {
+  return speed_filter_.ValidOutput() && !imu_fault_;
 }

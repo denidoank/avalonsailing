@@ -217,8 +217,10 @@ ConvertSpeed(struct IMUProto* vars) {
   double phi_z = M_PI / 180 * vars->yaw_deg;
   double v_x =  cos(phi_z) * vars->vel_x_m_s + sin(phi_z) * vars->vel_y_m_s;
   double v_y = -sin(phi_z) * vars->vel_x_m_s + cos(phi_z) * vars->vel_y_m_s;
-  vars->vel_x_m_s = v_x;
-  vars->vel_y_m_s = v_y;
+  // 0.8 is an empirical cheating factor derived from test results in January 2012.
+  const double cheating_factor = 0.8;
+  vars->vel_x_m_s = cheating_factor * v_x;
+  vars->vel_y_m_s = cheating_factor * v_y;
 }
 
 // -----------------------------------------------------------------------------
