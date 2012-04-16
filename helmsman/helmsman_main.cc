@@ -315,7 +315,7 @@ int main(int argc, char* argv[]) {
             ctrl_out.skipper_input.angle_true_deg,
             ctrl_out.skipper_input.mag_true_kn
         );
-        printf(to_skipper.ToString().c_str());
+        printf("%s", to_skipper.ToString().c_str());
       }
       if (loops % 20 == 5) {
         HelmsmanStatusProto hsts = INIT_HELMSMAN_STATUSPROTO;
