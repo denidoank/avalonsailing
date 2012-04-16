@@ -36,11 +36,12 @@ ${PLUG} ./fakeio/fakeboat &
 CONNECT_CMD=$(pwd)"/io/plug ${LBUS}"
 echo "remote_control config string: ${CONNECT_CMD}"
 
-# Linux:
-# ./remote_control/remote_control "${CONNECT_CMD}" &
-
-# For new mac installation
-./remote_control/remote_control.app/Contents/MacOS/remote_control "${CONNECT_CMD}" &
-
-
+if [ "$OSTYPE" == "linux-gnu" ]; then
+  # Linux
+  ./remote_control/remote_control "${CONNECT_CMD}" &
+else
+  # Mac, new setup
+  ./remote_control/remote_control.app/Contents/MacOS/remote_control "${CONNECT_CMD}" &
+fi
+ 
 ${PLUG} ./helmsman/helmsman
