@@ -209,7 +209,7 @@ imu_decode_variables(uint8_t* b, int len, uint16_t mode, uint32_t settings, stru
 }
 
 // Convert speed components from NED in boat coordinate system.
-ConvertSpeed(struct IMUProto* vars) {
+void ConvertSpeed(struct IMUProto* vars) {
   if (isnan(vars->vel_x_m_s) ||
       isnan(vars->vel_x_m_s) ||
       isnan(vars->yaw_deg))
