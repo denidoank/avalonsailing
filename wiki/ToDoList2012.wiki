@@ -5,9 +5,9 @@
 == Mechanics ==
  
 || *Item* || *Who/when done* ||
-|| Check rudder and find reason why left rudder reacts to commands with delay || lvd/ ||
-|| Change rudder axis design such that we get less slack and better adjustability of the cone wheels. The current version might be too soft (Nut/Feder connection had big slack) || ||
-|| Have 2 new rudder axis manufactured. Replace the old ones. || ||
+|| Check rudder and find reason why left rudder reacts to commands with delay || lvd/2012-04-12 ||
+|| Change rudder axis design such that we get less slack and better adjustability of the cone wheels. The current version might be too soft (Nut/Feder connection had big slack) || (after lake test) ||
+|| Have 2 new rudder axis manufactured. Replace the old ones. || (after lake test) ||
 || Make IMU box fixation without magnetizable screws. ||grundmann/2012-04-02 ||
 || Mount compass in IMU box || grundmann/2012-04-05 ||
 || Make watertight IMU box (currently 2 sealings leak). Test it. || grundmann/2012-03-19 ||
@@ -19,12 +19,12 @@
 == Electric ==
 
 || *Item* || *Who/when done* ||
-|| Electric schema || ||
+|| Electric schema || (give up on this?) ||
 || Test maximum voltage and have a look with a scope at the supply voltage at full light, fully charged. || ||
-|| Change or replace CPU box such that the processor gets cooling. Currently it reaches 65 degrees Celsius at the outside because the processor box and the cooling plate are separated by air. || || 
+|| Change or replace CPU box such that the processor gets cooling. Currently it reaches 65 degrees Celsius at the outside because the processor box and the cooling plate are separated by air. || (after lake test) || 
 || Test bilge pump (better outside than in the lobby) ||  ||
-|| Finally, remove mushroom switch (not seawater tight). ||  ||
-|| Finally, mount new AIS antenna. (material purchased already) Test reception. ||  ||
+|| Finally, remove mushroom switch (not seawater tight). || (after lake test) ||
+|| Finally, mount new AIS antenna. (material purchased already) Test reception. || (after lake test) ||
 
 
 == Software ==
@@ -32,8 +32,8 @@
 || Make helmsman less dependant on speed through water. Test in simulator. || grundmann/ ||
 || Make compass info out of IMU data. || grundmann/compass code done 2012/03/08 ||
 || Make compass mix logic || grundmann/ ||
+|| Set the drive current limits to reasonable values (drives are rated as 250 and 400W)  || lvd/2012-04-12 ||
 || Fix sail drive zero position || lvd/ ||
-|| Set the drive current limits to reasonable values (drives are rated as 250 and 400W)  || lvd/ ||
 || The rudder angle ranges need adjustment. The values of 90 and 100 degress are just rough estimates.  || lvd ||
 || implement and test Drive recovery from temporary outages (power dips, overtemperature) || lvd/ ||
 || Implement and test storm mode for drives || lvd/ ||
