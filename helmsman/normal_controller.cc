@@ -35,7 +35,8 @@ NormalController::NormalController(RudderController* rudder_controller,
      give_up_counter_(0),
      start_time_ms_(now_ms()),
      trap2_(999) {
-  if (debug) fprintf(stderr, " NormalController::Entry time  %lg\n",  (double)(start_time_ms_/1000.0) );
+  if (debug) fprintf(stderr, " NormalController::Entry time  %lld s\n",
+                     start_time_ms_ / 1000 );
   CHECK_EQ(999, trap2_);
 }
 
