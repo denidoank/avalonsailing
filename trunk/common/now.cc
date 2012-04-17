@@ -14,7 +14,7 @@
 #include <syslog.h>
 #include <time.h>
 
-uint64_t now_micros() {
+int64_t now_micros() {
   timeval tv;
   if (gettimeofday(&tv, NULL) < 0) {
     syslog(LOG_CRIT, "gettimeofday failed");
@@ -23,7 +23,16 @@ uint64_t now_micros() {
   return tv.tv_sec * 1000000LL + tv.tv_usec;
 }
 
-uint64_t now_ms() {
+int64_t now_ms() {
   return now_micros() / 1000;
+}
+
+int64_t now_s() {
+  timeval tv;
+  if (gettimeofday(&tv, NULL) < 0) {
+    syslog(LOG_CRIT, "gettimeofday failed");
+    return 0;
+  }  
+  return tv.tv_sec;
 }
 
