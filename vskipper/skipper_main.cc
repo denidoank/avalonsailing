@@ -73,7 +73,7 @@ void usage(void) {
   exit(2);
 }
 
-int sscan_ais(const char *line, uint64_t now_ms, AisInfo* s) {
+int sscan_ais(const char *line, int64_t now_ms, AisInfo* s) {
   s->timestamp_ms = now_ms;
 
   if (!strncmp(line, "ais: ", 5))
@@ -90,7 +90,7 @@ int sscan_ais(const char *line, uint64_t now_ms, AisInfo* s) {
     line += skip;
 
     if (!strcmp(key, "timestamp_ms")  && !isnan(value)) {
-      s->timestamp_ms = uint64_t(value);
+      s->timestamp_ms = int64_t(value);
       continue;
     }
     if (!strcmp(key, "lat_deg")       && !isnan(value)) {
@@ -131,7 +131,7 @@ int main(int argc, char* argv[]) {
   int ch;
 
   AvalonState us;
-  uint64_t now = now_ms();
+  int64_t now = now_ms();
   us.timestamp_ms = now;
 
   while ((ch = getopt(argc, argv, "dhv:A:O:T:W:S:P:")) != -1){

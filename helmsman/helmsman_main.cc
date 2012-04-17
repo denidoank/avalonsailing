@@ -90,9 +90,9 @@ static void set_fd(fd_set* s, int* maxfd, FILE* f) {
         if (*maxfd < fd) *maxfd = fd;
 }
 
-static const uint64_t kPeriodMicros = kSamplingPeriod * 1E6;
+static const int64_t kPeriodMicros = kSamplingPeriod * 1E6;
 
-void AdvanceCallTime(uint64_t* next_call_micros) {
+void AdvanceCallTime(int64_t* next_call_micros) {
   *next_call_micros += kPeriodMicros;
   if (now_micros() > *next_call_micros) {
     fprintf(stderr, "Irkss!! Too late by %lld micros\n", (now_micros() - *next_call_micros));
@@ -100,9 +100,9 @@ void AdvanceCallTime(uint64_t* next_call_micros) {
   }
 }
 
-bool CalculateTimeOut(uint64_t next_call_micros, struct timespec* timeout) {
-  uint64_t now = now_micros();
-  uint64_t until_call = next_call_micros > now ? next_call_micros - now : 0;
+bool CalculateTimeOut(int64_t next_call_micros, struct timespec* timeout) {
+  int64_t now = now_micros();
+  int64_t until_call = next_call_micros > now ? next_call_micros - now : 0;
   if (until_call > kPeriodMicros)
     until_call = kPeriodMicros;
   CHECK(kSamplingPeriod < 1.0);
@@ -202,7 +202,7 @@ int main(int argc, char* argv[]) {
   int loops = 0;
 
   // Run ship controller exactly once every 100ms
-  uint64_t next_call_micros = now_micros() + kPeriodMicros;
+  int64_t next_call_micros = now_micros() + kPeriodMicros;
   struct timespec timeout;
   CalculateTimeOut(next_call_micros, &timeout);
 

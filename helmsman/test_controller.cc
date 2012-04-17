@@ -9,9 +9,10 @@
 #include <string.h>
 #include <sys/time.h>
 
-#include "common/delta_angle.h"
-#include "common/polar_diagram.h"
 #include "common/array_size.h"
+#include "common/delta_angle.h"
+#include "common/now.h"
+#include "common/polar_diagram.h"
 #include "common/probe.h"
 #include "common/sign.h"
 #include "helmsman/boat.h"
@@ -33,14 +34,6 @@ const double kHomingTimeoutCount = 30.0 / kSamplingPeriod;
 const double kZero2Count = (1.5 * Deg2Rad(30)) / (kOmegaMaxSail * kSamplingPeriod);
 
 const double kRepeatTestAfterFailureCount = 30.0 / kSamplingPeriod;  // TODO SWITCH BACK TO 5 minutes!
-
-
-uint64_t now_millis() {
-  timeval tv;
-  CHECK_GE(gettimeofday(&tv, NULL), 0);
-  return tv.tv_sec * 1000LL + tv.tv_usec / 1000;
-}
-
 }
 
 const char* TestController::all_phase_names_[] = {"HOME",
@@ -196,11 +189,11 @@ bool TestController::DoDriveTest(const ControllerInput& in,
   } else if (Until(1)) {
     *reference = test_final_;
     if (test_time_start_ms_ < 0)
-      test_time_start_ms_ = now_millis();
+      test_time_start_ms_ = now_ms();
     // measure times
     for (size_t i = 0; i < thresholds_.size(); ++i) {
       if (test_times_[i] < 0 && actual * test_sign_ > thresholds_[i]) {
-        test_times_[i] = now_millis() - test_time_start_ms_;
+        test_times_[i] = now_ms() - test_time_start_ms_;
         actuals_[i] = (actual - test_start_) * test_sign_;
       }
     }
@@ -410,9 +403,6 @@ void TestController::Run(const ControllerInput& in,
   if (debug) fprintf(stderr, "----TestController::Run-------\n");
 
   out->Reset();
-  if (!filtered.valid) {
-    return;
-  }
   if (!in.drives.homed_sail ||
       (!in.drives.homed_rudder_left && !in.drives.homed_rudder_right)) {
     if (debug) fprintf(stderr, "Drives not ready\n %s %s %s\n",
@@ -490,6 +480,8 @@ void TestController::Run(const ControllerInput& in,
           fprintf(stderr, "Skipping wind/imu test, not enough or too much wind.");
           NextPhase(DONE);
         }
+      } else {
+        fprintf(stderr, "Waiting for wind info.");
       }
       ZeroOut(out);
       break;
