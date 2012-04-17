@@ -79,7 +79,7 @@ class NormalController : public Controller {
 
   ReferenceValues ref_;
   int give_up_counter_;
-  uint64_t start_time_ms_;
+  int64_t start_time_ms_;
   int trap2_;
 };
 

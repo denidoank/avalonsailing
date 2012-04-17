@@ -13,7 +13,7 @@
 namespace skipper {
 
 struct AvalonState {
-  uint64_t timestamp_ms;
+  int64_t timestamp_ms;
   LatLon position;
   // Desired direction (according to global planner)
   Bearing target;
@@ -25,7 +25,7 @@ struct AvalonState {
 };
 
 struct AisInfo {
-  uint64_t timestamp_ms;
+  int64_t timestamp_ms;
   LatLon position;
   Bearing bearing;
   double speed_m_s;

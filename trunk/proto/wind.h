@@ -5,7 +5,7 @@
 #include <stdint.h>
 
 struct WindProto {
-	uint64_t timestamp_ms;
+	int64_t timestamp_ms;
 	double angle_deg;
 	int relative;
 	double speed_m_s;

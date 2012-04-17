@@ -67,7 +67,7 @@ void ComputeLocalAis(const AisInfo& them,
 
   // Extrapolate their current position (since AIS reports ship positions with
   // some delay we extrapolate all positions based on us.timestamp_ms.
-  uint64_t d_time_ms = us.timestamp_ms - them.timestamp_ms;
+  int64_t d_time_ms = us.timestamp_ms - them.timestamp_ms;
   double distance_m = them.speed_m_s / 1000.0 * d_time_ms;
   LatLon pos = SphericalMove(them.position, them.bearing, distance_m);
   SphericalShortestPath(us.position, pos, &out->us_them, &out->distance_m);
