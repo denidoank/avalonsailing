@@ -16,7 +16,7 @@
 #include "common/probe.h"
 #include "common/sign.h"
 #include "helmsman/boat.h"
-#include "helmsman/sampling_period.h"  
+#include "helmsman/sampling_period.h"
 #include "helmsman/wind_strength.h"
 #include "helmsman/wind.h"
 
@@ -70,7 +70,7 @@ TestController::TestController(SailController* sail_controller)
   Reset();
   debug = 1;
 }
-  
+
 void TestController::TestController::Reset() {
   phase_ = HOME;
   count_ = 0;
@@ -216,7 +216,7 @@ bool TestController::DoDriveTest(const ControllerInput& in,
 void TestController::StoreTestResults() {
   fprintf(stderr, "\n\n\n %s\n", test_param_[test_index_].name);
   for (size_t i = 0; i < thresholds_.size(); ++i) {
-    fprintf(stderr, "%6.0lf deg %6.2lfms, %6.2lf deg,\n",
+    fprintf(stderr, "%6.0lfdeg %7.2lfms, %7.2lfdeg,\n",
             Rad2Deg(thresholds_[i]), test_times_[i], Rad2Deg(actuals_[i]));
   }
   // Measure response time from start to 1 degree, speed from 30% to 90% of the step.
@@ -406,17 +406,17 @@ void TestController::Run(const ControllerInput& in,
   if (!in.drives.homed_sail ||
       (!in.drives.homed_rudder_left && !in.drives.homed_rudder_right)) {
     if (debug) fprintf(stderr, "Drives not ready\n %s %s %s\n",
-		      in.drives.homed_rudder_left ? "" : "sail",
-		      in.drives.homed_rudder_left ? "" : "left",
-		      in.drives.homed_rudder_left ? "" : "right");
+          in.drives.homed_rudder_left ? "" : "sail",
+          in.drives.homed_rudder_left ? "" : "left",
+          in.drives.homed_rudder_left ? "" : "right");
   }
-  
+
   if (debug) {
     fprintf(stderr, "WindSensor: %s\n", in.wind_sensor.ToString().c_str());
     fprintf(stderr, "DriveActuals: %s\n", in.drives.ToString().c_str());
     fprintf(stderr, "AppFiltered: %fdeg %fm/s\n", Rad2Deg(filtered.angle_app), filtered.mag_app);
   }
-  
+
   if (debug) fprintf(stderr, "phase %s\n", all_phase_names_[phase_]);
   switch (phase_) {
     case HOME:

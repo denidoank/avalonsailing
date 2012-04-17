@@ -19,9 +19,11 @@ EXPECT_EQ(M_PI / 2.0, Deg2Rad(90));
 EXPECT_EQ(M_PI, Deg2Rad(180));
 EXPECT_FLOAT_EQ(2 * M_PI, Deg2Rad(360));
 EXPECT_FLOAT_EQ(4 * M_PI, Deg2Rad(720));
+EXPECT_EQ(M_PI / 9, Deg2Rad(20));
 
 EXPECT_FLOAT_EQ(-180, Rad2Deg(-M_PI));
 EXPECT_FLOAT_EQ(90, Rad2Deg(M_PI / 2));
+
 
 // Distance
 EXPECT_EQ(1852.0, NauticalMileToMeter(1));

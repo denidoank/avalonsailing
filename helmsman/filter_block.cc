@@ -37,7 +37,7 @@ const double kOmegaZFilterPeriod = 8.0;
 //const double kPhiZFilterPeriod = 1.0;
 const double kSpeedFilterPeriod = 60.0;
 
-static int debug = 0;
+static int debug = 1;
 
 }  // namespace
 
@@ -195,7 +195,7 @@ void FilterBlock::Filter(const ControllerInput& in,
   fil->valid = valid_;
   fil->valid_true_wind = ValidTrueWind();
 
-  // fprintf(stderr, "%c true: %g %g, app: %g %g \n", valid_?'V':'I', fil->alpha_true, fil->mag_true, fil->angle_app, fil->mag_app);
+  fprintf(stderr, "%c true: %g %g, app: %g %g \n", valid_?'V':'I', fil->alpha_true, fil->mag_true, fil->angle_app, fil->mag_app);
 }
 
 bool FilterBlock::ValidTrueWind() {

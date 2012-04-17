@@ -17,6 +17,9 @@ using namespace std;
 
 TEST(SailController, Basic) {
   SailController controller;
+  EXPECT_LT(Deg2Rad(5), controller.GetOptimalAngleOfAttack());
+
+
   double aoa_optimal = Deg2Rad(10);
   controller.SetOptimalAngleOfAttack(aoa_optimal);
   EXPECT_FLOAT_EQ(Deg2Rad(10), controller.GetOptimalAngleOfAttack());
@@ -98,7 +101,7 @@ TEST(SailController, Reverse) {
   EXPECT_FLOAT_EQ(-1.81514, controller.BestGammaSailForReverseMotion(Deg2Rad(86), 10));
 }
 
-TEST(SailController, Storm) {  
+TEST(SailController, Storm) {
   SailController controller;
   double optimal_deg = 10;
   controller.SetOptimalAngleOfAttack(Deg2Rad(optimal_deg));
