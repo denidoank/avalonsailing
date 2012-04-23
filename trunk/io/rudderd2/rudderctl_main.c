@@ -47,8 +47,9 @@ static MotorParams* params = NULL;
 static Device* dev = NULL;
 static double target_angle_deg = NAN;
 
+const uint32_t MAX_CURRENT_MA = 10000;  // 10A, @24V so 240W, the motor is rated at 250W.
 const double TOLERANCE_DEG = .05;  // aiming precision in targetting rudder
-const int64_t BUSLATENCY_WARN_THRESH_US = 10*1000*1000;  // 10ms
+const int64_t BUSLATENCY_WARN_THRESH_US = 100*1000;  // 100ms
 
 static int processinput() {
 	char line[1024];
@@ -121,7 +122,7 @@ static int rudder_init()
         maxpos += 10*delta;
         int32_t method = (params->home_pos_qc < params->extr_pos_qc) ? 1 : 2;
 
-        r &= device_set_register(dev, REGISTER(0x2080, 0),  5000);  // current_threshold       User specific [500 mA]
+        r &= device_set_register(dev, REGISTER(0x2080, 0), MAX_CURRENT_MA);  // current_threshold       User specific [500 mA]
         r &= device_set_register(dev, REGISTER(0x2081, 0),     0);  // home_position User specific [0 qc]
         r &= device_set_register(dev, REGISTER(0x6065, 0), 50*delta); // max_following_error User specific [2000 qc]
         r &= device_set_register(dev, REGISTER(0x6067, 0), delta);  // position window [qc], see 14.66
@@ -129,8 +130,8 @@ static int rudder_init()
         r &= device_set_register(dev, REGISTER(0x607C, 0),     0);  // home_offset User specific [0 qc]
         r &= device_set_register(dev, REGISTER(0x607D, 1), minpos); // min_position_limit User specific [-2147483648 qc]
         r &= device_set_register(dev, REGISTER(0x607D, 2), maxpos); // max_position_limit User specific [2147483647 qc]
-        r &= device_set_register(dev, REGISTER(0x607F, 0), 15000);  // max_profile_velocity  Motor specific [25000 rpm]
-        r &= device_set_register(dev, REGISTER(0x6081, 0),  1000);  // profile_velocity Desired Velocity [1000 rpm]
+        r &= device_set_register(dev, REGISTER(0x607F, 0), 25000);  // max_profile_velocity  Motor specific [25000 rpm]
+        r &= device_set_register(dev, REGISTER(0x6081, 0),  3000);  // profile_velocity Desired Velocity [1000 rpm]
         r &= device_set_register(dev, REGISTER(0x6083, 0), 10000);  // profile_acceleration User specific [10000 rpm/s]
         r &= device_set_register(dev, REGISTER(0x6084, 0), 10000);  // profile_deceleration User specific [10000 rpm/s]
         r &= device_set_register(dev, REGISTER(0x6085, 0), 10000);  // quickstop_deceleration User specific [10000 rpm/s]
