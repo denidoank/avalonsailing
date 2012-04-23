@@ -8,15 +8,15 @@
 
 struct MotorParams motor_params[] = {
 #if 0
-	{ "LEFT",  0x09011145, 100.0, -80.0, 0, -288000 },
-	{ "RIGHT", 0x09010537, -90.0,  90.0, 0,  288000 },
+	{ "LEFT",  0x09011145, 101.0, -79.0, 0, -288000 },
+	{ "RIGHT", 0x09010537, -97.0,  83.0, 0,  288000 },
 #else  // limiting inner angle
-        { "LEFT",  0x09011145, 100.0, -50.0, 0, -288000*150/180 },
-        { "RIGHT", 0x09010537, -90.0,  50.0, 0,  288000*140/180 },
+        { "LEFT",  0x09011145, 101.0, -49.0, 0, -288000*150/180 },
+        { "RIGHT", 0x09010537, -97.0,  43.0, 0,  288000*140/180 },
 #endif
 // sail and bmmh *must* be 360 degree ranges
-        { "SAIL",  0x09010506,  -180, 180.0, 615000, -615000 },
-        { "BMMH",  0x00001227,  -180, 180.0, 2048, -2048 }, // 4096 tics for a complete rotation
+        { "SAIL",  0x09010506,  -183.0, 177.0, 615000, -615000 },
+        { "BMMH",  0x00001227,  -183.0, 177.0, 2048, -2048 }, // 4096 tics for a complete rotation
 };
 
 int32_t angle_to_qc(MotorParams* p, double angle_deg) {

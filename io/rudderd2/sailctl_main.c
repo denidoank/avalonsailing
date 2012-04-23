@@ -76,9 +76,7 @@ static int processinput() {
 enum { DEFUNCT = 0, HOMING, TARGETTING, REACHED };
 const char* status[] = { "DEFUNCT", "HOMING", "TARGETTING", "REACHED" };
 
-const uint32_t MAX_CURRENT_MA     = 3000;
-const double MAX_ABS_SPEED_DEG_S  = 30;
-const double MAX_ABS_ACCEL_DEG_S2 = 500;
+const uint32_t MAX_CURRENT_MA     = 15000;  // 15A, @24V, so 360W, the motor is rated at 400W.
 
 const double TOLERANCE_DEG = 1.0;
 
@@ -112,14 +110,14 @@ int sail_init() {
 	int32_t tol = angle_to_qc(&motor_params[SAIL], TOLERANCE_DEG);
 	if(tol < 0) tol = -tol;
 
-        r &= device_set_register(motor, REGISTER(0x2080, 0), 5000); // current_threshold       User specific [500 mA]
+        r &= device_set_register(motor, REGISTER(0x2080, 0), MAX_CURRENT_MA); // current_threshold       User specific [500 mA]
         r &= device_set_register(motor, REGISTER(0x6065, 0), 0xffffffff); // max_following_error User specific [2000 qc]
         r &= device_set_register(motor, REGISTER(0x6067, 0), tol);        // position window [qc], see 14.66
         r &= device_set_register(motor, REGISTER(0x6068, 0), 50);      // position time window [ms], see 14.66
         r &= device_set_register(motor, REGISTER(0x607D, 1), 0x80000000); // min_position_limit [-2147483648 qc]
         r &= device_set_register(motor, REGISTER(0x607D, 2), 0x7fffffff); // max_position_limit  [2147483647 qc]
-        r &= device_set_register(motor, REGISTER(0x607F, 0), 15000); // max_profile_velocity  Motor specific [25000 rpm]
-        r &= device_set_register(motor, REGISTER(0x6081, 0), 5000);  // profile_velocity Desired Velocity [1000 rpm]
+        r &= device_set_register(motor, REGISTER(0x607F, 0), 25000); // max_profile_velocity  Motor specific [25000 rpm]
+        r &= device_set_register(motor, REGISTER(0x6081, 0), 8000);  // profile_velocity Desired Velocity [1000 rpm]
         r &= device_set_register(motor, REGISTER(0x6083, 0), 10000);  // profile_acceleration User specific [10000 rpm/s]
         r &= device_set_register(motor, REGISTER(0x6084, 0), 10000);  // profile_deceleration User specific [10000 rpm/s]
         r &= device_set_register(motor, REGISTER(0x6085, 0), 10000);  // quickstop_deceleration User specific [10000 rpm/s]

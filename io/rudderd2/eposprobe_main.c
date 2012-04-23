@@ -32,7 +32,7 @@ usage(void)
 	fprintf(stderr,
 		"usage: %s [options] | plug -o /path/to/ebus \n"
 		"options:\n"
-		"\t-f freq probing frequency [default 8Hz]\n"
+		"\t-f freq probing frequency [default 12Hz]\n"
 		, argv0);
 	exit(2);
 }
@@ -53,7 +53,7 @@ now_us()
 int main(int argc, char* argv[]) {
 
 	int ch;
-	int freq_hz = 8;
+	int freq_hz = 12;
 
 	argv0 = strrchr(argv[0], '/');
 	if (argv0) ++argv0; else argv0 = argv[0];
