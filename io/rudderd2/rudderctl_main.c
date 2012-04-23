@@ -60,7 +60,7 @@ static int processinput() {
 		struct RudderProto msg = INIT_RUDDERPROTO;
 		int nn;
 		int n = sscanf(line+1, IFMT_RUDDERPROTO_CTL(&msg, &nn));
-		if (n != 4)
+		if (n != 5)
 			return 0;
 		target_angle_deg = (params == &motor_params[LEFT]) ? msg.rudder_l_deg : msg.rudder_r_deg;
 	} else {
