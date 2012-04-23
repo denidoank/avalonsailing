@@ -15,7 +15,7 @@ struct RudderProto {
 #define INIT_RUDDERPROTO { 0, NAN, NAN, NAN, 0 }
 
 #define OFMT_RUDDERPROTO_STS(x) \
-	"ruddersts: timestamp_ms:%lld rudder_l_deg:%.1f rudder_r_deg:%.1f sail_deg:%.1f\n" \
+	"ruddersts: timestamp_ms:%lld rudder_l_deg:%.1lf rudder_r_deg:%.1lf sail_deg:%.1lf\n" \
 	, (x).timestamp_ms, (x).rudder_l_deg, (x).rudder_r_deg, (x).sail_deg
 
 #define OFMT_RUDDERPROTO_CTL(x) \
