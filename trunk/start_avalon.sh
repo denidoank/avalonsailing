@@ -88,10 +88,11 @@ done
 
 exit  # for now
 
-(imucfg $PORT_IMU && imucat $PORT_IMU | ./plug -i $LBUS ; logger  -s -p local2.crit "imucat exited.")&
-(compasscat $PORT_COMPASS | plug -i $LBUS;  logger  -s -p local2.crit "compasscat exited.")&
-(windcat $PORT_WIND | plug -i $LBUS;  logger -s -p local2.crit "windcat exited.")&
-(fcmon $PORT_FUELCELL | plug -i $LBUS ;  logger -s -p local2.crit "fcmon exited.")&
+(imucfg $PORT_IMU &&
+    imucat $PORT_IMU 		| plug -i $LBUS; logger  -s -p local2.crit "imucat exited.")&
+(compasscat $PORT_COMPASS 	| plug -i $LBUS;  logger -s -p local2.crit "compasscat exited.")&
+(windcat $PORT_WIND 		| plug -i $LBUS;  logger -s -p local2.crit "windcat exited.")&
+(fcmon $PORT_FUELCELL 		| plug -i $LBUS;  logger -s -p local2.crit "fcmon exited.")&
 
 # (aiscat $PORT_AIS | aisbuf /var/run/ais.txt; logger -s -p local2.crit "aiscat exited.")&
 
