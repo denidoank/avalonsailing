@@ -20,7 +20,7 @@
 
 || *Item* || *Who/when done* ||
 || Electric schema || (give up on this?) ||
-|| Test maximum voltage and have a look with a scope at the supply voltage at full light, fully charged. || ||
+|| Test maximum voltage and have a look with a scope at the supply voltage at full light, fully charged, drives accelerating and braking. || ||
 || Change or replace CPU box such that the processor gets cooling. Currently it reaches 65 degrees Celsius at the outside because the processor box and the cooling plate are separated by air. || (after lake test) || 
 || Test bilge pump (better outside than in the lobby) ||  ||
 || Finally, remove mushroom switch (not seawater tight). || (after lake test) ||
@@ -37,7 +37,14 @@
 || The rudder angle ranges need adjustment. The values of 90 and 100 degress are just rough estimates.  || lvd ||
 || implement and test Drive recovery from temporary outages (power dips, overtemperature) || lvd/ ||
 || Implement and test storm mode for drives || lvd/ ||
-|| Include new drive start-up into start_avalon.sh || lvd/ ||
+|| Include new drive start-up into start_avalon.sh. Submit this. || lvd/ ||
+|| Update start_avalon.sh for compass_cat. (instead of fcmon, port number 5 ?) || grundmann/ ||
+|| Fix big drive delays (currently about 360ms or 650ms for the sail drive) Should be around 200ms. || lvd/ ||
+|| Fix odd sail drive behaviour. Leave brake released. Brake 10s after the last reference value change. || lvd/ ||
+|| Make image and put controller into boat. || lvd&liam/ ||
+
+
+
 
 == System and Test ==
 
