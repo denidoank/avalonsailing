@@ -237,7 +237,7 @@ void BoatModel::Simulate(const DriveReferenceValuesRad& drives_reference,
   CHECK_IN_INTERVAL(0, in->imu.position.latitude_deg, 60);
   CHECK_IN_INTERVAL(-2*M_PI, in->imu.attitude.phi_z_rad, 2*M_PI);
   CHECK_IN_INTERVAL(-10, in->imu.velocity.x_m_s, 10);
-  CHECK_IN_INTERVAL(-10, v_x_, 10);
+  CHECK_IN_INTERVAL(-1, in->imu.velocity.y_m_s, 1);
   //CHECK_IN_INTERVAL(-3.5, in->imu.gyro.omega_z_rad_s, 3.5);  // This is a simulation problem at high speeds
 
 }
