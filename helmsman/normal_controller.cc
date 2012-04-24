@@ -90,6 +90,13 @@ void NormalController::Run(const ControllerInput& in,
 
   if (debug) fprintf(stderr, "IntRef: %6.2lf %6.2lf\n", Rad2Deg(phi_star), Rad2Deg(omega_star));
 
+  // The speed is an unreliable output of the IMU. It has big systematic and stochastic errors and is
+  // therefore filtered and clipped in the filter block. This leads to wrong values if the actual speed
+  // was negative for a while and becomes positive now. The filtered speed is still negative and
+  // the bearing control becomes instable. So we assume positive speeds in all cases (the
+  // InitialController takes care to get us out of irons or if we get stuck in a calm wind).
+  double boat_speed = std::max(0.3, filtered.mag_boat);
+
   double gamma_rudder_star;
   // The boat speed is an unreliable measurement value. The NormalController can work only
   // with postive boat speeds, but at the transition from the InitialController the very slowly
@@ -168,8 +175,8 @@ ManeuverType NormalController::ReferenceValueSwitch(double alpha_star,
                                      alpha_star_restricted,
                                      alpha_true);
     if (debug) fprintf(stderr, "Maneuver Type %d %lg %lg\n", maneuver_type, prev_alpha_star_restricted_, alpha_star_restricted);
-    NewGammaSailWithOldGammaSail(alpha_true, mag_true,
-                                 phi_z_boat, mag_boat,
+    NextGammaSailWithOldGammaSail(alpha_true, mag_true,
+                                 phi_z_boat,
                                  alpha_star_restricted,
                                  old_gamma_sail,
                                  maneuver_type,
@@ -208,11 +215,11 @@ bool NormalController::TackingOrJibing() {
 bool NormalController::GiveUp(const ControllerInput& in,
                               const FilteredMeasurements& filtered) {
   // Got stuck for more than a minute.
-  if (filtered.mag_boat < 0.05)  // Check whether the speed info is reliable
+  if (filtered.mag_boat < -0.08)
     ++give_up_counter_;
   else
     give_up_counter_ = 0;
-  return give_up_counter_ > 60.0 / kSamplingPeriod;
+  return give_up_counter_ > 120.0 / kSamplingPeriod;  // the speed is filtered with 60s and rather imprecise
 }
 
 double NormalController::NowSeconds() {
