@@ -21,6 +21,7 @@ void SetEnv(const Polar& wind_true,
             FilteredMeasurements* filtered,
             ControllerOutput* out) {
   in->Reset();
+  in->drives.gamma_sail_rad = 0;
   filtered->Reset();
   out->Reset();
   filtered->phi_z_boat = boat.AngleRad();
@@ -54,11 +55,10 @@ TEST(NormalController, All) {
                           // So the apparent wind vector is at about -20 degrees to
                           // the boats x-axis, 1m/s magnitude.
   SetEnv(wind_true, boat, &in, &filtered, &out);
-  // straight ahead, in the forbidden zone around the dead run.
+
   in.alpha_star_rad = Deg2Rad(0);
+  c.Entry(in, filtered);
   c.Run(in, filtered, &out);
-  // The reference value of  is in the forbidden jibe zone and is replaced
-  // by +15 degrees. Thus the negative rudder angle.
   EXPECT_FLOAT_EQ(0, Rad2Deg(out.drives_reference.gamma_rudder_star_left_rad));
   EXPECT_FLOAT_EQ(0, Rad2Deg(out.drives_reference.gamma_rudder_star_right_rad));
   // Sail in spinakker mode
