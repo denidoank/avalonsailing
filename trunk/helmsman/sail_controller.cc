@@ -89,25 +89,14 @@ const char* SailModeLogic::ModeString() {
 // The optimal angle of attack for the trimmed sail, subject to
 // optimization, 10 - 25 degrees.
 static const double kAOADefaultRad = M_PI / 9;  // Deg2Rad(20.0);
-
 SailController::SailController()
     : optimal_angle_of_attack_rad_(kAOADefaultRad),
-      sign_(1),
-      debug_(false) {
-  if (debug_) {
-    fprintf(stderr, "SC: Ctor, optimal aoa: %lg deg\n",
-          Rad2Deg(optimal_angle_of_attack_rad_));
-    fprintf(stderr, "SC: Ctor, constant: %lg deg\n",
-          Rad2Deg(kAOADefaultRad));
-  }
+      sign_(1) {
   CHECK_LT(0.1, optimal_angle_of_attack_rad_);
 }
 
 void SailController::SetOptimalAngleOfAttack(double optimal_angle_of_attack_rad) {
   optimal_angle_of_attack_rad_ = optimal_angle_of_attack_rad;
-  if (debug_) fprintf(stderr, "SC: SetOptimalAngleOfAttack, optimal aoa: %lg deg\n",
-          Rad2Deg(optimal_angle_of_attack_rad_));
-
 }
 
 double SailController::GetOptimalAngleOfAttack() {
@@ -120,30 +109,14 @@ double SailController::BestGammaSail(double alpha_wind_rad, double mag_wind) {
 }
 
 double SailController::BestStabilizedGammaSail(double alpha_wind_rad, double mag_wind) {
-  double out = GammaSailInternal(alpha_wind_rad, mag_wind, true);
-  if (debug_ || 1) {
-    fprintf(stderr, "SC: BestStabilizedGammaSail, %s\nalpha %lg deg, mag %lg\n", logic_.ModeString(),
-            Rad2Deg(alpha_wind_rad), mag_wind);
-    fprintf(stderr, "SC: BestStabilizedGammaSail, optimal aoa: %lg deg, out %lg\n",
-            Rad2Deg(optimal_angle_of_attack_rad_), Rad2Deg(out));
-  }
-
-  return out;
+  return GammaSailInternal(alpha_wind_rad, mag_wind, true);
 }
 
 double SailController::AngleOfAttack(double mag_wind) {
   // The sail forces are proportional to the square of the wind speed.
   if (mag_wind < kAngleReductionLimit) {
-    if (debug_) fprintf(stderr, "SC: AngleOfAttack, optimal aoa: %lg deg\n",
-            Rad2Deg(optimal_angle_of_attack_rad_));
-
     return optimal_angle_of_attack_rad_;
   } else {
-    if (debug_) {
-      fprintf(stderr, "SC: AngleOfAttack, AngleReductionlimit reached with %lg m/s\n", mag_wind);
-      fprintf(stderr, "SC: AngleOfAttack,aoa: %lg, optaoa: %lg\n  ", optimal_angle_of_attack_rad_ * kAngleReductionLimit * kAngleReductionLimit /
-              (mag_wind * mag_wind), optimal_angle_of_attack_rad_);
-    }
     return optimal_angle_of_attack_rad_ * kAngleReductionLimit * kAngleReductionLimit /
         (mag_wind * mag_wind);
   }
@@ -221,8 +194,5 @@ double SailController::HandleSign(double alpha_wind_rad, bool stabilized) {
 void SailController::Reset() {
   logic_.Reset();
   optimal_angle_of_attack_rad_ = kAOADefaultRad;
-  if (debug_) fprintf(stderr, "SC: Reset, optimal aoa: %lg deg\n",
-          Rad2Deg(optimal_angle_of_attack_rad_));
   sign_ = 1;
 }
-

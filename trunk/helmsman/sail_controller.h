@@ -5,8 +5,6 @@
 #ifndef HELMSMAN_SAIL_CONTROLLER_H
 #define HELMSMAN_SAIL_CONTROLLER_H
 
-#include "helmsman/sail_controller.h"
-
 enum SailMode {
   WING,        // for sailing at the wind
   WING_LOCKED, // as WING, but we don't switch to SPINNAKER
@@ -66,7 +64,6 @@ class SailController {
   int sign_;  // The sign has to be inert, otherwise we might get into a
               // situation if the apparent wind is around zero and we would have
               // to turn the sail from -90 to +90 degrees permanently.
-  bool debug_;
 };
 
 #endif  // HELMSMAN_SAIL_CONTROLLER_H

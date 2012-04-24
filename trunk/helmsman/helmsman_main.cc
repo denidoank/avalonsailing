@@ -294,7 +294,7 @@ int main(int argc, char* argv[]) {
         }
       } else {
         if (r != EAGAIN) crash("Error reading stdin");
-      }  
+      }
     }
 
     if (!CalculateTimeOut(next_call_micros, &timeout)) {
@@ -305,6 +305,7 @@ int main(int argc, char* argv[]) {
       if (!ShipControl::Idling()) {
         RudderProto ctl;
         ctrl_out.drives_reference.ToProto(&ctl);
+        ctl.timestamp_ms = now_ms();
         printf(OFMT_RUDDERPROTO_CTL(ctl));
       }
       if (loops % 20 == 0) {

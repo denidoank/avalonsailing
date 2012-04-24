@@ -34,13 +34,11 @@
 namespace {
 
 const double kOmegaZFilterPeriod = 8.0;
-//const double kPhiZFilterPeriod = 1.0;
 const double kSpeedFilterPeriod = 60.0;
-
-static int debug = 1;
 
 }  // namespace
 
+extern int debug;
 
 bool ValidGPS(const ControllerInput& in) {
   return !isnan(in.imu.position.longitude_deg) && !isnan(in.imu.position.latitude_deg) &&
@@ -98,7 +96,7 @@ double FilterBlock::CensorSpeed(double speed_in) {
 // 2. sail drive position offset -> offset in all wind directions and angles
 // 3. wind sensor fault -> valid flag is false
 // 4. IMU fault -> no speed nor direction -> no true wind
-
+// 5. GPS fault, no time, no position
 
 void FilterBlock::Filter(const ControllerInput& in,
                          FilteredMeasurements* fil) {
@@ -127,21 +125,21 @@ void FilterBlock::Filter(const ControllerInput& in,
     fil->phi_z_boat = phi_z_wrap_.Filter(phi_z_filter_.Filter(phi_z));
 
     fil->mag_boat = CensorSpeed(speed_filter_.Filter(in.imu.velocity.x_m_s));
-    if (debug) {
+    if (debug && false) {
       fprintf(stderr, "speed filtered&clipped %g\n", fil->mag_boat);
     }
   }
 
   double om_z = 0;
-  ASSIGN_NOT_NAN(om_z,    in.imu.gyro.omega_z_rad_s);                 // yaw rate, rotational speed around z axis
+  ASSIGN_NOT_NAN(om_z, in.imu.gyro.omega_z_rad_s);                 // yaw rate, rotational speed around z axis
   fil->omega_boat = om_z_filter_.Filter(om_z_med_.Filter(om_z));
-  if (debug) {
+  if (debug && false) {
     fprintf(stderr, "raw om_z %g filtered %g\n", om_z, fil->omega_boat);
   }
 
   ASSIGN_NOT_NAN(fil->temperature_c, in.imu.temperature_c);           // in deg Celsius
 
-  // fprintf(stderr, "filter in:%c homed: %c sensor: %g %g\n", in.wind_sensor.valid ? 'V' : 'I', in.drives.homed_sail ? 'V' : 'I', in.wind_sensor.alpha_deg, in.wind_sensor.mag_m_s);
+  fprintf(stderr, "filter in:%c homed: %c sensor: %g %g\n", in.wind_sensor.valid ? 'V' : 'I', in.drives.homed_sail ? 'V' : 'I', in.wind_sensor.alpha_deg, in.wind_sensor.mag_m_s);
 
   // The wind sensor updates the wind once per second.
   double alpha_wind_rad = NormalizeRad(Deg2Rad(in.wind_sensor.alpha_deg));
@@ -195,7 +193,8 @@ void FilterBlock::Filter(const ControllerInput& in,
   fil->valid = valid_;
   fil->valid_true_wind = ValidTrueWind();
 
-  fprintf(stderr, "%c true: %g %g, app: %g %g \n", valid_?'V':'I', fil->alpha_true, fil->mag_true, fil->angle_app, fil->mag_app);
+  if (debug)
+    fprintf(stderr, "%c true: %g %g, app: %g %g \n", valid_?'V':'I', fil->alpha_true, fil->mag_true, fil->angle_app, fil->mag_app);
 }
 
 bool FilterBlock::ValidTrueWind() {
