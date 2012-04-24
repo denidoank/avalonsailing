@@ -37,7 +37,7 @@ void LogCLiftDiagram() {
 // Columns: C_Lift, angle/degree, limited ,
 // at 0.5, 1, 2, 3, 6 kts water speed.
 void LogCLiftOverSpeedDiagram() {
-  printf("Desired C_lift = 1.5. This is never feasible, i.e. we are always limited./n");
+  printf("Desired C_lift = 1.5. This is never feasible, i.e. we are always limited.\n");
   printf("speed / m/s, angle/degree, limited\n");
   for (double water_speed = -10; water_speed < 10; water_speed += 1) {
     double c_lift = 1.5;  // thus we will always be limited
@@ -50,7 +50,7 @@ void LogCLiftOverSpeedDiagram() {
     printf("%6.3g,%6.3g,%6d\n",
            water_speed, Rad2Deg(rudder_angle), limited);
   }
-  printf("Desired C_lift = 0.5 . Never limited./n");
+  printf("Desired C_lift = 0.5 . Never limited.\n");
   printf("speed / m/s, angle/degree, limited\n");
   for (double water_speed = -10; water_speed < 10; water_speed += 1) {
     double c_lift = 0.5;

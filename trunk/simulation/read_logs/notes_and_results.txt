@@ -109,3 +109,37 @@ Drift
 
 Sideways drift was in the range of 4.2 to 5.5 degrees.
 
+
+Final log (imulog_walk0.csv)
+============================
+
+timestamp_ms: always negative, never correct, without a GPS fix.
+imu: timestamp_ms:-190 ...
+imu: timestamp_ms:-990 ...
+imu: timestamp_ms:-790 ..
+imu: timestamp_ms:-590 ...
+
+heading:
+The true runtrack bearing is +46degrees, resp -134deg.
+The measured bearings are around that value +-10 deg, near the track.
+
+speed and yaw are usable, if the GPS is not interrupted.
+The speed for negative directions in produced correctly.
+GPS interrupts are frequent.
+
+
+Conclusion:
+* The time in theIMUcat output should be reset to 0 if the GPS has no fix.
+* We must not assume that the GPS signal is always available. It may
+  fail temporarily at any time, due to a restart or the sail and boom position
+  or waves blocking reception in a storm. Most of the magic outputs of the IMU are to be seen as
+  expensive optional information.
+* Remove all dependencies on the speed from the helmsman.
+* Check the GPS and XKF flags in the imucat and make a fallback solution
+  based on the magnetic sensor and the accelerometer (IMU-compass).
+* Install the second compass.
+* In the helmsman use a combination of IMU-compass, XKF-direction, if available,
+  and the second compass, such that the flaky IMU signals cannot make the helmsman fail
+  and we always have a correct yaw information.
+
+

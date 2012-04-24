@@ -156,7 +156,7 @@ max_z  = max(z)
 
 figure()
 plot(east, north)
-lbl("GPS Track", "east / m", "north / m");
+lbl("Track", "east / m", "north / m");
 axis("equal");
 
 %figure()
@@ -251,9 +251,23 @@ endif
 % N until 1200s
 
 figure()
-plot(t(1:length(t)), phi_z(1:length(t)))
-lbl("phi_z", "t / s", "phi_z / deg");
 
+% sliding mean over 1s
+k_samples = 1 / T;
+
+phi_z_1s = filter(1/k_samples*ones(1, k_samples), 1, phi_z);
+
+figure
+plot(t(1:length(t)), phi_z(1:length(t)), "r", t(1:length(t)), phi_z_1s(1:length(t)), "b")
+lbl("phi_z", "t / s", "phi_z / deg , red raw, blue filtered 1s");
+
+figure
+from = floor(5/T);
+to = floor(60/T);
+plot(t(from:to), phi_z(from:to), "r", t(from:to), phi_z_1s(from:to), "b")
+lbl("phi_z", "t / s", "phi_z / deg , red raw, blue filtered 1s");
+
+pause
 % no phases for imu logs so far
 
 %turns = [0 6 112 130 640 660 970 1040 1170 max(t)-0.001];
@@ -268,7 +282,7 @@ lbl("phi_z", "t / s", "phi_z / deg");
 %         "NE->NW turn 40s"];
 %straight_phases = [2 4 6 8];
 %turn_phases = [1 3 5 7 9];
-
+         
 turns = [0  max(t)-0.001];
 phase = ["Rest"];
 straight_phases = [1];
@@ -355,7 +369,7 @@ endif
 
 if 1
   % speed, x-component of the boat speed over ground, projected
-  % onto the local tangent plane.
+  % on to the local tangent plane.
   v_b_x =  v_x .* cos(phi_z * deg2rad) + v_y .* sin(phi_z * deg2rad);
   % y component
   v_b_y = -v_x .* sin(phi_z * deg2rad) + v_y .* cos(phi_z * deg2rad);
@@ -365,10 +379,10 @@ if 1
   mv = sqrt(mv);
   mv_b = v_b_x .^ 2 + v_b_y .^ 2;
   mv_b = sqrt(mv_b);
-  figure()
-  plot(t, mv, "b", t, mv_b, "g", t, mv ./ mv_b, "r")
-  lbl("Is this equal blue in green out", "t / s", "v_b_x / m/s");
-  pause
+  %figure()
+  %plot(t, mv, "b", t, mv_b, "g", t, mv ./ mv_b, "r")
+  %lbl("Is this equal? blue in, green out", "t / s", "v_b_x / m/s");
+  %pause
 
 
 
@@ -419,20 +433,20 @@ for r = straight_phases
   speed_chunks = chunk(speed_b_clipped(sections(r, 1):sections(r, 2)), average_over);
   north_chunks = chunk(north(sections(r, 1):sections(r, 2)), average_over);
   east_chunks  = chunk(east(sections(r, 1):sections(r, 2)), average_over);
-
+  
   north_chunks -= north_chunks(1);
   east_chunks  -= east_chunks(1);
-
+  
   dn = cos(deg2rad * phi_z_chunks) .* speed_chunks * average_over * median_dt;
   de = sin(deg2rad * phi_z_chunks) .* speed_chunks * average_over * median_dt;
   rec_north = cumsum(dn);
   rec_east = cumsum(de);
-
+  
   figure()
   plot(rec_east, rec_north, "b", east_chunks, north_chunks, "g");
   lbl("Mini-tracks (100 samples per step) GPS:green, phi_z: blue", "East / m", "North / m");
   axis("equal");
-
+  
   x_app = rec_north(length(rec_north)) - rec_north(1);
   y_app = rec_east(length(rec_east)) - rec_east(1);
   phi_app = rad2deg * atan2(y_app, x_app)
