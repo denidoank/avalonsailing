@@ -68,7 +68,7 @@ usage(void)
         exit(1);
 }
 
-	
+
 int main(int argc, char* argv[]) {
   int ch;
   argv0 = strrchr(argv[0], '/');
@@ -94,7 +94,7 @@ int main(int argc, char* argv[]) {
 
   int64_t last = now_ms();
   int rounds = 0;
-   
+
   // Model
   struct MeteoProto  meteo_info = INIT_METEOPROTO;         // in
   struct RudderProto drives_reference = INIT_RUDDERPROTO;  // in
@@ -119,9 +119,9 @@ int main(int argc, char* argv[]) {
   DriveReferenceValuesRad drives_ref;
 
   BoatModel model(kSamplingPeriod,
-                  0,                // omega_ / rad, turning rate, + turns right 
+                  0,                // omega_ / rad, turning rate, + turns right
                   0,                // phi_z_ / rad, heading relative to North, + turns right
-                  0,                // v_x_ / m/s,   speed  
+                  0,                // v_x_ / m/s,   speed
                   -M_PI / 2,        // gamma_sail_ / rad, e.g. -90 degrees here
                   0.03,             // initial rudder angles, left and right,
                   -0.03);           // can be used to cause initial rotation.
@@ -139,13 +139,13 @@ int main(int argc, char* argv[]) {
     int r = pselect(fileno(stdin) + 1, &rfds, NULL, NULL, &timeout, &empty_mask);
     if (r == -1 && errno != EINTR) crash("pselect");
 
-    if (debug>2) fprintf(stderr, "Woke up %d\n", r);
+    if (debug > 2) fprintf(stderr, "Woke up %d\n", r);
 
     if (FD_ISSET(fileno(stdin), &rfds)) {
       char line[1024];
-      if (!fgets(line, sizeof line, stdin)) 
+      if (!fgets(line, sizeof line, stdin))
         crash("Reading input");
-      
+
       if (debug) fprintf(stderr, "Got line:%s\n", line);
 
       RudderProto drives_reference_input = INIT_RUDDERPROTO;
@@ -169,6 +169,7 @@ int main(int argc, char* argv[]) {
 
     int64_t now = now_ms();
     if (now < last + 100) continue;
+    // The rest of the loop is executed once per 100 ms.
     last = now;
 
     // Meteo simulation
@@ -186,27 +187,32 @@ int main(int argc, char* argv[]) {
                             KnotsToMeterPerSecond(wind_speed_kt));
 
     drives_ref.FromProto(drives_reference);
-    model.Simulate(drives_ref, 
+    model.Simulate(drives_ref,
                    true_wind,
                    &controller_input);
 
     // Here come the lions, i.e. the stochastic delays by our
     // computer system, the Out-of-sync processing and communication delays by e.g.
     // wind, drive and IMU demons.
-    // We can later introduce these here, for the time being we assume that they are small 
+    // We can later introduce these here, for the time being we assume that they are small
     // in comparison to our sampling period of 100ms.
     controller_input.ToProto(&wind_sensor, &drives_actual, &imu);
 
-    if (rounds % 10 == 0)
+    if (rounds % 10 == 0) {
+      wind_sensor.timestamp_ms = now_ms();
       printf(OFMT_WINDPROTO(wind_sensor));
-    if (rounds % 1 == 0) {
-       printf(OFMT_RUDDERPROTO_STS(drives_actual));        // actuals
     }
-    if (rounds % 4 == 0)
+    if (rounds % 1 == 0) {
+      drives_actual.timestamp_ms = now_ms();
+      printf(OFMT_RUDDERPROTO_STS(drives_actual));        // actuals
+    }
+    if (rounds % 4 == 0) {
+      imu.timestamp_ms = now_ms();
       printf(OFMT_IMUPROTO(imu));
+    }
     ++rounds;
   }
 
-  crash("Terminating."); 
+  crash("Terminating.");
   return 0;
 }

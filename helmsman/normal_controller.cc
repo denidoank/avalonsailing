@@ -68,7 +68,7 @@ void NormalController::Run(const ControllerInput& in,
     fprintf(stderr, "Actuals: Boat %6.1lf deg %6.1lf m/s ", Rad2Deg(filtered.phi_z_boat), filtered.mag_boat);
     fprintf(stderr, "Actuals: App  %6.1lf deg %6.1lf m/s\n", Rad2Deg(filtered.angle_app),  filtered.mag_app);
   }
-  CHECK_EQ(999, trap2_);  // Triggers at incomplete compilation errors. 
+  CHECK_EQ(999, trap2_);  // Triggers at incomplete compilation errors.
   double phi_star;
   double omega_star;
   double gamma_sail_star;
@@ -86,16 +86,21 @@ void NormalController::Run(const ControllerInput& in,
   } else if (maneuver == kJibe) {
     out->status.jibes++;
     // if (debug) fprintf(stderr, "\nJibe\n\n");
-  }  
+  }
 
   if (debug) fprintf(stderr, "IntRef: %6.2lf %6.2lf\n", Rad2Deg(phi_star), Rad2Deg(omega_star));
 
   double gamma_rudder_star;
+  // The boat speed is an unreliable measurement value. The NormalController can work only
+  // with postive boat speeds, but at the transition from the InitialController the very slowly
+  // boat speed may be still negative. We simply clip the speed here. If the speed gets too low then
+  // we'll leave the NormalController anyway (see GiveUp() ).
+  double positive_speed = std::max(0.1, filtered.mag_boat);
   rudder_controller_->Control(phi_star,
                               omega_star,
                               SymmetricRad(filtered.phi_z_boat),
                               filtered.omega_boat,
-                              filtered.mag_boat,
+                              positive_speed,
                               &gamma_rudder_star);
   if (isnan(gamma_rudder_star)) {
     fprintf(stderr, "gamma_R* isnan: phi_star %6.2lfdeg, omega_star %6.2lf, phi_z_boat %6.2lf, omega_boat %6.2lf, mag_boat %6.2lf\n",
@@ -212,7 +217,7 @@ bool NormalController::GiveUp(const ControllerInput& in,
 
 double NormalController::NowSeconds() {
   return (now_ms() - start_time_ms_) / 1000.0;
-}                     
+}
 
 void NormalController::SkipAlphaStarShaping(bool skip) {
   skip_alpha_star_shaping_ = skip;
