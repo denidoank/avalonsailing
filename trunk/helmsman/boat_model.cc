@@ -146,6 +146,8 @@ void BoatModel::Simulate(const DriveReferenceValuesRad& drives_reference,
 
   in->imu.Reset();
   in->wind_sensor.Reset();
+  in->compass_sensor.Reset();
+
   // alpha_star remains
 
   apparent_ = Polar (0, 0);  // apparent wind in the boat frame

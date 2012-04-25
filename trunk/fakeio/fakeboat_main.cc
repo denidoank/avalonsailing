@@ -95,6 +95,8 @@ int main(int argc, char* argv[]) {
   struct RudderProto drives_reference = INIT_RUDDERPROTO;  // in
   struct RudderProto drives_actual = INIT_RUDDERPROTO;     // out, and internal input
   struct WindProto   wind_sensor = INIT_WINDPROTO;         // out
+  struct CompassProto compass = INIT_COMPASSPROTO;         // out
+  
   struct IMUProto    imu = {                               // out
     last, 28.5,
     0, 0, 9.8, // acc
@@ -191,7 +193,7 @@ int main(int argc, char* argv[]) {
     // wind, drive and IMU demons.
     // We can later introduce these here, for the time being we assume that they are small
     // in comparison to our sampling period of 100ms.
-    controller_input.ToProto(&wind_sensor, &drives_actual, &imu);
+    controller_input.ToProto(&wind_sensor, &drives_actual, &imu, &compass);
 
     if (rounds % 10 == 0) {
       wind_sensor.timestamp_ms = now_ms();
@@ -204,6 +206,10 @@ int main(int argc, char* argv[]) {
     if (rounds % 4 == 0) {
       imu.timestamp_ms = now_ms();
       printf(OFMT_IMUPROTO(imu));
+    }
+    if (rounds % 4 == 0) {
+      compass.timestamp_ms = now_ms();
+      printf(OFMT_COMPASSPROTO(compass));
     }
     ++rounds;
   }

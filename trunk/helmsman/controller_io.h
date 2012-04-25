@@ -7,13 +7,16 @@
 
 #include "common/unknown.h"
 #include "helmsman/imu.h"
-#include "helmsman/wind.h"
+#include "helmsman/compass_sensor.h"
 #include "helmsman/drive_data.h"
 #include "helmsman/skipper_input.h"
 #include "helmsman/helmsman_status.h"
+#include "helmsman/wind_sensor.h"
+#include "proto/compass.h"
+#include "proto/imu.h"
 #include "proto/rudder.h"
 #include "proto/wind.h"
-#include "proto/imu.h"
+
 
 // Input definition
 struct ControllerInput {
@@ -24,19 +27,23 @@ struct ControllerInput {
     imu.Reset();
     wind_sensor.Reset();
     drives.Reset();
+    compass_sensor.Reset();
     alpha_star_rad = kUnknown;  // natural
   }
   void ToProto(WindProto* wind_sensor_proto,
                RudderProto* drive_actual_proto,
-               IMUProto* imu_proto) {
+               IMUProto* imu_proto,
+               CompassProto* compass_proto) {
     imu.ToProto(imu_proto);
     wind_sensor.ToProto(wind_sensor_proto);
     drives.ToProto(drive_actual_proto);
+    compass_sensor.ToProto(compass_proto);
   }
 
   Imu imu;
   WindSensor wind_sensor;
   DriveActualValuesRad drives;  // Actual positions and Ready flags
+  CompassSensor compass_sensor; // Compass device bearing
   double alpha_star_rad;        // from Skipper
 };
 
@@ -46,10 +53,10 @@ struct ControllerOutput {
     drives_reference.Reset();
     skipper_input.Reset();
   }
-  bool operator!=(const ControllerOutput& r) {
-    return skipper_input != r.skipper_input ||
-           drives_reference != r.drives_reference;
-  }  
+  //bool operator!=(const ControllerOutput& r) {
+  //  return skipper_input != r.skipper_input ||
+  //         drives_reference != r.drives_reference;
+  //}  
   SkipperInput skipper_input;
   DriveReferenceValuesRad drives_reference;
   HelmsmanStatus status;
