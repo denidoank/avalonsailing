@@ -38,8 +38,7 @@ static int verbose = 0;
 static int debug = 0;
 
 static void
-crash(const char* fmt, ...)
-{
+crash(const char* fmt, ...) {
   va_list ap;
   char buf[1000];
   va_start(ap, fmt);
@@ -60,14 +59,10 @@ crash(const char* fmt, ...)
 static void fault(int dum) { crash("fault"); }
 
 static void
-usage(void)
-{
-        fprintf(stderr,
-                "usage: [plug /path/to/linebus] %s\n"
-                , argv0);
-        exit(1);
+usage(void) {
+  fprintf(stderr, "usage: [plug /path/to/linebus] %s\n", argv0);
+  exit(1);
 }
-
 
 int main(int argc, char* argv[]) {
   int ch;
@@ -75,13 +70,13 @@ int main(int argc, char* argv[]) {
   if (argv0) ++argv0; else argv0 = argv[0];
 
   while ((ch = getopt(argc, argv, "dhv")) != -1){
-          switch (ch) {
-          case 'd': ++debug; break;
-          case 'v': ++verbose; break;
-          case 'h':
-          default:
-                  usage();
-          }
+    switch (ch) {
+    case 'd': ++debug; break;
+    case 'v': ++verbose; break;
+    case 'h':
+    default:
+            usage();
+    }
   }
 
   argv += optind;

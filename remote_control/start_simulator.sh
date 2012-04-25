@@ -30,7 +30,7 @@ killall linebusd helmsman fakeboat || true
 ./io/linebusd $LBUS
 sleep 1
 
-${PLUG} ./fakeio/fakeboat &
+${PLUG} ./fakeio/fakeboat 2>fakeboat.log  &
 
 # Run the remote_control tool, and configure it.
 CONNECT_CMD=$(pwd)"/io/plug ${LBUS}"
@@ -44,4 +44,4 @@ else
   ./remote_control/remote_control.app/Contents/MacOS/remote_control "${CONNECT_CMD}" &
 fi
  
-${PLUG} ./helmsman/helmsman
+${PLUG} ./helmsman/helmsman  2>&1 | tee helmsman.log
