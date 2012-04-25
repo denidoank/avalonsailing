@@ -107,7 +107,6 @@ void Imu::FromProto(const IMUProto& imu_proto) {
   velocity.y_m_s = imu_proto.vel_y_m_s;
   velocity.z_m_s = imu_proto.vel_z_m_s;
 
-
   mag.raw_x = imu_proto.mag_x_au;
   mag.raw_y = imu_proto.mag_y_au;
   mag.raw_z = imu_proto.mag_z_au;

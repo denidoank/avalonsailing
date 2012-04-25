@@ -193,6 +193,7 @@ int main(int argc, char* argv[]) {
   int nn = 0;
 
   struct WindProto wind_sensor  = INIT_WINDPROTO;
+  struct CompassProto compass  = INIT_COMPASSPROTO;
   struct RudderProto sts = INIT_RUDDERPROTO;
   struct IMUProto imu    = INIT_IMUPROTO;
   struct HelmsmanCtlProto ctl = INIT_HELMSMANCTLPROTO;
@@ -270,6 +271,8 @@ int main(int argc, char* argv[]) {
             ctrl_in.drives.homed_rudder_right = !isnan(sts.rudder_r_deg);
             ctrl_in.drives.homed_sail = !isnan(sts.sail_deg);
 
+          } else if (sscanf(line, IFMT_COMPASSPROTO(&compass, &nn)) > 0) {
+            ctrl_in.compass_sensor.phi_z_rad  = Deg2Rad(compass.yaw_deg);
           } else if (sscanf(line, IFMT_HELMSMANCTLPROTO(&ctl, &nn)) > 0) {
             if (control_mode != kOverrideSkipperMode &&
                 !isnan(ctl.alpha_star_deg))

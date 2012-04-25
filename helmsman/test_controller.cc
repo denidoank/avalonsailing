@@ -18,7 +18,7 @@
 #include "helmsman/boat.h"
 #include "helmsman/sampling_period.h"
 #include "helmsman/wind_strength.h"
-#include "helmsman/wind.h"
+#include "helmsman/wind_sensor.h"
 
 using std::string;
 

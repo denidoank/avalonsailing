@@ -90,15 +90,10 @@ void NormalController::Run(const ControllerInput& in,
 
   if (debug) fprintf(stderr, "IntRef: %6.2lf %6.2lf\n", Rad2Deg(phi_star), Rad2Deg(omega_star));
 
-  // The speed is an unreliable output of the IMU. It has big systematic and stochastic errors and is
-  // therefore filtered and clipped in the filter block. This leads to wrong values if the actual speed
-  // was negative for a while and becomes positive now. The filtered speed is still negative and
-  // the bearing control becomes instable. So we assume positive speeds in all cases (the
-  // InitialController takes care to get us out of irons or if we get stuck in a calm wind).
-  double boat_speed = std::max(0.3, filtered.mag_boat);
-
   double gamma_rudder_star;
-  // The boat speed is an unreliable measurement value. The NormalController can work only
+  
+  // The boat speed is an unreliable measurement value. It has big systematic and stochastic errors and is
+  // therefore filtered and clipped in the filter block. The NormalController can work only
   // with postive boat speeds, but at the transition from the InitialController the very slowly
   // boat speed may be still negative. We simply clip the speed here. If the speed gets too low then
   // we'll leave the NormalController anyway (see GiveUp() ).
@@ -143,7 +138,8 @@ bool NormalController::ShapeAlphaStar(double alpha_star,
   LimitRateWrapRad(alpha_star, alpha_star_rate_limit_, &alpha_star_rate_limited_);
 
   // Stay in sailable zone
-  double new_alpha_star_restricted = BestSailableHeading(alpha_star_rate_limited_, alpha_true_wind);
+  double new_alpha_star_restricted =
+      BestSailableHeading(alpha_star_rate_limited_, alpha_true_wind);
 
   bool jump = IsJump(alpha_star_restricted_, new_alpha_star_restricted);
   alpha_star_restricted_ = new_alpha_star_restricted;
