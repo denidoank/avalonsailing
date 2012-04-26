@@ -9,6 +9,7 @@
 #include "common/normalize.h"
 #include "common/sign.h"
 #include "helmsman/boat_model.h"
+#include "helmsman/compass.h"
 #include "helmsman/naca0010.h"
 
 extern int debug;
@@ -136,6 +137,12 @@ void BoatModel::SimDrives(const DriveReferenceValuesRad& drives_reference,
   drives->gamma_rudder_right_rad = gamma_rudder_right_;
 }
 
+void UpdateMagnetic(double phi_z, ControllerInput* in) {
+  in->imu.compass.valid = true;
+  in->imu.compass.phi_z_rad = phi_z;
+  in->compass_sensor.phi_z_rad = GeographicToMagnetic(phi_z);
+}
+
 void BoatModel::Simulate(const DriveReferenceValuesRad& drives_reference,
                          Polar true_wind,
                          ControllerInput* in) {
@@ -230,6 +237,8 @@ void BoatModel::Simulate(const DriveReferenceValuesRad& drives_reference,
   in->imu.gyro.omega_y_rad_s = 0;
   in->imu.gyro.omega_z_rad_s = omega_;
   in->imu.temperature_c = 28;
+
+  UpdateMagnetic(phi_z_, in);
 
   // fprintf(stderr, "model: latlon:%g/%g phi_z:%g vx: %g om: %g\n", north_deg_, east_deg_, phi_z_, v_x_, omega_);
   // deb_string = in->imu.ToString();

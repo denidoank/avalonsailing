@@ -30,16 +30,19 @@ struct Imu {
     double phi_y_rad;   // pitch;
     double phi_z_rad;   // yaw;
   } attitude;
+  // The IMU produces the speed vector in the NED system,
+  // the imucat converts this into boat coordinates.
+  // velocity is used for both.
   struct Velocity {
-    double x_m_s; // boat forward speed over ground, in m/s
+    double x_m_s;  // boat forward speed over ground, in m/s
     double y_m_s;
     double z_m_s;
-  } velocity;           // velocity in NED system, x, y, z in m/s
+  } velocity;
   struct Acceleration {
     double x_m_s2;
     double y_m_s2;
     double z_m_s2;
-  } acceleration;       // acceleration in x, y, z in m/s^2
+  } acceleration;  // acceleration in x, y, z in m/s^2
   struct Giro {
     double omega_x_rad_s;
     double omega_y_rad_s;
@@ -47,12 +50,11 @@ struct Imu {
   } gyro;               // gyroscope data in x, y, z in rad/s
   double temperature_c; // in deg C
 
-  // Magnetic raw data, arbitrary unit
-  struct Magnetic {
-    double raw_x;
-    double raw_y;
-    double raw_z;
-  } mag;
+  // Magnetic compass data
+  struct Compass {
+    double phi_z_rad;
+    bool valid;
+  } compass;
 };
 
 #endif  // HELMSMAN_IMU_H

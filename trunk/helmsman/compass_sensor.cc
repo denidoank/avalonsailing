@@ -29,7 +29,6 @@ return std::string(line, s);
 }
 
 void CompassSensor::ToProto(CompassProto* compass_proto) const {
-  *compass_proto = INIT_COMPASSPROTO;
   compass_proto->yaw_deg = Rad2Deg(phi_z_rad);
 }
 

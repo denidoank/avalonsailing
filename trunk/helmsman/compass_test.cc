@@ -94,6 +94,18 @@ ATEST(CompassTests, All) {
                            &bearing);
   EXPECT_EQ(true, valid);
   EXPECT_FLOAT_EQ(85.6731, Rad2Deg(bearing)); // so we are still heading east.
+
+  // BearingToMagnetic is used in the model to create magnetic vectors.
+  for (double bearing_in = 0.44; bearing_in < M_PI; bearing_in += 0.182194) {
+    double mag_x, mag_y, mag_z;
+    BearingToMagnetic(bearing_in, &mag_x, &mag_y, &mag_z);
+    valid = VectorsToBearing(0, 0, -9.81,
+                             mag_x, mag_y, mag_z,       // Magnet vector points portside
+                             &bearing);
+    EXPECT_EQ(true, valid);
+    EXPECT_FLOAT_EQ(Rad2Deg(bearing_in), Rad2Deg(bearing));
+  }
+
 }
 
 

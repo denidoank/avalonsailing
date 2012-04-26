@@ -23,11 +23,11 @@ struct CompassProto {
 
 // For use in printf and friends.
 #define OFMT_COMPASSPROTO(x)                                                           \
-  "timestamp_ms:%lld roll_deg:%.3lf pitch_deg:%.3lf yaw_deg:%.3lf temp_c:%.3lf\n",     \
+  "compass: timestamp_ms:%lld roll_deg:%.3lf pitch_deg:%.3lf yaw_deg:%.3lf temp_c:%.3lf\n",     \
   (x).timestamp_ms, (x).roll_deg, (x).pitch_deg, (x).yaw_deg, (x).temp_c
 
 #define IFMT_COMPASSPROTO(x, n)                                                        \
-  "timestamp_ms:%lld roll_deg:%lf pitch_deg:%lf yaw_deg:%lf temp_c:%lf\n%n",           \
+  "compass: timestamp_ms:%lld roll_deg:%lf pitch_deg:%lf yaw_deg:%lf temp_c:%lf\n%n",           \
   &(x)->timestamp_ms, &(x)->roll_deg, &(x)->pitch_deg, &(x)->yaw_deg, &(x)->temp_c, (n)
 
 #endif  // PROTO_COMPASS_H
