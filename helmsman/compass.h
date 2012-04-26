@@ -25,4 +25,13 @@ bool VectorsToBearing(double acc_x,
                       double mag_z,
                       double* bearing_rad);
 
+// The inverse function for acc_x == acc_y == 0.
+void BearingToMagnetic(double phi_z, double* mag_x,  double* mag_y, double* mag_z);
+
+// Declination correction
+double GeographicToMagnetic(double geographic);
+
+double MagneticToGeographic(double magnetic);
+
+
 #endif   // HELMSMAN_COMPASS_H

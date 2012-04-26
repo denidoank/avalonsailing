@@ -93,21 +93,6 @@ int main(int argc, char* argv[]) {
   // Model
   struct MeteoProto  meteo_info = INIT_METEOPROTO;         // in
   struct RudderProto drives_reference = INIT_RUDDERPROTO;  // in
-  struct RudderProto drives_actual = INIT_RUDDERPROTO;     // out, and internal input
-  struct WindProto   wind_sensor = INIT_WINDPROTO;         // out
-  struct CompassProto compass = INIT_COMPASSPROTO;         // out
-  
-  struct IMUProto    imu = {                               // out
-    last, 28.5,
-    0, 0, 9.8, // acc
-    0, 0, 0,   // gyr
-    1, 0, 0,   // mag
-    0, 0, 0,   // r/p/y
-    48.2390, -4.7698, 0,   // l/l/a
-    0, 0, 0,   // speed
-    0, 0
-  };
-
   meteo_info.true_wind_deg = 0.0;  // Wind from North.
   meteo_info.true_wind_speed_kt = MeterPerSecondToKnots(10.0);  // 10 m/s.
   meteo_info.turbulence = 0.0;  // Stable conditions.
@@ -187,6 +172,21 @@ int main(int argc, char* argv[]) {
     model.Simulate(drives_ref,
                    true_wind,
                    &controller_input);
+
+    struct RudderProto drives_actual = INIT_RUDDERPROTO;     // out, and internal input
+    struct WindProto   wind_sensor = INIT_WINDPROTO;         // out
+    struct CompassProto compass = INIT_COMPASSPROTO;         // out
+
+    struct IMUProto    imu = {                               // out
+      last, 28.5,
+      0, 0, 9.8, // acc
+      0, 0, 0,   // gyr
+      1, 0, 0,   // mag
+      0, 0, 0,   // r/p/y
+      48.2390, -4.7698, 0,   // l/l/a
+      0, 0, 0,   // speed
+      0, 0
+    };
 
     // Here come the lions, i.e. the stochastic delays by our
     // computer system, the Out-of-sync processing and communication delays by e.g.

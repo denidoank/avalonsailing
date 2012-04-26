@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include "common/convert.h"
 #include "common/normalize.h"
+#include "helmsman/compass.h"
 
 Imu::Imu() {
   Reset();
@@ -29,9 +30,8 @@ void Imu::Reset() {
   gyro.omega_y_rad_s = 0;
   gyro.omega_z_rad_s = 0;
   temperature_c = 20;
-  mag.raw_x = 0;
-  mag.raw_y = 0;
-  mag.raw_z = 0;
+  compass.phi_z_rad = 0;
+  compass.valid = false;
 }
 
 std::string Imu::ToString() const {
@@ -42,7 +42,7 @@ std::string Imu::ToString() const {
       "acc_x:%.4f acc_y:%.4f acc_z:%.4f "
       "om_x:%.4f om_y:%.4f om_z:%.4f "
       "theta: %.3f"
-      "mag_x:%.4f mag_y:%.4f mag_z:%.4f "
+      "valid:%d compass:%.4f  "
       "\n",
       position.longitude_deg, position.latitude_deg, position.altitude_m,
       attitude.phi_x_rad, attitude.phi_y_rad, attitude.phi_z_rad,
@@ -50,7 +50,7 @@ std::string Imu::ToString() const {
       acceleration.x_m_s2, acceleration.y_m_s2, acceleration.z_m_s2,
       gyro.omega_x_rad_s, gyro.omega_y_rad_s, gyro.omega_z_rad_s,
       temperature_c,
-      mag.raw_x, mag.raw_y, mag.raw_z);
+      compass.valid ? 1 : 0, compass.phi_z_rad);
   return std::string(line, s);
 }
 
@@ -78,9 +78,10 @@ void Imu::ToProto(IMUProto* imu_proto) const {
   imu_proto->vel_y_m_s = velocity.y_m_s;
   imu_proto->vel_z_m_s = velocity.z_m_s;
 
-  imu_proto->mag_x_au = mag.raw_x;
-  imu_proto->mag_y_au = mag.raw_y;
-  imu_proto->mag_z_au = mag.raw_z;
+  BearingToMagnetic(attitude.phi_z_rad,
+      &imu_proto->mag_x_au,
+      &imu_proto->mag_y_au,
+      &imu_proto->mag_z_au);
 }
 
 void Imu::FromProto(const IMUProto& imu_proto) {
@@ -107,7 +108,12 @@ void Imu::FromProto(const IMUProto& imu_proto) {
   velocity.y_m_s = imu_proto.vel_y_m_s;
   velocity.z_m_s = imu_proto.vel_z_m_s;
 
-  mag.raw_x = imu_proto.mag_x_au;
-  mag.raw_y = imu_proto.mag_y_au;
-  mag.raw_z = imu_proto.mag_z_au;
+  compass.phi_z_rad = NAN;
+  compass.valid = VectorsToBearing(acceleration.x_m_s2,
+                                   acceleration.y_m_s2,
+                                   acceleration.z_m_s2,
+                                   imu_proto.mag_x_au,
+                                   imu_proto.mag_y_au,
+                                   imu_proto.mag_z_au,
+                                   &compass.phi_z_rad);
 }

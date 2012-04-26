@@ -59,12 +59,12 @@ void ClientState::processLine(const QString& line) {
 
  QStringList key_vals = line.split(" ", QString::SkipEmptyParts);
  if (key_vals.size() == 0) {
-   emit consoleOutput("Can't parse: " + line);
+   emit consoleOutput("Can't parse spaces: " + line);
    return;
  }
  QStringList first = key_vals[0].split(":", QString::SkipEmptyParts);
  if (first.size() != 1) {
-   emit consoleOutput("Can't parse: " + line);
+   emit consoleOutput("Can't find proto id: " + line);
    return;
  }
 
