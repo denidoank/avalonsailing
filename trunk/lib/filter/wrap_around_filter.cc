@@ -20,19 +20,16 @@ WrapAroundFilter:: WrapAroundFilter(FilterInterface* filter)
   CHECK_GT(period_, 0);
 }
 
+WrapAroundFilter::~WrapAroundFilter() {}
+
 // Returns filtered value in [0, 2*pi)
 double WrapAroundFilter::Filter(double in) {
   in = NormalizeRad(in);
   if (initial_) {
+    continuous_ = in;
     prev_ = in;
     initial_= false;
-    continuous_ = in;
   }
-  if (-10 < in && in < 10 ) {
-    ;
-  } else {
-    fprintf(stderr, "WrapAroundFilter input %g\n", in);
-  }  
   CHECK_LT(in, 10);  // expect radians here
   CHECK_GT(in, -10);
   double delta = in - prev_;
@@ -52,11 +49,13 @@ double WrapAroundFilter::Filter(double in) {
   // If the magnitude of continuous becomes too big then we
   // loose precision. So we jump back into the [0, 2pi) range
   // occasionally.
-  if (continuous_ > 32 * M_PI) {
-    Shift(-32 * M_PI);
+  double limit = 2 * period_;
+
+  if (continuous_ > limit) {
+    Shift(-limit);
   }
-  if (continuous_ < -32 * M_PI) {
-    Shift(32 * M_PI);
+  if (continuous_ < -limit) {
+    Shift(limit);
   }
 
   //printf("cont: %6.4f \n", continuous_);
@@ -70,6 +69,7 @@ bool WrapAroundFilter::ValidOutput() {
 
 void WrapAroundFilter::SetOutput(double y0) {
   continuous_ = y0;
+  prev_ = y0;
   filter_->SetOutput(y0);
 }
 
@@ -79,7 +79,6 @@ void WrapAroundFilter::Shift(double shift) {
   // Here we might accumulate errors.
   // If there is a deviation between shift and period_,
   // the this deviation gets accumulated here.
-  continuous_ = prev_;
+  prev_ = continuous_;
 }
 
-WrapAroundFilter::~WrapAroundFilter() {}

@@ -4,6 +4,7 @@
 // Steffen Grundmann, June 2011
 #include "wrap_around_filter.h"
 
+#include "common/array_size.h"
 #include "common/delta_angle.h"
 #include "common/normalize.h"
 #include "lib/testing/testing.h"
@@ -22,7 +23,7 @@ int64 Now() {
   return StopWatch::GetTimestampMicros();
 }
 
-TEST(WrapAroundFilter, SlidingValidDCGainSetOutput) {
+ATEST(WrapAroundFilter, SlidingValidDCGainSetOutput) {
   WrapAroundFilter f(new SlidingAverageFilter(5));
   f.SetOutput(2);
   for (int i = 0; i < 20; ++i) {
@@ -32,7 +33,7 @@ TEST(WrapAroundFilter, SlidingValidDCGainSetOutput) {
   }
 }
 
-TEST(WrapAroundFilter, SlidingValidDCGain) {
+ATEST(WrapAroundFilter, SlidingValidDCGain) {
   WrapAroundFilter f(new SlidingAverageFilter(5));
   for (int i = 0; i < 20; ++i) {
     double out = f.Filter(2);
@@ -45,7 +46,7 @@ TEST(WrapAroundFilter, SlidingValidDCGain) {
   }
 }
 
-TEST(WrapAroundFilter, SlidingFiftyPercent) {
+ATEST(WrapAroundFilter, SlidingFiftyPercent) {
   WrapAroundFilter f(new SlidingAverageFilter(10));
   for (int i = 0; i < 20; ++i) {
     double out = f.Filter(1);
@@ -54,7 +55,7 @@ TEST(WrapAroundFilter, SlidingFiftyPercent) {
   }
 }
 
-TEST(WrapAroundFilter, SlidingZigZag) {
+ATEST(WrapAroundFilter, SlidingZigZag) {
   WrapAroundFilter f(new SlidingAverageFilter(10));
   f.SetOutput(2);
   for (int i = 0; i < 20; ++i) {
@@ -65,7 +66,7 @@ TEST(WrapAroundFilter, SlidingZigZag) {
 }
 
 
-TEST(WrapAroundFilter, Median5ValidDCGainSetOutput) {
+ATEST(WrapAroundFilter, Median5ValidDCGainSetOutput) {
   WrapAroundFilter f(new Median5Filter());
   f.SetOutput(2);
   for (int i = 0; i < 20; ++i) {
@@ -75,7 +76,7 @@ TEST(WrapAroundFilter, Median5ValidDCGainSetOutput) {
   }
 }
 
-TEST(WrapAroundFilter, Median5ValidDCGain) {
+ATEST(WrapAroundFilter, Median5ValidDCGain) {
   WrapAroundFilter f(new Median5Filter());
   for (int i = 0; i < 20; ++i) {
     double out = f.Filter(2);
@@ -88,7 +89,7 @@ TEST(WrapAroundFilter, Median5ValidDCGain) {
   }
 }
 
-TEST(WrapAroundFilter, Median3) {
+ATEST(WrapAroundFilter, Median3) {
   WrapAroundFilter f(new Median3Filter());
   for (int i = 0; i < 20; ++i) {
     double out = f.Filter(1);
@@ -101,7 +102,7 @@ TEST(WrapAroundFilter, Median3) {
   }
 }
 
-TEST(WrapAroundFilter, Median3ZigZag) {
+ATEST(WrapAroundFilter, Median3ZigZag) {
   WrapAroundFilter f(new Median3Filter());
   f.SetOutput(2);
   for (int i = 0; i < 20; ++i) {
@@ -110,7 +111,7 @@ TEST(WrapAroundFilter, Median3ZigZag) {
   }
 }
 
-TEST(WrapAroundFilter, LowPass1FilterZigZagValid) {
+ATEST(WrapAroundFilter, LowPass1FilterZigZagValid) {
   WrapAroundFilter f(new LowPass1Filter(10));
   for (int i = 0; i < 20; ++i) {
     f.Filter(i % 3 - 1 + 2);
@@ -123,7 +124,7 @@ TEST(WrapAroundFilter, LowPass1FilterZigZagValid) {
 }
 
 
-TEST(WrapAroundFilter, LowPass1FilterZigZag) {
+ATEST(WrapAroundFilter, LowPass1FilterZigZag) {
   WrapAroundFilter f(new LowPass1Filter(10));
   f.SetOutput(2);
   for (int i = 0; i < 20; ++i) {
@@ -134,7 +135,7 @@ TEST(WrapAroundFilter, LowPass1FilterZigZag) {
   }
 }
 
-TEST(WrapAroundFilter, AllFilterRamp) {
+ATEST(WrapAroundFilter, AllFilterRamp) {
   WrapAroundFilter f1(new SlidingAverageFilter(10));
   WrapAroundFilter f2(new LowPass1Filter(10));
   WrapAroundFilter f3(new Median3Filter());
@@ -182,7 +183,7 @@ TEST(WrapAroundFilter, AllFilterRamp) {
   }
 }
 
-TEST(WrapAroundFilter, AllFilterRamp2) {
+ATEST(WrapAroundFilter, AllFilterRampNegative) {
   WrapAroundFilter f1(new SlidingAverageFilter(10));
   WrapAroundFilter f2(new LowPass1Filter(10));
   WrapAroundFilter f3(new Median3Filter());
@@ -191,24 +192,31 @@ TEST(WrapAroundFilter, AllFilterRamp2) {
   double prev2;
   double prev3;
   double prev4;
-  double increment = 1;
-  for (int cnt = 0; cnt < 5000; ++cnt) {
+  double increment = -2 * M_PI / 5;
+  for (int cnt = 0; cnt < 50; ++cnt) {
     double in = NormalizeRad(cnt * increment);
     double out1 = f1.Filter(in);
     double out2 = f2.Filter(in);
     double out3 = f3.Filter(in);
     double out4 = f4.Filter(in);
-    //printf("%6.4f %6.4f %6.4f %6.4f\n", out1, out2, out3, out4);
+    printf("%6.4f %6.4f %6.4f %6.4f\n", out1, out2, out3, out4);
+    if (cnt == 1) {
+      EXPECT_FALSE(f1.ValidOutput());
+      EXPECT_FALSE(f2.ValidOutput());
+      EXPECT_FALSE(f3.ValidOutput());
+      EXPECT_FALSE(f4.ValidOutput());
+    }
+    if (cnt > 10) {
+      EXPECT_TRUE(f1.ValidOutput());
+      EXPECT_TRUE(f2.ValidOutput());
+      EXPECT_TRUE(f3.ValidOutput());
+      EXPECT_TRUE(f4.ValidOutput());
+    }
 
     EXPECT_IN_INTERVAL(0, out1, 2 * M_PI);
     EXPECT_IN_INTERVAL(0, out2, 2 * M_PI);
     EXPECT_IN_INTERVAL(0, out3, 2 * M_PI);
     EXPECT_IN_INTERVAL(0, out4, 2 * M_PI);
-
-    if (cnt == 1)
-      EXPECT_FALSE(f1.ValidOutput());
-    if (cnt > 10)
-      EXPECT_TRUE(f1.ValidOutput());
     // In steady state, the output follows the input with the same gradient.
     if (cnt > 200) {
       EXPECT_FLOAT_EQ(increment, DeltaOldNewRad(prev1, out1));
@@ -223,8 +231,100 @@ TEST(WrapAroundFilter, AllFilterRamp2) {
   }
 }
 
+ATEST(WrapAroundFilter, AllFilterRampElegant) {
+  WrapAroundFilter f1(new SlidingAverageFilter(10));
+  WrapAroundFilter f2(new LowPass1Filter(10));
+  WrapAroundFilter f3(new Median3Filter());
+  WrapAroundFilter f4(new Median5Filter());
+  WrapAroundFilter* filters[4] = {&f1, &f2, &f3, &f4};
+  double prev;
+  double increment = 1;
+  for  (int n = 0; n < ARRAY_SIZE(filters); ++n) {
+    prev = 0;
+    for (int cnt = 0; cnt < 5000; ++cnt) {
+      double in = NormalizeRad(cnt * increment);
+      double out = filters[n]->Filter(in);
+      //printf("%6.4f %6.4f %6.4f %6.4f\n", out1, out2, out3, out4);
+
+      EXPECT_IN_INTERVAL(0, out, 2 * M_PI);
+
+      if (cnt < 2)  // Median3
+        EXPECT_FALSE(filters[n]->ValidOutput());
+      if (cnt > 10)
+        EXPECT_TRUE(filters[n]->ValidOutput());
+      // In steady state, the output follows the input with the same gradient.
+      if (cnt > 200) {
+        EXPECT_FLOAT_EQ(increment, DeltaOldNewRad(prev, out));
+      }
+      prev = out;
+    }
+  }
+}
+
+ATEST(WrapAroundFilter, AllFilterRampShiftBack) {
+  WrapAroundFilter f1(new SlidingAverageFilter(10));
+  WrapAroundFilter f2(new LowPass1Filter(10));
+  WrapAroundFilter f3(new Median3Filter());
+  WrapAroundFilter f4(new Median5Filter());
+  WrapAroundFilter* filters[4] = {&f1, &f2, &f3, &f4};
+  double prev;
+  double increment = 0.84359643;
+  for  (int n = 0; n < ARRAY_SIZE(filters); ++n) {
+    prev = 0;
+    for (int cnt = 0; cnt < 5000; ++cnt) {
+      double in = NormalizeRad(cnt * increment);
+      double out = filters[n]->Filter(in);
+      //printf("%6.4f %6.4f %6.4f %6.4f\n", out1, out2, out3, out4);
+
+      EXPECT_IN_INTERVAL(0, out, 2 * M_PI);
+
+      if (cnt < 2)  // Median3
+        EXPECT_FALSE(filters[n]->ValidOutput());
+      if (cnt > 10)
+        EXPECT_TRUE(filters[n]->ValidOutput());
+      // In steady state, the output follows the input with the same gradient.
+      if (cnt > 200) {
+        EXPECT_FLOAT_EQ(increment, DeltaOldNewRad(prev, out));
+      }
+      prev = out;
+    }
+  }
+}
+
+ATEST(WrapAroundFilter, AllFilterRampShiftBackNegative) {
+  WrapAroundFilter f1(new SlidingAverageFilter(10));
+  WrapAroundFilter f2(new LowPass1Filter(10));
+  WrapAroundFilter f3(new Median3Filter());
+  WrapAroundFilter f4(new Median5Filter());
+  WrapAroundFilter* filters[4] = {&f1, &f2, &f3, &f4};
+  double prev;
+  double increment = -0.84359643;
+  for  (int n = 0; n < ARRAY_SIZE(filters); ++n) {
+    prev = 0;
+    for (int cnt = 0; cnt < 5000; ++cnt) {
+      double in = NormalizeRad(cnt * increment);
+      double out = filters[n]->Filter(in);
+
+      EXPECT_IN_INTERVAL(0, out, 2 * M_PI);
+
+      if (cnt < 2)  // Median3
+        EXPECT_FALSE(filters[n]->ValidOutput());
+      if (cnt > 10)
+        EXPECT_TRUE(filters[n]->ValidOutput());
+
+      //printf("%4d %6.4f %6.4f\n", cnt, in, out);
+
+      // In steady state, the output follows the input with the same gradient.
+      if (cnt > 200) {
+        EXPECT_FLOAT_EQ(increment, DeltaOldNewRad(prev, out));
+      }
+      prev = out;
+    }
+  }
+}
+
 // All these filters have a constant runtime in the range of 320ns (Desktop).
-TEST(WrapAroundFilter, AllFilterTiming) {
+ATEST(WrapAroundFilter, AllFilterTiming) {
   WrapAroundFilter f1(new SlidingAverageFilter(10));
   WrapAroundFilter f2(new LowPass1Filter(10));
   WrapAroundFilter f3(new Median3Filter());
@@ -312,18 +412,5 @@ TEST(WrapAroundFilter, AllFilterTiming) {
 
 
 int main(int argc, char* argv[]) {
-  WrapAroundFilter_SlidingValidDCGainSetOutput();
-  WrapAroundFilter_SlidingValidDCGain();
-  WrapAroundFilter_SlidingFiftyPercent();
-  WrapAroundFilter_SlidingZigZag();
-  WrapAroundFilter_Median5ValidDCGainSetOutput();
-  WrapAroundFilter_Median5ValidDCGain();
-  WrapAroundFilter_Median3();
-  WrapAroundFilter_Median3ZigZag();
-  WrapAroundFilter_LowPass1FilterZigZagValid();
-  WrapAroundFilter_LowPass1FilterZigZag();
-  WrapAroundFilter_AllFilterRamp();
-  WrapAroundFilter_AllFilterRamp2();
-  WrapAroundFilter_AllFilterTiming();
-  return 0;
+  return testing::RunAllTests();
 }

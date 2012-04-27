@@ -4,6 +4,7 @@
 // Steffen Grundmann, May 2011
 
 // A filter for radians angle input signals like angles that wrap around at 2pi.
+// It is the callers responsibilty to meet the sampling condition f_signal < 1/2T .
 #ifndef LIB_FILTER_WRAP_AROUND_FILTER_H
 #define LIB_FILTER_WRAP_AROUND_FILTER_H
 
@@ -12,11 +13,10 @@
 class WrapAroundFilter : public FilterInterface {
  public:
   WrapAroundFilter(FilterInterface* filter);
+  virtual ~WrapAroundFilter();
   virtual double Filter(double in_rad);
   virtual bool ValidOutput();
   virtual void SetOutput(double y0);
-
-  virtual ~WrapAroundFilter();
  private:
   void Shift(double shift);
 
