@@ -15,11 +15,11 @@ class CompassMixer {
   // The weights are in [0, 1].
   // 0 means "ignore this", 1 means "rock solid reliable measurement"
   // A vector interface would be good for the mixer, but awkward for the caller.
-  // Returns valid = false if no input data are available or no consens can be found.
+  // Returns consensus < 0.5 if no good input data are available or no consens can be found.
   double Mix(double alpha1_rad, double weight1,
              double alpha2_rad, double weight2,
              double alpha3_rad, double weight3,
-             bool* valid);
+             double* consensus);
  private:
   double input_[3];
   double weight_[3];

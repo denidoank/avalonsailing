@@ -241,28 +241,7 @@ int main(int argc, char* argv[]) {
 
           } else if (sscanf(line, IFMT_IMUPROTO(&imu, &nn)) > 0) {
             ctrl_in.imu.Reset();
-            ctrl_in.imu.temperature_c = imu.temp_c;
-
-            ctrl_in.imu.acceleration.x_m_s2 = imu.acc_x_m_s2;
-            ctrl_in.imu.acceleration.y_m_s2 = imu.acc_y_m_s2;
-            ctrl_in.imu.acceleration.z_m_s2 = imu.acc_z_m_s2;
-
-            ctrl_in.imu.gyro.omega_x_rad_s  = imu.gyr_x_rad_s;
-            ctrl_in.imu.gyro.omega_y_rad_s  = imu.gyr_y_rad_s;
-            ctrl_in.imu.gyro.omega_z_rad_s  = imu.gyr_z_rad_s;
-
-            ctrl_in.imu.attitude.phi_x_rad = Deg2Rad(imu.roll_deg);
-            ctrl_in.imu.attitude.phi_y_rad = Deg2Rad(imu.pitch_deg);
-            ctrl_in.imu.attitude.phi_z_rad = SymmetricRad(Deg2Rad(imu.yaw_deg));
-
-            ctrl_in.imu.position.latitude_deg = imu.lat_deg;
-            ctrl_in.imu.position.longitude_deg = imu.lng_deg;
-            ctrl_in.imu.position.altitude_m = imu.alt_m;
-
-            ctrl_in.imu.velocity.x_m_s = imu.vel_x_m_s;
-            ctrl_in.imu.velocity.y_m_s = imu.vel_y_m_s;
-            ctrl_in.imu.velocity.z_m_s = imu.vel_z_m_s;
-
+            ctrl_in.imu.FromProto(imu);
           } else if (sscanf(line, IFMT_RUDDERPROTO_STS(&sts, &nn)) > 0) {
             ctrl_in.drives.gamma_rudder_left_rad  = Deg2Rad(sts.rudder_l_deg);
             ctrl_in.drives.gamma_rudder_right_rad = Deg2Rad(sts.rudder_r_deg);

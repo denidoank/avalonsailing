@@ -3,6 +3,9 @@
 // that can be found in the LICENSE file.
 // Steffen Grundmann, June 2011
 
+// An alternative solution for the problem would be the transformation of the vector into the
+// cartesian space.
+
 #include "lib/filter/wrap_around_filter.h"
 
 #include <math.h>
@@ -20,7 +23,9 @@ WrapAroundFilter:: WrapAroundFilter(FilterInterface* filter)
   CHECK_GT(period_, 0);
 }
 
-WrapAroundFilter::~WrapAroundFilter() {}
+WrapAroundFilter::~WrapAroundFilter() {
+  delete filter_;
+}
 
 // Returns filtered value in [0, 2*pi)
 double WrapAroundFilter::Filter(double in) {

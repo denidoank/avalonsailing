@@ -109,6 +109,22 @@ void FilterBlock::Filter(const ControllerInput& in,
   if (gps_fault_)
     fprintf(stderr, "GPS fault\n");
 
+  // yaw (== bearing) from 2 independant sources: IMU Kalman filter, raw IMU magnetic sensor and
+  // independant compass.
+  double consensus = 0;
+  double compass_phi_z = compass_mixer_.Mix(in.imu.attitude.phi_z_rad, imu_fault_ ? 1 : 0,
+                                            in.imu.compass.phi_z_rad, in.imu.compass.valid ? 1 : 0,
+                                            in.compass_sensor.phi_z_rad, 1,  // invalid if outdated TODO
+                                            &consensus);
+  if (consensus >= 0.5) {
+    fil->phi_z_boat = phi_z_wrap_.Filter(phi_z_filter_.Filter(compass_phi_z));
+    if (debug) {
+      fprintf(stderr, "filtered compass phi_z %g deg\n", Rad2Deg(fil->phi_z_boat));
+    }
+  } else {
+    fprintf(stderr, "No compass consensus, %lf\n", consensus);
+  }
+
   // NaNs irreversibly poison filters, so we have to prevent that.
   if (!gps_fault_) {
     ASSIGN_NOT_NAN(fil->longitude_deg, in.imu.position.longitude_deg);  // GPS-Data
@@ -118,11 +134,8 @@ void FilterBlock::Filter(const ControllerInput& in,
   // If everything else fails we optimistically assume that we are making some speed forward.
   fil->mag_boat = 1;
   if (!imu_fault_) {
-    double phi_z = 0;
     ASSIGN_NOT_NAN(fil->phi_x_rad, in.imu.attitude.phi_x_rad);      // roll angle, heel;
     ASSIGN_NOT_NAN(fil->phi_y_rad, in.imu.attitude.phi_y_rad);      // pitch, nick angle;
-    ASSIGN_NOT_NAN(phi_z,          in.imu.attitude.phi_z_rad);      // yaw, bearing;
-    fil->phi_z_boat = phi_z_wrap_.Filter(phi_z_filter_.Filter(phi_z));
 
     fil->mag_boat = CensorSpeed(speed_filter_.Filter(in.imu.velocity.x_m_s));
     if (debug && false) {

@@ -232,7 +232,7 @@ void BoatModel::Simulate(const DriveReferenceValuesRad& drives_reference,
   in->imu.velocity.z_m_s = 0;
   in->imu.acceleration.x_m_s2 = 0;
   in->imu.acceleration.y_m_s2 = 0;
-  in->imu.acceleration.z_m_s2 = 0;
+  in->imu.acceleration.z_m_s2 = -9.81;  // The IMU compass needs the acceleration vector.
   in->imu.gyro.omega_x_rad_s = 0;
   in->imu.gyro.omega_y_rad_s = 0;
   in->imu.gyro.omega_z_rad_s = omega_;

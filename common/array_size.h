@@ -4,6 +4,7 @@
 // Author: grundmann@google.com (Steffen Grundmann)
 #ifndef COMMON_ARRAY_SIZE_H_
 #define COMMON_ARRAY_SIZE_H_
+// int is more practical for loops.
 #define ARRAY_SIZE(x) \
-  sizeof(x) / sizeof((x)[0])
+  (int(sizeof(x) / sizeof((x)[0])))
 #endif  // COMMON_ARRAY_SIZE_H_
