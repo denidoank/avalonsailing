@@ -82,7 +82,8 @@ decode_float(uint8_t** dd)
 // decode an MTData message assuming mode and settings.
 // Returns 0 on success, -1 on error.
 static int
-imu_decode_variables(uint8_t* b, int len, uint16_t mode, uint32_t settings, struct IMUProto* vars)
+imu_decode_variables(uint8_t* b, int len, uint16_t mode, uint32_t settings,
+                     struct IMUProto* vars, uint8_t* status)
 {
   uint8_t *e = b + len;
 
@@ -155,12 +156,14 @@ imu_decode_variables(uint8_t* b, int len, uint16_t mode, uint32_t settings, stru
 
   if (mode & IMU_OM_STS) {
     checklen( IMU_OM_STS, 1);
-    vars->status = *b++;
+    *status = *b++;
   }
 
+  uint16_t samplecounter;  // unused
   if (settings & IMU_OS_TS_SC) {
     checklen(IMU_OS_TS_SC, 2);
-    vars->samplecounter = (b[0]<<8) + b[1];
+    samplecounter = b[0];  // big endian
+    samplecounter = (samplecounter<<8) + b[1];
     b += 2;
   }
 
@@ -350,30 +353,30 @@ int main(int argc, char* argv[]) {
 
     struct IMUProto vars = INIT_IMUPROTO;
     memset(&vars, 0, sizeof vars);
-
-    if (imu_decode_variables(buf, len, mode, settings, &vars) != 0) {
+    uint8_t status = 0;
+    if (imu_decode_variables(buf, len, mode, settings, &vars, &status) != 0) {
       if (debug) fprintf(stderr, "Could not decode MTData, discarding %d bytes\n", len);
       continue;
     }
 
     // unless in debug mode, if we have the status byte, clear fields that are not reliable
     if(!debug && (mode & IMU_OM_STS)) {
-      if (!(vars.status&IMU_STS_XKF)) {
+      if (!(status&IMU_STS_XKF)) {
         vars.roll_deg  = vars.pitch_deg = vars.yaw_deg = NAN;
         vars.vel_x_m_s = vars.vel_y_m_s = vars.vel_z_m_s = NAN;
       }
 
-      if (!(vars.status & (IMU_STS_XKF|IMU_STS_GPS))) {
+      if (!(status & (IMU_STS_XKF|IMU_STS_GPS))) {
         vars.lat_deg = vars.lng_deg = vars.alt_m = NAN;
         vars.timestamp_ms = 0;  // the time is derived from the GPS signal and goes away with that signal.
       }
     }
 
     if(debug)
-      fprintf(stderr, "status:0x%x:%s%s%s\n", vars.status,
-        (vars.status&IMU_STS_SELFTEST) ? " selftest":"",
-        (vars.status&IMU_STS_XKF)? " XKF":"",
-        (vars.status&IMU_STS_GPS)?" GPS":"");
+      fprintf(stderr, "status:0x%x:%s%s%s\n", status,
+        (status&IMU_STS_SELFTEST) ? " selftest" : "",
+        (status&IMU_STS_XKF) ? " XKF" : "",
+        (status&IMU_STS_GPS) ? " GPS" : "");
 
     ConvertSpeed(&vars);
 
