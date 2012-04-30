@@ -85,9 +85,9 @@ void BearingToMagnetic(double magnetic_phi_z, double* mag_x,  double* mag_y, dou
 }
 
 double GeographicToMagnetic(double geographic) {
-  return geographic + declination;
+  return NormalizeRad(geographic + declination);
 }
 
 double MagneticToGeographic(double magnetic) {
-  return magnetic - declination;
+  return NormalizeRad(magnetic - declination);
 }

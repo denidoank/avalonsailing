@@ -36,13 +36,13 @@ void Imu::Reset() {
 
 std::string Imu::ToString() const {
   char line[20*25];
-  int s = snprintf(line, sizeof line, "lat_deg:%f lon_deg:%f alt_m:%f "
-      "phi_x:%.4f phi_y:%.4f phi_z:%.4f "
-      "v_x:%.4f v_y:%.4f v_z:%.4f "
-      "acc_x:%.4f acc_y:%.4f acc_z:%.4f "
-      "om_x:%.4f om_y:%.4f om_z:%.4f "
-      "theta: %.3f"
-      "valid:%d compass:%.4f  "
+  int s = snprintf(line, sizeof line, "lat_deg:%lf lon_deg:%lf alt_m:%lf "
+      "phi_x:%.4lf phi_y:%.4lf phi_z:%.4lf "
+      "v_x:%.4lf v_y:%.4lf v_z:%.4lf "
+      "acc_x:%.4lf acc_y:%.4lf acc_z:%.4lf "
+      "om_x:%.4lf om_y:%.4lf om_z:%.4lf "
+      "theta: %.3lf "
+      "valid:%d compass:%.4lf  "
       "\n",
       position.longitude_deg, position.latitude_deg, position.altitude_m,
       attitude.phi_x_rad, attitude.phi_y_rad, attitude.phi_z_rad,

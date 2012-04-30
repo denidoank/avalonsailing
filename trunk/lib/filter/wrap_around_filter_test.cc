@@ -151,7 +151,7 @@ ATEST(WrapAroundFilter, AllFilterRamp) {
     double out2 = f2.Filter(in);
     double out3 = f3.Filter(in);
     double out4 = f4.Filter(in);
-    printf("%6.4f %6.4f %6.4f %6.4f\n", out1, out2, out3, out4);
+    printf("%6.4lf %6.4lf %6.4lf %6.4lf\n", out1, out2, out3, out4);
     if (cnt == 1) {
       EXPECT_FALSE(f1.ValidOutput());
       EXPECT_FALSE(f2.ValidOutput());
@@ -199,7 +199,7 @@ ATEST(WrapAroundFilter, AllFilterRampNegative) {
     double out2 = f2.Filter(in);
     double out3 = f3.Filter(in);
     double out4 = f4.Filter(in);
-    printf("%6.4f %6.4f %6.4f %6.4f\n", out1, out2, out3, out4);
+    printf("%6.4lf %6.4lf %6.4lf %6.4lf\n", out1, out2, out3, out4);
     if (cnt == 1) {
       EXPECT_FALSE(f1.ValidOutput());
       EXPECT_FALSE(f2.ValidOutput());
@@ -236,22 +236,22 @@ ATEST(WrapAroundFilter, AllFilterRampElegant) {
   WrapAroundFilter f2(new LowPass1Filter(10));
   WrapAroundFilter f3(new Median3Filter());
   WrapAroundFilter f4(new Median5Filter());
-  WrapAroundFilter* filters[4] = {&f1, &f2, &f3, &f4};
+  WrapAroundFilter* filter[4] = {&f1, &f2, &f3, &f4};
   double prev;
   double increment = 1;
-  for  (int n = 0; n < ARRAY_SIZE(filters); ++n) {
+  for  (int n = 0; n < ARRAY_SIZE(filter); ++n) {
     prev = 0;
     for (int cnt = 0; cnt < 5000; ++cnt) {
       double in = NormalizeRad(cnt * increment);
-      double out = filters[n]->Filter(in);
-      //printf("%6.4f %6.4f %6.4f %6.4f\n", out1, out2, out3, out4);
+      double out = filter[n]->Filter(in);
+      //printf("%6.4lf %6.4lf %6.4lf %6.4lf\n", out1, out2, out3, out4);
 
       EXPECT_IN_INTERVAL(0, out, 2 * M_PI);
 
       if (cnt < 2)  // Median3
-        EXPECT_FALSE(filters[n]->ValidOutput());
+        EXPECT_FALSE(filter[n]->ValidOutput());
       if (cnt > 10)
-        EXPECT_TRUE(filters[n]->ValidOutput());
+        EXPECT_TRUE(filter[n]->ValidOutput());
       // In steady state, the output follows the input with the same gradient.
       if (cnt > 200) {
         EXPECT_FLOAT_EQ(increment, DeltaOldNewRad(prev, out));
@@ -266,22 +266,22 @@ ATEST(WrapAroundFilter, AllFilterRampShiftBack) {
   WrapAroundFilter f2(new LowPass1Filter(10));
   WrapAroundFilter f3(new Median3Filter());
   WrapAroundFilter f4(new Median5Filter());
-  WrapAroundFilter* filters[4] = {&f1, &f2, &f3, &f4};
+  WrapAroundFilter* filter[4] = {&f1, &f2, &f3, &f4};
   double prev;
   double increment = 0.84359643;
-  for  (int n = 0; n < ARRAY_SIZE(filters); ++n) {
+  for  (int n = 0; n < ARRAY_SIZE(filter); ++n) {
     prev = 0;
     for (int cnt = 0; cnt < 5000; ++cnt) {
       double in = NormalizeRad(cnt * increment);
-      double out = filters[n]->Filter(in);
-      //printf("%6.4f %6.4f %6.4f %6.4f\n", out1, out2, out3, out4);
+      double out = filter[n]->Filter(in);
+      //printf("%6.4lf %6.4lf %6.4lf %6.4lf\n", out1, out2, out3, out4);
 
       EXPECT_IN_INTERVAL(0, out, 2 * M_PI);
 
       if (cnt < 2)  // Median3
-        EXPECT_FALSE(filters[n]->ValidOutput());
+        EXPECT_FALSE(filter[n]->ValidOutput());
       if (cnt > 10)
-        EXPECT_TRUE(filters[n]->ValidOutput());
+        EXPECT_TRUE(filter[n]->ValidOutput());
       // In steady state, the output follows the input with the same gradient.
       if (cnt > 200) {
         EXPECT_FLOAT_EQ(increment, DeltaOldNewRad(prev, out));
@@ -296,23 +296,23 @@ ATEST(WrapAroundFilter, AllFilterRampShiftBackNegative) {
   WrapAroundFilter f2(new LowPass1Filter(10));
   WrapAroundFilter f3(new Median3Filter());
   WrapAroundFilter f4(new Median5Filter());
-  WrapAroundFilter* filters[4] = {&f1, &f2, &f3, &f4};
+  WrapAroundFilter* filter[4] = {&f1, &f2, &f3, &f4};
   double prev;
   double increment = -0.84359643;
-  for  (int n = 0; n < ARRAY_SIZE(filters); ++n) {
+  for  (int n = 0; n < ARRAY_SIZE(filter); ++n) {
     prev = 0;
     for (int cnt = 0; cnt < 5000; ++cnt) {
       double in = NormalizeRad(cnt * increment);
-      double out = filters[n]->Filter(in);
+      double out = filter[n]->Filter(in);
 
       EXPECT_IN_INTERVAL(0, out, 2 * M_PI);
 
       if (cnt < 2)  // Median3
-        EXPECT_FALSE(filters[n]->ValidOutput());
+        EXPECT_FALSE(filter[n]->ValidOutput());
       if (cnt > 10)
-        EXPECT_TRUE(filters[n]->ValidOutput());
+        EXPECT_TRUE(filter[n]->ValidOutput());
 
-      //printf("%4d %6.4f %6.4f\n", cnt, in, out);
+      //printf("%4d %6.4lf %6.4lf\n", cnt, in, out);
 
       // In steady state, the output follows the input with the same gradient.
       if (cnt > 200) {
@@ -366,7 +366,7 @@ ATEST(WrapAroundFilter, AllFilterTiming) {
     micros4 += n4 - n3;
     micros5 += n5 - n4;
     micros6 += n6 - n5;
-    //printf("%6.4f %6.4f %6.4f %6.4f %6.4f\n", out1, out2, out3, out4, out5);
+    //printf("%6.4lf %6.4lf %6.4lf %6.4lf %6.4lf\n", out1, out2, out3, out4, out5);
 
     EXPECT_IN_INTERVAL(0, out1, 2 * M_PI);
     EXPECT_IN_INTERVAL(0, out2, 2 * M_PI);
@@ -401,12 +401,12 @@ ATEST(WrapAroundFilter, AllFilterTiming) {
     prev6 = out6;
   }
   printf("\nRuntimes/microseconds\n=================\n");
-  printf("SlidingAverageFilter:    %6.4f micros\n", micros1 / static_cast<double>(rounds));
-  printf("LowPass1Filter:          %6.4f micros\n", micros2 / static_cast<double>(rounds));
-  printf("Median3Filter:           %6.4f micros\n", micros3 / static_cast<double>(rounds));
-  printf("Median5Filter:           %6.4f micros\n", micros4 / static_cast<double>(rounds));
-  printf("SlidingAverageFilter100: %6.4f micros\n", micros5 / static_cast<double>(rounds));
-  printf("QuickSlidingAverageFilter100: %6.4f micros\n", micros6 / static_cast<double>(rounds));
+  printf("SlidingAverageFilter:    %6.4lf micros\n", micros1 / static_cast<double>(rounds));
+  printf("LowPass1Filter:          %6.4lf micros\n", micros2 / static_cast<double>(rounds));
+  printf("Median3Filter:           %6.4lf micros\n", micros3 / static_cast<double>(rounds));
+  printf("Median5Filter:           %6.4lf micros\n", micros4 / static_cast<double>(rounds));
+  printf("SlidingAverageFilter100: %6.4lf micros\n", micros5 / static_cast<double>(rounds));
+  printf("QuickSlidingAverageFilter100: %6.4lf micros\n", micros6 / static_cast<double>(rounds));
   printf("\n");
 }
 

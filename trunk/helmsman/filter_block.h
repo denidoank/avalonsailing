@@ -14,7 +14,7 @@
 #define HELMSMAN_FILTER_BLOCK_H
 
 #include "helmsman/controller_io.h"
-#include "helmsman/boat.h"             // kWindSensorOffsetRad
+#include "helmsman/compass_mixer.h"
 
 #include "lib/filter/median_filter.h"
 #include "lib/filter/sliding_average_filter.h"
@@ -63,6 +63,7 @@ class FilterBlock {
   WrapAroundFilter alpha_true_wrap_;
   QuickSlidingAverageFilter angle_aoa_filter_;
   WrapAroundFilter angle_aoa_wrap_;
+  CompassMixer compass_mixer_;
 };
 
 
