@@ -25,12 +25,10 @@ struct IMUProto {
   double vel_x_m_s;  // in boat coordinates
   double vel_y_m_s;
   double vel_z_m_s;
-  uint8_t status;
-  uint16_t samplecounter;
 };
 
 #define INIT_IMUPROTO \
-  {0,NAN,NAN,NAN,NAN,NAN,NAN,NAN,NAN,NAN,NAN,NAN,NAN,NAN,NAN,NAN,NAN,NAN,NAN,NAN,0,0}
+  {0,NAN,NAN,NAN,NAN,NAN,NAN,NAN,NAN,NAN,NAN,NAN,NAN,NAN,NAN,NAN,NAN,NAN,NAN,NAN}
 
 // For use in printf and friends.
 #define OFMT_IMUPROTO(x)					 \

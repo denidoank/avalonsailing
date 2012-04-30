@@ -138,9 +138,6 @@ void FilterBlock::Filter(const ControllerInput& in,
     ASSIGN_NOT_NAN(fil->phi_y_rad, in.imu.attitude.phi_y_rad);      // pitch, nick angle;
 
     fil->mag_boat = CensorSpeed(speed_filter_.Filter(in.imu.velocity.x_m_s));
-    if (debug && false) {
-      fprintf(stderr, "speed filtered&clipped %g\n", fil->mag_boat);
-    }
   }
 
   double om_z = 0;

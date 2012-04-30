@@ -105,7 +105,6 @@ ATEST(CompassTests, All) {
     EXPECT_EQ(true, valid);
     EXPECT_FLOAT_EQ(Rad2Deg(bearing_in), Rad2Deg(bearing));
   }
-
 }
 
 

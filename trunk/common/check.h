@@ -20,6 +20,5 @@
 #define CHECK_GE(a, b) assert((a) >= (b))
 #define CHECK_GT(a, b) assert((a) > (b))
 #define CHECK_IN_INTERVAL(a, x, b) assert((a) <= (x) && (x) <= (b))
-#define CHECK_IN_0_2PI(x) assert(0 <= (x) && (x) < 2*M_PI)
 
 #endif  // COMMON_CHECK_H
