@@ -58,11 +58,14 @@ const TestController::DriveTestParam TestController::test_param_[] = {
   {SAIL,         Deg2Rad( 30),  Deg2Rad(-30), 12, "sail 2"}
 };
 
-// stay at start for 0.25 timeout
+const double kJitter = Deg2Rad(0.1);
+const double kInMotion = Deg2Rad(0.4);
+// stay at start for 0.25 timeout, with jitter
 // at t0 : the reference value jumps to final
-// t 1: time needed to turn by the first degree.
+// t1: time needed to turn by kInMotion.
+// This first limit is used to measure the latency of the control loop.
 // t30: Output reaches 30% of delta, t70 t90: ditto.
-const double TestController::fractions_[] = {-1, 0.3, 0.7, 0.9};  // first element unused.
+const double TestController::fractions_[] = {-1, 0.3, 0.7, 0.9};
 
 TestController::TestController(SailController* sail_controller)
     : sail_controller_(sail_controller),
@@ -86,8 +89,6 @@ void TestController::NextPhase(Phase phase) {
 
 void TestController::SetupTest() {
   if (debug) fprintf(stderr, "setup testing %s\n", test_param_[test_index_].name);
-
-  //test_name_ = test_param_[test_index_].name;
   test_start_ = test_param_[test_index_].start_rad;
   test_final_ = test_param_[test_index_].final_rad;
   test_time_start_ms_ = -1;
@@ -100,10 +101,14 @@ void TestController::SetupTest() {
   for (size_t n = 0; n < ARRAY_SIZE(fractions_); ++n) {
     test_times_.push_back(-1);
     actuals_.push_back(-1);
-    if (n == 0)
-      thresholds_.push_back(test_sign_ * (test_start_ + Deg2Rad(1) * test_sign_));
-    else
+    if (n == 0) {
+      // The first threshold is used to measure the reaction time (latency of communication,
+      // torque and speed ramp-up, without actually turning by a lot). Any small angle
+      // should work, we take 0.4 degrees.
+      thresholds_.push_back(test_sign_ * (test_start_ + kInMotion * test_sign_));
+    } else {
       thresholds_.push_back(test_sign_ * (test_start_ + fractions_[n] * delta));
+    }
   }
   CHECK_GT(test_timeout_, 4);
   CHECK_EQ(4, thresholds_.size());
@@ -147,7 +152,6 @@ bool TestController::PrepareNextTest() {
 
 bool TestController::DoDriveTest(const ControllerInput& in,
                                  ControllerOutput* out) {
-  //test_param_
   if (debug) fprintf(stderr, "testing %s\n", test_param_[test_index_].name);
   // input and output
   double actual = 0;
@@ -185,7 +189,9 @@ bool TestController::DoDriveTest(const ControllerInput& in,
   // jump to new reference value (final), this should take about 1/2 of the timeout,
   // rest for 1/4 of the timeout.
   if (Until(0.25)) {
-    *reference = test_start_;
+    // To "wake up" the sail drive and make it release the brake we apply small
+    // reference changes before the big jump.
+    *reference = test_start_ + kJitter * ((count_ % 3) - 1);
   } else if (Until(1)) {
     *reference = test_final_;
     if (test_time_start_ms_ < 0)

@@ -184,8 +184,7 @@ int main(int argc, char* argv[]) {
       1, 0, 0,   // mag
       0, 0, 0,   // r/p/y
       48.2390, -4.7698, 0,   // l/l/a
-      0, 0, 0,   // speed
-      0, 0
+      0, 0, 0   // speed
     };
 
     // Here come the lions, i.e. the stochastic delays by our
