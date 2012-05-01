@@ -76,8 +76,6 @@ static int processinput() {
 enum { DEFUNCT = 0, HOMING, TARGETTING, REACHED };
 const char* status[] = { "DEFUNCT", "HOMING", "TARGETTING", "REACHED" };
 
-const uint32_t MAX_CURRENT_MA     = 15000;  // 15A, @24V, so 360W, the motor is rated at 400W.
-
 const double TOLERANCE_DEG = 1.0;
 
 // Set config and opmode
@@ -110,7 +108,6 @@ int sail_init() {
 	int32_t tol = angle_to_qc(&motor_params[SAIL], TOLERANCE_DEG);
 	if(tol < 0) tol = -tol;
 
-        r &= device_set_register(motor, REGISTER(0x2080, 0), MAX_CURRENT_MA); // current_threshold       User specific [500 mA]
         r &= device_set_register(motor, REGISTER(0x6065, 0), 0xffffffff); // max_following_error User specific [2000 qc]
         r &= device_set_register(motor, REGISTER(0x6067, 0), tol);        // position window [qc], see 14.66
         r &= device_set_register(motor, REGISTER(0x6068, 0), 50);      // position time window [ms], see 14.66
