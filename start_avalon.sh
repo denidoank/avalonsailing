@@ -1,5 +1,5 @@
 #!/bin/bash
-
+#
 # Copyright 2011 The Avalon Project Authors. All rights reserved.
 # Use of this source code is governed by the Apache License 2.0
 # that can be found in the LICENSE file.
@@ -7,7 +7,7 @@
 ## START AVALON
 ##
 ## Script to start all subsystems
-#
+##
 
 PORT_RUDDER_L=/dev/ttyUSB0
 PORT_RUDDER_R=/dev/ttyUSB1
@@ -22,8 +22,11 @@ PORT_IMU=/dev/ttyUSB8	#  /dev/xsensIMU
 EBUS=/tmp/ebus  # /var/run/ebus
 LBUS=/tmp/lbus  # /var/run/lbus
 
-AVALONROOT=/home/avalon/avalonsailing
-export PATH=$AVALONROOT/io:$AVALONROOT/io/rudderd2:$AVALONROOT/helmsman:$AVALONROOT/systools:$PATH
+# for experimental use, get the binaries directly from the source tree.
+if !which linebusd; then
+    AVALONROOT=/home/avalon/avalonsailing
+    export PATH=$AVALONROOT/io:$AVALONROOT/io/rudderd2:$AVALONROOT/helmsman:$AVALONROOT/systools:$PATH
+fi
 
 err=""
 for p in linebusd plug eposprobe ruddersts rudderctlfwd eposmon eposcom rudderctl sailctl\
@@ -40,9 +43,13 @@ fi
 logger -s -p local2.Notice "Avalon subsystems starting up"
 
 linebusd $LBUS	# blocks until socket exists
+echo "to stop all avalon systems"
+echo "   kill \`cat $LBUS.pid\`"
 
-while /bin/true
-do
+# keep restarting rudder suite until LBUS is gone.
+# plug will return false in that case. the echo is to make it exit if it does connect.
+(while echo | plug $LBUS > /dev/null 2>&1 ; do
+
     kill `cat $EBUS.pid` 2> /dev/null 
     linebusd $EBUS	# blocks until socket exists
 
@@ -85,16 +92,19 @@ do
 
 done
 
+    logger -s -p local2.crit "Epos subsystems NOT RESTARTING (lbus pidfile gone)"
+)&
 
-
+# todo: each of these in a restart loop (with rate limiting)
 (imucfg $PORT_IMU &&
-    imucat $PORT_IMU 		| plug -i $LBUS; logger  -s -p local2.crit "imucat exited.")&
+    imucat $PORT_IMU 		| plug -i $LBUS; logger -s -p local2.crit "imucat exited.")&
 (compasscat $PORT_COMPASS 	| plug -i $LBUS; logger -s -p local2.crit "compasscat exited.")&
 (windcat $PORT_WIND 		| plug -i $LBUS; logger -s -p local2.crit "windcat exited.")&
 (fcmon $PORT_FUELCELL 		| plug -i $LBUS; logger -s -p local2.crit "fcmon exited.")&
 
 # (aiscat $PORT_AIS | aisbuf /var/run/ais.txt; logger -s -p local2.crit "aiscat exited.")&
 
+# currently helmsman goes daemon. maybe make it not do that?
 plug $LBUS -- helmsman 2>&1 | logger -p local2.debug
 
 # modemd --device=$PORT_MODEM --queue=/var/run/modem | plug $LBUS | statusd  --queue=/var/run/modem \
