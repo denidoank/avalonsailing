@@ -91,7 +91,7 @@ void NormalController::Run(const ControllerInput& in,
   if (debug) fprintf(stderr, "IntRef: %6.2lf %6.2lf\n", Rad2Deg(phi_star), Rad2Deg(omega_star));
 
   double gamma_rudder_star;
-  
+
   // The boat speed is an unreliable measurement value. It has big systematic and stochastic errors and is
   // therefore filtered and clipped in the filter block. The NormalController can work only
   // with postive boat speeds, but at the transition from the InitialController the very slowly
@@ -170,8 +170,8 @@ ManeuverType NormalController::ReferenceValueSwitch(double alpha_star,
     maneuver_type = FindManeuverType(prev_alpha_star_restricted_,
                                      alpha_star_restricted,
                                      alpha_true);
-    if (debug) fprintf(stderr, "Maneuver Type %d %lg %lg\n", maneuver_type, prev_alpha_star_restricted_, alpha_star_restricted);
-    NextGammaSailWithOldGammaSail(alpha_true, mag_true,
+    if (debug) fprintf(stderr, "Maneuver Type %s %lg %lg\n", ManeuverToString(maneuver_type), prev_alpha_star_restricted_, alpha_star_restricted);
+    NextGammaSailWithOldGammaSail(angle_app, mag_app,
                                  phi_z_boat,
                                  alpha_star_restricted,
                                  old_gamma_sail,
