@@ -86,7 +86,7 @@ echo "   kill \`cat $LBUS.pid\`"
     # ruddersts: decode status registers to ruddersts: messages
     # rudderctlfwd: forward rudderctl: messages to ebus, prefixed with '#'
     # eposmon: summarize and report epos communication errors to syslog
-    eposprobe -f8 | plug $EBUS | ruddersts | plug $LBUS | rudderctlfwd | plug $EBUS | eposmon
+    eposprobe -f8 | plug $EBUS | ruddersts -n100 | plug $LBUS | rudderctlfwd | plug $EBUS | eposmon
     logger -s -p local2.crit "Epos status subsystem exited."
     kill `cat $EBUS.pid`
 
@@ -100,12 +100,12 @@ done
     imucat $PORT_IMU 		| plug -i $LBUS; logger -s -p local2.crit "imucat exited.")&
 (compasscat $PORT_COMPASS 	| plug -i $LBUS; logger -s -p local2.crit "compasscat exited.")&
 (windcat $PORT_WIND 		| plug -i $LBUS; logger -s -p local2.crit "windcat exited.")&
-(fcmon $PORT_FUELCELL 		| plug -i $LBUS; logger -s -p local2.crit "fcmon exited.")&
+#(fcmon $PORT_FUELCELL 		| plug -i $LBUS; logger -s -p local2.crit "fcmon exited.")&
 
 # (aiscat $PORT_AIS | aisbuf /var/run/ais.txt; logger -s -p local2.crit "aiscat exited.")&
 
 # currently helmsman goes daemon. maybe make it not do that?
-plug $LBUS -- helmsman 2>&1 | logger -p local2.debug
+plug $LBUS -- `which helmsman` 2>&1 | logger -p local2.debug
 
 # modemd --device=$PORT_MODEM --queue=/var/run/modem | plug $LBUS | statusd  --queue=/var/run/modem \
 #	--initial_timeout=180 --status_interval=86400 --remote_cmd_interval=5 
