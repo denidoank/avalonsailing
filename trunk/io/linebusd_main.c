@@ -2,8 +2,26 @@
 // Use of this source code is governed by the Apache License 2.0
 // that can be found in the LICENSE file.
 //
-// Daemon to read lines from stdin and publish them to any
-// connected client.
+// LineBus daemon.
+//
+// The linebus daemon listens on a unix socket for connecting clients.
+// A client can send lines (of up to 1Kb) which will then be copied out
+// to all other listening clients.  Clients which are blocked for writing
+// on their socket will be skipped, so delivery is not reliable.
+// Lines prefixed with the command character (default '$') are handled by
+// the daemon itself.
+//
+// The commands are
+//    $id <identifier>     Name this client for diagnostic purposes
+//    $stats               Echo to the client some statistics about all clients
+//    $xoff		   don't send any further output to this client.
+//    $subscribe <prefix>  Install a filter (see below)
+//
+// By default each client is eligible to receive all messages, but this can
+// be changed by setting filters.  As soon as a client $subscribes to a <prefix>
+// only lines matching that prefix will be forwarded to it. A client can subscribe
+// to multiple prefixes.  Currently, there is no way to unsubscribe.
+// 
 //
 //
 #define _GNU_SOURCE
@@ -44,14 +62,9 @@ crash(const char* fmt, ...)
 	char buf[1000];
 	va_start(ap, fmt);
 	vsnprintf(buf, sizeof(buf), fmt, ap);
-	if (debug)
-		fprintf(stderr, "%s:%s%s%s\n", argv0, buf,
-			(errno) ? ": " : "",
-			(errno) ? strerror(errno):"" );
-	else
-		syslog(LOG_CRIT, "%s%s%s\n", buf,
-		       (errno) ? ": " : "",
-		       (errno) ? strerror(errno):"" );
+	syslog(LOG_CRIT, "%s%s%s\n", buf,
+	       (errno) ? ": " : "",
+	       (errno) ? strerror(errno):"" );
 	exit(1);
 	va_end(ap);
 	return;
@@ -65,7 +78,8 @@ usage(void)
 	fprintf(stderr,
 		"usage: %s [options] /path/to/socket\n"
 		"options:\n"
-		"\t-d debug (don't go daemon, don't syslog)\n"
+		"\t-d debug   (don't go daemon, don't syslog)\n"
+		"\t-c cmdchar command prefix character (default '$')\n"
 		, argv0);
 	exit(2);
 }
@@ -86,6 +100,8 @@ static struct Client {
 	struct LineBuffer out;
 	struct sockaddr_un addr;
 	socklen_t addrlen;
+	char* name;
+	int xoff;
 	int dropped;
 } *clients = NULL;
 
@@ -98,11 +114,11 @@ new_client(int sck)
 	cl->fd = accept(sck, (struct sockaddr*)&cl->addr, &cl->addrlen);
 	if (cl->fd < 0) {
 		// probably hung up before we got here, no reason to crash.
-		if (debug) fprintf(stderr, "accept:%s\n", strerror(errno));
+		syslog(LOG_INFO, "accept:%s", strerror(errno));
 		free(cl);
 		return NULL;
 	}
-	if (debug) fprintf(stderr, "New client: %d\n", cl->fd);
+	syslog(LOG_INFO, "New client: %d", cl->fd);
         if (fcntl(cl->fd,  F_SETFL, O_NONBLOCK) < 0) crash("fcntl(in)");
 	cl->next = clients;
 	clients = cl;
@@ -124,35 +140,27 @@ client_setfds(struct Client* client, fd_set* rfds, fd_set* wfds, int* max_fd)
 	set_fd(rfds, max_fd, client->fd);
 }
 
-static void
-client_puts(struct Client* client, const char* line)
+static int
+client_write(struct Client* client)
 {
-	if (client->fd < 0) return;
-	lb_putline(&client->out, line);
-}
-
-static void
-client_flush(struct Client* client)
-{
-	if (client->fd < 0) return;
-	if (!lb_pending(&client->out)) return;
-	int r = lb_write(client->fd, &client->out);
+	if (client->fd < 0) return 0;
+	int r = lb_writefd(client->fd, &client->out);
 	if ((r != 0) && (r != EAGAIN)) {
 		close(client->fd);
 		client->fd = -1;
 	}
+	return r;
 }
 
-static const char*
-client_gets(struct Client* client) {
-	if (client->fd < 0) return NULL;
-	int r = lb_read(client->fd, &client->in);
-	if (r == 0) return client->in.line;
-	if (r != EAGAIN) {
+static int
+client_read(struct Client* client) {
+	if (client->fd < 0) return 0;
+	int r = lb_readfd(&client->in, client->fd);
+	if (r != 0 && r != EAGAIN) {
 		close(client->fd);
 		client->fd = -1;
 	}
-	return NULL;
+	return r;
 }
 
 static void
@@ -162,13 +170,46 @@ reap_clients()
 	while (*prevp) {
 		struct Client* curr = *prevp;
 		if(curr->fd < 0) {
-			if (debug) fprintf(stderr, "Closed client.\n");
+			syslog(LOG_NOTICE, "Closed client %s.\n", curr->name ? curr->name : "<anon>");
 			*prevp = curr->next;
 			free(curr);
 		} else {
 			prevp = &curr->next;
 		}
 	}
+}
+
+static int client_puts(struct Client* client, const char* line){ return lb_putline(&client->out, (char*)line); }
+static int client_gets(struct Client* client, char* line, int size) { return lb_getline(line, size, &client->in); }
+
+static void
+handle_cmd(struct Client* client, char* line) {
+	int i;
+	for(i = strlen(line) - 1; i >= 0 && line[i] == '\n'; --i)
+		line[i] = 0;
+
+	if (strncmp("id ", line, 3) == 0) {
+		if(client->name) {
+			syslog(LOG_NOTICE, "Client %d renamed '%s' from '%s'", client->fd, line + 3, client->name);
+			free(client->name);
+		} else {
+			syslog(LOG_NOTICE, "Client %d named '%s'", client->fd, line + 3);
+		}
+		client->name = strndup(line+3, 20);
+		return;
+	}
+
+	if (strcmp("xoff", line) == 0) {
+		client->xoff = 1;
+		syslog(LOG_NOTICE, "Client %s (%d) set xoff\n", client->name ? client->name : "<anon>", client->fd);
+		return;
+	}
+
+	if (strncmp("subscribe ", line, 10) == 0) {
+		syslog(LOG_NOTICE, "Client %s (%d) subscribed:'%s'\n", client->name ? client->name : "<anon>", client->fd, line + 10);
+		return;
+	}
+	
 }
 
 
@@ -180,12 +221,14 @@ reap_clients()
 int main(int argc, char* argv[]) {
 
 	int ch;
+	int cmdchar = '$';
 
 	argv0 = strrchr(argv[0], '/');
 	if (argv0) ++argv0; else argv0 = argv[0];
 
-	while ((ch = getopt(argc, argv, "dhtv")) != -1){
+	while ((ch = getopt(argc, argv, "c:dhtv")) != -1){
 		switch (ch) {
+		case 'c': cmdchar = optarg[0]; break;
 		case 'd': ++debug; break;
 		case 't': ++timing; break;
 		case 'v': ++verbose; break;
@@ -206,7 +249,8 @@ int main(int argc, char* argv[]) {
 	signal(SIGBUS, fault);
         signal(SIGSEGV, fault);
 
-	if (!debug) openlog(argv0, LOG_PERROR, LOG_DAEMON);
+	openlog(argv0, debug?LOG_PERROR:0, LOG_DAEMON);
+	if(!debug) setlogmask(LOG_UPTO(LOG_NOTICE));
 
 	// Set up socket.
 	unlink(argv[0]);
@@ -220,8 +264,6 @@ int main(int argc, char* argv[]) {
 	if (bind(sck, (struct sockaddr*) &srvaddr, sizeof srvaddr) < 0) crash("bind(%S)", argv[0]);
 	if (listen(sck, 8) < 0) crash("listen");
 
-	if (debug) fprintf(stderr, "created socket:%s\n", argv[0]);
-
 	// Go daemon and write pidfile.
 	if (!debug) {
 		daemon(0,1);
@@ -233,9 +275,9 @@ int main(int argc, char* argv[]) {
 		fprintf(pidfile, "%d\n", getpid());
 		fclose(pidfile);
 		free(path_to_pidfile);
-
-		syslog(LOG_INFO, "Started.");
 	}
+
+	syslog(LOG_NOTICE, "Started on socket %s", argv[0]);
 
 	if (signal(SIGPIPE, SIG_IGN) == SIG_ERR) crash("signal");
 
@@ -259,36 +301,47 @@ int main(int argc, char* argv[]) {
 		int r = pselect(max_fd + 1, &rfds, &wfds, NULL, NULL, &empty_mask);
 		if (r == -1 && errno != EINTR) crash("pselect");
 
-		if (debug > 1) fprintf(stderr, "woke up %d\n", r);
+		if(debug > 1) syslog(LOG_DEBUG, "woke up %d\n", r);
 
-		if (FD_ISSET(sck, &rfds)) new_client(sck);
-
+		int notdonewriting = 0;
 		for (cl = clients; cl; cl = cl->next)
 			if (cl->fd >= 0 && FD_ISSET(cl->fd, &wfds))
-				client_flush(cl);
+				if(client_write(cl) == EAGAIN)
+					++notdonewriting;
+
+		if(notdonewriting) { 		// blocked ones won't have been counted
+			syslog(LOG_DEBUG, "Not done writing: %d", notdonewriting);
+			continue;
+		}
 
 		// Find first client that's ready for reading
 		struct Client** cp;
 		for (cp = &clients; *cp; cp = &(*cp)->next)
 			if ((*cp)->fd >= 0 && FD_ISSET((*cp)->fd, &rfds))
-				break;
+				if(client_read(*cp) == 0)   // at least 1 line is ready
+					break;
 
 		if(*cp) {
-			const char* line = client_gets(*cp);
-			if (!line) continue;
-			while(*line == '\n') ++line;
-			if (!line[0]) continue;
-			if (debug) puts(line);
+			char buf[1024];
+			while(client_gets(*cp, buf, sizeof buf) > 0) {
+				if(buf[0] == 0) continue;
+				
+				if(debug > 1 && buf[0]) fprintf(stdout, "received:>>%s<<", buf);
 
-			for (cl = clients; cl; cl = cl->next) {
-				if (cl == *cp) continue;
-				if (cl->fd < 0) continue;
-				if (lb_pending(&cl->out)) {
-					cl->dropped++;
-					if (debug) fprintf(stderr, "Dropping output to client %d.\n", cl->fd);
+				if(buf[0] == cmdchar) {
+					handle_cmd(*cp, buf+1);
 					continue;
+				} 
+
+				for (cl = clients; cl; cl = cl->next) {
+					if (cl == *cp) continue;
+					if (cl->fd < 0) continue;
+					if (cl->xoff) continue;
+					if (client_puts(cl, buf) < 0) {
+						cl->dropped++;
+						syslog(LOG_DEBUG, "Dropping output to client %d.\n", cl->fd);
+					}
 				}
-				client_puts(cl, line);
 			}
 
 			// move last read client to end of list
@@ -301,6 +354,8 @@ int main(int argc, char* argv[]) {
 		}
 
 		reap_clients();
+		// Accept new clients now.
+		if (FD_ISSET(sck, &rfds)) new_client(sck);
 
 	} // main loop
 
