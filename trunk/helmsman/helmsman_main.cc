@@ -58,31 +58,25 @@ void crash(const char* fmt, ...) {
   char buf[1000];
   va_start(ap, fmt);
   vsnprintf(buf, sizeof(buf), fmt, ap);
-  if (debug)
-    fprintf(stderr, "%s:%s%s%s\n", argv0, buf,
-      (errno) ? ": " : "",
-      (errno) ? strerror(errno):"" );
-  else
-    syslog(LOG_CRIT, "%s%s%s\n", buf,
-           (errno) ? ": " : "",
-           (errno) ? strerror(errno):"" );
+  syslog(LOG_CRIT, "%s%s%s\n", buf,
+	 (errno) ? ": " : "",
+	 (errno) ? strerror(errno):"" );
   exit(1);
   va_end(ap);
   return;
 }
 
-static void bus_fault(int i) { crash("bus fault %d", i); }
-static void segv_fault(int i) { crash("segv fault %d", i); }
+static void bus_fault(int i) { crash("bus fault"); }
+static void segv_fault(int i) { crash("segv fault"); }
 
 void usage(void) {
   fprintf(stderr,
     "usage: [plug /path/to/bus] %s [options]\n"
     "options:\n"
-    "\t-d debug (don't go daemon, don't syslog)\n"
+    "\t-d debug\n"
     , argv0);
   exit(2);
 }
-
 
 static void set_fd(fd_set* s, int* maxfd, FILE* f) {
         int fd = fileno(f);
@@ -95,7 +89,7 @@ static const int64_t kPeriodMicros = kSamplingPeriod * 1E6;
 void AdvanceCallTime(int64_t* next_call_micros) {
   *next_call_micros += kPeriodMicros;
   if (now_micros() > *next_call_micros) {
-    fprintf(stderr, "Irkss!! Too late by %lld micros\n", (now_micros() - *next_call_micros));
+    syslog(LOG_WARNING, "Irkss!! Too late by %lld micros\n", (now_micros() - *next_call_micros));
     *next_call_micros = now_micros();
   }
 }
@@ -113,7 +107,7 @@ bool CalculateTimeOut(int64_t next_call_micros, struct timespec* timeout) {
 
 void HandleRemoteControl(RemoteProto remote, int* control_mode) {
   if (remote.command != *control_mode)
-    fprintf(stderr, "Helmsman switched to control mode %d\n", remote.command);
+    syslog(LOG_NOTICE, "Helmsman switched to control mode %d\n", remote.command);
   switch (remote.command) {
     case kNormalControlMode:
     case kOverrideSkipperMode:
@@ -134,7 +128,7 @@ void HandleRemoteControl(RemoteProto remote, int* control_mode) {
       ShipControl::Idle();
       break;
   default:
-    fprintf(stderr, "Illegal remote control: %d", remote.command);
+    syslog(LOG_WARNING, "Illegal remote control: %d", remote.command);
   }
 }
 
@@ -166,31 +160,17 @@ int main(int argc, char* argv[]) {
 
   setlinebuf(stdout);
 
-  if (!debug) openlog(argv0, LOG_PERROR, LOG_LOCAL0);
+  openlog(argv0, debug?LOG_PERROR:0, LOG_LOCAL0);
+  if(!debug) setlogmask(LOG_UPTO(LOG_NOTICE));
 
   if (signal(SIGBUS, bus_fault) == SIG_ERR)  crash("signal(SIGBUS)");
   if (signal(SIGSEGV, segv_fault) == SIG_ERR)  crash("signal(SIGSEGV)");
   if (signal(SIGPIPE, SIG_IGN) == SIG_ERR) crash("signal");
 
-  if (debug) {
-    fprintf(stderr, "Helmsman started\n");
-  } else {
-    daemon(0,0);
-    char* path_to_pidfile = NULL;
-    asprintf(&path_to_pidfile, "/var/run/%s.pid", argv0);
-    FILE* pidfile = fopen(path_to_pidfile, "w");
-    if(!pidfile) crash("writing pidfile (%s)", path_to_pidfile);
-    fprintf(pidfile, "%d\n", getpid());
-    fclose(pidfile);
-    free(path_to_pidfile);
-
-    syslog(LOG_INFO, "Helmsman started");
-  }
+  syslog(LOG_NOTICE, "Helmsman started");
 
   ControllerInput ctrl_in;
   ControllerOutput ctrl_out;  // in this scope because it keeps the statistics.
-
-  int nn = 0;
 
   struct WindProto wind_sensor  = INIT_WINDPROTO;
   struct CompassProto compass  = INIT_COMPASSPROTO;
@@ -219,63 +199,47 @@ int main(int argc, char* argv[]) {
     sigset_t empty_mask;
     sigemptyset(&empty_mask);
     int r = pselect(max_fd + 1, &rfds,  NULL, NULL, &timeout, &empty_mask);
-    if (r == -1 && errno != EINTR) {
-      fprintf(stderr, "crash with %lx %lx\n", long(timeout.tv_sec), timeout.tv_nsec);
-      fprintf(stderr, "crash with errno %ld \n", long(errno));
-      crash("pselect");
-    }
-    if (debug>2) fprintf(stderr, "Woke up %d\n", r);
+    if (r == -1 && errno != EINTR) crash("pselect");
+
+    if (debug>2) syslog(LOG_DEBUG, "Woke up %d\n", r);
 
     if (FD_ISSET(fileno(stdin), &rfds)) {
-      r = lb_read(fileno(stdin), &lbuf);
-      if (r == 0) {
-      const char *line = lbuf.line;
-        nn = 0;
-        while (strlen(line) > 5) {  // > 0 would work as well
-          if (sscanf(line, IFMT_WINDPROTO(&wind_sensor, &nn)) > 0) {
-            fprintf(stderr, "wind_line:%s\n", line);
-            ctrl_in.wind_sensor.Reset();
-            ctrl_in.wind_sensor.alpha_deg = SymmetricDeg(NormalizeDeg(wind_sensor.angle_deg));
-            ctrl_in.wind_sensor.mag_m_s = wind_sensor.speed_m_s;
-            ctrl_in.wind_sensor.valid = wind_sensor.valid;
+      r = lb_readfd(&lbuf, fileno(stdin));
+      if (r != 0 && r != EAGAIN) break;  // exit main loop if stdin no longer readable.
+    }
 
-          } else if (sscanf(line, IFMT_IMUPROTO(&imu, &nn)) > 0) {
-            ctrl_in.imu.Reset();
-            ctrl_in.imu.FromProto(imu);
-          } else if (sscanf(line, IFMT_RUDDERPROTO_STS(&sts, &nn)) > 0) {
-            ctrl_in.drives.gamma_rudder_left_rad  = Deg2Rad(sts.rudder_l_deg);
-            ctrl_in.drives.gamma_rudder_right_rad = Deg2Rad(sts.rudder_r_deg);
-            ctrl_in.drives.gamma_sail_rad         = Deg2Rad(sts.sail_deg);
-            ctrl_in.drives.homed_rudder_left = !isnan(sts.rudder_l_deg);
-            ctrl_in.drives.homed_rudder_right = !isnan(sts.rudder_r_deg);
-            ctrl_in.drives.homed_sail = !isnan(sts.sail_deg);
-
-          } else if (sscanf(line, IFMT_COMPASSPROTO(&compass, &nn)) > 0) {
-            ctrl_in.compass_sensor.phi_z_rad  = Deg2Rad(compass.yaw_deg);
-          } else if (sscanf(line, IFMT_HELMSMANCTLPROTO(&ctl, &nn)) > 0) {
-            if (control_mode != kOverrideSkipperMode &&
-                !isnan(ctl.alpha_star_deg))
-              ctrl_in.alpha_star_rad = Deg2Rad(ctl.alpha_star_deg);
-          } else if (sscanf(line, IFMT_REMOTEPROTO(&remote, &nn)) > 0) {
-            HandleRemoteControl(remote, &control_mode);
-            if (control_mode == kOverrideSkipperMode)
-              ctrl_in.alpha_star_rad = Deg2Rad(remote.alpha_star_deg);
-          } else {
-            // Any unexpected input (messages not sent to us, or debug output that
-            // accidentally was sent to stdout instead of stderr comes here.
-            fprintf(stderr, "Unreadable input \n>>>%s<<<\n", line);
-            const char* first_newline = strchr(line, '\n');
-            if (first_newline) {
-              nn = first_newline - line + 1;
-            } else {
-              nn = strlen(line);  // If the rubbish has no trailing newline, then the correct
-              // message following immediately gets discarded as well, unfortunately.
-            }
-          }
-          line += nn;
-        }
+    char line[1024];
+    while(lb_getline(line, sizeof line, &lbuf) > 0) {
+      int nn = 0;
+      if (sscanf(line, IFMT_WINDPROTO(&wind_sensor, &nn)) > 0) {
+	ctrl_in.wind_sensor.Reset();
+	ctrl_in.wind_sensor.alpha_deg = SymmetricDeg(NormalizeDeg(wind_sensor.angle_deg));
+	ctrl_in.wind_sensor.mag_m_s = wind_sensor.speed_m_s;
+	ctrl_in.wind_sensor.valid = wind_sensor.valid;
+      } else if (sscanf(line, IFMT_IMUPROTO(&imu, &nn)) > 0) {
+	ctrl_in.imu.Reset();
+	ctrl_in.imu.FromProto(imu);
+      } else if (sscanf(line, IFMT_RUDDERPROTO_STS(&sts, &nn)) > 0) {
+	ctrl_in.drives.gamma_rudder_left_rad  = Deg2Rad(sts.rudder_l_deg);
+	ctrl_in.drives.gamma_rudder_right_rad = Deg2Rad(sts.rudder_r_deg);
+	ctrl_in.drives.gamma_sail_rad         = Deg2Rad(sts.sail_deg);
+	ctrl_in.drives.homed_rudder_left = !isnan(sts.rudder_l_deg);
+	ctrl_in.drives.homed_rudder_right = !isnan(sts.rudder_r_deg);
+	ctrl_in.drives.homed_sail = !isnan(sts.sail_deg);
+      } else if (sscanf(line, IFMT_COMPASSPROTO(&compass, &nn)) > 0) {
+	ctrl_in.compass_sensor.phi_z_rad  = Deg2Rad(compass.yaw_deg);
+      } else if (sscanf(line, IFMT_HELMSMANCTLPROTO(&ctl, &nn)) > 0) {
+	if (control_mode != kOverrideSkipperMode &&
+	    !isnan(ctl.alpha_star_deg))
+	  ctrl_in.alpha_star_rad = Deg2Rad(ctl.alpha_star_deg);
+      } else if (sscanf(line, IFMT_REMOTEPROTO(&remote, &nn)) > 0) {
+	HandleRemoteControl(remote, &control_mode);
+	if (control_mode == kOverrideSkipperMode)
+	  ctrl_in.alpha_star_rad = Deg2Rad(remote.alpha_star_deg);
       } else {
-        if (r != EAGAIN) crash("Error reading stdin");
+	// Any unexpected input (messages not sent to us, or debug output that
+	// accidentally was sent to stdout instead of stderr comes here.
+	syslog(LOG_DEBUG, "Unreadable input \n>>>%s<<<\n", line);
       }
     }
 
@@ -306,8 +270,8 @@ int main(int argc, char* argv[]) {
         hsts.timestamp_ms = now_ms();
         printf(OFMT_HELMSMAN_STATUSPROTO(hsts));
       }
-      // A simple ++loops would do the job until loops wraps around only.
-      loops = loops > 999 ? 0 : loops+1;
+
+      loops = ++loops % 1000;
     }
   }  // for ever
 
