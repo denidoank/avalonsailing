@@ -47,24 +47,46 @@ usage(void)
 		"options:\n"
 		"\t-i input only\n"
 		"\t-o output only\n"
+		"\t-f subscription (may be repeated)\n"
+		"\t-n name  diagnostic name for linebusd\n"
 		"\t-d debug (don't go daemon, don't syslog)\n"
+		"\t-c cmdchar linebusd uses alternate command character (default '$')\n"
 		, argv0);
 	exit(2);
+}
+
+struct List {
+	struct List *next;
+	char *str;
+} *subscriptions = NULL;
+
+struct List* NewItem(struct List* l, char* s) { 
+	struct List *n = malloc(sizeof *n);
+	n->next = l;
+	n->str = s;
+	return n;
 }
 
 int main(int argc, char* argv[]) {
 	int ch;
 	int noin = 0;
 	int noout = 0;
+	int cmdchar = '$';
+	char *name = NULL;
+
+	char cmdbuf[100];
 
 	pid_t s_to_out_pid = -1;
 	pid_t in_to_s_pid  = -1;
 
         argv0 = argv[0];
 
-	while ((ch = getopt(argc, argv, "dhiov")) != -1){
+	while ((ch = getopt(argc, argv, "c:df:hin:ov")) != -1){
 		switch (ch) {
+		case 'c': cmdchar = optarg[0]; break;
+		case 'n': name = optarg; break;
 		case 'd': ++debug; break;
+		case 'f': subscriptions = NewItem(subscriptions, optarg); break;
 		case 'v': ++verbose; break;
 		case 'o': ++noin; break;
 		case 'i': ++noout; break;
@@ -89,6 +111,23 @@ int main(int argc, char* argv[]) {
 
         if (connect(s, (struct sockaddr*)&addr, sizeof(addr)) < 0)
                 crash("connect(%s)", argv[0]);
+
+	// Send commands to linebusd
+	if(noout) {
+		int n = snprintf(cmdbuf, sizeof cmdbuf, "%cxoff\n", cmdchar);
+		write(s, cmdbuf, n);
+	}
+
+	if(name) {
+		int n = snprintf(cmdbuf, sizeof cmdbuf, "%cid %s\n", cmdchar, name);
+		write(s, cmdbuf, n);
+	}
+
+	struct List *sbs;
+	for(sbs = subscriptions; sbs; sbs = sbs->next) {
+		int n = snprintf(cmdbuf, sizeof cmdbuf, "%csubscribe %s\n", cmdchar, sbs->str);
+		write(s, cmdbuf, n);		
+	}
 
 	argc--; argv++;
 
