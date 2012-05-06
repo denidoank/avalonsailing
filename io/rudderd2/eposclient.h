@@ -22,12 +22,22 @@
 #define EBUS_SET_OFMT(serial, reg, value) \
 	"0x%x:0x%x[%d] := 0x%x\n", (serial), INDEX(reg), SUBINDEX(reg), (value)
 
+// for use with timestamps
+#define EBUS_GET_T_OFMT(serial, reg, us) \
+	"0x%x:0x%x[%d] T:%lld\n", (serial), INDEX(reg), SUBINDEX(reg), us
+
+#define EBUS_SET_T_OFMT(serial, reg, value, us)	\
+	"0x%x:0x%x[%d] := 0x%x T:%lld\n", (serial), INDEX(reg), SUBINDEX(reg), (value), us
+
 
 typedef struct Bus Bus;
 typedef struct Device Device;
 
 // Instantiate and connect a new bus.  ctl will be used to issue commands.
 Bus* bus_new(FILE* ctl);
+
+// set or clear the add-timestamps-to-generated-messages flag.
+void bus_enable_timestamp(Bus* bus, int on);
 
 // parse and dispatch a received line to devices.
 // returns 0 if no register updated, or the time difference in uS since the command was issued.

@@ -8,8 +8,8 @@ by the eposcom programs:
    0xffff:0xaaaa[1] := value       interpreted by eposcom as a request to write register
    0xffff:0xaaaa[1] = value        emitted by eposcom to acknowledge read or write
    0xffff:0xaaaa[1] # error        emitted by eposcom in case of error reading or writing
-   # comment line                  ignored by eposcom, can be used to encaps other messages        
-  
-and '#' lines (used to piggyback rudderctl messages from the lbus to the ebus
+
+with the -T flag, eposcom and others will add a trailing T:us field with the current timestamp at the moment
+of sending the message.
 
 see start_rudderd.sh to see how the entire suite is to be run.

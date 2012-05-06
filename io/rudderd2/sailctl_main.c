@@ -263,14 +263,16 @@ const int64_t MAX_INTERVAL_MS = 15*60*1000;
 int main(int argc, char* argv[]) {
 
 	int ch;
+	int dotimestamps = 0;
 
 	argv0 = strrchr(argv[0], '/');
 	if (argv0) ++argv0; else argv0 = argv[0];
 
-	while ((ch = getopt(argc, argv, "dhv")) != -1){
+	while ((ch = getopt(argc, argv, "dhTv")) != -1){
 		switch (ch) {
 		case 'd': ++debug; break;
 		case 'v': ++verbose; break;
+		case 'T': ++dotimestamps; break;
 		case 'h': 
 		default:
 			usage();
@@ -295,6 +297,7 @@ int main(int argc, char* argv[]) {
 
 	setlinebuf(stdout);
 	bus = bus_new(stdout);
+	bus_enable_timestamp(bus, dotimestamps);
 	motor = bus_open_device(bus, motor_params[SAIL].serial_number);
 	bmmh  = bus_open_device(bus, motor_params[BMMH].serial_number);
 
