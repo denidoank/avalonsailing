@@ -48,7 +48,7 @@ echo "   kill \`cat $LBUS.pid\`"
 
 # keep restarting rudder suite until LBUS is gone.
 # plug will return false in that case. the echo is to make it exit if it does connect.
-(while echo | plug $LBUS > /dev/null 2>&1 ; do
+(while echo | plug -i $LBUS > /dev/null 2>&1 ; do
 
     kill `cat $EBUS.pid` 2> /dev/null 
     linebusd $EBUS	# blocks until socket exists
@@ -58,7 +58,7 @@ echo "   kill \`cat $LBUS.pid\`"
     for p in $PORT_RUDDER_L  $PORT_RUDDER_R $PORT_SAIL 
     do
 	(
-	    plug $EBUS -- `which eposcom` $p
+	    plug -n "epos-$(basename $p)" $EBUS -- `which eposcom` $p
 	    logger -s -p local2.crit "Eposcom $p exited."
 	    kill `cat $EBUS.pid`
 	)&
@@ -82,11 +82,12 @@ echo "   kill \`cat $LBUS.pid\`"
 	kill `cat $EBUS.pid`
     )&
 
-    # eposprobe: periodically issue status register probe commands (needed by ruddersts and -mon)
-    # ruddersts: decode status registers to ruddersts: messages
-    # rudderctlfwd: forward rudderctl: messages to ebus, prefixed with '#'
-    # eposmon: summarize and report epos communication errors to syslog
-    eposprobe -f8 | plug $EBUS | ruddersts -n100 | plug $LBUS | rudderctlfwd | plug $EBUS | eposmon
+    # chained to save some plug forks:
+    #   eposprobe: periodically issue status register probe commands (needed by ruddersts and -mon)
+    #   ruddersts: decode status registers to ruddersts: messages
+    #   plug -f rudderctl: forward rudderctl: messages to ebus, prefixed with '#'
+    #   eposmon: summarize and report epos communication errors to syslog
+    eposprobe -f8 | plug -n "ruddersts" $EBUS | ruddersts -n100 | plug -f 'rudderctl:' $LBUS | plug $EBUS | eposmon
     logger -s -p local2.crit "Epos status subsystem exited."
     kill `cat $EBUS.pid`
 
@@ -104,11 +105,14 @@ done
 
 # (aiscat $PORT_AIS | aisbuf /var/run/ais.txt; logger -s -p local2.crit "aiscat exited.")&
 
-# currently helmsman goes daemon. maybe make it not do that?
-plug $LBUS -- `which helmsman` 2>&1 | logger -p local2.debug
+
+(plug -n "helmsman" $LBUS -- `which helmsman` 2>&1 | logger -p local2.debug)&
 
 # modemd --device=$PORT_MODEM --queue=/var/run/modem | plug $LBUS | statusd  --queue=/var/run/modem \
 #	--initial_timeout=180 --status_interval=86400 --remote_cmd_interval=5 
+
+
+
 
 echo "Und immer eine Handbreit Wasser unter dem Kiel!"
 echo "May she always have a good passage, wherever she goes!"
