@@ -71,9 +71,13 @@ int main(int argc, char* argv[]) {
 
 	 int nodeid;
 	 for (nodeid = 1; nodeid < nelem(nodeidmap); ++nodeid) {
+		 // Read serial number register 0x1018[4]
 		 uint32_t err = epos_readobject(fd, 0x1018, 4, nodeid, nodeidmap + nodeid);
 		 if (err != 0) continue;
 		 slog(LOG_INFO, "port:%s nodeid:%d serial:0x%x\n", argv[0], nodeid, nodeidmap[nodeid]);
+		 // Ask linebusd to filter.  Note: we assume all clients will print serial in hex,
+		 // which they will if they use eposclient.h EPOS_G/SET_OFMT
+		 printf("$subscribe 0x%x\n", nodeidmap[nodeid]);
 	 }
 
 	 while (!feof(stdin)) {

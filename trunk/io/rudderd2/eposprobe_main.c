@@ -32,7 +32,8 @@ usage(void)
 	fprintf(stderr,
 		"usage: %s [options] | plug -o /path/to/ebus \n"
 		"options:\n"
-		"\t-f freq probing frequency [default 12Hz]\n"
+		"\t-f freq probing frequency [default 8Hz]\n"
+		"\t-t toggle emit #timestamp_us: message on bus\n"
 		, argv0);
 	exit(2);
 }
@@ -53,16 +54,18 @@ now_us()
 int main(int argc, char* argv[]) {
 
 	int ch;
-	int freq_hz = 12;
+	int freq_hz = 8;
+	int dotimestamp = 0;
 
 	argv0 = strrchr(argv[0], '/');
 	if (argv0) ++argv0; else argv0 = argv[0];
 
-	while ((ch = getopt(argc, argv, "df:hv")) != -1){
+	while ((ch = getopt(argc, argv, "df:htv")) != -1){
 		switch (ch) {
 		case 'd': ++debug; break;
 		case 'f': freq_hz = atoi(optarg); break;
 		case 'v': ++verbose; break;
+		case 't': dotimestamp = 1 - dotimestamp; break;
 		case 'h': 
 		default:
 			usage();
@@ -97,8 +100,11 @@ int main(int argc, char* argv[]) {
 		printf(EBUS_GET_OFMT(motor_params[SAIL].serial_number, REG_STATUS));
 		printf(EBUS_GET_OFMT(motor_params[BMMH].serial_number, REG_BMMHPOS));
 
-		fflush(stdout);
 		last_us = now_us();
+		if(dotimestamp)
+			printf("#timestamp_us:%lld\n", last_us);
+		fflush(stdout);
+		
 	}
 
 	crash("main loop exit");

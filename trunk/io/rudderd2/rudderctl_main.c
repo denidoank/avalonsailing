@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/time.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -47,7 +48,6 @@ static MotorParams* params = NULL;
 static Device* dev = NULL;
 static double target_angle_deg = NAN;
 
-const uint32_t MAX_CURRENT_MA = 10000;  // 10A, @24V so 240W, the motor is rated at 250W.
 const double TOLERANCE_DEG = .05;  // aiming precision in targetting rudder
 const int64_t BUSLATENCY_WARN_THRESH_US = 100*1000;  // 100ms
 
@@ -56,10 +56,10 @@ static int processinput() {
 	if (!fgets(line, sizeof(line), stdin))
 		crash("reading stdin");
 
-	if (line[0] == '#') {
+	if (line[0] == 'r') {  // 'rudderctl: ..
 		struct RudderProto msg = INIT_RUDDERPROTO;
 		int nn;
-		int n = sscanf(line+1, IFMT_RUDDERPROTO_CTL(&msg, &nn));
+		int n = sscanf(line, IFMT_RUDDERPROTO_CTL(&msg, &nn));
 		if (n != 5)
 			return 0;
 		target_angle_deg = (params == &motor_params[LEFT]) ? msg.rudder_l_deg : msg.rudder_r_deg;
@@ -71,7 +71,7 @@ static int processinput() {
 		if (lat_us == 0)
 			return 0;
 		if(lat_us > BUSLATENCY_WARN_THRESH_US)
-			slog(LOG_WARNING, "high bus latency: %lld ms", lat_us/1000000);
+			slog(LOG_WARNING, "high epos latency: %lld ms", lat_us/1000);
 	}
 	return 1;
 }
@@ -122,7 +122,7 @@ static int rudder_init()
         maxpos += 10*delta;
         int32_t method = (params->home_pos_qc < params->extr_pos_qc) ? 1 : 2;
 
-        r &= device_set_register(dev, REGISTER(0x2080, 0), MAX_CURRENT_MA);  // current_threshold       User specific [500 mA]
+        r &= device_set_register(dev, REGISTER(0x2080, 0),   500);  // homing current_threshold       User specific [500 mA]
         r &= device_set_register(dev, REGISTER(0x2081, 0),     0);  // home_position User specific [0 qc]
         r &= device_set_register(dev, REGISTER(0x6065, 0), 50*delta); // max_following_error User specific [2000 qc]
         r &= device_set_register(dev, REGISTER(0x6067, 0), delta);  // position window [qc], see 14.66
@@ -346,6 +346,12 @@ int main(int argc, char* argv[]) {
 	snprintf(label, sizeof label, "%s(%s)", argv0, params->label);
 	openlog(label, debug?LOG_PERROR:0, LOG_LOCAL2);
 	if(!debug) setlogmask(LOG_UPTO(LOG_NOTICE));
+
+	// ask linebusd to install filters
+	printf("$name %s\n", params->label);
+	printf("$subscribe 0x%x\n", params->serial_number);
+	printf("$subscribe rudderctl:\n");  // must match IFMT_RUDDER_CTL
+	fflush(stdout);
 
 	setlinebuf(stdout);
 	bus = bus_new(stdout);	
