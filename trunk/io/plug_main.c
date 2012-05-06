@@ -119,7 +119,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	if(name) {
-		int n = snprintf(cmdbuf, sizeof cmdbuf, "%cid %s\n", cmdchar, name);
+		int n = snprintf(cmdbuf, sizeof cmdbuf, "%cname %s\n", cmdchar, name);
 		write(s, cmdbuf, n);
 	}
 
