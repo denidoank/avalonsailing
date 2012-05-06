@@ -47,16 +47,16 @@ static Device* motor;
 static Device* bmmh;
 static double target_angle_deg = NAN;
 
-const int64_t BUSLATENCY_WARN_THRESH_US = 10*1000*1000;  // 10ms
+const int64_t BUSLATENCY_WARN_THRESH_US = 100*1000;  // 100ms
 static int processinput() {
 	char line[1024];
 	if (!fgets(line, sizeof(line), stdin))
 		crash("reading stdin");
 
-	if (line[0] == '#') {
+	if (line[0] == 'r') {  // 'rudderctl..
 		struct RudderProto msg = INIT_RUDDERPROTO;
 		int nn;
-		int n = sscanf(line+1, IFMT_RUDDERPROTO_CTL(&msg, &nn));
+		int n = sscanf(line, IFMT_RUDDERPROTO_CTL(&msg, &nn));
 		if (n != 5)
 			return 0;
 		target_angle_deg = msg.sail_deg;
@@ -68,7 +68,7 @@ static int processinput() {
 		if (lat_us == 0)
 			return 0;
 		if(lat_us > BUSLATENCY_WARN_THRESH_US)
-			slog(LOG_WARNING, "high bus latency: %lld ms", lat_us/1000000);
+			slog(LOG_WARNING, "high epos latency: %lld ms", lat_us/1000);
 	}
 	return 1;
 }
@@ -105,7 +105,7 @@ int sail_init() {
 
         r = device_set_register(motor, REG_OPMODE, OPMODE_PPM);
 
-	int32_t tol = angle_to_qc(&motor_params[SAIL], TOLERANCE_DEG);
+	int32_t tol = angle_to_qc(&motor_params[SAIL], TOLERANCE_DEG) -  angle_to_qc(&motor_params[SAIL], 0);
 	if(tol < 0) tol = -tol;
 
         r &= device_set_register(motor, REGISTER(0x6065, 0), 0xffffffff); // max_following_error User specific [2000 qc]
@@ -194,7 +194,9 @@ int sail_control(double* actual_angle_deg) {
 
         slog(LOG_DEBUG, "sail_control: target delta: %f", target_delta_deg);
 
-        int32_t new_targ_qc = curr_pos_qc + angle_to_qc(&motor_params[SAIL], target_delta_deg);
+	int32_t new_targ_qc   = curr_pos_qc 
+	  + angle_to_qc(&motor_params[SAIL], target_delta_deg)
+	  - angle_to_qc(&motor_params[SAIL], 0);
         int32_t delta_targ_qc = new_targ_qc - curr_targ_qc;
         if ((delta_targ_qc < -1000) || (delta_targ_qc > 1000)) {
                 // pretend we didn't arrive and that we're not moving
@@ -283,6 +285,13 @@ int main(int argc, char* argv[]) {
 
 	openlog(argv0, debug?LOG_PERROR:0, LOG_LOCAL2);
 	if(!debug) setlogmask(LOG_UPTO(LOG_NOTICE));
+
+	// ask linebusd to install filters
+	printf("$name sail\n");
+	printf("$subscribe 0x%x\n", motor_params[SAIL].serial_number);
+	printf("$subscribe 0x%x\n", motor_params[BMMH].serial_number);
+	printf("$subscribe rudderctl:\n");  // must match IFMT_RUDDER_CTL
+	fflush(stdout);
 
 	setlinebuf(stdout);
 	bus = bus_new(stdout);
