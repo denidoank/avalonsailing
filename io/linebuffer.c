@@ -50,10 +50,9 @@ int lb_readstr(struct LineBuffer* lb, char** buf, int len) {
 static int update_r(struct LineBuffer* lb, int n) {
 	int savehead = lb->head;
 	lb->head += n;
-	lb->line[lb->head] = 0;  // required for strchr
 
 	if(lb->eol == 0) {
-		char *eol = strchr(lb->line + savehead, '\n');
+		char *eol = memchr(lb->line + savehead, '\n', n);
 		if (eol)
 			lb->eol = eol - lb->line + 1;
 	}
@@ -70,7 +69,7 @@ static int update_r(struct LineBuffer* lb, int n) {
 		memmove(lb->line, lb->line + lb->eol, lb->head - lb->eol);
 		lb->head -= lb->eol;
 		lb->eol = 0;
-		char *eol = strchr(lb->line, '\n');
+		char *eol = memchr(lb->line, '\n', lb->head);
 		if (eol)
 			lb->eol = eol - lb->line + 1;
 	}
@@ -117,7 +116,7 @@ static int update_w(struct LineBuffer* lb, int n) {
 	lb->eol -= n;
 	lb->head -=n;
 	if(lb->eol == 0) {
-		char *eol = strchr(lb->line, '\n');
+		char *eol = memchr(lb->line, '\n', lb->head);
 		if (eol)
 			lb->eol = eol - lb->line + 1;
 	}
