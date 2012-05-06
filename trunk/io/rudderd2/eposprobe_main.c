@@ -33,7 +33,7 @@ usage(void)
 		"usage: %s [options] | plug -o /path/to/ebus \n"
 		"options:\n"
 		"\t-f freq probing frequency [default 8Hz]\n"
-		"\t-t toggle emit #timestamp_us: message on bus\n"
+		"\t-T enable timestamps bus\n"
 		, argv0);
 	exit(2);
 }
@@ -60,12 +60,12 @@ int main(int argc, char* argv[]) {
 	argv0 = strrchr(argv[0], '/');
 	if (argv0) ++argv0; else argv0 = argv[0];
 
-	while ((ch = getopt(argc, argv, "df:htv")) != -1){
+	while ((ch = getopt(argc, argv, "df:Ttv")) != -1){
 		switch (ch) {
 		case 'd': ++debug; break;
 		case 'f': freq_hz = atoi(optarg); break;
 		case 'v': ++verbose; break;
-		case 't': dotimestamp = 1 - dotimestamp; break;
+		case 'T': ++dotimestamp; break;
 		case 'h': 
 		default:
 			usage();
@@ -84,27 +84,36 @@ int main(int argc, char* argv[]) {
 
 	int64_t delta_us = 1000000/freq_hz;
 	int64_t last_us = 0;
+	int64_t now = now_us();
 
 	for (;;) {
-		int64_t now = now_us();
 		if (now < last_us + delta_us) {
 			usleep(last_us + delta_us - now);
 		}
 
-		printf(EBUS_GET_OFMT(motor_params[LEFT].serial_number, REG_STATUS));
-		printf(EBUS_GET_OFMT(motor_params[LEFT].serial_number, REG_CURRPOS));
+		last_us = now;
+		now = now_us();
 
-		printf(EBUS_GET_OFMT(motor_params[RIGHT].serial_number, REG_STATUS));
-		printf(EBUS_GET_OFMT(motor_params[RIGHT].serial_number, REG_CURRPOS));
+		if (dotimestamp) {
+			printf(EBUS_GET_T_OFMT(motor_params[LEFT].serial_number, REG_STATUS, now));
+			printf(EBUS_GET_T_OFMT(motor_params[LEFT].serial_number, REG_CURRPOS, now));
+			
+			printf(EBUS_GET_T_OFMT(motor_params[RIGHT].serial_number, REG_STATUS, now));
+			printf(EBUS_GET_T_OFMT(motor_params[RIGHT].serial_number, REG_CURRPOS, now));
 
-		printf(EBUS_GET_OFMT(motor_params[SAIL].serial_number, REG_STATUS));
-		printf(EBUS_GET_OFMT(motor_params[BMMH].serial_number, REG_BMMHPOS));
+			printf(EBUS_GET_T_OFMT(motor_params[SAIL].serial_number, REG_STATUS, now));
+			printf(EBUS_GET_T_OFMT(motor_params[BMMH].serial_number, REG_BMMHPOS, now));
+		} else  {
+			printf(EBUS_GET_OFMT(motor_params[LEFT].serial_number, REG_STATUS));
+			printf(EBUS_GET_OFMT(motor_params[LEFT].serial_number, REG_CURRPOS));
+			
+			printf(EBUS_GET_OFMT(motor_params[RIGHT].serial_number, REG_STATUS));
+			printf(EBUS_GET_OFMT(motor_params[RIGHT].serial_number, REG_CURRPOS));
 
-		last_us = now_us();
-		if(dotimestamp)
-			printf("#timestamp_us:%lld\n", last_us);
+			printf(EBUS_GET_OFMT(motor_params[SAIL].serial_number, REG_STATUS));
+			printf(EBUS_GET_OFMT(motor_params[BMMH].serial_number, REG_BMMHPOS));
+		}
 		fflush(stdout);
-		
 	}
 
 	crash("main loop exit");

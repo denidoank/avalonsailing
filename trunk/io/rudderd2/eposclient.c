@@ -44,26 +44,31 @@ struct Device {
 struct Bus {
 	FILE* ctl;
 	Device* devices;
+	int timestamp;
 };
 
 Bus* bus_new(FILE* ctl) {
 	Bus* bus = malloc(sizeof(*bus));
 	bus->ctl = ctl;
 	bus->devices = NULL;
+	bus->timestamp = 0;
 	return bus;
 }
+
+void bus_enable_timestamp(Bus* bus, int on) { bus->timestamp = on; }
 
 int64_t bus_receive(Bus* bus, char* line) {
 
 	uint32_t serial = 0;
 	int index       = 0;
 	int subindex    = 0;
-	char op[3];
+	char op[3] = { 0, 0, 0 };
 	int64_t value_l = 0;  // fumble signedness
 
 	int n = sscanf(line, "%i:%i[%i] %2s %lli", &serial, &index, &subindex, op, &value_l);
 	if (n != 5) return 0;
 
+	// we only care about acks and nacks
 	if(op[0] != '=' && op[0] != '#')
 		return 0;
 
@@ -151,15 +156,22 @@ static Register* find_reg(Device* dev, uint32_t regidx) {
 
 int device_get_register(Device* dev, uint32_t regidx, uint32_t* val) {
 	Register* reg = find_reg(dev, regidx);
+	int n;
+	int64_t now;
 
 	switch (reg->state) {
 	case VALID:
 		*val = reg->value;
 		return 1;
 	case INVALID:
-		if (fprintf(dev->bus->ctl, EBUS_GET_OFMT(dev->serial, regidx)) > 0) {
+		now = now_us();
+		if (dev->bus->timestamp)
+			n = fprintf(dev->bus->ctl, EBUS_GET_T_OFMT(dev->serial, regidx, now));
+		else
+			n = fprintf(dev->bus->ctl, EBUS_GET_OFMT(dev->serial, regidx));
+		if (n > 0) {
 			reg->state = PENDING;
-			reg->issued_us = now_us();
+			reg->issued_us = now;
 		}
 		// fallthrough
 	case PENDING:
@@ -170,6 +182,7 @@ int device_get_register(Device* dev, uint32_t regidx, uint32_t* val) {
 
 int device_set_register(Device* dev, uint32_t regidx, uint32_t val) {
 	Register* reg = find_reg(dev, regidx);
+	int n;
 
 	if (reg->state == PENDING && reg->value == val)
 		return 0;
@@ -177,10 +190,15 @@ int device_set_register(Device* dev, uint32_t regidx, uint32_t val) {
 	if (reg->state == VALID && reg->value == val)
 		return 1;
 
-	if (fprintf(dev->bus->ctl, EBUS_SET_OFMT(dev->serial, regidx, val)) > 0) {
+	const int64_t now = now_us();
+	if (dev->bus->timestamp)
+		fprintf(dev->bus->ctl, EBUS_SET_T_OFMT(dev->serial, regidx, val, now));
+	else
+		fprintf(dev->bus->ctl, EBUS_SET_OFMT(dev->serial, regidx, val));
+	if (n > 0) {
 		reg->value = val;
 		reg->state = PENDING;
-		reg->issued_us = now_us();
+		reg->issued_us = now;
 	} else {
 		reg->state = INVALID;
 	}

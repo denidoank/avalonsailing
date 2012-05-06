@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/time.h>
 
 #include "com.h"
 #include "seq.h"
@@ -22,9 +23,18 @@ static const char* argv0;
 static int verbose=0;
 static int debug=0;
 
-void usage(void) {
-        fprintf(stderr, "usage: echo nodeid index subindex [:= value] | %s [-r] [-p] [-t timeout] /path/to/port\n", argv0);
+static void usage(void) {
+        fprintf(stderr, "usage: echo nodeid index subindex [:= value] | %s [-r] [-T] [-t timeout] /path/to/port\n", argv0);
         exit(1);
+}
+
+static int64_t now_us() {
+        struct timeval tv;
+        if (gettimeofday(&tv, NULL) < 0) crash("no working clock");
+
+        int64_t us1 = tv.tv_sec;  us1 *= 1000000;
+        int64_t us2 = tv.tv_usec;
+        return us1 + us2;
 }
 
 // Map serial numbers to nodeids.  We don't probe beyond number 9.
@@ -40,13 +50,15 @@ static uint32_t nodeidmap[] = {
 int main(int argc, char* argv[]) {
 	int ch;
 	int raw = 0;
+	int dotimestamps = 0;
 	int timeout_ms = 1000;
 	argv0 = argv[0];
 
-	 while ((ch = getopt(argc, argv,"dhrt:v")) != -1){
+	 while ((ch = getopt(argc, argv,"dhrTt:v")) != -1){
 		 switch (ch) {
 		 case 'd': ++debug; break;
 		 case 'r': ++raw; break;
+		 case 'T': ++dotimestamps; break;
 		 case 't': timeout_ms = atoi(optarg); break;
 		 case 'v': ++verbose; break;
 		 default:
@@ -81,46 +93,38 @@ int main(int argc, char* argv[]) {
 	 }
 
 	 while (!feof(stdin)) {
+
 		 char line[1024];
 		 if (!fgets(line, sizeof(line), stdin))
 			 crash("reading stdin");
 
-		 if (line[0] == '#') continue;
-
 		 uint32_t serial = 0;
 		 int index       = 0;
 		 int subindex    = 0;
+		 char op[3] 	 = { 0, 0, 0 };
 		 int64_t value_l = 0;
 		 int32_t value   = 0;
+		 uint32_t err 	 = 0;
 
-		 int c1 = 0;
-		 int c2 = 0;
-		 int n = sscanf(line, "%i:%i[%i] %n:= %lli %n",
-				&serial, &index, &subindex, &c1,
-				&value_l, &c2);
+		 int n = sscanf(line, "%i:%i[%i] %2s %lli", &serial, &index, &subindex, op, &value_l);
 
-		 if (line[c1] && line[c1] != ':')  // someone elses ack or nack
+		 if(n < 3) continue;
+
+		 // an ack or nack, must be from somewhere else
+		 if(n >= 4 && (op[0] == '=' || op[0] == '#'))
+			 continue;
+		 // an incomplete  assignment.  drop now rather than interpret as get later.
+		 if(n == 4 && (op[0] == ':' && op[1] == '='))
 			 continue;
 
 		 for(nodeid = 1; nodeid < nelem(nodeidmap); ++nodeid)
 			 if (nodeidmap[nodeid] == serial)
 				 break;
-
 		 if (nodeid == nelem(nodeidmap))  // not for us
 			 continue;
-			 
-		 uint32_t err = 0;
-		 switch (n) {
-		 case 3: {
-			 if (raw)
-				 err = epos_readobject(fd, index, subindex, nodeid, (uint32_t*)&value);
-			 else
-				 err = epos_waitobject(fd, timeout_ms, index, subindex, nodeid, 0, (uint32_t*)&value);
-			
-			 break;
-		 }
-
-		 case 4: {
+		 
+		 if(n == 5 && op[0] == ':' && op[1] == '=') {
+			 // a valid set request
 			 value = value_l;
 			 if (raw) {
 				 err = epos_writeobject(fd, index, subindex, nodeid, value);
@@ -132,24 +136,27 @@ int main(int argc, char* argv[]) {
 				 struct EposCmd* cmd = cmds;
 				 err = epos_sequence(fd, nodeid, &cmd);
 			 }
-			 break;
-		 }
 
-		 default: {
-			 static int max = 100;
-			 if (max-- > 0)
-				 slog(LOG_WARNING, "Unparsable line at field %d:%s", n, line);
+		 } else { 
+			 // we had at least 3 fields plus possibly
+			 // some trailing garbage, but not ':=' '=' or '#',
+			 // interpret it as a get request.
+			 if (raw)
+				 err = epos_readobject(fd, index, subindex, nodeid, (uint32_t*)&value);
+			 else
+				 err = epos_waitobject(fd, timeout_ms, index, subindex, nodeid, 0, (uint32_t*)&value);
+		 }
+		    
+		 if (err) {  // no timestamps with nacks
+			 printf("0x%x:0x%x[%d] # 0x%x: %s\n", serial, index, subindex, err, epos_strerror(err));
 			 continue;
 		 }
 
-		 }  // switch
-
-		 if (!err) {
+		 if(dotimestamps)
+			 printf("0x%x:0x%x[%d] = 0x%x T:%lld\n", serial, index, subindex, value, now_us());
+		 else
 			 printf("0x%x:0x%x[%d] = 0x%x\n", serial, index, subindex, value);
-		 } else {
-			 const char* ec = epos_strerror(err);
-			 printf("0x%x:0x%x[%d] # 0x%x: %s\n", serial, index, subindex, err, ec);
-		 }
+
 	 }
 
 	 crash("main loop exit");

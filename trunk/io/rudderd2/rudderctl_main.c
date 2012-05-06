@@ -319,16 +319,18 @@ const int64_t MAX_INTERVAL_MS = 15*60*1000;
 int main(int argc, char* argv[]) {
 
 	int ch;
+	int dotimestamps = 0;
 
 	argv0 = strrchr(argv[0], '/');
 	if (argv0) ++argv0; else argv0 = argv[0];
 
-	while ((ch = getopt(argc, argv, "dhlrv")) != -1){
+	while ((ch = getopt(argc, argv, "dhlrTv")) != -1){
 		switch (ch) {
 		case 'd': ++debug; break;
 		case 'l': params = &motor_params[LEFT]; break;
 		case 'r': params = &motor_params[RIGHT]; break;
 		case 'v': ++verbose; break;
+		case 'T': ++dotimestamps; break;
 		case 'h': 
 		default:
 			usage();
@@ -355,6 +357,7 @@ int main(int argc, char* argv[]) {
 
 	setlinebuf(stdout);
 	bus = bus_new(stdout);	
+	bus_enable_timestamp(bus, dotimestamps);
 	dev = bus_open_device(bus, params->serial_number);
 
 	int64_t last_reached = now_ms();
