@@ -12,7 +12,7 @@
 // the daemon itself.
 //
 // The commands are
-//    $id <identifier>     Name this client for diagnostic purposes
+//    $name <identifier>   Name this client for diagnostic purposes
 //    $stats               Echo to the client some statistics about all clients
 //    $xoff		   don't send any further output to this client.
 //    $subscribe <prefix>  Install a filter (see below)
@@ -64,7 +64,7 @@ crash(const char* fmt, ...)
 	vsnprintf(buf, sizeof(buf), fmt, ap);
 	syslog(LOG_CRIT, "%s%s%s\n", buf,
 	       (errno) ? ": " : "",
-	       (errno) ? strerror(errno):"" );
+	       (errno) ? strerror(errno): "" );
 	exit(1);
 	va_end(ap);
 	return;
@@ -85,10 +85,97 @@ usage(void)
 }
 
 // -----------------------------------------------------------------------------
+//   Prefix filters for subscriptions
+// -----------------------------------------------------------------------------
+static struct Filter {
+	struct Filter* next;
+	const char *pfx;
+	int pfxlen;
+	int refcount;
+	int match;  
+} *filters = NULL;
+
+static struct Filter*
+new_filter(const char *pfx)
+{
+	struct Filter* f;
+	for (f = filters; f; f=f->next)
+		if(strcmp(pfx,f->pfx)==0) {
+			f->refcount++;
+			return f;
+		}
+
+	f = malloc(sizeof *f);
+	memset(f, 0, sizeof *f);
+	f->pfx = strdup(pfx);
+	f->pfxlen = strlen(f->pfx);
+	f->next = filters;
+	filters = f;
+	return f;
+}
+
+static void
+filter_match(const char* line)
+{ 	struct Filter* f;
+	for (f = filters; f; f=f->next)
+		f->match = strncmp(line, f->pfx, f->pfxlen) ? 0 : 1;
+}
+
+static void
+reap_filters()
+{
+	struct Filter** prevp = &filters;
+	while (*prevp) {
+		struct Filter* curr = *prevp;
+		if(curr->refcount < 0) {
+			syslog(LOG_DEBUG, "deleting filter '%s'", curr->pfx);
+			*prevp = curr->next;
+			free(curr);
+		} else {
+			prevp = &curr->next;
+		}
+	}
+}
+
+struct FilterList {
+	struct FilterList* next;
+	struct Filter* f;
+};
+
+static struct FilterList*
+add_filter(struct FilterList* l, struct Filter* f)
+{
+	struct FilterList* ll = malloc(sizeof *ll);
+	ll->next = l;
+	ll->f = f;
+	return ll;
+}
+
+static void
+free_filters(struct FilterList* l)
+{
+	if(!l) return;
+	free_filters(l->next);
+	l->f->refcount--;
+	free(l);
+}
+
+static int
+filter_hit(struct FilterList* l)
+{
+	for( ; l; l = l->next)
+		if(l->f->match)
+			return 1;
+	return 0;
+}
+
+// -----------------------------------------------------------------------------
 //   Linked list of open client sockets.
 //     new_client    accepts a new connection from a listening socket
-//     client_puts   writes a single line to the clients buffer
-//     client_flush  tries to write out the output buffer, and detects eof
+//     client_read   fills the input buffer with whatever could be found on the socket
+//     client_write  tries to empty the output buffer line by line
+//     client_puts   writes a single line to the clients output buffer
+//     client_gets   reads a signle line from the clients input buffer
 //     reap_clients  frees all closed clients from the list.
 //
 //   See the main loop below on sample usage.
@@ -103,6 +190,7 @@ static struct Client {
 	char* name;
 	int xoff;
 	int dropped;
+	struct FilterList* filters;
 } *clients = NULL;
 
 static struct Client*
@@ -153,7 +241,8 @@ client_write(struct Client* client)
 }
 
 static int
-client_read(struct Client* client) {
+client_read(struct Client* client)
+{
 	if (client->fd < 0) return 0;
 	int r = lb_readfd(&client->in, client->fd);
 	if (r != 0 && r != EAGAIN) {
@@ -169,9 +258,10 @@ reap_clients()
 	struct Client** prevp = &clients;
 	while (*prevp) {
 		struct Client* curr = *prevp;
-		if(curr->fd < 0) {
+		if (curr->fd < 0) {
 			syslog(LOG_NOTICE, "Closed client %s.\n", curr->name ? curr->name : "<anon>");
 			*prevp = curr->next;
+			free_filters(curr->filters);
 			free(curr);
 		} else {
 			prevp = &curr->next;
@@ -182,18 +272,23 @@ reap_clients()
 static int client_puts(struct Client* client, const char* line){ return lb_putline(&client->out, (char*)line); }
 static int client_gets(struct Client* client, char* line, int size) { return lb_getline(line, size, &client->in); }
 
+static const char* client_name(struct Client* cl) { return cl->name ? cl->name : "<anon>"; }
+
+// -----------------------------------------------------------------------------
+//   Handle $cmd lines
+// -----------------------------------------------------------------------------
 static void
 handle_cmd(struct Client* client, char* line) {
 	int i;
 	for(i = strlen(line) - 1; i >= 0 && line[i] == '\n'; --i)
 		line[i] = 0;
 
-	if (strncmp("id ", line, 3) == 0) {
+	if (strncmp("name ", line, 5) == 0) {
 		if(client->name) {
-			syslog(LOG_NOTICE, "Client %d renamed '%s' from '%s'", client->fd, line + 3, client->name);
+			syslog(LOG_NOTICE, "Client %d renamed '%s' from '%s'", client->fd, line + 5, client->name);
 			free(client->name);
 		} else {
-			syslog(LOG_NOTICE, "Client %d named '%s'", client->fd, line + 3);
+			syslog(LOG_NOTICE, "Client %d named '%s'", client->fd, line + 5);
 		}
 		client->name = strndup(line+3, 20);
 		return;
@@ -201,12 +296,24 @@ handle_cmd(struct Client* client, char* line) {
 
 	if (strcmp("xoff", line) == 0) {
 		client->xoff = 1;
-		syslog(LOG_NOTICE, "Client %s (%d) set xoff\n", client->name ? client->name : "<anon>", client->fd);
+		syslog(LOG_NOTICE, "Client %s (%d) set xoff\n", client_name(client), client->fd);
+		return;
+	}
+
+	if (strcmp("stats", line) == 0) {
+		char buf[1024];
+		struct Client* cl;
+		for(cl = clients; cl; cl=cl->next) {
+			snprintf(buf, sizeof buf, "%d %s dropped: %d\n", cl->fd, client_name(cl), cl->dropped); 
+			cl->dropped = 0;
+			client_puts(cl, buf);
+		}
 		return;
 	}
 
 	if (strncmp("subscribe ", line, 10) == 0) {
-		syslog(LOG_NOTICE, "Client %s (%d) subscribed:'%s'\n", client->name ? client->name : "<anon>", client->fd, line + 10);
+		syslog(LOG_NOTICE, "Client %s (%d) subscribed:'%s'\n", client_name(client), client->fd, line + 10);
+		client->filters = add_filter(client->filters, new_filter(line+10));
 		return;
 	}
 	
@@ -331,15 +438,18 @@ int main(int argc, char* argv[]) {
 				if(buf[0] == cmdchar) {
 					handle_cmd(*cp, buf+1);
 					continue;
-				} 
+				}
+
+				filter_match(buf);
 
 				for (cl = clients; cl; cl = cl->next) {
 					if (cl == *cp) continue;
 					if (cl->fd < 0) continue;
 					if (cl->xoff) continue;
+					if (cl->filters && !filter_hit(cl->filters)) continue;
 					if (client_puts(cl, buf) < 0) {
 						cl->dropped++;
-						syslog(LOG_DEBUG, "Dropping output to client %d.\n", cl->fd);
+						syslog(LOG_DEBUG, "Dropping output to client %s (%d)\n", client_name(cl), cl->fd);
 					}
 				}
 			}
@@ -353,8 +463,9 @@ int main(int argc, char* argv[]) {
 			*cp = cl;
 		}
 
+		// Reap old and accept new clients.
 		reap_clients();
-		// Accept new clients now.
+		reap_filters();
 		if (FD_ISSET(sck, &rfds)) new_client(sck);
 
 	} // main loop
