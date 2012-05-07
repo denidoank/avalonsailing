@@ -290,7 +290,7 @@ handle_cmd(struct Client* client, char* line) {
 		} else {
 			syslog(LOG_NOTICE, "Client %d named '%s'", client->fd, line + 5);
 		}
-		client->name = strndup(line+3, 20);
+		client->name = strndup(line+5, 20);
 		return;
 	}
 
