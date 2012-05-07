@@ -27,8 +27,8 @@ if /usr/bin/test -r $LBUS; then
 	# decode status registers to ruddersts: messages
 	# forward rudderctl: messages to ebus
     ../plug -o -n 'ruddersts' $EBUS | ./ruddersts | ../plug -n 'rudderctlfwd' -f 'rudderctl:' $LBUS | ../plug -i $EBUS &
-	echo To stop test:
-	echo "  kill `cat $EBUS.pid`"
+    echo To stop test:
+    echo "  kill `cat $EBUS.pid`"
 
 else
     ../plug -o -n 'ruddersts' $EBUS | ./ruddersts
