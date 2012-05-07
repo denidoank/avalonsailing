@@ -43,10 +43,10 @@ static void
 usage(void)
 {
 	fprintf(stderr,
-		"usage: %s [options] /path/to/socket\n"
+		"usage: %s [options] /path/to/socket [command [opts]]\n"
 		"options:\n"
-		"\t-i input only\n"
-		"\t-o output only\n"
+		"\t-i input to socket only\n"
+		"\t-o output from socket only\n"
 		"\t-f subscription (may be repeated)\n"
 		"\t-n name  diagnostic name for linebusd\n"
 		"\t-d debug (don't go daemon, don't syslog)\n"
@@ -65,6 +65,20 @@ struct List* NewItem(struct List* l, char* s) {
 	n->next = l;
 	n->str = s;
 	return n;
+}
+
+static void fdcopy(int dst, int src) {
+	char buf[2048];
+	int r, w;
+	while((r=read(src, buf, sizeof buf)) > 0) {
+		char *p = buf;
+		while(r>0) {
+			w = write(dst, p, r);
+			if (w < -1) return;
+			p += w;
+			r -= w;
+		}
+	}
 }
 
 int main(int argc, char* argv[]) {
@@ -112,6 +126,11 @@ int main(int argc, char* argv[]) {
         if (connect(s, (struct sockaddr*)&addr, sizeof(addr)) < 0)
                 crash("connect(%s)", argv[0]);
 
+	argc--; argv++;
+	if(argc > 0 && argv[0][0] == '-' && argv[0][1] == '-') {
+			argc--; argv++;
+	}
+
 	// Send commands to linebusd
 	if(noout) {
 		int n = snprintf(cmdbuf, sizeof cmdbuf, "%cxoff\n", cmdchar);
@@ -129,11 +148,9 @@ int main(int argc, char* argv[]) {
 		write(s, cmdbuf, n);		
 	}
 
-	argc--; argv++;
-
 	if (argc) {
-		if (noin) close(0); else dup2(s, 0);
-		if (noout) close(1); else dup2(s, 1); 
+		if (noout) close(0); else dup2(s, 0);  // what child reads from socket 
+		if (noin) close(1); else dup2(s, 1);   // what child writes to socket
 		execvp(argv[0], argv);
 		crash("Failed to exec %s", argv[0]);
 		return 0;
@@ -146,12 +163,7 @@ int main(int argc, char* argv[]) {
 	} else {
 		s_to_out_pid = fork();
 		if (s_to_out_pid == 0) {
-			FILE* s_in = fdopen(s, "r");
-			setlinebuf(stdout);
-			char line[1024];
-			while (!feof(s_in))
-				if (fgets(line, sizeof(line), s_in))
-					fputs(line, stdout);
+			fdcopy(fileno(stdout), s);
 			exit(0);
 		}
 		if (s_to_out_pid < 0) crash("fork(socket to out)");
@@ -162,12 +174,7 @@ int main(int argc, char* argv[]) {
 	} else {
 		in_to_s_pid  = fork();
 		if (in_to_s_pid == 0) {
-			FILE* s_out = fdopen(s, "w");
-			setlinebuf(s_out);
-			char line[1024];
-			while (!feof(stdin))
-				if (fgets(line, sizeof(line), stdin))
-					fputs(line, s_out);
+			fdcopy(s, fileno(stdin));
 			exit(0);
 		}
 		if (in_to_s_pid < 0) crash("fork(in to socket)");
