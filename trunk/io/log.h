@@ -4,8 +4,8 @@
 //
 // Rate limiting on syslog.
 //
-#ifndef _IO_RUDDERD2_LOG_H
-#define _IO_RUDDERD2_LOG_H
+#ifndef _IO_LOG_H
+#define _IO_LOG_H
 
 #include <syslog.h>
 
@@ -20,4 +20,4 @@ void crash(const char* fmt, ...);
 //	if (signal(SIGSEGV, fault) == SIG_ERR)  crash("signal(SIGSEGV)");
 void fault();
 
-#endif // _IO_RUDDERD2_LOG_H
+#endif // _IO_LOG_H
