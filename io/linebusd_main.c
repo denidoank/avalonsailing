@@ -288,10 +288,11 @@ handle_cmd(struct Client* client, char* line) {
 	if (strcmp("stats", line) == 0) {
 		char buf[1024];
 		struct Client* cl;
+		// TODO: per client read/write timers
 		for(cl = clients; cl; cl=cl->next) {
 			snprintf(buf, sizeof buf, "%d %s dropped: %d\n", cl->fd, client_name(cl), cl->dropped); 
 			cl->dropped = 0;
-			client_puts(cl, buf);
+			client_puts(client, buf);
 		}
 		return;
 	}
