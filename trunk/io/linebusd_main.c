@@ -45,6 +45,8 @@
 #include <unistd.h>
 
 #include "linebuffer.h"
+#include "log.h"
+#include "timer.h"
 
 // -----------------------------------------------------------------------------
 //   Together with getopt in main, this is our minimalistic UI
@@ -54,23 +56,6 @@ static const char* argv0;
 static int verbose = 0;
 static int debug = 0;
 static int timing = 0;
-
-static void
-crash(const char* fmt, ...)
-{
-	va_list ap;
-	char buf[1000];
-	va_start(ap, fmt);
-	vsnprintf(buf, sizeof(buf), fmt, ap);
-	syslog(LOG_CRIT, "%s%s%s\n", buf,
-	       (errno) ? ": " : "",
-	       (errno) ? strerror(errno): "" );
-	exit(1);
-	va_end(ap);
-	return;
-}
-
-static void fault() { crash("fault"); }
 
 static void
 usage(void)
@@ -388,6 +373,11 @@ int main(int argc, char* argv[]) {
 
 	if (signal(SIGPIPE, SIG_IGN) == SIG_ERR) crash("signal");
 
+	struct Timer timer;
+	memset(&timer, 0, sizeof timer);
+	
+	timer_tick_now(&timer, 1);
+
 	// Main Loop
 	for(;;) {
 
@@ -405,9 +395,15 @@ int main(int argc, char* argv[]) {
 
 		sigset_t empty_mask;
 		sigemptyset(&empty_mask);
+		if(timer_tick_now(&timer, 0) > 100) {  // 100us should do
+			struct TimerStats stats;
+			timer_stats(&timer, &stats);
+			slog(LOG_WARNING, "slow cycle: " OFMT_TIMER_STATS(stats));
+		}
+
 		int r = pselect(max_fd + 1, &rfds, &wfds, NULL, NULL, &empty_mask);
 		if (r == -1 && errno != EINTR) crash("pselect");
-
+		timer_tick_now(&timer, 1);
 		if(debug > 1) syslog(LOG_DEBUG, "woke up %d\n", r);
 
 		int notdonewriting = 0;

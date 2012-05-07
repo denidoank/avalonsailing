@@ -1,5 +1,5 @@
 ./linebusd /tmp/lbus
-N=50
+export N=50
 ./plug -i /tmp/lbus ./loadtestsend $N &
 ./plug -i /tmp/lbus ./loadtestsend $N &
 ./plug -i /tmp/lbus ./loadtestsend $N &
