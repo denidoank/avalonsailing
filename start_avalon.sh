@@ -82,12 +82,12 @@ echo "   kill \`cat $LBUS.pid\`"
 	kill `cat $EBUS.pid`
     )&
 
-    # chained to save some plug forks:
-    #   eposprobe: periodically issue status register probe commands (needed by ruddersts and -mon)
-    #   ruddersts: decode status registers to ruddersts: messages
-    #   plug -f rudderctl: forward rudderctl: messages to ebus, prefixed with '#'
-    #   eposmon: summarize and report epos communication errors to syslog
-    eposprobe -f8 | plug -n "ruddersts" $EBUS | ruddersts -n100 | plug -f 'rudderctl:' $LBUS | plug $EBUS | eposmon
+    plug -i $EBUS `which eposprobe` -f 10 &	 # periodically issue status register probe commands (needed by ruddersts and -mon)
+    plug -o -n 'eposmon' $EBUS `which eposmon` & # summarize and report epos communication errors to syslog
+
+    #   ruddersts: decode ebus status registers to lbus ruddersts: messages
+    #   plug -f rudderctl: forward rudderctl: messages to ebus
+    plug -o -n "ruddersts" $EBUS | ruddersts -n 100 | plug -n 'rudderctlfwd' -f 'rudderctl:' $LBUS | plug -i $EBUS
 
     # the above will block until the ebus, the lbus or probe/stsmon exits
     logger -s -p local2.crit "Epos status subsystem exited."

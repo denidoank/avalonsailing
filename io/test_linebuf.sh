@@ -1,8 +1,9 @@
 ./linebusd /tmp/lbus
-./plug -i /tmp/lbus ./loadtestsend 10 &
-./plug -i /tmp/lbus ./loadtestsend 10 &
-./plug -i /tmp/lbus ./loadtestsend 10 &
-./plug -i /tmp/lbus ./loadtestsend 10 &
+N=50
+./plug -i /tmp/lbus ./loadtestsend $N &
+./plug -i /tmp/lbus ./loadtestsend $N &
+./plug -i /tmp/lbus ./loadtestsend $N &
+./plug -i /tmp/lbus ./loadtestsend $N &
 ./plug -o /tmp/lbus ./loadtestrecv &
 ./plug -o /tmp/lbus ./loadtestrecv &
 ./plug -o /tmp/lbus ./loadtestrecv &
