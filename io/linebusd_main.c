@@ -232,7 +232,7 @@ static int
 client_write(struct Client* client)
 {
 	if (client->fd < 0) return 0;
-	int r = lb_writefd(client->fd, &client->out);
+	int r = lb_writefd_all(client->fd, &client->out);
 	if ((r != 0) && (r != EAGAIN)) {
 		close(client->fd);
 		client->fd = -1;

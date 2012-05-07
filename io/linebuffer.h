@@ -46,6 +46,9 @@ int lb_readstr(struct LineBuffer* lb, char** buf, int len);
 // write(2) otherwise.
 int lb_writefd(int fd, struct LineBuffer* lb);
 
+  // Same as writefd, but tries to write all complete lines in one write(2) call
+int lb_writefd_all(int fd, struct LineBuffer* lb);
+
 // Writestr tries to write the first complete line to to **buf and
 // update *buf according to the number of characters written.  Returns
 // 0 if no complete lines remain, or EAGAIN if not.

@@ -103,6 +103,24 @@ int lb_writefd(int fd, struct LineBuffer* lb) {
 	return update_w(lb, n);
 }
 
+int lb_writefd_all(int fd, struct LineBuffer* lb) {
+	if(lb->eol == 0) return 0;
+	int eol = lb->eol;
+	int remain = lb->head - lb->eol;
+	// look for more lines
+	char* last = memchr(lb->line+lb->eol, '\n', remain);
+	while(last) {
+		eol = last - lb->line;
+		remain = lb->head - eol;
+		last = memchr(lb->line+eol, '\n', remain);
+	}
+	int n = write(fd, lb->line, eol);
+	if (n < 0) return errno;
+	// pretend this was the first one. so update clears it and looks for next.
+	lb->eol = n; 
+	return update_w(lb, n);
+}
+
 int lb_writestr(char **buf, int size, struct LineBuffer* lb) {
 	if(lb->eol == 0) return 0;
 	int n = write_buf(*buf, size, lb->line, lb->eol);

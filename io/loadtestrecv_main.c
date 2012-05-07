@@ -88,7 +88,7 @@ int main(int argc, char* argv[]) {
 	double a = x;  a/= n;
 	double s = xx; s/= n;  s -= a*a; s=sqrt(s);
 
-	printf("\nCount: %lld  avg:%f stdev:%f dropped:%lld\n", n, a, s, dropped);
+	fprintf(stderr, "\nCount: %lld  avg:%f stdev:%f dropped:%lld\n", n, a, s, dropped);
 
 	return 0;
 }
