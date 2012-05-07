@@ -16,7 +16,7 @@
 
 #include "../../proto/rudder.h"
 
-#include "log.h"
+#include "../log.h"
 #include "actuator.h"
 #include "eposclient.h"
 

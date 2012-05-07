@@ -16,7 +16,7 @@
 
 #include "com.h"
 #include "seq.h"
-#include "log.h"
+#include "../log.h"
 
 //static const char* version = "$Id: $";
 static const char* argv0;
