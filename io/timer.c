@@ -48,9 +48,9 @@ int timer_stats(struct Timer*t, struct TimerStats *s) {
 	int i, j;
 	double sx, sxx, sy, syy;
 
-	// average period is  last stop - first start / (nn + .5)
+	// average period is  last start - first start / (nn - 1)
 	sx = t->ticks[2*last] - t->ticks[2*first];
-	s->pavg = sx / (nn + .5);
+	s->pavg = sx / (nn - 1);
 
 	s->f = (s->pavg == 0) ? 0 : 1E6 / s->pavg;
 
