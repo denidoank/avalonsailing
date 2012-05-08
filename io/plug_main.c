@@ -149,8 +149,8 @@ int main(int argc, char* argv[]) {
 	}
 
 	if (argc) {
-		if (noout) close(0); else dup2(s, 0);  // what child reads from socket 
-		if (noin) close(1); else dup2(s, 1);   // what child writes to socket
+		if (noout) close(0); else dup2(s, 0);  // stdin is what child reads from socket 
+		if (noin) close(1); else dup2(s, 1);   // stdout is what child writes to socket
 		execvp(argv[0], argv);
 		crash("Failed to exec %s", argv[0]);
 		return 0;
@@ -161,8 +161,9 @@ int main(int argc, char* argv[]) {
 	if (!noout) {
 		s_to_out_pid = fork();
 		if (s_to_out_pid == 0) {
-			fclose(stdin);
-			fdcopy(fileno(stdout), s);
+			close(0);
+			fdcopy(1, s);
+			crash("exit s to out");
 			exit(0);
 		}
 		if (s_to_out_pid < 0) crash("fork(socket to out)");
@@ -171,20 +172,22 @@ int main(int argc, char* argv[]) {
 	if (!noin) {
 		in_to_s_pid  = fork();
 		if (in_to_s_pid == 0) {
-			fclose(stdout);
-			fdcopy(s, fileno(stdin));
+			close(1);
+			fdcopy(s, 0);
+			crash("exit in to s");
 			exit(0);
 		}
 		if (in_to_s_pid < 0) crash("fork(in to socket)");
 	}
 
-	fclose(stdout);
-	fclose(stdin);
+	close(0);
+	close(1);
 
-	if ((in_to_s_pid != -1) || (s_to_out_pid != -1)) {
-			if (wait(NULL) < 0) crash("wait");
-	}
+	// wait for one
+	if ((in_to_s_pid  != -1) ||(s_to_out_pid != -1))
+		if (wait(NULL) < 0) crash("wait");
 
+	// kill any other
 	if (in_to_s_pid  != -1) kill(in_to_s_pid, SIGTERM);
         if (s_to_out_pid != -1) kill(s_to_out_pid, SIGTERM);
 

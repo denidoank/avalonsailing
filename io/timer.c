@@ -88,7 +88,7 @@ int timer_stats(struct Timer*t, struct TimerStats *s) {
 			x -= sx;
 			sxx += x*x;
 		}
-		i = (i + 1) % TIMER_EVENTS;
+		i = i + 1;
 		j = (j + 1) % TIMER_EVENTS;
 	}
 	s->pdev = sqrt(sxx/(nn-1));
