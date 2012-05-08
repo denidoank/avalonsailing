@@ -75,21 +75,20 @@ int timer_stats(struct Timer*t, struct TimerStats *s) {
 	}
 	s->rdev = sqrt(sxx/nn);
 
-	i = 0;
+
 	j = 1;
 	sxx = 0;
 	sx = s->pavg;
-	while(i < nn) {
-		if (i != last) {
-			double x = t->ticks[2*j] - t->ticks[2*i];      // period
-			if (s->pmin > x) s->pmin = x;
-			if (s->pmax < x) s->pmax = x;
+	for (i = 0; i < nn-1; ++i) {
+		if (i == last) continue;
+		j = (i + 1) % TIMER_EVENTS;
 
-			x -= sx;
-			sxx += x*x;
-		}
-		i = i + 1;
-		j = (j + 1) % TIMER_EVENTS;
+		double x = t->ticks[2*j] - t->ticks[2*i];      // period
+		if (s->pmin > x) s->pmin = x;
+		if (s->pmax < x) s->pmax = x;
+		
+		x -= sx;
+		sxx += x*x;
 	}
 	s->pdev = sqrt(sxx/(nn-1));
 	

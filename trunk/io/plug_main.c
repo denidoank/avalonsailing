@@ -163,7 +163,6 @@ int main(int argc, char* argv[]) {
 		if (s_to_out_pid == 0) {
 			close(0);
 			fdcopy(1, s);
-			crash("exit s to out");
 			exit(0);
 		}
 		if (s_to_out_pid < 0) crash("fork(socket to out)");
@@ -174,7 +173,6 @@ int main(int argc, char* argv[]) {
 		if (in_to_s_pid == 0) {
 			close(1);
 			fdcopy(s, 0);
-			crash("exit in to s");
 			exit(0);
 		}
 		if (in_to_s_pid < 0) crash("fork(in to socket)");
