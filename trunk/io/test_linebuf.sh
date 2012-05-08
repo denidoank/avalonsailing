@@ -11,10 +11,10 @@ echo dir = $D
 ./plug -i $D/lbus ./loadtestsend $N &
 ./plug -i $D/lbus ./loadtestsend $N &
 ./plug -i $D/lbus ./loadtestsend $N &
-./plug -o $D/lbus ./loadtestrecv 2> $D/1.out  &
-./plug -o $D/lbus ./loadtestrecv 2> $D/2.out  &
-./plug -o $D/lbus ./loadtestrecv 2> $D/3.out  &
-./plug -o $D/lbus ./loadtestrecv 2> $D/4.out  &
+./plug -o $D/lbus  ./loadtestrecv 2> $D/1.out  &
+./plug -o $D/lbus  ./loadtestrecv 2> $D/2.out  &
+./plug -o $D/lbus  ./loadtestrecv 2> $D/3.out  &
+./plug -o $D/lbus  ./loadtestrecv 2> $D/4.out  &
 
 echo Waiting a bit...
 sleep 10
