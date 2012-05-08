@@ -74,7 +74,7 @@ static void fdcopy(int dst, int src) {
 		char *p = buf;
 		while(r>0) {
 			w = write(dst, p, r);
-			if (w < -1) return;
+			if (w < 0) return;
 			p += w;
 			r -= w;
 		}
@@ -156,29 +156,30 @@ int main(int argc, char* argv[]) {
 		return 0;
 	}
 
-	// Else, no command, but cat stdin and stdout linewise
+	// Else, no command, but copy stdin and stdout.
 
-	if (noout) {
-		fclose(stdout);
-	} else {
+	if (!noout) {
 		s_to_out_pid = fork();
 		if (s_to_out_pid == 0) {
+			fclose(stdin);
 			fdcopy(fileno(stdout), s);
 			exit(0);
 		}
 		if (s_to_out_pid < 0) crash("fork(socket to out)");
 	}
 
-	if (noin) {
-		fclose(stdin);
-	} else {
+	if (!noin) {
 		in_to_s_pid  = fork();
 		if (in_to_s_pid == 0) {
+			fclose(stdout);
 			fdcopy(s, fileno(stdin));
 			exit(0);
 		}
 		if (in_to_s_pid < 0) crash("fork(in to socket)");
 	}
+
+	fclose(stdout);
+	fclose(stdin);
 
 	if ((in_to_s_pid != -1) || (s_to_out_pid != -1)) {
 			if (wait(NULL) < 0) crash("wait");

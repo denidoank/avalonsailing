@@ -42,20 +42,20 @@ struct TimerStats {
 	uint64_t count;
 	double pmin, pavg, pdev, pmax;
 	double rmin, ravg, rdev, rmax;
-	double davg, ddev;
+	double f, davg;
 };
 
 // Compute the timer stats over the ringbuffer.
 // Count is the total number of events timed. the stats are only over the last TIMER_EVENTS.
 // On succes, returns zero. If the timer is currently running or has
-// fewer than 2 starts, will do nothing and return 1.
+// fewer than 2 starts, only return count and return 1.
 int timer_stats(struct Timer*t, struct TimerStats *s);
 
 #define OFMT_TIMER_STATS(s) \
-	"count:%lld period(ms): %.3lf / %.3lf (±%.3lf) / %.3lf run(ms): %.3lf / %.3lf (±%.3lf) / %.3lf dutycycle(%%): %.1lf (±%.1lf)", \
-	(s).count, \
+	"count:%lld   f(Hz): %.3lf dc(%%): %.1lf  period(ms): %.3lf / %.3lf (±%.3lf) / %.3lf  run(ms): %.3lf / %.3lf (±%.3lf) / %.3lf", \
+		(s).count, (s).f, (s).davg*100, \
 		(s).pmin/1000, (s).pavg/1000, (s).pdev/1000, (s).pmax/1000, \
-		(s).rmin/1000, (s).ravg/1000, (s).rdev/1000, (s).rmax/1000, \
-		(s).davg*100, (s).ddev*100
+		(s).rmin/1000, (s).ravg/1000, (s).rdev/1000, (s).rmax/1000
+
 
 #endif // _IO_TIMER_H
