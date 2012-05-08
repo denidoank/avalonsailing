@@ -53,7 +53,7 @@ int main(int argc, char* argv[]) {
 
 	struct Source* src;
 
-	while(!feof(stdin) && !ferror(stdin)) {
+	while(!feof(stdin)) {
 		char line[1024];
 		if (!fgets(line, sizeof line, stdin))
 			break;
