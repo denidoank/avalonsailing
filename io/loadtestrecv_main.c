@@ -26,12 +26,16 @@ output is in microseconds
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>
+#include <string.h>
 #include <unistd.h>
+
+#include "timer.h"
 
 struct Source {
 	struct Source *next;
 	int pid, lasti;
 	int64_t dropped;
+	struct Timer timer;
 } *sources = NULL;
 
 
@@ -43,29 +47,27 @@ int main(int argc, char* argv[]) {
 	}
 
 	int64_t dropped = 0;
-	int64_t n = 0;
-	int64_t x = 0;
-	int64_t xx = 0;
+
+	struct Timer timer;
+	memset(&timer, 0, sizeof timer);
+
+	struct Source* src;
 
 	while(!feof(stdin)) {
 		char line[1024];
 		if (!fgets(line, sizeof line, stdin))
 			break;
 
-		struct timeval tv = { 0, 0 };
-		gettimeofday(&tv, NULL);
+		int64_t now = now_us();
+
 		int pid, s, u, i;
 		if (sscanf(line, "pid:%d timestamp_s:%d.%d seqno:%d\n", &pid, &s, &u, &i) != 4)
 			break;
-		
-		int64_t diff_us = (tv.tv_sec-s)*1E6;
-		diff_us += tv.tv_usec-u;
 
-		n+=1;
-		x += diff_us;
-		xx += diff_us*diff_us;
-		
-		struct Source* src;
+		int64_t start_us = s * 1E6 + u;
+		timer_tick(&timer, start_us, 1);
+		timer_tick(&timer, now, 0);
+
 		for(src = sources; src; src = src->next)
 			if(src->pid == pid)
 				break;
@@ -78,6 +80,9 @@ int main(int argc, char* argv[]) {
 			sources = src;
 		}
 
+		timer_tick(&src->timer, start_us, 1);
+		timer_tick(&src->timer, now, 0);
+
 		if(src->lasti+1 != i) {
 			dropped += i-src->lasti;
 			src->dropped += i-src->lasti;
@@ -85,10 +90,24 @@ int main(int argc, char* argv[]) {
 		src->lasti = i;
 	}
 
-	double a = x;  a/= n;
-	double s = xx; s/= n;  s -= a*a; s=sqrt(s);
+	struct TimerStats stats;
+	if(timer_stats(&timer, &stats)) {
+		fprintf(stderr, "global count:%lld, dropped %lld  not enough events.\n", stats.count, dropped);
+		return 0;
+	}
 
-	fprintf(stderr, "\nCount: %lld  avg:%f stdev:%f dropped:%lld\n", n, a, s, dropped);
-
+	fprintf(stderr, "global " OFMT_TIMER_STATS(stats));
+	fprintf(stderr, " dropped:%lld\n", dropped);
+	fprintf(stderr, "Per client:\n");
+	for(src = sources; src; src = src->next) {
+		fprintf(stderr, "\tpid:%d ", src->pid);
+		if(timer_stats(&src->timer, &stats)) {
+			fprintf(stderr, "global count:%lld, dropped %lld  not enough events.", stats.count, dropped);
+		} else {
+			fprintf(stderr, OFMT_TIMER_STATS(stats));
+			fprintf(stderr, " dropped:%lld\n", src->dropped);
+		}
+	}
+	fprintf(stderr, "---\n");
 	return 0;
 }

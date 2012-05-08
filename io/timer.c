@@ -36,11 +36,10 @@ int timer_running(struct Timer* t) { return t->count & 1; }
 void timer_reset(struct Timer* t) { t->count = 0; }
 
 int timer_stats(struct Timer*t, struct TimerStats *s) {
-	if(timer_running(t)) return 1;
-
 	memset(s, 0, sizeof *s);
 	s->count = t->count / 2;
 	if (s->count < 2) return 1;
+	if(timer_running(t)) return 1;
 
 	int nn = (s->count < TIMER_EVENTS) ? s->count : TIMER_EVENTS; // number of events in queue
 	int last = (s->count - 1) % TIMER_EVENTS;  // last written event
@@ -53,6 +52,8 @@ int timer_stats(struct Timer*t, struct TimerStats *s) {
 	sx = t->ticks[2*last] - t->ticks[2*first];
 	s->pavg = sx / (nn + .5);
 
+	s->f = (s->pavg == 0) ? 0 : 1E6 / s->pavg;
+
 	// min/average/max run time 
 	sx = 0;
 	s->rmin = HUGE_VAL; s->rmax = -HUGE_VAL;
@@ -64,6 +65,7 @@ int timer_stats(struct Timer*t, struct TimerStats *s) {
 	}
 	sx /= nn;
 	s->ravg = sx;
+	s->davg = (s->pavg == 0) ? 1 : s->ravg / s->pavg;
 
 	sxx = 0;
 	for(i = 0; i < nn; ++i) {
@@ -90,38 +92,6 @@ int timer_stats(struct Timer*t, struct TimerStats *s) {
 		j = (j + 1) % TIMER_EVENTS;
 	}
 	s->pdev = sqrt(sxx/(nn-1));
-
-	i = 0;
-	j = 1;
-	sx = 0;
-	while(i < nn) {
-		if (i != last) {
-			double x = t->ticks[2*j] - t->ticks[2*i];      // period
-			double y = t->ticks[2*i + 1] - t->ticks[2*i];  // active
-			double yx = (x == 0.0) ? 1 : y/x;
-			sx += yx;
-		}
-		i = (i + 1) % TIMER_EVENTS;
-		j = (j + 1) % TIMER_EVENTS;
-	}
-	sx /= (nn-1);
-	s->davg = sx;
-
-	i = 0;
-	j = 1;
-	sxx = 0;
-	while(i < nn) {
-		if (i != last) {
-			double x = t->ticks[2*j] - t->ticks[2*i];      // period
-			double y = t->ticks[2*i + 1] - t->ticks[2*i];  // active
-			double yx = (x == 0.0) ? 1 : y/x;
-			yx -= sx;
-			sxx += yx * yx;
-		}
-		i = (i + 1) % TIMER_EVENTS;
-		j = (j + 1) % TIMER_EVENTS;
-	}
-	s->ddev = sqrt(sxx /(nn-1)); 
 	
 	return 0;
 }
