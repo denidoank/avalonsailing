@@ -17,6 +17,7 @@
 #include "com.h"
 #include "seq.h"
 #include "../log.h"
+#include "../timer.h"
 
 //static const char* version = "$Id: $";
 static const char* argv0;
@@ -28,14 +29,14 @@ static void usage(void) {
         exit(1);
 }
 
-static int64_t now_us() {
-        struct timeval tv;
-        if (gettimeofday(&tv, NULL) < 0) crash("no working clock");
+// adapted from OFMT_TIMER_STATS
+#define OFMT(serial, s)		\
+	"serial: 0x%x count:%lld   f(Hz): %.3lf dc(%%): %.1lf  period(ms): %.3lf / %.3lf (±%.3lf) / %.3lf  run(ms): %.3lf / %.3lf (±%.3lf) / %.3lf", \
+		serial, (s).count, (s).f, (s).davg*100,			\
+		(s).pmin/1000, (s).pavg/1000, (s).pdev/1000, (s).pmax/1000, \
+		(s).rmin/1000, (s).ravg/1000, (s).rdev/1000, (s).rmax/1000
 
-        int64_t us1 = tv.tv_sec;  us1 *= 1000000;
-        int64_t us2 = tv.tv_usec;
-        return us1 + us2;
-}
+#define nelem(x) (sizeof(x)/sizeof(x[0]))
 
 // Map serial numbers to nodeids.  We don't probe beyond number 9.
 static uint32_t nodeidmap[] = {
@@ -45,7 +46,10 @@ static uint32_t nodeidmap[] = {
         -1, -1, -1, -1, */
 };
 
-#define nelem(x) (sizeof(x)/sizeof(x[0]))
+static struct Timer timer[nelem(nodeidmap)];
+
+static int sigflg = 0;
+static void setflg(int sig) { sigflg = sig; }
 
 int main(int argc, char* argv[]) {
 	int ch;
@@ -77,6 +81,7 @@ int main(int argc, char* argv[]) {
 
 	 if (signal(SIGBUS, fault) == SIG_ERR)  crash("signal(SIGBUS)");
 	 if (signal(SIGSEGV, fault) == SIG_ERR)  crash("signal(SIGSEGV)");
+	 if (signal(SIGUSR1, setflg) == SIG_ERR)  crash("signal(SIGUSR1)");
 
 	 int fd = epos_open(argv[0]);
 	 if (fd < 0) crash("epos_open(%s)", argv[0]);
@@ -87,6 +92,7 @@ int main(int argc, char* argv[]) {
 		 uint32_t err = epos_readobject(fd, 0x1018, 4, nodeid, nodeidmap + nodeid);
 		 if (err != 0) continue;
 		 slog(LOG_INFO, "port:%s nodeid:%d serial:0x%x\n", argv[0], nodeid, nodeidmap[nodeid]);
+		 memset(&timer[nodeid], 0, sizeof timer[0]);
 		 // Ask linebusd to filter.  Note: we assume all clients will print serial in hex,
 		 // which they will if they use eposclient.h EPOS_G/SET_OFMT
 		 printf("$subscribe 0x%x\n", nodeidmap[nodeid]);
@@ -123,6 +129,8 @@ int main(int argc, char* argv[]) {
 		 if (nodeid == nelem(nodeidmap))  // not for us
 			 continue;
 		 
+		 timer_tick_now(&timer[nodeid], 1);
+
 		 if(n == 5 && op[0] == ':' && op[1] == '=') {
 			 // a valid set request
 			 value = value_l;
@@ -147,15 +155,32 @@ int main(int argc, char* argv[]) {
 				 err = epos_waitobject(fd, timeout_ms, index, subindex, nodeid, 0, (uint32_t*)&value);
 		 }
 		    
+		 int64_t now = now_us();
+		 if (timer_tick(&timer[nodeid], now, 0) > 100*1000) // 100ms should be enough
+			 slog(LOG_WARNING, "slow epos response on serial:0x%x\n", serial);
+
 		 if (err) {  // no timestamps with nacks
 			 printf("0x%x:0x%x[%d] # 0x%x: %s\n", serial, index, subindex, err, epos_strerror(err));
 			 continue;
 		 }
 
 		 if(dotimestamps)
-			 printf("0x%x:0x%x[%d] = 0x%x T:%lld\n", serial, index, subindex, value, now_us());
+			 printf("0x%x:0x%x[%d] = 0x%x T:%lld\n", serial, index, subindex, value, now);
 		 else
 			 printf("0x%x:0x%x[%d] = 0x%x\n", serial, index, subindex, value);
+
+		 if(sigflg) {
+			 sigflg = 0;
+
+			 for(nodeid = 1; nodeid < nelem(nodeidmap); ++nodeid) {
+				 if (nodeidmap[nodeid] == -1) continue;
+				 struct TimerStats stats;
+				 if(timer_stats(&timer[nodeid], &stats))
+					 slog(LOG_INFO, "serial 0x%x count:%lld", serial, stats.count);
+				 else
+					 slog(LOG_INFO, OFMT(serial, stats));
+			 }
+		 }
 
 	 }
 
