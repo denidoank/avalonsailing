@@ -15,7 +15,9 @@
 #include <unistd.h>
 
 #include "../log.h"
+#include "ebus.h"
 #include "actuator.h"
+#include "com.h"
 
 // -----------------------------------------------------------------------------
 //   Together with getopt in main, this is our minimalistic UI
@@ -34,16 +36,6 @@ static void usage(void) {
 		, argv0);
 	exit(2);
 }
-/*
-static int64_t now_ms() {
-        struct timeval tv;
-        if (gettimeofday(&tv, NULL) < 0) crash("no working clock");
-
-        int64_t ms1 = tv.tv_sec;  ms1 *= 1000;
-        int64_t ms2 = tv.tv_usec; ms2 /= 1000;
-        return ms1 + ms2;
-}
-*/
 
 struct Stats {
 	int get, set, ack, err, fault;
@@ -125,18 +117,14 @@ int main(int argc, char* argv[]) {
 		if (!fgets(line, sizeof(line), stdin))
 			crash("reading stdin");
 
-		 if (line[0] == '#') continue;
-
-		 // int64_t now = now_ms();
-
 		 uint32_t serial = 0;
-		 int index       = 0;
-		 int subindex    = 0;
-		 char op[3] = "";
-		 int64_t value_l = 0;  // fumble signedness
-		 
-		 int n = sscanf(line, "%i:%i[%i] %2s %lli", &serial, &index, &subindex, op, &value_l);
-		 if (n < 3) continue;
+		 uint32_t regidx = 0;
+		 char op 	 = 0;
+		 int32_t value  = 0;
+		 uint64_t us    = 0;
+
+		 if(!ebus_parse(line, &op, &serial, &regidx, &value, &us))
+			 continue;
 		 
 		 int i;
 		 for(i = 0; i < 4; i++)
@@ -146,27 +134,28 @@ int main(int argc, char* argv[]) {
 		 if(i == 4)
 			 continue;  // TODO once report 'weird message'
 		 
-		 switch(op[0]) {
-		 case 0:   stats[i].get++; break;
+		 switch(op) {
+		 case '?': stats[i].get++; break;
 		 case ':': stats[i].set++; break;
 		 case '=':
 			 stats[i].ack++;
-			 if(REGISTER(index,subindex) == REG_STATUS && (value_l & STATUS_FAULT)) {
+			 if(regidx == REG_STATUS && (value & STATUS_FAULT)) {
 				 stats[i].fault++;
-				 slog(LOG_ERR, "%s: Fault: %s", motor_params[i].label, strbits(status_bits, value_l));
+				 slog(LOG_ERR, "%s: Fault: %s", motor_params[i].label, strbits(status_bits, value));
 			 }
 			 // rudderctl asks for error on fault
-			 if(REGISTER(index,subindex) == REG_ERROR) {
-				 slog(LOG_ERR, "%s: Error: %s", motor_params[i].label, strbits(error_bits, value_l));
+			 if(regidx == REG_ERROR) {
+				 slog(LOG_ERR, "%s: Error: %s", motor_params[i].label, strbits(error_bits, value));
 			 }
 			 break;
 		 case '#':
 			 stats[i].err++;
-			 slog(LOG_ERR, "%s: Communication error: %s", motor_params[i].label, line);
+			 slog(LOG_ERR, "%s: Communication error 0x%x[%d] # 0x%x %s", motor_params[i].label, INDEX(regidx), SUBINDEX(regidx), value, epos_strerror(value));
 			 break;
 		 }
 		 
 		 // TODO report stats
+		 // TODO monitor end-to-end latency
 	}
 
 	crash("main loop exit");

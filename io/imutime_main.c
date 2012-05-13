@@ -17,9 +17,8 @@
 #include <sys/time.h>
 
 #include "../proto/imu.h"
+#include "log.h"
 
-// -----------------------------------------------------------------------------
-//   Together with getopt in main, this is our minimalistic UI
 // -----------------------------------------------------------------------------
 // static const char* version = "$Id: $";
 static const char* argv0;
@@ -27,34 +26,12 @@ static int verbose = 0;
 static int debug = 0;
 
 static void
-crash(const char* fmt, ...)
-{
-	va_list ap;
-	char buf[1000];
-	va_start(ap, fmt);
-	vsnprintf(buf, sizeof(buf), fmt, ap);
-	if (debug)
-		fprintf(stderr, "%s:%s%s%s\n", argv0, buf,
-			(errno) ? ": " : "",
-			(errno) ? strerror(errno):"" );
-	else
-		syslog(LOG_CRIT, "%s%s%s\n", buf,
-		       (errno) ? ": " : "",
-		       (errno) ? strerror(errno):"" );
-	exit(1);
-	va_end(ap);
-	return;
-}
-
-static void fault() { crash("fault"); }
-
-static void
 usage(void)
 {
 	fprintf(stderr,
 		"usage: [plug -o /path/to/bus |] %s [options]\n"
 		"options:\n"
-		"\t-d debug            (don't syslog)\n"
+		"\t-d debug (don't syslog)\n"
 		, argv0);
 	exit(2);
 }
@@ -94,7 +71,7 @@ int main(int argc, char* argv[]) {
 
 	if (argc != 0) usage();
 
-	if (!debug) openlog(argv0, LOG_PERROR, LOG_DAEMON);
+	if (!debug) openlog(argv0, debug?LOG_PERROR:0, LOG_DAEMON);
 
 	if (signal(SIGBUS, fault) == SIG_ERR)  crash("signal(SIGBUS)");
 	if (signal(SIGSEGV, fault) == SIG_ERR)  crash("signal(SIGSEGV)");

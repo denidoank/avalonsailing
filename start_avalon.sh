@@ -17,6 +17,7 @@ PORT_COMPASS=/dev/ttyUSB4
 PORT_AIS=/dev/ttyUSB5
 PORT_MODEM=/dev/ttyUSB6
 PORT_WIND=/dev/ttyUSB7
+
 PORT_IMU=/dev/ttyUSB8	#  /dev/xsensIMU
 
 EBUS=/tmp/ebus  # /var/run/ebus
@@ -77,17 +78,17 @@ echo "   kill \`cat $LBUS.pid\`"
     )&
 
     (
-	plug $EBUS --  `which sailctl`			# positioning for sail
+	plug $EBUS -- `which sailctl`			# positioning for sail
 	logger  -s -p local2.crit "Sailctl exited."
 	kill `cat $EBUS.pid`
     )&
 
     plug -i $EBUS `which eposprobe` -f 10 &	 # periodically issue status register probe commands (needed by ruddersts and -mon)
-    plug -o -n 'eposmon' $EBUS `which eposmon` & # summarize and report epos communication errors to syslog
+    plug -o -n "eposmon" $EBUS `which eposmon` & # summarize and report epos communication errors to syslog
 
     #   ruddersts: decode ebus status registers to lbus ruddersts: messages
     #   plug -f rudderctl: forward rudderctl: messages to ebus
-    plug -o -n "ruddersts" $EBUS | ruddersts -n 100 | plug -n 'rudderctlfwd' -f 'rudderctl:' $LBUS | plug -i $EBUS
+    plug -o -n "ruddersts" $EBUS | ruddersts -n 100 | plug -n "rudderctlfwd" -f "rudderctl:" $LBUS | plug -i $EBUS
 
     # the above will block until the ebus, the lbus or probe/stsmon exits
     logger -s -p local2.crit "Epos status subsystem exited."
@@ -100,18 +101,24 @@ done
 
 # todo: each of these in a restart loop (with rate limiting)
 (imucfg $PORT_IMU &&
-    imucat $PORT_IMU 		| plug -i $LBUS; logger -s -p local2.crit "imucat exited.")&
-(compasscat $PORT_COMPASS 	| plug -i $LBUS; logger -s -p local2.crit "compasscat exited.")&
-(windcat $PORT_WIND 		| plug -i $LBUS; logger -s -p local2.crit "windcat exited.")&
+ plug -i $LBUS `which imucat` $PORT_IMU 		; logger -s -p local2.crit "imucat exited.")&
+#(plug -o -n "imutime" -f "imu:" $LBUS `which imutime`	; logger -s -p local2.crit "imutime exited.")&
+
+(plug -i $LBUS `which compasscat` $PORT_COMPASS 	; logger -s -p local2.crit "compasscat exited.")&
+(plug -i $LBUS `which windcat` $PORT_WIND 		; logger -s -p local2.crit "windcat exited.")&
 
 (plug -n "helmsman" $LBUS -- `which helmsman` 2>&1 | logger -p local2.debug)&
 
-# not needed yet:
-# (fcmon $PORT_FUELCELL 	| plug -i $LBUS; logger -s -p local2.crit "fcmon exited.")&
-# (aiscat $PORT_AIS | aisbuf /var/run/ais.txt; logger -s -p local2.crit "aiscat exited.")&
 
-# modemd --device=$PORT_MODEM --queue=/var/run/modem | plug $LBUS | statusd  --queue=/var/run/modem \
-#	--initial_timeout=180 --status_interval=86400 --remote_cmd_interval=5 
+if /bin/false; then  # not needed yet:
+
+    (fcmon $PORT_FUELCELL | plug -i $LBUS; logger -s -p local2.crit "fcmon exited.")&  # TODO or direct to syslog?    
+    (aiscat $PORT_AIS | aisbuf /var/run/ais.txt; logger -s -p local2.crit "aiscat exited.")&
+
+    (plug -i $LBUS `which modemd`  --queue=/var/run/modem --device=$PORT_MODEM) &
+    (plug -o -n "statusd" $LBUS `which statusd` --queue=/var/run/modem --initial_timeout=180 --status_interval=86400 --remote_cmd_interval=5) &
+
+fi
 
 
 

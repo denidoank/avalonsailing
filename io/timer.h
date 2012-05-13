@@ -32,8 +32,13 @@ int64_t timer_tick(struct Timer* t,  int64_t now, int start);
 // equivalent to timer_tick(t, now_us(), start)
 int64_t timer_tick_now(struct Timer* t, int start);
 
-// returns true if the timer is currently started.
+// returns 1 if the timer is currently running.
 int timer_running(struct Timer* t);
+
+// returns the time the timer last started if running, or 0 if not running.
+int64_t timer_started(struct Timer* t);
+// returns the time the timer last stopped if not running, or 0 running.
+int64_t timer_stopped(struct Timer* t);
 
 // clear all events from the timer (by resetting count)
 void timer_reset(struct Timer* t);

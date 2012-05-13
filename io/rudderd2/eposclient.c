@@ -7,20 +7,9 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/time.h>
 
-static int64_t now_us() {
-	struct timeval tv;
-	if (gettimeofday(&tv, NULL) < 0) {
-		fprintf(stderr, "no working clock");
-		exit(1);
-	}
-
-	int64_t ms1 = tv.tv_sec;  ms1 *= 1000000;
-	int64_t ms2 = tv.tv_usec;
-	return ms1 + ms2;
-}
-
+#include "ebus.h"
+#include "../timer.h"
 
 enum { INVALID, PENDING, VALID };
 
@@ -31,7 +20,7 @@ struct Register {
 	uint32_t reg;
 	uint32_t value;
 	int state;
-	int64_t issued_us;
+	struct Timer timer;
 };
 
 struct Device {
@@ -60,20 +49,13 @@ void bus_enable_timestamp(Bus* bus, int on) { bus->timestamp = on; }
 int64_t bus_receive(Bus* bus, char* line) {
 
 	uint32_t serial = 0;
-	int index       = 0;
-	int subindex    = 0;
-	char op[3] = { 0, 0, 0 };
-	int64_t value_l = 0;  // fumble signedness
+	uint32_t regidx = 0;
+	char op 	= 0;
+	int32_t value 	= 0;
+	uint64_t us 	= 0;  // timestamp added by sender, currently unused
 
-	int n = sscanf(line, "%i:%i[%i] %2s %lli", &serial, &index, &subindex, op, &value_l);
-	if (n != 5) return 0;
-
-	// we only care about acks and nacks
-	if(op[0] != '=' && op[0] != '#')
+	if (!ebus_parse_rsp(line, &op, &serial, &regidx, &value, &us))
 		return 0;
-
-	uint32_t value = value_l;
-	uint32_t idx = REGISTER(index, subindex);
 
 	Device* dev = NULL;
 	for (dev = bus->devices; dev; dev = dev->next)
@@ -84,14 +66,14 @@ int64_t bus_receive(Bus* bus, char* line) {
 
 	Register* reg = NULL;
 	for (reg = dev->registers; reg; reg = reg->next)
-		if (reg->reg == idx)
+		if (reg->reg == regidx)
 			break;
 
 	if (!reg) return 0;
 
 	int prev = reg->state;
 
-	if (op[0] == '=') {
+	if (op == '=') {
 		reg->value = value;
 		reg->state = VALID;
 	} else {
@@ -101,25 +83,39 @@ int64_t bus_receive(Bus* bus, char* line) {
 	if (prev != PENDING)  // we got a response to someone elses request
 		return 1;
 
-	int64_t dt = now_us() - reg->issued_us;
+	int64_t dt = timer_tick_now(&reg->timer, 0);
 	if (dt < 2) dt = 2;
-	return dt;  // guard against clock jump
+	return dt;
 }
 
-enum { TIMEOUT_US = 1*1000*1000 };  // 1 second
+enum {
+	REQ_TIMEOUT_US = 1*1000*1000,   // after 1 second, PENDING->INVALID so next will re-issue
+	RSP_TIMEOUT_US = 5*1000*1000    // after 5 seconds VALID->INVALID so next will re-issue
+};
 
-int bus_clocktick(Bus* bus) {
+// Return number of timed out pending requests (not responses)
+int bus_expire(Bus* bus) {
 	Device* dev;
 	Register* reg;
 	int r = 0;
 	int64_t t = now_us();
+	int64_t s = 0;
 	for (dev = bus->devices; dev; dev = dev->next)
 		for (reg = dev->registers; reg; reg = reg->next) {
-			if (reg->state != PENDING) continue;
-			// guard against clock jumps
-			if ((t < reg->issued_us) || (t - reg->issued_us > TIMEOUT_US)) {
+			switch (reg->state) {
+			case PENDING:
+				s = t - timer_started(&reg->timer);
+				if (0 < s && s < REQ_TIMEOUT_US)
+					continue;
 				reg->state = INVALID;
 				++r;
+				break;
+			case VALID:
+				s = t - timer_stopped(&reg->timer);
+				if (0 < s && s < RSP_TIMEOUT_US)
+					continue;
+				reg->state = INVALID;
+				break;
 			}
 		}
 	return r;
@@ -147,9 +143,11 @@ static Register* find_reg(Device* dev, uint32_t regidx) {
 	}
 
 	reg = malloc(sizeof(*reg));
+	memset(reg, 0, sizeof *reg);
 	reg->reg = regidx;
 	reg->state = INVALID;
 	reg->next = dev->registers;
+	reg->timer.ignoredups = 1;
 	dev->registers = reg;
 	return reg;
 }
@@ -159,24 +157,24 @@ int device_get_register(Device* dev, uint32_t regidx, uint32_t* val) {
 	int n;
 	int64_t now;
 
-	switch (reg->state) {
-	case VALID:
+	if (reg->state == VALID) {
 		*val = reg->value;
 		return 1;
-	case INVALID:
+	}
+
+	if (reg->state == INVALID) {
 		now = now_us();
 		if (dev->bus->timestamp)
 			n = fprintf(dev->bus->ctl, EBUS_GET_T_OFMT(dev->serial, regidx, now));
 		else
 			n = fprintf(dev->bus->ctl, EBUS_GET_OFMT(dev->serial, regidx));
+
 		if (n > 0) {
 			reg->state = PENDING;
-			reg->issued_us = now;
+			timer_tick(&reg->timer, now, 1);
 		}
-		// fallthrough
-	case PENDING:
-		return 0;
 	}
+
 	return 0;
 }
 
@@ -192,13 +190,14 @@ int device_set_register(Device* dev, uint32_t regidx, uint32_t val) {
 
 	const int64_t now = now_us();
 	if (dev->bus->timestamp)
-		fprintf(dev->bus->ctl, EBUS_SET_T_OFMT(dev->serial, regidx, val, now));
+		n = fprintf(dev->bus->ctl, EBUS_SET_T_OFMT(dev->serial, regidx, val, now));
 	else
-		fprintf(dev->bus->ctl, EBUS_SET_OFMT(dev->serial, regidx, val));
+		n = fprintf(dev->bus->ctl, EBUS_SET_OFMT(dev->serial, regidx, val));
+
 	if (n > 0) {
 		reg->value = val;
 		reg->state = PENDING;
-		reg->issued_us = now;
+		timer_tick(&reg->timer, now, 1);
 	} else {
 		reg->state = INVALID;
 	}
@@ -208,10 +207,10 @@ int device_set_register(Device* dev, uint32_t regidx, uint32_t val) {
 void device_invalidate_register(Device* dev, uint32_t regidx) {
 	Register* reg;
 	for (reg = dev->registers; reg; reg = reg->next)
-		if (reg->reg == regidx)
+		if (reg->reg == regidx) {
+			reg->state = INVALID;
 			break;
-	if (reg)
-		reg->state = INVALID;
+		}
 }
 
 void device_invalidate_all(Device* dev) {
