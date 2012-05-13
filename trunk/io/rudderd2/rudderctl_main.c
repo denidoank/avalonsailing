@@ -18,11 +18,10 @@
 #include "../../proto/rudder.h"
 
 #include "../log.h"
+#include "../timer.h"
 #include "actuator.h"
 #include "eposclient.h"
 
-// -----------------------------------------------------------------------------
-//   Together with getopt in main, this is our minimalistic UI
 // -----------------------------------------------------------------------------
 // static const char* version = "$Id: $";
 static const char* argv0;
@@ -34,44 +33,50 @@ static void usage(void) {
 	exit(2);
 }
 
-static int64_t now_ms() {
-        struct timeval tv;
-        if (gettimeofday(&tv, NULL) < 0) crash("no working clock");
-
-        int64_t ms1 = tv.tv_sec;  ms1 *= 1000;
-        int64_t ms2 = tv.tv_usec; ms2 /= 1000;
-        return ms1 + ms2;
-}
-
 static Bus* bus = NULL;
 static MotorParams* params = NULL;
 static Device* dev = NULL;
 static double target_angle_deg = NAN;
 
+const double CLIP_DEG = 50;  // +/- max angle of operation when storm flag is off
 const double TOLERANCE_DEG = .05;  // aiming precision in targetting rudder
 const int64_t BUSLATENCY_WARN_THRESH_US = 100*1000;  // 100ms
 
+// Read 1 line of input from stdin.
+// rudderctl: we handle here, the epos messages are handled by bus_receive.
+// return 1 if something (target_angle_deg or a register cache in the bus) changed, 0 otherwise.
 static int processinput() {
 	char line[1024];
 	if (!fgets(line, sizeof(line), stdin))
 		crash("reading stdin");
 
-	if (line[0] == 'r') {  // 'rudderctl: ..
+	if (line[0] == 'r') {  // 'rudderctl: ...
+
 		struct RudderProto msg = INIT_RUDDERPROTO;
 		int nn;
 		int n = sscanf(line, IFMT_RUDDERPROTO_CTL(&msg, &nn));
 		if (n != 5)
 			return 0;
-		target_angle_deg = (params == &motor_params[LEFT]) ? msg.rudder_l_deg : msg.rudder_r_deg;
-	} else {
-		int to = bus_clocktick(bus);
-		if(to) slog(LOG_WARNING, "timed out %d epos requests", to);
 
+		if(msg.storm_flag)
+			target_angle_deg = (params == &motor_params[LEFT]) ? 90.0 : -90.0;
+		else {
+			target_angle_deg = (params == &motor_params[LEFT]) ? msg.rudder_l_deg : msg.rudder_r_deg;
+			if(target_angle_deg < -CLIP_DEG) target_angle_deg = -CLIP_DEG;
+			if(target_angle_deg >  CLIP_DEG) target_angle_deg =  CLIP_DEG;
+		}
+
+	} else {
+
+		int to = bus_expire(bus);
+		if(to) slog(LOG_WARNING, "timed out %d epos requests", to);
+		
 		int64_t lat_us = bus_receive(bus, line);
 		if (lat_us == 0)
 			return 0;
 		if(lat_us > BUSLATENCY_WARN_THRESH_US)
 			slog(LOG_WARNING, "high epos latency: %lld ms", lat_us/1000);
+
 	}
 	return 1;
 }
@@ -85,7 +90,7 @@ const char* status[] = { "DEFUNCT", "HOMING", "TARGETTING", "REACHED" };
 //    DEFUNCT:  waiting for epos response to register query
 //    HOMING:   in initalizing sequence
 //    TARGETTING:  ready for rudder_control
-static int rudder_init()
+static int rudder_init(void)
 {
         int r;
         uint32_t status;
@@ -206,18 +211,17 @@ static int rudder_init()
 // Try to set the motion towards target_angle if neccesary
 // Returns
 //     DEFUNCT:  waiting for response to epos query
-//     HOMING:   HOMEREF bit or PPM mode lost, please go execute rudder_init
+//     HOMING:   status FAULT or HOMEREF bit or PPM mode lost, please go execute rudder_init
 //     TARGETTING:  in motion towards target
 //     REACHED:   reached target angle to within tolerance
-static int rudder_control(double* actual_angle_deg)
+static int rudder_control(void)
 {
         int r;
         uint32_t status;
         uint32_t error;
         uint32_t control;
         uint32_t opmode;
-        int32_t curr_pos_qc;
-        int32_t curr_targ_qc;
+	int32_t curr_targ_qc;
 
         if (!device_get_register(dev, REG_STATUS, &status))
                 return DEFUNCT;
@@ -232,9 +236,9 @@ static int rudder_control(double* actual_angle_deg)
                 return HOMING;
         }
 
+	// these will be read from the bus register cache if possible
         r  = device_get_register(dev, REG_OPMODE,  &opmode);
         r &= device_get_register(dev, REG_CONTROL, &control);
-        r &= device_get_register(dev, REG_CURRPOS, (uint32_t*)&curr_pos_qc);
         r &= device_get_register(dev, REG_TARGPOS, (uint32_t*)&curr_targ_qc);
 
         if (!r) return DEFUNCT;
@@ -242,11 +246,7 @@ static int rudder_control(double* actual_angle_deg)
 	if (!(status & STATUS_HOMEREF) || opmode != OPMODE_PPM)
 		return HOMING;
 
-        *actual_angle_deg = qc_to_angle(params, curr_pos_qc);
-
-        slog(LOG_DEBUG, "rudder_control current position %dqc/%.3lf deg) current target %dqc/%.3lf deg)",
-              curr_pos_qc,  qc_to_angle(params, curr_pos_qc),
-              curr_targ_qc, qc_to_angle(params, curr_targ_qc));
+        slog(LOG_DEBUG, "rudder_control current target %dqc/%.3lf deg)",  curr_targ_qc, qc_to_angle(params, curr_targ_qc));
 
 	if (isnan(target_angle_deg)) return REACHED;
 
@@ -255,20 +255,10 @@ static int rudder_control(double* actual_angle_deg)
      
         if (targ_diff < 0) targ_diff = -targ_diff;
         if (targ_diff > TOLERANCE_DEG) {
-                slog(LOG_DEBUG, "rudder_control must update target %.3lf deg", targ_diff);
+                slog(LOG_DEBUG, "rudder_control must update target by %.3lf deg", targ_diff);
                 status &= ~STATUS_TARGETREACHED;
                 control &= ~0x30;  // if we started, pretend we're just switched on
                 device_invalidate_register(dev, REG_CONTROL);
-        }
-
-        // targetreached is set, but are we really there?
-        if (status & STATUS_TARGETREACHED) {
-                double actual_diff = qc_to_angle(params, curr_pos_qc) - qc_to_angle(params, curr_targ_qc);
-                if (actual_diff < 0) actual_diff = -actual_diff;
-                if (actual_diff > TOLERANCE_DEG) {
-                        slog(LOG_DEBUG, "rudder_control target reached, but actual is wrong by %.3lf deg", actual_diff);
-                        status &= ~STATUS_TARGETREACHED;
-                }
         }
 
         if (!(status & STATUS_TARGETREACHED)) {
@@ -297,7 +287,6 @@ static int rudder_control(double* actual_angle_deg)
                         device_set_register(dev, REG_CONTROL, CONTROL_SHUTDOWN);
                 }
 
-                device_invalidate_register(dev, REG_CURRPOS);
                 device_invalidate_register(dev, REG_STATUS);
                 return TARGETTING;
         }
@@ -306,15 +295,14 @@ static int rudder_control(double* actual_angle_deg)
         device_set_register(dev, REG_CONTROL, CONTROL_SHUTDOWN);
 
         // we're homeref, position is close enough, and we powered off
-        device_invalidate_register(dev, REG_CURRPOS);
         device_invalidate_register(dev, REG_STATUS);
         return REACHED;
 }
 
 // -----------------------------------------------------------------------------
 
-const int64_t WARN_INTERVAL_MS = 15000;
-const int64_t MAX_INTERVAL_MS = 15*60*1000;
+const int64_t WARN_INTERVAL_US = 15 * 1000 * 1000; // 15 seconds
+const int64_t MAX_INTERVAL_US = 15*60*1000 * 1000; // 15 minutes
 
 int main(int argc, char* argv[]) {
 
@@ -360,9 +348,8 @@ int main(int argc, char* argv[]) {
 	bus_enable_timestamp(bus, dotimestamps);
 	dev = bus_open_device(bus, params->serial_number);
 
-	int64_t last_reached = now_ms();
-	int64_t warn_interval = WARN_INTERVAL_MS;
-	double angle_deg = NAN;
+	int64_t last_reached = now_us();
+	int64_t warn_interval = WARN_INTERVAL_US;
 	int state = DEFUNCT;
 
 	for (;;) {
@@ -381,22 +368,22 @@ int main(int argc, char* argv[]) {
 
 		while (state != HOMING) {
 			if (processinput())
-				state = rudder_control(&angle_deg);
+				state = rudder_control();
 
 			if (isnan(target_angle_deg))
 			    continue;
 
-			int64_t now = now_ms();
+			int64_t now = now_us();
 			
 			if (state == REACHED  || (now < last_reached)) {
 				last_reached = now;
-				warn_interval = WARN_INTERVAL_MS;
+				warn_interval = WARN_INTERVAL_US;
 			}
 
 			if (now - last_reached > warn_interval) {
-				slog(LOG_WARNING, "Unable to reach target %.3lf actual %.3lf", target_angle_deg, angle_deg);
+				slog(LOG_WARNING, "Unable to reach target %.3lf", target_angle_deg);
 				last_reached = now;  // shut up warning
-				if (warn_interval < MAX_INTERVAL_MS) warn_interval *= 2;
+				if (warn_interval < MAX_INTERVAL_US) warn_interval *= 2;
 			}
 		}
 	}

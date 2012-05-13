@@ -33,6 +33,19 @@ int64_t timer_tick(struct Timer* t,  int64_t now, int start) {
 
 int64_t timer_tick_now(struct Timer* t, int start) { return timer_tick(t, now_us(), start); }
 int timer_running(struct Timer* t) { return t->count & 1; }
+
+int64_t timer_started(struct Timer* t) {
+	if((t->count & 1) == 0)
+		return 0;
+	return t->ticks[((t->count-1) % (2*TIMER_EVENTS))];
+}
+
+int64_t timer_stopped(struct Timer* t) {
+	if(((t->count & 1) != 0) || t->count < 2)
+		return 0;
+	return t->ticks[((t->count-1) % (2*TIMER_EVENTS))];
+}
+
 void timer_reset(struct Timer* t) { t->count = 0; }
 
 int timer_stats(struct Timer*t, struct TimerStats *s) {
@@ -46,7 +59,7 @@ int timer_stats(struct Timer*t, struct TimerStats *s) {
 	int first = (s->count < TIMER_EVENTS) ? 0 : (s->count % TIMER_EVENTS) ; // first event in queue
 
 	int i, j;
-	double sx, sxx, sy, syy;
+	double sx, sxx;
 
 	// average period is  last start - first start / (nn - 1)
 	sx = t->ticks[2*last] - t->ticks[2*first];

@@ -18,6 +18,7 @@
 #include "seq.h"
 #include "../log.h"
 #include "../timer.h"
+#include "ebus.h"
 
 //static const char* version = "$Id: $";
 static const char* argv0;
@@ -30,7 +31,7 @@ static void usage(void) {
 }
 
 // adapted from OFMT_TIMER_STATS
-#define OFMT(serial, s)		\
+#define TIMER_OFMT(serial, s)		\
 	"serial: 0x%x count:%lld   f(Hz): %.3lf dc(%%): %.1lf  period(ms): %.3lf / %.3lf (±%.3lf) / %.3lf  run(ms): %.3lf / %.3lf (±%.3lf) / %.3lf", \
 		serial, (s).count, (s).f, (s).davg*100,			\
 		(s).pmin/1000, (s).pavg/1000, (s).pdev/1000, (s).pmax/1000, \
@@ -105,35 +106,28 @@ int main(int argc, char* argv[]) {
 			 crash("reading stdin");
 
 		 uint32_t serial = 0;
-		 int index       = 0;
-		 int subindex    = 0;
-		 char op[3] 	 = { 0, 0, 0 };
-		 int64_t value_l = 0;
+		 uint32_t regidx = 0;
+		 char op 	 = 0;
 		 int32_t value   = 0;
-		 uint32_t err 	 = 0;
+		 uint64_t us     = 0;
 
-		 int n = sscanf(line, "%i:%i[%i] %2s %lli", &serial, &index, &subindex, op, &value_l);
-
-		 if(n < 3) continue;
-
-		 // an ack or nack, must be from somewhere else
-		 if(n >= 4 && (op[0] == '=' || op[0] == '#'))
+		 if(!ebus_parse_req(line, &op, &serial, &regidx, &value, &us))
 			 continue;
-		 // an incomplete  assignment.  drop now rather than interpret as get later.
-		 if(n == 4 && (op[0] == ':' && op[1] == '='))
-			 continue;
+
+		 int index       = INDEX(regidx);
+		 int subindex    = SUBINDEX(regidx);
 
 		 for(nodeid = 1; nodeid < nelem(nodeidmap); ++nodeid)
 			 if (nodeidmap[nodeid] == serial)
 				 break;
 		 if (nodeid == nelem(nodeidmap))  // not for us
 			 continue;
-		 
+
+		 uint32_t err;		 
 		 timer_tick_now(&timer[nodeid], 1);
 
-		 if(n == 5 && op[0] == ':' && op[1] == '=') {
-			 // a valid set request
-			 value = value_l;
+		 switch(op) {
+		 case ':':  // a set request
 			 if (raw) {
 				 err = epos_writeobject(fd, index, subindex, nodeid, value);
 			 } else {
@@ -144,15 +138,13 @@ int main(int argc, char* argv[]) {
 				 struct EposCmd* cmd = cmds;
 				 err = epos_sequence(fd, nodeid, &cmd);
 			 }
-
-		 } else { 
-			 // we had at least 3 fields plus possibly
-			 // some trailing garbage, but not ':=' '=' or '#',
-			 // interpret it as a get request.
+			 break;
+		 case '?': // a get request
 			 if (raw)
 				 err = epos_readobject(fd, index, subindex, nodeid, (uint32_t*)&value);
 			 else
 				 err = epos_waitobject(fd, timeout_ms, index, subindex, nodeid, 0, (uint32_t*)&value);
+			 break;
 		 }
 		    
 		 int64_t now = now_us();
@@ -178,7 +170,7 @@ int main(int argc, char* argv[]) {
 				 if(timer_stats(&timer[nodeid], &stats))
 					 slog(LOG_INFO, "serial 0x%x count:%lld", serial, stats.count);
 				 else
-					 slog(LOG_INFO, OFMT(serial, stats));
+					 slog(LOG_INFO, TIMER_OFMT(serial, stats));
 			 }
 		 }
 

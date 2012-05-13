@@ -17,12 +17,10 @@
 #include "../../proto/rudder.h"
 
 #include "../log.h"
+#include "../timer.h"
 #include "actuator.h"
 #include "eposclient.h"
 
-// -----------------------------------------------------------------------------
-//   Together with getopt in main, this is our minimalistic UI
-// -----------------------------------------------------------------------------
 // static const char* version = "$Id: $";
 static const char* argv0;
 static int verbose = 0;
@@ -33,35 +31,37 @@ static void usage(void) {
 	exit(2);
 }
 
-static int64_t now_ms() {
-        struct timeval tv;
-        if (gettimeofday(&tv, NULL) < 0) crash("no working clock");
-
-        int64_t ms1 = tv.tv_sec;  ms1 *= 1000;
-        int64_t ms2 = tv.tv_usec; ms2 /= 1000;
-        return ms1 + ms2;
-}
-
 static Bus* bus = NULL;
 static Device* motor;
 static Device* bmmh;
 static double target_angle_deg = NAN;
+static int storm_flag = 0;
 
+const double TOLERANCE_DEG = 1.0;
 const int64_t BUSLATENCY_WARN_THRESH_US = 100*1000;  // 100ms
+
+// Read 1 line of input from stdin.
+// rudderctl: we handle here, the epos messages are handled by bus_receive.
+// return 1 if something (target_angle_deg or a register cache in the bus) changed, 0 otherwise.
 static int processinput() {
 	char line[1024];
 	if (!fgets(line, sizeof(line), stdin))
 		crash("reading stdin");
 
 	if (line[0] == 'r') {  // 'rudderctl..
+
 		struct RudderProto msg = INIT_RUDDERPROTO;
 		int nn;
 		int n = sscanf(line, IFMT_RUDDERPROTO_CTL(&msg, &nn));
 		if (n != 5)
 			return 0;
+
 		target_angle_deg = msg.sail_deg;
+		storm_flag = msg.storm_flag;
+
 	} else {
-		int to = bus_clocktick(bus);
+
+		int to = bus_expire(bus);
 		if(to) slog(LOG_WARNING, "timed out %d epos requests", to);
 
 		int64_t lat_us = bus_receive(bus, line);
@@ -69,6 +69,7 @@ static int processinput() {
 			return 0;
 		if(lat_us > BUSLATENCY_WARN_THRESH_US)
 			slog(LOG_WARNING, "high epos latency: %lld ms", lat_us/1000);
+
 	}
 	return 1;
 }
@@ -76,7 +77,6 @@ static int processinput() {
 enum { DEFUNCT = 0, HOMING, TARGETTING, REACHED };
 const char* status[] = { "DEFUNCT", "HOMING", "TARGETTING", "REACHED" };
 
-const double TOLERANCE_DEG = 1.0;
 
 // Set config and opmode
 // Returns
@@ -211,7 +211,6 @@ int sail_control(double* actual_angle_deg) {
         slog(LOG_DEBUG, "sail_control: curr_pos_qc: %d curr_targ_qc: %d new_targ_qc: %d delta_targ_qc: %d",
               curr_pos_qc, curr_targ_qc, new_targ_qc, delta_targ_qc);
 
-
         if (!(status & STATUS_TARGETREACHED)) {
                 slog(LOG_DEBUG, "sail_control: Status not reached, going to %d", new_targ_qc);
                 if (!device_set_register(motor, REGISTER(0x2078, 1), 0)) {
@@ -245,8 +244,10 @@ int sail_control(double* actual_angle_deg) {
         } else {
                 slog(LOG_DEBUG, "sail_control: Status Reached");
                 device_set_register(motor, REG_CONTROL, CONTROL_SHUTDOWN);
-                if (device_set_register(motor, REGISTER(0x2078, 1), (1<<12)))  // brake on
-                        slog(LOG_DEBUG, "sail_control: brake on");
+
+		if(!storm_flag)
+			if (device_set_register(motor, REGISTER(0x2078, 1), (1<<12)))  // brake on
+			  slog(LOG_DEBUG, "sail_control: brake on");
         }
 
         device_invalidate_register(bmmh,  REG_BMMHPOS);
@@ -257,8 +258,8 @@ int sail_control(double* actual_angle_deg) {
 
 // -----------------------------------------------------------------------------
 
-const int64_t WARN_INTERVAL_MS =   30*1000;
-const int64_t MAX_INTERVAL_MS = 15*60*1000;
+const int64_t WARN_INTERVAL_US =   30*1000*1000;  // 30 seconds
+const int64_t MAX_INTERVAL_US = 15*60*1000*1000;  // 15 minutes
 
 int main(int argc, char* argv[]) {
 
@@ -301,8 +302,8 @@ int main(int argc, char* argv[]) {
 	motor = bus_open_device(bus, motor_params[SAIL].serial_number);
 	bmmh  = bus_open_device(bus, motor_params[BMMH].serial_number);
 
-	int64_t last_reached = now_ms();
-	int64_t warn_interval = WARN_INTERVAL_MS;
+	int64_t last_reached = now_us();
+	int64_t warn_interval = WARN_INTERVAL_US;
 	double angle_deg = NAN;
 	int state = DEFUNCT;
 
@@ -312,6 +313,7 @@ int main(int argc, char* argv[]) {
 		device_invalidate_all(motor);
 		device_invalidate_all(bmmh);
 		uint32_t dum;
+
 		device_get_register(motor, REG_STATUS, &dum);  // Kick off communications
 
 		while (state != TARGETTING)
@@ -327,17 +329,17 @@ int main(int argc, char* argv[]) {
 			if (isnan(target_angle_deg))
 			    continue;
 
-			int64_t now = now_ms();
+			int64_t now = now_us();
 			
 			if (state == REACHED  || (now < last_reached)) {
 				last_reached = now;
-				warn_interval = WARN_INTERVAL_MS;
+				warn_interval = WARN_INTERVAL_US;
 			}
 
 			if (now - last_reached > warn_interval) {
 				slog(LOG_WARNING, "Unable to reach target %.2lf actual %.2lf", target_angle_deg, angle_deg);
 				last_reached = now;  // shut up warning
-				if (warn_interval < MAX_INTERVAL_MS) warn_interval *= 2;
+				if (warn_interval < MAX_INTERVAL_US) warn_interval *= 2;
 			}
 		}
 	}

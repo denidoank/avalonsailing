@@ -6,7 +6,7 @@
 
 #include <stdint.h>
 
-#include "eposclient.h"
+#include "ebus.h"
 
 enum { LEFT = 0, RIGHT = 1, SAIL = 2, BMMH = 3 };
 
@@ -15,6 +15,7 @@ enum { LEFT = 0, RIGHT = 1, SAIL = 2, BMMH = 3 };
 // to be between 0 and extreme_pos qc.  home_angle and extr angle will
 // be (TODO were) determined by a manual method :-)
 // for the sail and bmmh sensor (home, extreme) just defines the linear angle transformation
+// TODO the sail is off by 3 degrees clockwise for bmmh == 0 mod 4096
 typedef struct MotorParams MotorParams;
 struct MotorParams {
         const char* label;
