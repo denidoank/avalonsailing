@@ -107,12 +107,11 @@ int lb_writefd_all(int fd, struct LineBuffer* lb) {
 	if(lb->eol == 0) return 0;
 	int eol = lb->eol;
 	int remain = lb->head - lb->eol;
-	// look for more lines
-	char* last = memchr(lb->line+lb->eol, '\n', remain);
-	while(last) {
-		eol = last - lb->line;
+	while(remain) {	// look for more lines
+		char* last = memchr(lb->line+lb->eol, '\n', remain);
+		if (!last) break;
+		eol = last + 1 - lb->line;
 		remain = lb->head - eol;
-		last = memchr(lb->line+eol, '\n', remain);
 	}
 	int n = write(fd, lb->line, eol);
 	if (n < 0) return errno;
