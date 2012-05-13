@@ -15,6 +15,7 @@
 #include "com.h"
 
 #define VLOGF(fmt, ...) do {} while(0)
+//#define VLOGF(fmt, ...) fprintf(stderr, fmt, __VA_ARGS__)
 
 int
 epos_open(const char* path_to_dev)
@@ -184,14 +185,14 @@ epos_readobject(int fd, uint16_t index, uint8_t subindex, uint8_t nodeid, uint32
         };
 
         uint32_t r = xmit(fd, xmitframe, sizeof(xmitframe));
-
+	VLOGF("xmit: %d\n", r);
         if (r != 0) return r;
 
         uint8_t recvframe[12];
         int len = sizeof(recvframe);
 
         r = recv(fd, recvframe, &len);
-
+	VLOGF("recv: %d\n", r);
         if (r != 0) return r;
         if (recvframe[0] != 0) return EPOS_ERR_BADRESPONSE;
         if (len != 12 || recvframe[1] != 3) return EPOS_ERR_BADRESPONSE;
