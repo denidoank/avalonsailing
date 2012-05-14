@@ -85,7 +85,7 @@ int lb_putline(struct LineBuffer* lb, char *buf) {
 	if(len + mustadd > size_left(lb))
 		return -1;
 	lb_readstr(lb, &buf, len);
-	static char* c = &EOL;
+	char* c = &EOL;
 	if(mustadd) lb_readstr(lb, &c, 1);
 	return len;
 }
@@ -103,27 +103,40 @@ int lb_writefd(int fd, struct LineBuffer* lb) {
 	return update_w(lb, n);
 }
 
-int lb_writefd_all(int fd, struct LineBuffer* lb) {
-	if(lb->eol == 0) return 0;
-	int eol = lb->eol;
-	int remain = lb->head - lb->eol;
-	while(remain) {	// look for more lines
-		char* last = memchr(lb->line+lb->eol, '\n', remain);
-		if (!last) break;
-		eol = last + 1 - lb->line;
-		remain = lb->head - eol;
-	}
-	int n = write(fd, lb->line, eol);
-	if (n < 0) return errno;
-	// pretend this was the first one. so update clears it and looks for next.
-	lb->eol = n; 
-	return update_w(lb, n);
-}
-
 int lb_writestr(char **buf, int size, struct LineBuffer* lb) {
 	if(lb->eol == 0) return 0;
 	int n = write_buf(*buf, size, lb->line, lb->eol);
 	*buf += n;
+	return update_w(lb, n);
+}
+
+static int last_eol(struct LineBuffer* lb) {
+	int eol = lb->eol;
+	int remain = lb->head - eol;
+	while(remain) {	// look for more lines
+		char* last = memchr(lb->line + eol, '\n', remain);
+		if (!last) break;
+		eol = last + 1 - lb->line;
+		remain = lb->head - eol;
+	}
+	return eol;
+}
+
+int lb_writefd_all(int fd, struct LineBuffer* lb) {
+	if(lb->eol == 0) return 0;
+	int eol = last_eol(lb);
+	int n = write(fd, lb->line, eol);
+	if (n < 0) return errno;
+	lb->eol = n;   	// pretend this was the first one. so update clears it and looks for next.
+	return update_w(lb, n);
+}
+
+int lb_writestr_all(char **buf, int size, struct LineBuffer* lb) {
+	if(lb->eol == 0) return 0;
+	int eol = last_eol(lb);
+	int n = write_buf(*buf, size, lb->line, eol);
+	*buf += n;
+	lb->eol = n;   	// pretend this was the first one. so update clears it and looks for next.
 	return update_w(lb, n);
 }
 
@@ -144,10 +157,10 @@ static int update_w(struct LineBuffer* lb, int n) {
 int lb_getline(char *buf, int size, struct LineBuffer* lb) {
 	if(lb->eol == 0)
 		return 0;
-	int len = lb->eol+1;
+	int len = lb->eol+1;  // terminating zero
 	if(size < len)
 		return -1;
 	lb_writestr(&buf, size, lb);
 	*buf = 0;
-	return len;
+	return len-1;
 }

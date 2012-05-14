@@ -54,17 +54,20 @@ int lb_writefd_all(int fd, struct LineBuffer* lb);
 // 0 if no complete lines remain, or EAGAIN if not.
 int lb_writestr(char **buf, int size, struct LineBuffer* lb);
 
+int lb_writestr_all(char **buf, int size, struct LineBuffer* lb);
+
 // Putline writes the zero terminated line in buf to lb.
 // If buf does not end with a \n, it will write an extra one.
 // If the buffer does not have space for the complete line,
-// lb is unmodified and the function returns -1;
+// lb is unmodified and the function returns -1, otherwise
+// it returs the number of characters copied from buf;
 int lb_putline(struct LineBuffer* lb, char *buf);
 
 // Getline copies the first complete line from lb to buf, and adds
 // terminating zero.  If the provided buffer is too small buf and lb
 // are unchanged and getline returns -1, otherwise it returns the
-// number of characters copied, which will be 0 if there is no
-// available complete line.
+// number of characters copied (excluding the terminating zero), which
+// will be 0 if there is no available complete line.
 int lb_getline(char *buf, int size, struct LineBuffer* lb);
 
 
