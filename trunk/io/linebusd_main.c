@@ -426,8 +426,10 @@ int main(int argc, char* argv[]) {
 					break;
 
 		if(*cp) {
-			char buf[1024];
-			while(client_gets(*cp, buf, sizeof buf) > 0) {
+			char line[1024];
+			while(client_gets(*cp, line, sizeof line) > 0) {
+				char* buf = line;
+				while(*buf == '\n') buf++;   // skip empty lines
 				if(buf[0] == 0) continue;
 				
 				if(debug > 1 && buf[0]) fprintf(stdout, "received:>>%s<<", buf);
