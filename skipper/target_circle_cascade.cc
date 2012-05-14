@@ -6,7 +6,11 @@
 #include <stdio.h>
 
 #include "skipper/target_circle_cascade.h"
-#include "lib/fm/log.h"
+
+
+static const double kDefaultDirection = 225;  // SouthWest as an approximation of the whole journey.
+extern int debug;
+
 
 TargetCircleCascade::TargetCircleCascade() {}
 
@@ -18,7 +22,7 @@ void TargetCircleCascade::Build(const TargetCirclePoint* plan) {
     Add(t);
     ++plan;
   }
-  FM_LOG_INFO("Built plan with %d circles.", chain_.size());
+  if (debug) fprintf(stderr, "Built plan with %d circles.", chain_.size());
   CHECK_GT(chain_.size(), 0);
 }
 
@@ -26,8 +30,8 @@ void TargetCircleCascade::Build(const TargetCirclePoint* plan) {
 // The direction (in degrees) to follow.
 double TargetCircleCascade::ToDeg(double x, double y) {
   if (chain_.size() == 0) {
-    FM_LOG_WARN("No plan! Going south west.");
-    return 225;
+    fprintf(stderr, "No plan! Going south west.");
+    return kDefaultDirection;
   }
   // We might get blown off track by a storm or currents
   // getting into an area not covered by any TargetCircle.
@@ -38,10 +42,10 @@ double TargetCircleCascade::ToDeg(double x, double y) {
   for (double expand = 1.0; ; expand *= expansion_factor) {
     for (int index = 0; index < chain_.size(); ++index)
       if (chain_[index].In(x, y, expand)) {
-        FM_LOG_INFO("In target circle %d.", index);
+        if (debug) fprintf(stderr, "In target circle %d.", index);
         return chain_[index].ToDeg(x, y);
       }
-    FM_LOG_WARN("Need to expand target circles to %f %%!", expand * expansion_factor / 100);
+    //if (debug) fprintf(stderr, "Need to expand target circles to %lf %%!", expand * expansion_factor / 100);
   }
 }
 
@@ -60,9 +64,7 @@ bool TargetCircleCascade::TargetReached(LatLon lat_lon) {
 // Use this to print the target circle chain and to visualize it.
 void TargetCircleCascade::Print() {
   printf("Target circle\n%d target circles\n index x y radius\n", chain_.size());
-  for (int i = 0; i , chain_.size(); ++i) {
+  for (int i = 0; i < chain_.size(); ++i) {
     printf("%d %g %g %g\n", i, chain_[i].x0(), chain_[i].y0(), chain_[i].radius());
   }
 }
-
-

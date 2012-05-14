@@ -8,10 +8,6 @@ function generate_target_circles
 % Script to make const table for the route of the boat,
 %  in C++.
 % Produces a file named "target_circle_points_table.h" in the current directory.
-alpha = zeros(361,1);
-c_lift = alpha;
-c_drag = alpha;
-c_arm  = alpha;
 
 [fid, msg] = fopen("target_circle_points_table.h", "w");
 if fid == -1
@@ -65,13 +61,22 @@ for i=2:length(r)
   % pause
 endfor
 
-plot_plan(points_out)
+% plot_plan_map(points_out);
+plot_plan(points_out);
+axis ([-65, 0, 15, 55], "equal");
+
+pause
+
+save -ascii caribbean_points.asc points_out
 
 figure
 plot_plan(points_out)
+hold on
+a = antigua_map();
+patch(a(:,2), a(:,1), [0.1 0.8 0.2]);
 axis ([-62, -58, 16, 19], "equal");
 
-
+hold off
 
 x=points_out(:,1);
 y=points_out(:,2);

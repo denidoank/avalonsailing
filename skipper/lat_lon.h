@@ -11,9 +11,10 @@ const static double to_cartesian_meters = 111111; // from degrees to meters dist
 
 // Latitude and longitude in degrees,
 // latitude is the North component (South coordinates get a negative sign).
-// longitude is the East component (West coordinates get a negative sign). 
+// longitude is the East component (West coordinates get a negative sign).
 struct LatLon {
   LatLon(double latitude, double longitude) : lat(latitude), lon(longitude) {
+    //fprintf(stderr, "LatLon %lg %lg\n", latitude, longitude);
     CHECK_IN_INTERVAL(-360, latitude, 360);
     CHECK_IN_INTERVAL(-360, longitude, 360);
   }

@@ -18,9 +18,67 @@
 #include "vskipper/vskipper.h"
 #include "vskipper/util.h"
 
+using std::string;
+
 const static double kDays = 3600 * 24;
 
+int debug = 1;
+
+FILE* kml_file = NULL;
+
+static const char KML_head[] =
+    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+    "<kml xmlns=\"http://www.opengis.net/kml/2.2\">"
+  "<Document>"
+   " <name>Paths</name>"
+    "<description>Avalon Skipper resulting path.</description>"
+   " <Style id=\"orangeLineGreenPoly\">"
+    "  <LineStyle>"
+     "   <color>7f007fff</color> "    // transparency, blue, green, red
+      "  <width>4</width>"
+     " </LineStyle>"
+     " <PolyStyle>"
+      "  <color>7f00ff00</color>"
+     " </PolyStyle>"
+   " </Style>"
+   " <Placemark>"
+    "  <name>%s</name>"
+    "  <description>Avalon path</description>"
+    "  <styleUrl>#orangeLineGreenPoly</styleUrl>"
+    "  <LineString>"
+    "    <extrude>0</extrude>"
+    "    <tessellate>1</tessellate>"
+    "    <altitudeMode>absolute</altitudeMode>"
+    "    <coordinates>";
+
+     // -112.2550785337791,36.07954952145647,2357
+
+static const char KML_tail[] =
+    "        </coordinates>"
+    "  </LineString>"
+    "</Placemark>"
+    "</Document>"
+    "</kml>";
+
+void OpenKML(const string& name) {
+  kml_file = fopen((name + ".kml").c_str(), "w");
+  fprintf(kml_file, KML_head, name.c_str());
+}
+
+void DotKML(double latitude, double longitude) {
+  // 500m altitude is above Lake Zurich, so we get properly tesselated onto the surface.
+  fprintf(kml_file, "    %8.6f,%8.6f,500\n", longitude, latitude);
+}
+
+void CloseKML() {
+  fprintf(kml_file, KML_tail);
+  fclose(kml_file);
+}
+
+
 TEST(SkipperInternal, All) {
+  fprintf(stderr, "Running test: All");
+
   double end_time = 0;
   SkipperInput in;
   std::vector<skipper::AisInfo> ais;
@@ -55,7 +113,7 @@ TEST(SkipperInternal, All) {
       end_time = t;
       EXPECT_TRUE(thalwil.In(x0, y0));
       break;
-    }  
+    }
     EXPECT_FLOAT_EQ(45, alpha_star);
     double phi_rad = Deg2Rad(alpha_star);
     x0 += v * cos(phi_rad) * time_step;
@@ -67,6 +125,8 @@ TEST(SkipperInternal, All) {
 }
 
 TEST(SkipperInternal, SukkulentenhausPlan) {
+  fprintf(stderr, "Running test: SukkulentenhausPlan");
+  OpenKML("Sukkulentenhaus");
   double end_time = 0;
   SkipperInput in;
   std::vector<skipper::AisInfo> ais;
@@ -99,13 +159,17 @@ TEST(SkipperInternal, SukkulentenhausPlan) {
     x0 += v * cos(phi_rad) * time_step;
     y0 += v * sin(phi_rad) * time_step;
     printf("%8.6f %8.6f %8.6f %6.4f\n", t, x0, y0, alpha_star);
+    DotKML(x0, y0);
   }
   printf("end time: %8.6f days.\n", end_time / kDays);
   EXPECT_GT(60 * kDays, end_time);
+  CloseKML();
 }
 
 
 TEST(SkipperInternal, ThalwilOpposingWind) {
+  fprintf(stderr, "Running test: ThalwilOpposingWind");
+  OpenKML("FromThalwilAgainstTheWind");
   double end_time = 0;
   SkipperInput in;
   std::vector<skipper::AisInfo> ais;
@@ -139,12 +203,16 @@ TEST(SkipperInternal, ThalwilOpposingWind) {
     x0 += v * cos(phi_rad) * time_step;
     y0 += v * sin(phi_rad) * time_step;
     printf("%8.6f %8.6f %8.6f %6.4f\n", t, x0, y0, alpha_star);
+    DotKML(x0, y0);
   }
   printf("end time: %8.6f days.\n", end_time / kDays);
   EXPECT_GT(60 * kDays, end_time);
+  CloseKML();
 }
 
 TEST(SkipperInternal, Atlantic) {
+  fprintf(stderr, "Running test: Atlantic");
+  OpenKML("Atlantic");
   double end_time = 0;
   SkipperInput in;
   std::vector<skipper::AisInfo> ais;
@@ -183,13 +251,16 @@ TEST(SkipperInternal, Atlantic) {
     x0 += v * cos(phi_rad) * time_step;
     y0 += v * sin(phi_rad) * time_step;
     printf("%8.6f %8.6f %8.6f %6.4f\n", t / kDays, x0, y0, alpha_star);
+    DotKML(x0, y0);
   }
   printf("end time: %8.6f days.\n", end_time / kDays);
   EXPECT_GT(63 * kDays, end_time);
-
+  CloseKML();
 }
 
 TEST(SkipperInternal, ChangingAtlantic) {
+  fprintf(stderr, "Running test: ChangingAtlantic");
+  OpenKML("ChangingAtlantic");
   double end_time = 0;
   SkipperInput in;
   std::vector<skipper::AisInfo> ais;
@@ -208,12 +279,14 @@ TEST(SkipperInternal, ChangingAtlantic) {
   end_time = 0;
 
   printf("t/days, x0, y0, alpha_star\n");
+  // We switch to shorter time steps once it gets interesting.
   double time_step = 4*3600;
-  // need to run this for alonger time.
+  double stop_time = 1E9;
+  // need to run this for a longer time. t in seconds.
   for (double t = 0;
-       t < 64 * kDays;
+       t < 64 * kDays && t < stop_time;
        t += time_step ) {
-    in.angle_true_deg = NormalizeDeg(in.angle_true_deg + (rand() % 25));
+    in.angle_true_deg = NormalizeDeg(in.angle_true_deg + (rand() % 360));
     in.mag_true_kn = rand() % 40;
     in.latitude_deg = x0;
     in.longitude_deg = y0;
@@ -224,10 +297,14 @@ TEST(SkipperInternal, ChangingAtlantic) {
       EXPECT_TRUE(caribbean_final.In(x0, y0));
       if (end_time == 0)
         end_time = t;
+      // break;
+      stop_time = t + 1800;  // simulate after reaching the target.
     }
 
     // Simulate the motion
-    time_step = t < 60.5 * kDays ? 4*3600 : 1800;
+    if (t > 60.5 || y0 < -59 || SkipperInternal::TargetReached(LatLon(x0, y0))) {
+      time_step = 600;
+    }
     double phi_rad = Deg2Rad(alpha_star);
     x0 += v * cos(phi_rad) * time_step * in.mag_true_kn / 10.0;
     y0 += v * sin(phi_rad) * time_step * in.mag_true_kn / 10.0;
@@ -235,13 +312,17 @@ TEST(SkipperInternal, ChangingAtlantic) {
     x0 += 5 / to_cartesian_meters * time_step * (rand() % 100 - 50) / 100.0;
     y0 += 5 / to_cartesian_meters * time_step * (rand() % 100 - 50) / 100.0;
 
-    //printf("%8.6f %8.6f %8.6f %6.4f\n", t / kDays, x0, y0, alpha_star);
+    printf("%8.6f %8.6f %8.6f %6.4f\n", t / kDays, x0, y0, alpha_star);
+    DotKML(x0, y0);
   }
   printf("end time: %8.6f days.\n", end_time / kDays);
   EXPECT_GT(63 * kDays, end_time);
+  CloseKML();
 }
 
 TEST(SkipperInternal, StormyAtlantic) {
+  fprintf(stderr, "Running test: StormyAtlantic");
+  OpenKML("StormsRuleTheWaves");
   double end_time = 0;
   SkipperInput in;
   std::vector<skipper::AisInfo> ais;
@@ -288,17 +369,19 @@ TEST(SkipperInternal, StormyAtlantic) {
     y0 += 50 / to_cartesian_meters * time_step * (rand() % 100 - 50) / 100.0;
 
     printf("%8.6f %8.6f %8.6f %6.4f\n", t / kDays, x0, y0, alpha_star);
+    DotKML(x0, y0);
   }
   // Here the end point is not met (stroms 25 times stronger than the boat)
   // but we get near the target.
+  CloseKML();
 }
 
 int main(int argc, char* argv[]) {
-  SkipperInternal_All();
-  SkipperInternal_SukkulentenhausPlan();
-  SkipperInternal_ThalwilOpposingWind();
-  SkipperInternal_Atlantic();
+  //SkipperInternal_All();
+  //SkipperInternal_SukkulentenhausPlan();
+  //SkipperInternal_ThalwilOpposingWind();
+  //SkipperInternal_Atlantic();
   SkipperInternal_ChangingAtlantic();
-  SkipperInternal_StormyAtlantic();
+  //SkipperInternal_StormyAtlantic();
   return 0;
 }
