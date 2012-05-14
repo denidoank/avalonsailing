@@ -52,12 +52,15 @@ int lb_writefd_all(int fd, struct LineBuffer* lb);
 // Writestr tries to write the first complete line to to **buf and
 // update *buf according to the number of characters written.  Returns
 // 0 if no complete lines remain, or EAGAIN if not.
+// note that *buf will be updated to point one past the last copied character
+// but the buffer will *not* be zero terminated.
 int lb_writestr(char **buf, int size, struct LineBuffer* lb);
 
 int lb_writestr_all(char **buf, int size, struct LineBuffer* lb);
 
 // Putline writes the zero terminated line in buf to lb.
-// If buf does not end with a \n, it will write an extra one.
+// Empty strings are ignored, but a single "\n" will be added normally.
+// If buf is non-empty but does not end with a \n, it will write an extra one.
 // If the buffer does not have space for the complete line,
 // lb is unmodified and the function returns -1, otherwise
 // it returs the number of characters copied from buf;
