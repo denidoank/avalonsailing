@@ -43,6 +43,8 @@ int main(int argc, char* argv[]) {
 	*line = 0;
 	assert(!strcmp(out, "two\nthree\n"));
 
+	// discarding
+
 	int i, n;
 	n = strlen("incomplete");
 	for (i=0; i < 1024; i += n) {
@@ -62,7 +64,21 @@ int main(int argc, char* argv[]) {
 	assert(lb_writestr_all(&line, sizeof out, &lb) == 0);
 	*line = 0;
 	assert(!strcmp(out, "two\n"));
+	assert(lb.head == 0); 
 
+	// boundary cases
+	assert(lb_putline(&lb, "") == 0);   // putline does not add empty line
+	assert(lb.head == 0);
+	assert(!lb_pending(&lb)); 
+
+	assert(lb_putline(&lb, "\n") == 1);   // putline will add a single \n
+	assert(lb.head == 1);
+	assert(lb_pending(&lb)); 
+	line = out;
+	assert(lb_writestr(&line, sizeof out, &lb) == 0);
+	*line = 0;
+
+	assert(!strcmp(out, "\n"));
 
 	puts("OK");
 	return 0;

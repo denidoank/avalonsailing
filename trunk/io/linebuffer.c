@@ -48,6 +48,7 @@ int lb_readstr(struct LineBuffer* lb, char** buf, int len) {
 }
 
 static int update_r(struct LineBuffer* lb, int n) {
+//	printf("update_r before: head:%d eol:%d  n:%d\n", lb->head, lb->eol, n);
 	int savehead = lb->head;
 	lb->head += n;
 
@@ -73,7 +74,7 @@ static int update_r(struct LineBuffer* lb, int n) {
 		if (eol)
 			lb->eol = eol - lb->line + 1;
 	}
-
+//	printf("update_r after: head:%d eol:%d  n:%d\n", lb->head, lb->eol, n);
 	return lb->eol == 0 ? EAGAIN : 0;
 }
 
@@ -81,7 +82,7 @@ static char EOL = '\n';
 
 int lb_putline(struct LineBuffer* lb, char *buf) {
 	int len = strlen(buf);
-	int mustadd = (buf[len-1] == '\n') ? 0 : 1;
+	int mustadd = (len == 0 || buf[len-1] == '\n') ? 0 : 1;
 	if(len + mustadd > size_left(lb))
 		return -1;
 	lb_readstr(lb, &buf, len);
