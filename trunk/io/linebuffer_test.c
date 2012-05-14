@@ -43,6 +43,27 @@ int main(int argc, char* argv[]) {
 	*line = 0;
 	assert(!strcmp(out, "two\nthree\n"));
 
+	int i, n;
+	n = strlen("incomplete");
+	for (i=0; i < 1024; i += n) {
+		assert(!lb.discard);
+		line = "incomplete";
+		assert(lb_readstr(&lb, &line, n) == EAGAIN);
+	}
+	assert(lb.discard);
+	assert(!lb_pending(&lb));
+	assert(lb_putline(&lb, "one") == 3);   // adds \n, terminates discard
+	assert(!lb_pending(&lb)); 
+	assert(!lb.discard);
+	assert(lb_putline(&lb, "two\n") == 4);
+	assert(lb_pending(&lb));
+
+	line = out;
+	assert(lb_writestr_all(&line, sizeof out, &lb) == 0);
+	*line = 0;
+	assert(!strcmp(out, "two\n"));
+
+
 	puts("OK");
 	return 0;
 }
