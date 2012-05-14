@@ -205,6 +205,14 @@ static int rudder_init(void)
 		return DEFUNCT;
         }
 
+	// homrefed and PPM, now issue SwitchOn
+	if (control != CONTROL_SWITCHON) {
+		device_invalidate_register(dev, REG_CONTROL);
+                device_set_register(dev, REG_CONTROL, CONTROL_SWITCHON);
+                device_invalidate_register(dev, REG_STATUS);
+		return DEFUNCT;
+	}
+
 	return TARGETTING;
 }
 
@@ -219,9 +227,9 @@ static int rudder_control(void)
         int r;
         uint32_t status;
         uint32_t error;
-        uint32_t control;
         uint32_t opmode;
 	int32_t curr_targ_qc;
+	int32_t new_targ_qc;
 
         if (!device_get_register(dev, REG_STATUS, &status))
                 return DEFUNCT;
@@ -238,7 +246,6 @@ static int rudder_control(void)
 
 	// these will be read from the bus register cache if possible
         r  = device_get_register(dev, REG_OPMODE,  &opmode);
-        r &= device_get_register(dev, REG_CONTROL, &control);
         r &= device_get_register(dev, REG_TARGPOS, (uint32_t*)&curr_targ_qc);
 
         if (!r) return DEFUNCT;
@@ -246,57 +253,19 @@ static int rudder_control(void)
 	if (!(status & STATUS_HOMEREF) || opmode != OPMODE_PPM)
 		return HOMING;
 
-        slog(LOG_DEBUG, "rudder_control current target %dqc/%.3lf deg)",  curr_targ_qc, qc_to_angle(params, curr_targ_qc));
-
 	if (isnan(target_angle_deg)) return REACHED;
 
-        // no matter where we are, if current target is away from new target angle, we're not there
-        double targ_diff = target_angle_deg - qc_to_angle(params, curr_targ_qc);
-     
-        if (targ_diff < 0) targ_diff = -targ_diff;
-        if (targ_diff > TOLERANCE_DEG) {
-                slog(LOG_DEBUG, "rudder_control must update target by %.3lf deg", targ_diff);
+	new_targ_qc = angle_to_qc(params, target_angle_deg);
+
+	if (new_targ_qc != curr_targ_qc) {
                 status &= ~STATUS_TARGETREACHED;
-                control &= ~0x30;  // if we started, pretend we're just switched on
                 device_invalidate_register(dev, REG_CONTROL);
+		device_set_register(dev, REG_TARGPOS, new_targ_qc);
+		device_set_register(dev, REG_CONTROL, CONTROL_START);
         }
 
-        if (!(status & STATUS_TARGETREACHED)) {
-                switch (control) {
-                case CONTROL_SHUTDOWN:
-                        slog(LOG_DEBUG, "rudder_control targetting, switchon");
-                        device_set_register(dev, REG_CONTROL, CONTROL_SWITCHON);
-                        break;
-
-                case CONTROL_SWITCHON:
-                        slog(LOG_DEBUG, "rudder_control setting target position %lf -> %lf", qc_to_angle(params, curr_targ_qc), target_angle_deg);
-                        device_invalidate_register(dev, REG_TARGPOS);
-                        device_set_register(dev, REG_TARGPOS, angle_to_qc(params, target_angle_deg));
-                        device_set_register(dev, REG_CONTROL, CONTROL_START);
-                        break;
-
-                case CONTROL_START:
-                case CONTROL_SWITCHON | 0x0010:
-                        slog(LOG_DEBUG, "rudder_control targetting, waiting");
-                        if (!(status & STATUS_HOMINGERROR))
-				break;
-			//fallthrough
-                default:
-                        slog(LOG_NOTICE, "rudder_control targetting bad state: control 0x%x, status 0x%x", control, status);
-                        device_invalidate_register(dev, REG_CONTROL);
-                        device_set_register(dev, REG_CONTROL, CONTROL_SHUTDOWN);
-                }
-
-                device_invalidate_register(dev, REG_STATUS);
-                return TARGETTING;
-        }
-
-        slog(LOG_DEBUG, "rudder_control target reached, shutdown");
-        device_set_register(dev, REG_CONTROL, CONTROL_SHUTDOWN);
-
-        // we're homeref, position is close enough, and we powered off
         device_invalidate_register(dev, REG_STATUS);
-        return REACHED;
+        return (status & STATUS_TARGETREACHED) ? REACHED : TARGETTING;
 }
 
 // -----------------------------------------------------------------------------
