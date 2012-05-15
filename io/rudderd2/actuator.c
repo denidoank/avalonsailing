@@ -7,8 +7,13 @@
 #include <assert.h>
 
 struct MotorParams motor_params[] = {
+#if 0
 	{ "LEFT",  0x09011145, 101.0, -79.0, 0, -288000 },
 	{ "RIGHT", 0x09010537, -97.0,  83.0, 0,  288000 },
+#else  // limiting inner angle
+        { "LEFT",  0x09011145, 101.0, -50.0, 0, -288000*151/180 },
+        { "RIGHT", 0x09010537, -97.0,  50.0, 0,  288000*147/180 },
+#endif
 	// sail and bmmh *must* be -180..180 degree ranges
 	// TODO the sail is off by 3 degrees clockwise for bmmh == 0 mod 4096
         { "SAIL",  0x09010506,  -180.0, 180.0, 615000, -615000 },

@@ -38,7 +38,6 @@ static MotorParams* params = NULL;
 static Device* dev = NULL;
 static double target_angle_deg = NAN;
 
-const double CLIP_DEG = 50;  // +/- max angle of operation when storm flag is off
 const double TOLERANCE_DEG = .05;  // aiming precision in targetting rudder
 const int64_t BUSLATENCY_WARN_THRESH_US = 100*1000;  // 100ms
 
@@ -57,14 +56,7 @@ static int processinput() {
 		int n = sscanf(line, IFMT_RUDDERPROTO_CTL(&msg, &nn));
 		if (n != 5)
 			return 0;
-
-		if(msg.storm_flag)
-			target_angle_deg = (params == &motor_params[LEFT]) ? 90.0 : -90.0;
-		else {
-			target_angle_deg = (params == &motor_params[LEFT]) ? msg.rudder_l_deg : msg.rudder_r_deg;
-			if(target_angle_deg < -CLIP_DEG) target_angle_deg = -CLIP_DEG;
-			if(target_angle_deg >  CLIP_DEG) target_angle_deg =  CLIP_DEG;
-		}
+		target_angle_deg = (params == &motor_params[LEFT]) ? msg.rudder_l_deg : msg.rudder_r_deg;
 
 	} else {
 
