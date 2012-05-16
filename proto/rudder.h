@@ -31,4 +31,25 @@ struct RudderProto {
 	, &(x)->timestamp_ms, &(x)->rudder_l_deg, &(x)->rudder_r_deg, &(x)->sail_deg, &(x)->storm_flag, (n)
 
 
+// Variants that only touch one field
+#define OFMT_STATUS_LEFT(x) \
+  "status_left: timestamp_ms:%lld angle_deg:%.1lf\n", (x).timestamp_ms, (x).rudder_l_deg
+
+#define IFMT_STATUS_LEFT(x, n) \
+  "status_left: timestamp_ms:%lld angle_deg:%lf\n%n", &(x)->timestamp_ms, &(x)->rudder_l_deg, (n)
+
+// Variants that only set one field
+#define OFMT_STATUS_RIGHT(x) \
+  "status_right: timestamp_ms:%lld angle_deg:%.1lf\n", (x).timestamp_ms, (x).rudder_r_deg
+
+#define IFMT_STATUS_RIGHT(x, n) \
+  "status_right: timestamp_ms:%lld angle_deg:%lf\n%n", &(x)->timestamp_ms, &(x)->rudder_r_deg, (n)
+
+// Variants that only set one field
+#define OFMT_STATUS_SAIL(x) \
+  "status_sail: timestamp_ms:%lld angle_deg:%.1lf\n", (x).timestamp_ms, (x).sail_deg
+
+#define IFMT_STATUS_SAIL(x, n) \
+  "status_sail: timestamp_ms:%lld angle_deg:%lf\n%n", &(x)->timestamp_ms, &(x)->sail_deg, (n)
+
 #endif // PROTO_RUDDER_H

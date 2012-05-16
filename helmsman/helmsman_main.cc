@@ -226,6 +226,15 @@ int main(int argc, char* argv[]) {
 	ctrl_in.drives.homed_rudder_left = !isnan(sts.rudder_l_deg);
 	ctrl_in.drives.homed_rudder_right = !isnan(sts.rudder_r_deg);
 	ctrl_in.drives.homed_sail = !isnan(sts.sail_deg);
+      } else if (sscanf(line, IFMT_STATUS_LEFT(&sts, &nn)) > 0) {
+	ctrl_in.drives.gamma_rudder_left_rad  = Deg2Rad(sts.rudder_l_deg);
+	ctrl_in.drives.homed_rudder_left = !isnan(sts.rudder_l_deg);
+      } else if (sscanf(line, IFMT_STATUS_RIGHT(&sts, &nn)) > 0) {
+	ctrl_in.drives.gamma_rudder_right_rad  = Deg2Rad(sts.rudder_r_deg);
+	ctrl_in.drives.homed_rudder_right = !isnan(sts.rudder_r_deg);
+      } else if (sscanf(line, IFMT_STATUS_SAIL(&sts, &nn)) > 0) {
+	ctrl_in.drives.gamma_sail_rad  = Deg2Rad(sts.sail_deg);
+	ctrl_in.drives.homed_sail = !isnan(sts.sail_deg);
       } else if (sscanf(line, IFMT_COMPASSPROTO(&compass, &nn)) > 0) {
 	ctrl_in.compass_sensor.phi_z_rad  = Deg2Rad(compass.yaw_deg);
       } else if (sscanf(line, IFMT_HELMSMANCTLPROTO(&ctl, &nn)) > 0) {
