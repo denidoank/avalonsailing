@@ -79,6 +79,7 @@ int main(int argc, char* argv[]) {
 	 setlinebuf(stdout);
 
 	 openlog(argv0, debug?LOG_PERROR:0, LOG_LOCAL2);
+	 //if(!debug) setlogmask(LOG_UPTO(LOG_NOTICE));
 
 	 if (signal(SIGBUS, fault) == SIG_ERR)  crash("signal(SIGBUS)");
 	 if (signal(SIGSEGV, fault) == SIG_ERR)  crash("signal(SIGSEGV)");
@@ -100,6 +101,19 @@ int main(int argc, char* argv[]) {
 	 }
 
 	 while (!feof(stdin)) {
+
+		 if(sigflg) {
+			 sigflg = 0;
+
+			 for(nodeid = 1; nodeid < nelem(nodeidmap); ++nodeid) {
+				 if (nodeidmap[nodeid] == -1) continue;
+				 struct TimerStats stats;
+				 if(timer_stats(&timer[nodeid], &stats))
+					 slog(LOG_INFO, "serial 0x%x count:%lld", nodeidmap[nodeid], stats.count);
+				 else
+					 slog(LOG_INFO, TIMER_OFMT(nodeidmap[nodeid], stats));
+			 }
+		 }
 
 		 char line[1024];
 		 if (!fgets(line, sizeof(line), stdin))
@@ -151,29 +165,18 @@ int main(int argc, char* argv[]) {
 		 if (timer_tick(&timer[nodeid], now, 0) > 100*1000) // 100ms should be enough
 			 slog(LOG_WARNING, "slow epos response on serial:0x%x\n", serial);
 
-		 if (err) {  // no timestamps with nacks
-			 printf("0x%x:0x%x[%d] # 0x%x: %s\n", serial, index, subindex, err, epos_strerror(err));
-			 continue;
+		 if (err) { 
+			 if(dotimestamps)
+				 printf(EBUS_ERR_T_OFMT(serial, regidx, err, now));
+			 else
+				 printf(EBUS_ERR_OFMT(serial, regidx, err));
+		 } else {
+			 if(dotimestamps)
+				 printf(EBUS_ACK_T_OFMT(serial, regidx, value, now));
+			 else
+				 printf(EBUS_ACK_OFMT(serial, regidx, value));
+
 		 }
-
-		 if(dotimestamps)
-			 printf("0x%x:0x%x[%d] = 0x%x T:%lld\n", serial, index, subindex, value, now);
-		 else
-			 printf("0x%x:0x%x[%d] = 0x%x\n", serial, index, subindex, value);
-
-		 if(sigflg) {
-			 sigflg = 0;
-
-			 for(nodeid = 1; nodeid < nelem(nodeidmap); ++nodeid) {
-				 if (nodeidmap[nodeid] == -1) continue;
-				 struct TimerStats stats;
-				 if(timer_stats(&timer[nodeid], &stats))
-					 slog(LOG_INFO, "serial 0x%x count:%lld", serial, stats.count);
-				 else
-					 slog(LOG_INFO, TIMER_OFMT(serial, stats));
-			 }
-		 }
-
 	 }
 
 	 crash("main loop exit");
