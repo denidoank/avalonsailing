@@ -99,9 +99,10 @@ int main(int argc, char* argv[]) {
 		 // Ask linebusd to filter.  Note: we assume all clients will print serial in hex,
 		 // which they will if they use eposclient.h EPOS_G/SET_OFMT
 		 printf("$subscribe 0x%x\n", nodeidmap[nodeid]);
+		 ++found;
 	 }
 
-	 if (!found) {
+	 if (!found) {  // TODO(lvd) if (found < required) so sail won't run without both motor and bmmh?
 		 slog(LOG_ERR, "No epos devices found on port %s", argv[0]);
 		 crash("No epos devices.");
 	 }
