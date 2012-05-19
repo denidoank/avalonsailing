@@ -88,6 +88,7 @@ int main(int argc, char* argv[]) {
 	 int fd = epos_open(argv[0]);
 	 if (fd < 0) crash("epos_open(%s)", argv[0]);
 
+	 int found = 0;
 	 int nodeid;
 	 for (nodeid = 1; nodeid < nelem(nodeidmap); ++nodeid) {
 		 // Read serial number register 0x1018[4]
@@ -98,6 +99,11 @@ int main(int argc, char* argv[]) {
 		 // Ask linebusd to filter.  Note: we assume all clients will print serial in hex,
 		 // which they will if they use eposclient.h EPOS_G/SET_OFMT
 		 printf("$subscribe 0x%x\n", nodeidmap[nodeid]);
+	 }
+
+	 if (!found) {
+		 slog(LOG_ERR, "No epos devices found on port %s", argv[0]);
+		 crash("No epos devices.");
 	 }
 
 	 while (!feof(stdin)) {
@@ -125,8 +131,10 @@ int main(int argc, char* argv[]) {
 		 int32_t value   = 0;
 		 uint64_t us     = 0;
 
-		 if(!ebus_parse_req(line, &op, &serial, &regidx, &value, &us))
+		 if(!ebus_parse_req(line, &op, &serial, &regidx, &value, &us)) {
+			 slog(LOG_DEBUG, "unparseable line:\"%s\"", line);
 			 continue;
+		 }
 
 		 int index       = INDEX(regidx);
 		 int subindex    = SUBINDEX(regidx);
