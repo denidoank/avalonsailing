@@ -396,7 +396,7 @@ int main(int argc, char* argv[]) {
 
 		sigset_t empty_mask;
 		sigemptyset(&empty_mask);
-		if(timer_tick_now(&timer, 0) > 100) {  // 100us should do
+		if(timer_tick_now(&timer, 0) > 200) {  // 200us should do
 			struct TimerStats stats;
 			timer_stats(&timer, &stats);
 			slog(LOG_WARNING, "slow cycle: " OFMT_TIMER_STATS(stats));
