@@ -4,6 +4,7 @@
 
 #include "eposclient.h"
 
+#include <assert.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
@@ -83,6 +84,7 @@ int64_t bus_receive(Bus* bus, char* line) {
 	if (prev != PENDING)  // we got a response to someone elses request
 		return 1;
 
+	assert(timer_running(&reg->timer));
 	int64_t dt = timer_tick_now(&reg->timer, 0);
 	if (dt < 2) dt = 2;
 	return dt;
@@ -104,13 +106,16 @@ int bus_expire(Bus* bus) {
 		for (reg = dev->registers; reg; reg = reg->next) {
 			switch (reg->state) {
 			case PENDING:
+				assert(timer_running(&reg->timer));
 				s = t - timer_started(&reg->timer);
 				if (0 < s && s < REQ_TIMEOUT_US)
 					continue;
+				timer_tick(&reg->timer, t, 0);
 				reg->state = INVALID;
 				++r;
 				break;
 			case VALID:
+				assert(!timer_running(&reg->timer));
 				s = t - timer_stopped(&reg->timer);
 				if (0 < s && s < RSP_TIMEOUT_US)
 					continue;
@@ -147,14 +152,12 @@ static Register* find_reg(Device* dev, uint32_t regidx) {
 	reg->reg = regidx;
 	reg->state = INVALID;
 	reg->next = dev->registers;
-	reg->timer.ignoredups = 1;
 	dev->registers = reg;
 	return reg;
 }
 
 int device_get_register(Device* dev, uint32_t regidx, uint32_t* val) {
 	Register* reg = find_reg(dev, regidx);
-	int n;
 	int64_t now;
 
 	if (reg->state == VALID) {
@@ -164,15 +167,12 @@ int device_get_register(Device* dev, uint32_t regidx, uint32_t* val) {
 
 	if (reg->state == INVALID) {
 		now = now_us();
+		timer_tick(&reg->timer, now, 1);
+		reg->state = PENDING;
 		if (dev->bus->timestamp)
-			n = fprintf(dev->bus->ctl, EBUS_GET_T_OFMT(dev->serial, regidx, now));
+			fprintf(dev->bus->ctl, EBUS_GET_T_OFMT(dev->serial, regidx, now));
 		else
-			n = fprintf(dev->bus->ctl, EBUS_GET_OFMT(dev->serial, regidx));
-
-		if (n > 0) {
-			reg->state = PENDING;
-			timer_tick(&reg->timer, now, 1);
-		}
+			fprintf(dev->bus->ctl, EBUS_GET_OFMT(dev->serial, regidx));
 	}
 
 	return 0;
@@ -180,7 +180,6 @@ int device_get_register(Device* dev, uint32_t regidx, uint32_t* val) {
 
 int device_set_register(Device* dev, uint32_t regidx, uint32_t val) {
 	Register* reg = find_reg(dev, regidx);
-	int n;
 
 	if (reg->state == PENDING && reg->value == val)
 		return 0;
@@ -188,26 +187,31 @@ int device_set_register(Device* dev, uint32_t regidx, uint32_t val) {
 	if (reg->state == VALID && reg->value == val)
 		return 1;
 
-	const int64_t now = now_us();
-	if (dev->bus->timestamp)
-		n = fprintf(dev->bus->ctl, EBUS_SET_T_OFMT(dev->serial, regidx, val, now));
-	else
-		n = fprintf(dev->bus->ctl, EBUS_SET_OFMT(dev->serial, regidx, val));
+	// we were invalid, or pending or valid with a differend val
 
-	if (n > 0) {
-		reg->value = val;
-		reg->state = PENDING;
-		timer_tick(&reg->timer, now, 1);
-	} else {
-		reg->state = INVALID;
-	}
+	const int64_t now = now_us();
+	if (reg->state == PENDING)
+		timer_tick(&reg->timer, now, 0);
+
+	timer_tick(&reg->timer, now, 1);
+	reg->state = PENDING;
+	reg->value = val;
+
+	if (dev->bus->timestamp)
+		fprintf(dev->bus->ctl, EBUS_SET_T_OFMT(dev->serial, regidx, val, now));
+	else
+		fprintf(dev->bus->ctl, EBUS_SET_OFMT(dev->serial, regidx, val));
+
 	return 0;
 }
 
 void device_invalidate_register(Device* dev, uint32_t regidx) {
 	Register* reg;
+	const int64_t now = now_us();
 	for (reg = dev->registers; reg; reg = reg->next)
 		if (reg->reg == regidx) {
+			if (reg->state == PENDING)
+				timer_tick(&reg->timer, now, 0);
 			reg->state = INVALID;
 			break;
 		}
@@ -215,6 +219,10 @@ void device_invalidate_register(Device* dev, uint32_t regidx) {
 
 void device_invalidate_all(Device* dev) {
 	Register* reg;
-	for (reg = dev->registers; reg; reg = reg->next)
+	const int64_t now = now_us();
+	for (reg = dev->registers; reg; reg = reg->next) {
+		if (reg->state == PENDING)
+			timer_tick(&reg->timer, now, 0);
 		reg->state = INVALID;
+	}
 }
