@@ -39,7 +39,7 @@ static Device* dev = NULL;
 static double target_angle_deg = NAN;
 
 const double TOLERANCE_DEG = .05;  // aiming precision in targetting rudder
-const int64_t BUSLATENCY_WARN_THRESH_US = 100*1000;  // 100ms
+const int64_t BUSLATENCY_WARN_THRESH_US = 200*1000;  // 200ms
 
 // Read 1 line of input from stdin.
 // rudderctl: we handle here, the epos messages are handled by bus_receive.
@@ -263,9 +263,6 @@ static int rudder_control(void)
 
 // -----------------------------------------------------------------------------
 
-const int64_t WARN_INTERVAL_US = 15 * 1000 * 1000; // 15 seconds
-const int64_t MAX_INTERVAL_US = 15*60*1000 * 1000; // 15 minutes
-
 int main(int argc, char* argv[]) {
 
 	int ch;
@@ -310,8 +307,9 @@ int main(int argc, char* argv[]) {
 	bus_enable_timestamp(bus, dotimestamps);
 	dev = bus_open_device(bus, params->serial_number);
 
-	int64_t last_reached = now_us();
-	int64_t warn_interval = WARN_INTERVAL_US;
+	struct Timer reach;
+	memset(&reach, 0, sizeof reach);
+
 	int state = DEFUNCT;
 
 	for (;;) {
@@ -335,17 +333,21 @@ int main(int argc, char* argv[]) {
 			if (isnan(target_angle_deg))
 			    continue;
 
-			int64_t now = now_us();
-			
-			if (state == REACHED  || (now < last_reached)) {
-				last_reached = now;
-				warn_interval = WARN_INTERVAL_US;
+			switch (state) {
+			case TARGETTING:
+				if(!timer_running(&reach))
+					timer_tick_now(&reach, 1);
+				break;
+			case REACHED:
+				if(timer_running(&reach))
+					timer_tick_now(&reach, 0);
+				break;
 			}
 
-			if (now - last_reached > warn_interval) {
-				slog(LOG_WARNING, "Unable to reach target %.3lf", target_angle_deg);
-				last_reached = now;  // shut up warning
-				if (warn_interval < MAX_INTERVAL_US) warn_interval *= 2;
+			if (reach.count % 200 == 0) {
+				struct TimerStats stats;
+				timer_stats(&reach, &stats);
+				slog(LOG_INFO, "Target reached "  OFMT_TIMER_STATS(stats));
 			}
 		}
 	}
