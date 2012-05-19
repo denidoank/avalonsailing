@@ -59,11 +59,11 @@ static int processinput() {
 		target_angle_deg = (params == &motor_params[LEFT]) ? msg.rudder_l_deg : msg.rudder_r_deg;
 
 	} else {
+		int64_t lat_us = bus_receive(bus, line);
 
 		int to = bus_expire(bus);
 		if(to) slog(LOG_WARNING, "timed out %d epos requests", to);
 		
-		int64_t lat_us = bus_receive(bus, line);
 		if (lat_us == 0)
 			return 0;
 		if(lat_us > BUSLATENCY_WARN_THRESH_US)
@@ -199,6 +199,7 @@ static int rudder_init(void)
 
 	// homrefed and PPM, now issue SwitchOn
 	if (control != CONTROL_SWITCHON) {
+                slog(LOG_DEBUG, "rudder_init final switchon");
 		device_invalidate_register(dev, REG_CONTROL);
                 device_set_register(dev, REG_CONTROL, CONTROL_SWITCHON);
                 device_invalidate_register(dev, REG_STATUS);
