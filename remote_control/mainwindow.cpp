@@ -299,23 +299,6 @@ double SymmetricDeg(double alpha_deg) {
 
 void MainWindow::keyPressEvent(QKeyEvent* event) {
   switch(event->key()) {
-  case Qt::Key_C:
-  case Qt::Key_Z:
-  case Qt::Key_X:
-  case Qt::Key_A:
-  case Qt::Key_D:
-          sendRemoteProto(kIdleHelmsmanMode); break;
-
-  case Qt::Key_H:
-  case Qt::Key_J:
-  case Qt::Key_K:
-  case Qt::Key_L:
-          sendRemoteProto(kOverrideSkipperMode); break;
-
-  case Qt::Key_Space:
-          sendRemoteProto(kBrakeControlMode); break;
-  }
-  switch(event->key()) {
   case Qt::Key_1:
           true_wind_direction_deg_ -= 1.0;
           if (true_wind_direction_deg_ < 0.0)
@@ -377,6 +360,24 @@ void MainWindow::keyPressEvent(QKeyEvent* event) {
           heading_controller_->setAngle(
                 SymmetricDeg(heading_controller_->angle() + 10)); break;
   }
+  // sendRemoteProto needs the new heading_angle, so this switch has to go last.
+  switch(event->key()) {
+  case Qt::Key_C:
+  case Qt::Key_Z:
+  case Qt::Key_X:
+  case Qt::Key_A:
+  case Qt::Key_D:
+          sendRemoteProto(kIdleHelmsmanMode); break;
+
+  case Qt::Key_H:
+  case Qt::Key_J:
+  case Qt::Key_K:
+  case Qt::Key_L:
+          sendRemoteProto(kOverrideSkipperMode); break;
+
+  case Qt::Key_Space:
+          sendRemoteProto(kBrakeControlMode); break;
+  }
 }
 
 void MainWindow::sendRemoteProto(int command) {
@@ -424,4 +425,3 @@ void MainWindow::on_actionIdleHelmsman_triggered()
 {
   sendRemoteProto(kIdleHelmsmanMode);
 }
-
