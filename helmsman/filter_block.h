@@ -5,10 +5,10 @@
 
 // Filters for all measurement values plus preprocessing of wind vectors
 // The signals from IMU and wind sensor are filtered through different filters.
-// Besides that a valid flag in provided in the filtered_ output indicating that
-// all filters contain valid data.
+// Besides that a valid_app_wind flag in provided in the filtered_ output indicating that
+// the apparent wind is valid.
 // The true wind vector is very noisy and is stabilized with a slow (100s)
-// sliding average filter.
+// sliding average filter and its own valid_true_wind flag.
 
 #ifndef HELMSMAN_FILTER_BLOCK_H
 #define HELMSMAN_FILTER_BLOCK_H
@@ -29,13 +29,14 @@ class FilterBlock {
   FilterBlock();
   void Filter(const ControllerInput& in, FilteredMeasurements* fil);
   void MakeSkipperInput(const FilteredMeasurements& fil, SkipperInput* to_skipper);
+  bool ValidAppWind();
   bool ValidTrueWind();
   bool ValidSpeed();
 
  private:
   double CensorSpeed(double raw_speed);  // corrects the speed empirically
 
-  bool valid_;           // The filtered output data are invalid initially. This is a temporary state.
+  bool valid_app_wind_;  // The filtered output data for the apparent wind are invalid initially. This is a temporary state.
   bool imu_fault_;       // No speed, no orientation.
   bool gps_fault_;       // time and position are missing
 

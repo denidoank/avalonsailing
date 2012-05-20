@@ -280,7 +280,8 @@ int main(int argc, char* argv[]) {
         printf(OFMT_HELMSMAN_STATUSPROTO(hsts));
       }
 
-      loops = ++loops % 1000;
+      ++loops;
+      loops %= 1000;
     }
   }  // for ever
 

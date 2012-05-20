@@ -69,6 +69,7 @@ private:
   void drawBoat();
   void sendRemoteProto(int command);
   void sendMeteoProto();
+  void getDriveStatus();
 
 public slots:
   void onRudderCtlActivated(double angle);

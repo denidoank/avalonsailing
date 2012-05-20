@@ -37,6 +37,15 @@ public:
     }
   }
 
+  double getLong(const QString& daemon, const QString& var) const {
+    QString value = getVar(daemon, var);
+    if (value.isEmpty() || value == "nan") {
+      return 0;
+    } else {
+      return value.toLong();
+    }
+  }
+
   void writeToBus(const char* data);
 
 signals:

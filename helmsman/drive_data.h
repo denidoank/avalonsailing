@@ -3,7 +3,7 @@
 // that can be found in the LICENSE file.
 // Steffen Grundmann, May 2011
 
-// Sail brake status is managed by the drive interface. 
+// Sail brake status is managed by the drive interface.
 // All angle values in degrees. For the drives the [-180, 180] convention
 // is used.
 // Constructors, Reset, Check and conversion functions are provided for.
@@ -11,8 +11,10 @@
 #ifndef HELMSMAN_DRIVE_DATA_H
 #define HELMSMAN_DRIVE_DATA_H
 
+#include <stdint.h>
 #include <string>
 #include "proto/rudder.h"
+
 
 struct DriveReferenceValuesRad;
 
@@ -47,13 +49,14 @@ struct DriveReferenceValues {
 // Internally used radians versions.
 struct DriveActualValuesRad {
   DriveActualValuesRad();
-  DriveActualValuesRad(const std::string& kvline);
   DriveActualValuesRad(const DriveActualValues& act_deg);
   void Reset();
   std::string ToString() const;
 
-  void FromProto(const RudderProto& sts);
-  void ToProto(RudderProto* sts) const;
+  void FromProto(const RudderProto& status);
+
+  void ToProto(RudderProto* status,
+               int64_t timestamp_ms) const;
 
   double gamma_rudder_left_rad;
   double gamma_rudder_right_rad;
@@ -75,11 +78,9 @@ struct DriveReferenceValuesRad {
   void FromProto(const RudderProto& sts);
   void ToProto(RudderProto* sts) const;
 
-  bool operator!=(const DriveReferenceValuesRad& r);
   double gamma_rudder_star_left_rad;
   double gamma_rudder_star_right_rad;
   double gamma_sail_star_rad;
-  int storm_flag;
 };
 
 #endif  // HELMSMAN_DRIVE_DATA_H

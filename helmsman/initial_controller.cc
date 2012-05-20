@@ -61,7 +61,10 @@ void InitialController::Run(const ControllerInput& in,
   if (debug) {
     fprintf(stderr, "WindSensor: %s\n", in.wind_sensor.ToString().c_str());
     fprintf(stderr, "DriveActuals: %s\n", in.drives.ToString().c_str());
-    fprintf(stderr, "AppFiltered: %fdeg %fm/s\n", Rad2Deg(filtered.angle_app), filtered.mag_app);
+    if (filtered.valid_app_wind)
+      fprintf(stderr, "AppFiltered: %lfdeg %lfm/s\n", Rad2Deg(filtered.angle_app), filtered.mag_app);
+    else
+      fprintf(stderr, "AppFiltered: Magnitude %lfm/s\n", filtered.mag_app);
   }
   
   double angle_app = SymmetricRad(filtered.angle_app);

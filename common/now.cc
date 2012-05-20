@@ -35,4 +35,3 @@ int64_t now_s() {
   }  
   return tv.tv_sec;
 }
-

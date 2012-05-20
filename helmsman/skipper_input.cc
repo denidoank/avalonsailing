@@ -18,7 +18,7 @@ SkipperInput::SkipperInput() {
 SkipperInput::SkipperInput(int64_t a_timestamp_ms,
                            double a_longitude_deg, double a_latitude_deg,
                            double a_angle_true_deg, double a_mag_true_kn)
-    : timestamp_ms(timestamp_ms),
+    : timestamp_ms(a_timestamp_ms),
       longitude_deg(a_longitude_deg), latitude_deg(a_latitude_deg),
       angle_true_deg(a_angle_true_deg), mag_true_kn(a_mag_true_kn) {}
 
