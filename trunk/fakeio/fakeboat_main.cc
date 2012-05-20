@@ -64,6 +64,7 @@ usage(void) {
   exit(1);
 }
 
+
 int main(int argc, char* argv[]) {
   int ch;
   argv0 = strrchr(argv[0], '/');
@@ -173,8 +174,8 @@ int main(int argc, char* argv[]) {
                    true_wind,
                    &controller_input);
 
-    struct RudderProto drives_actual = INIT_RUDDERPROTO;     // out, and internal input
-    struct WindProto   wind_sensor = INIT_WINDPROTO;         // out
+    struct RudderProto status_drives  = INIT_RUDDERPROTO;           // out
+    struct WindProto wind_sensor = INIT_WINDPROTO;           // out
     struct CompassProto compass = INIT_COMPASSPROTO;         // out
 
     struct IMUProto    imu = {                               // out
@@ -192,15 +193,19 @@ int main(int argc, char* argv[]) {
     // wind, drive and IMU demons.
     // We can later introduce these here, for the time being we assume that they are small
     // in comparison to our sampling period of 100ms.
-    controller_input.ToProto(&wind_sensor, &drives_actual, &imu, &compass);
+    controller_input.ToProto(&wind_sensor,
+                             &status_drives,
+                             &imu, &compass);
 
     if (rounds % 10 == 0) {
       wind_sensor.timestamp_ms = now_ms();
       printf(OFMT_WINDPROTO(wind_sensor));
     }
     if (rounds % 1 == 0) {
-      drives_actual.timestamp_ms = now_ms();
-      printf(OFMT_RUDDERPROTO_STS(drives_actual));        // actuals
+      // TODO Occasionally drop a status for realistic effect.
+      printf(OFMT_STATUS_LEFT(status_drives));
+      printf(OFMT_STATUS_RIGHT(status_drives));
+      printf(OFMT_STATUS_SAIL(status_drives));
     }
     if (rounds % 4 == 0) {
       imu.timestamp_ms = now_ms();

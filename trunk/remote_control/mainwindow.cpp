@@ -85,17 +85,24 @@ void MainWindow::updateView() {
   updateGraphics();
 }
 
+// Alternative inputs for the rudder status.
+void MainWindow::getDriveStatus() {
+  rudder_left_->setRotation(state_->getDouble("status_left", "angle_deg"));
+  rudder_right_->setRotation(state_->getDouble("status_right", "angle_deg"));
+  boom_->setRotation(state_->getDouble("status_sail", "angle_deg"));
+}
+
 void MainWindow::updateGraphics() {
   compass_->setRotation(-state_->getDouble("imu", "yaw_deg"));
   target_heading_->setRotation(state_->getDouble("helm", "alpha_star_deg"));
   wind_->setRotation(state_->getDouble("wind", "angle_deg"));
 
-  boom_->setRotation(state_->getDouble("ruddersts", "sail_deg"));
   target_boom_->setRotation(state_->getDouble("rudderctl", "sail_deg"));
-  rudder_left_->setRotation(state_->getDouble("ruddersts", "rudder_l_deg"));
-  rudder_right_->setRotation(state_->getDouble("ruddersts", "rudder_r_deg"));
   target_rudder_left_->setRotation(state_->getDouble("rudderctl", "rudder_l_deg"));
   target_rudder_right_->setRotation(state_->getDouble("rudderctl", "rudder_r_deg"));
+
+  getDriveStatus();
+
   skipper_disc_->setRotation(-state_->getDouble("imu", "yaw_deg"));
   char wind_speed_str[128];
   sprintf(wind_speed_str, "%3.1lfkt T%d",

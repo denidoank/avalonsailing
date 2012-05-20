@@ -6,6 +6,7 @@
 #define HELMSMAN_CONTROLLER_IO_H
 
 #include "common/unknown.h"
+#include "common/now.h"
 #include "helmsman/imu.h"
 #include "helmsman/compass_sensor.h"
 #include "helmsman/drive_data.h"
@@ -22,7 +23,7 @@
 struct ControllerInput {
   ControllerInput() {
     Reset();
-  }  
+  }
   void Reset () {
     imu.Reset();
     wind_sensor.Reset();
@@ -31,12 +32,12 @@ struct ControllerInput {
     alpha_star_rad = kUnknown;  // natural
   }
   void ToProto(WindProto* wind_sensor_proto,
-               RudderProto* drive_actual_proto,
+               RudderProto* status,
                IMUProto* imu_proto,
                CompassProto* compass_proto) {
     imu.ToProto(imu_proto);
     wind_sensor.ToProto(wind_sensor_proto);
-    drives.ToProto(drive_actual_proto);
+    drives.ToProto(status, now_ms());
     compass_sensor.ToProto(compass_proto);
   }
 
@@ -56,7 +57,7 @@ struct ControllerOutput {
   //bool operator!=(const ControllerOutput& r) {
   //  return skipper_input != r.skipper_input ||
   //         drives_reference != r.drives_reference;
-  //}  
+  //}
   SkipperInput skipper_input;
   DriveReferenceValuesRad drives_reference;
   HelmsmanStatus status;
@@ -80,6 +81,7 @@ struct FilteredMeasurements {
     phi_y_rad = 0;
     temperature_c = 0;
     valid = false;
+    valid_app_wind = false;
     valid_true_wind = false;
   }
   // Applied filters (T1 roughly 1s) to some data.
@@ -105,9 +107,10 @@ struct FilteredMeasurements {
   double phi_x_rad;     // roll or heel
   double phi_y_rad;     // pitch
   double temperature_c; // in deg C
-  
+
   bool valid;           // All the filters (except the true wind filter) have been
                         // filled up and contain reliable data.
+  bool valid_app_wind;  // apparent wind info is reliable and well filtered.
   bool valid_true_wind; // true wind info is reliable and well filtered.
 };
 

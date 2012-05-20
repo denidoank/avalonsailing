@@ -5,6 +5,7 @@
 #include "helmsman/skipper_input.h"
 
 #include "lib/testing/testing.h"
+#include "common/now.h"
 
 TEST(SkipperInput, All) {
   const char in[] = "skipper_input: timestamp_ms:4000000000 "
@@ -54,15 +55,25 @@ TEST(SkipperInput, All) {
   EXPECT_FALSE(s != t);
 
   // mag_true missing
-  t.FromString("skipper_input: timestamp_ms:7 longitude_deg:10 "
-               "latitude_deg:11.10 angle_true_deg:-33 \n");
+  int chars_read = t.FromString("skipper_input: timestamp_ms:7 longitude_deg:10 "
+                                "latitude_deg:11.10 angle_true_deg:-33 \n");
   EXPECT_EQ(0, t.timestamp_ms);
   EXPECT_TRUE(isnan(t.longitude_deg));
   EXPECT_TRUE(isnan(t.latitude_deg));
   EXPECT_TRUE(isnan(t.angle_true_deg));
   EXPECT_TRUE(isnan(t.mag_true_kn));
+  EXPECT_EQ(0, chars_read);
 
-  s.Reset();
+  chars_read = t.FromString("skipper_input: timestamp_ms:7 longitude_deg:10 "
+                            "latitude_deg:11.10 angle_true_deg:-33 mag_true_kn:7.7\n");
+  EXPECT_EQ(7LL, t.timestamp_ms);
+  EXPECT_EQ(10, t.longitude_deg);
+  EXPECT_EQ(11.1, t.latitude_deg);
+  EXPECT_EQ(-33, t.angle_true_deg);
+  EXPECT_EQ(7.7, t.mag_true_kn);
+  EXPECT_EQ(101, chars_read);
+
+  t.Reset();
   EXPECT_EQ(0, t.timestamp_ms);
   EXPECT_TRUE(isnan(t.longitude_deg));
   EXPECT_TRUE(isnan(t.latitude_deg));
