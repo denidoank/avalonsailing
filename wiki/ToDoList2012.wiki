@@ -31,14 +31,14 @@
 || *Item* || *Who/when done* ||
 || Make helmsman less dependant on speed through water. Test in simulator. || grundmann/ ||
 || Make compass info out of IMU data. || grundmann/compass code done 2012/03/08 ||
-|| Make compass mix logic || grundmann/ ||
+|| Make compass mix logic || grundmann/2012-05-12 ||
 || Set the drive current limits to reasonable values (drives are rated as 250 and 400W)  || lvd/2012-04-12 ||
 || Fix sail drive zero position || lvd/ ||
 || The rudder angle ranges need adjustment. The values of 90 and 100 degress are just rough estimates.  || lvd ||
 || implement and test Drive recovery from temporary outages (power dips, overtemperature) || lvd/ ||
 || Implement and test storm mode for drives || lvd/ ||
 || Include new drive start-up into start_avalon.sh. Submit this. || lvd/ ||
-|| Update start_avalon.sh for compass_cat. (instead of fcmon, port number 5 ?) || grundmann/ ||
+|| Update start_avalon.sh for compass_cat. || grundmann/2012-05-12 ||
 || Fix big drive delays (currently about 360ms or 650ms for the sail drive) Should be around 200ms. || lvd/ ||
 || Fix odd sail drive behaviour. Leave brake released. Brake 10s after the last reference value change. || lvd/ ||
 || Make image and put controller into boat. || lvd&liam/ ||
