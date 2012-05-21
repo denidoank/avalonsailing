@@ -3,7 +3,7 @@
 set -e
 
 DESC="avalon sailing"
-NAME=sysmgr
+NAME=start-avalon.sh
 DAEMON=/usr/bin/$NAME
 
 case "$1" in

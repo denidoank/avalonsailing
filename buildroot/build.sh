@@ -4,7 +4,7 @@ set -e
 
 BASE_URL=http://buildroot.uclibc.org/downloads/
 DATE="$(date +%s)"
-BUILDROOT_VER=2011.05
+BUILDROOT_VER=2012.02
 BUILDROOT_TAR="buildroot-$BUILDROOT_VER.tar.bz2"
 AVALONSAILING_TAR="avalonsailing-$DATE.tar.gz"
 START="$PWD"
@@ -61,6 +61,13 @@ pushd "$BUILDROOTDIR"
 # copy the package definition files into place
 tar cpfC - "$START/package/" --exclude .svn --exclude "svn*" . |\
     tar xvpfC - "$BUILDROOTDIR/package"
+
+# modify Config.in
+cat <<EOD >> $BUILDROOTDIR/package/Config.in
+menu "Sail your boat"
+source "package/avalonsailing/Config.in"
+endmenu
+EOD
 
 # update the name of the tarball
 sed -i -e "s/%SOURCE%/$AVALONSAILING_TAR/g" \
