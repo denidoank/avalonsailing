@@ -116,7 +116,10 @@ int main(int argc, char* argv[]) {
 		int changed = 0;
 
 		if (serial == motor_params[BMMH].serial_number && reg == REG_BMMHPOS) {
-			changed = upd(&sts.sail_deg, qc_to_angle(&motor_params[BMMH], normalize_qc(&motor_params[BMMH], value)));
+			changed = upd(&sts.sail_deg, qc_to_angle(&motor_params[BMMH], value));
+			while (sts.sail_deg < -180.0) sts.sail_deg += 360.0;
+			while (sts.sail_deg >  180.0) sts.sail_deg -= 360.0;
+
 		} else if (serial == motor_params[LEFT].serial_number && reg == REG_STATUS) {
 			homed[LEFT] = value&STATUS_HOMEREF;
 			changed = (!homed[LEFT] && !isnan(sts.rudder_l_deg));
