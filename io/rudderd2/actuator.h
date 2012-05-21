@@ -30,7 +30,6 @@ extern MotorParams motor_params[];
 
 int32_t angle_to_qc(MotorParams* p, double angle_deg);
 double  qc_to_angle(MotorParams* p, int32_t pos_qc);
-int32_t normalize_qc(MotorParams* p, int32_t qc);
 
 enum {
         REG_CONTROL = REGISTER(0x6040, 0),

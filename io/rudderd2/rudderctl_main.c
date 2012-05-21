@@ -56,6 +56,7 @@ static int processinput() {
 		int n = sscanf(line, IFMT_RUDDERPROTO_CTL(&msg, &nn));
 		if (n != 5)
 			return 0;
+
 		target_angle_deg = (params == &motor_params[LEFT]) ? msg.rudder_l_deg : msg.rudder_r_deg;
 
 	} else {

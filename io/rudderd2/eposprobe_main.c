@@ -102,6 +102,7 @@ int main(int argc, char* argv[]) {
 			printf(EBUS_GET_T_OFMT(motor_params[RIGHT].serial_number, REG_CURRPOS, now));
 
 			printf(EBUS_GET_T_OFMT(motor_params[SAIL].serial_number, REG_STATUS, now));
+			printf(EBUS_GET_T_OFMT(motor_params[SAIL].serial_number, REG_CURRPOS, now));
 			printf(EBUS_GET_T_OFMT(motor_params[BMMH].serial_number, REG_BMMHPOS, now));
 		} else  {
 			printf(EBUS_GET_OFMT(motor_params[LEFT].serial_number, REG_STATUS));
@@ -111,6 +112,7 @@ int main(int argc, char* argv[]) {
 			printf(EBUS_GET_OFMT(motor_params[RIGHT].serial_number, REG_CURRPOS));
 
 			printf(EBUS_GET_OFMT(motor_params[SAIL].serial_number, REG_STATUS));
+			printf(EBUS_GET_OFMT(motor_params[SAIL].serial_number, REG_CURRPOS));
 			printf(EBUS_GET_OFMT(motor_params[BMMH].serial_number, REG_BMMHPOS));
 		}
 		fflush(stdout);
