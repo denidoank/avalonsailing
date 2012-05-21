@@ -13,8 +13,8 @@
 || Make watertight IMU box (currently 2 sealings leak). Test it. || grundmann/2012-03-19 ||
 || Fix boom end with black plastic (material purchased) || grundmann/2012-03-05 ||
 || Additional fixation for solar panels (each needs 2 bolts) ||  ||
-|| One bolt in bow hatch is missing, would leak water ||  ||
-|| Two bolts in starboard front hatch are missing, would leak water ||  ||
+|| One bolt in bow hatch is missing, would leak water || grundmann/2012-05-18  ||
+|| Two bolts in starboard front hatch are missing, would leak water || grundmann/2012-05-18 ||
 
 == Electric ==
 
