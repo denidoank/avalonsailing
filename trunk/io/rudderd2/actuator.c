@@ -15,7 +15,7 @@ struct MotorParams motor_params[] = {
         { "RIGHT", 0x09010537, -97.0,  50.0, 0,  288000*147/180 },
 #endif
 	// sail and bmmh *must* be -180..180 degree ranges
-	// TODO the sail is off by 3 degrees clockwise for bmmh == 0 mod 4096
+	// the sail is off by 3 degrees clockwise for bmmh == 0 mod 4096, which is handled in skewmon
         { "SAIL",  0x09010506,  -180.0, 180.0, 615000, -615000 },
         { "BMMH",  0x00001227,  -180.0, 180.0, 2048, -2048 }, // 4096 tics for a complete rotation
 };

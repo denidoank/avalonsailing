@@ -71,7 +71,7 @@ void slog(int priority, const char *message, ...) {
 
 	if (b->val > 0) {
 		if (b->discarded) {
-			syslog(priority, "discarded %d messages", b->discarded);
+			syslog(priority, "discarded %d log messages", b->discarded);
 			b->discarded = 0;
 		}
 		b->val--;
