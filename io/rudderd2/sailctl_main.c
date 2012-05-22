@@ -36,7 +36,6 @@ static Bus* bus = NULL;
 static Device* motor;
 static Device* bmmh;
 static double target_angle_deg = NAN;
-static double skew_angle_deg = NAN;
 static struct SkewProto skew = INIT_SKEWPROTO;
 
 const double TOLERANCE_DEG = 1.0;
@@ -193,11 +192,11 @@ int sail_control()
 	if (!(status & STATUS_HOMEREF) || opmode != OPMODE_PPM)
 		return HOMING;
 
-	if (isnan(skew_angle_deg)) return DEFUNCT;
+	if (isnan(skew.angle_deg)) return DEFUNCT;
 	if (isnan(target_angle_deg)) return REACHED;
 
 	double curr_targ_deg = qc_to_angle(&motor_params[SAIL], curr_targ_qc);
-	double delta_targ_deg = target_angle_deg - skew_angle_deg - curr_targ_deg;
+	double delta_targ_deg = target_angle_deg - skew.angle_deg - curr_targ_deg;
 	while (delta_targ_deg < -180.0) delta_targ_deg += 360.0;
 	while (delta_targ_deg >  180.0) delta_targ_deg -= 360.0;
 	
@@ -282,11 +281,23 @@ int main(int argc, char* argv[]) {
 
 		slog(LOG_WARNING, "Done initalizing sail.");
 
+		if(isnan(skew.angle_deg))
+			slog(LOG_WARNING, "No skew angle input yet.");
+
+		while (isnan(skew.angle_deg))
+			processinput();
+
+		slog(LOG_WARNING, "Got skew angle %.2lf", skew.angle_deg);
+
 		while (state != HOMING) {
 			if (processinput())
 				state = sail_control();
-
-			if (isnan(target_angle_deg) || isnan(skew_angle_deg))
+			
+			if (isnan(skew.angle_deg)) {
+				slog(LOG_WARNING, "Lost skew angle.");
+			}
+		
+			if (isnan(target_angle_deg))
 			    continue;
 		
 			switch (state) {
