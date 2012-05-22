@@ -33,9 +33,9 @@ static void usage(void) {
 	exit(2);
 }
 
-const double BMMH_BIAS_DEG = 3.0;  // if the boom is at 0, the BMMH reports 3.0 degrees
+const double BMMH_BIAS_DEG = 3.25;  // if the boom is at 0, the BMMH reports 3.25 degrees
 
-const int64_t REPORT_TIMEOUT_US = 2*1000*1000; // force new measurement if last report is 2s old.
+const int64_t REPORT_TIMEOUT_US = 8*1000*1000; // force new measurement if last report is 8s old.
 const int64_t MOTOR_MAX_INTERVAL_US = 250*1000; // 250ms between motor currpos samples
 
 int main(int argc, char* argv[]) {
@@ -100,8 +100,9 @@ int main(int argc, char* argv[]) {
 			}
 
 			if (serial == motor_params[BMMH].serial_number && reg == REG_BMMHPOS) {
-				if (value >= (1<<29)) value -= (1<<30);
-				if(debug) slog(LOG_DEBUG, "Got bmmh 0x%x: %.2lf\n", value, qc_to_angle(&motor_params[BMMH], value));
+				if(value > (1<<29)) value -= (1<<30);
+				value &= 4095;
+				if(debug) slog(LOG_DEBUG, "Got bmmh 0x%x %d: %.2lf\n", value, value, qc_to_angle(&motor_params[BMMH], value));
 				// bmmh position is 30 bit signed,0 .. 0x4000 0000 -> 0x2000 0000 => -0x2000 0000
 				bmmh_currpos_qc = value;
 				bmmh_us = us;
@@ -115,14 +116,19 @@ int main(int argc, char* argv[]) {
 		double alpha = -1.0;
 		int32_t motor_qc = 0;
 		if (motor_us[0] < bmmh_us && bmmh_us < motor_us[1] && (motor_us[1] - motor_us[0] < MOTOR_MAX_INTERVAL_US) ) {
-			alpha = (bmmh_us - motor_us[0])/(motor_us[1] - motor_us[0]);
-			motor_qc = (1.0-alpha)*motor_us[0] + alpha*motor_us[1];
+			alpha = bmmh_us - motor_us[0];
+			alpha /= motor_us[1] - motor_us[0];
+			motor_qc = (1.0-alpha)*motor_currpos_qc[0] + alpha*motor_currpos_qc[1];
+			if(debug) slog(LOG_DEBUG, "< alpha %.3lf qc: 0x%x", alpha, motor_qc);
 		} else if (motor_us[1] < bmmh_us && bmmh_us < motor_us[0] && (motor_us[0] - motor_us[1] < MOTOR_MAX_INTERVAL_US) ) {
-			alpha = (bmmh_us - motor_us[1])/(motor_us[0] - motor_us[1]);
-			motor_qc = (1.0-alpha)*motor_us[1] + alpha*motor_us[0];
+			alpha = bmmh_us - motor_us[1];
+			alpha /= motor_us[0] - motor_us[1];
+			motor_qc = (1.0-alpha)*motor_currpos_qc[1] + alpha*motor_currpos_qc[0];
+			if(debug) slog(LOG_DEBUG, "> alpha %.3lf qc: 0x%x", alpha, motor_qc);
 		}
 
 		if (alpha >= 0.0) {
+			if(debug) slog(LOG_DEBUG, "average motor pos %.3lf", qc_to_angle(&motor_params[SAIL], motor_qc));
 			skew.angle_deg = qc_to_angle(&motor_params[BMMH], bmmh_currpos_qc) - qc_to_angle(&motor_params[SAIL], motor_qc) - BMMH_BIAS_DEG;
 			while(skew.angle_deg < -180.0) skew.angle_deg += 360.0;
 			while(skew.angle_deg >  180.0) skew.angle_deg -= 360.0;
