@@ -34,7 +34,6 @@ static void usage(void) {
 
 static Bus* bus = NULL;
 static Device* motor;
-static Device* bmmh;
 static double target_angle_deg = NAN;
 static struct SkewProto skew = INIT_SKEWPROTO;
 
@@ -135,6 +134,7 @@ int sail_init() {
         r &= device_set_register(motor, REGISTER(0x2078, 3), 0);        // output polarity bits
         r &= device_set_register(motor, REGISTER(0x2079, 4), 12);       // output 12 -> signal 4
 	r &= device_set_register(motor, REGISTER(0x2078, 1), 0);	// brake off !
+                slog(LOG_DEBUG, "rudder_init registers set: %d", r);
 
         if (!r) {
                 device_invalidate_register(motor, REG_CONTROL);   // force re-issue
@@ -189,9 +189,7 @@ int sail_control()
 
         if (!r) return DEFUNCT;
 
-	if (!(status & STATUS_HOMEREF) || opmode != OPMODE_PPM)
-		return HOMING;
-
+	if (opmode != OPMODE_PPM) return HOMING;
 	if (isnan(skew.angle_deg)) return DEFUNCT;
 	if (isnan(target_angle_deg)) return REACHED;
 
@@ -243,8 +241,8 @@ int main(int argc, char* argv[]) {
 	argv += optind;	argc -= optind;
 	if (argc != 0) usage();
 
-	if (signal(SIGBUS, fault) == SIG_ERR)  crash("signal(SIGBUS)");
-	if (signal(SIGSEGV, fault) == SIG_ERR)  crash("signal(SIGSEGV)");
+//	if (signal(SIGBUS, fault) == SIG_ERR)  crash("signal(SIGBUS)");
+//	if (signal(SIGSEGV, fault) == SIG_ERR)  crash("signal(SIGSEGV)");
 
 	openlog(argv0, debug?LOG_PERROR:0, LOG_LOCAL2);
 	if(!debug) setlogmask(LOG_UPTO(LOG_NOTICE));
@@ -267,10 +265,9 @@ int main(int argc, char* argv[]) {
 	int state = DEFUNCT;
 
 	for(;;) {
-		slog(LOG_WARNING, "Initializing sail.");
+		slog(LOG_INFO, "Initializing sail.");
 
 		device_invalidate_all(motor);
-		device_invalidate_all(bmmh);
 		uint32_t dum;
 
 		device_get_register(motor, REG_STATUS, &dum);  // Kick off communications
@@ -279,7 +276,7 @@ int main(int argc, char* argv[]) {
 			if (processinput())
 				state = sail_init();
 
-		slog(LOG_WARNING, "Done initalizing sail.");
+		slog(LOG_INFO, "Done initalizing sail.");
 
 		if(isnan(skew.angle_deg))
 			slog(LOG_WARNING, "No skew angle input yet.");
@@ -287,12 +284,14 @@ int main(int argc, char* argv[]) {
 		while (isnan(skew.angle_deg))
 			processinput();
 
-		slog(LOG_WARNING, "Got skew angle %.2lf", skew.angle_deg);
+		slog(LOG_INFO, "Got skew angle %.2lf", skew.angle_deg);
 
 		while (state != HOMING) {
 			if (processinput())
 				state = sail_control();
 			
+			if(debug>2) fprintf(stderr, "state now: %s\n", status[state]);
+
 			if (isnan(skew.angle_deg)) {
 				slog(LOG_WARNING, "Lost skew angle.");
 			}

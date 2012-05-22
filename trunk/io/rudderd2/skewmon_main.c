@@ -44,7 +44,7 @@ int main(int argc, char* argv[]) {
 	argv0 = strrchr(argv[0], '/');
 	if (argv0) ++argv0; else argv0 = argv[0];
 
-	while ((ch = getopt(argc, argv, "dhn:vx:")) != -1){
+	while ((ch = getopt(argc, argv, "dhT")) != -1){
 		switch (ch) {
 		case 'd': ++debug; break;
 		case 'T': ++dotimestamps; break;
@@ -91,17 +91,20 @@ int main(int argc, char* argv[]) {
 			if (us == 0) us = now_us();
 
 			if (serial == motor_params[SAIL].serial_number && reg == REG_CURRPOS) {
+				if(debug) slog(LOG_DEBUG, "Got sail 0x%x: %.2lf\n", value, qc_to_angle(&motor_params[SAIL], value));
 				motor_currpos_qc[mc&1] = value;
 				motor_us[mc&1] = us;
 				++mc;
 			}
 
 			if (serial == motor_params[BMMH].serial_number && reg == REG_BMMHPOS) {
+				if(debug) slog(LOG_DEBUG, "Got bmmh 0x%x: %.2lf\n", value, qc_to_angle(&motor_params[BMMH], value));
 				bmmh_currpos_qc = value;
 				bmmh_us = us;
 			}
 		}
 
+		if (us == 0) us = now_us();
 		if (us - 1000*skew.timestamp_ms < REPORT_TIMEOUT_US/4) // limit at 1/4 of max period
 			continue;
 
