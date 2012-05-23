@@ -101,7 +101,8 @@ int main(int argc, char* argv[]) {
 
 		if (serial == motor_params[BMMH].serial_number && reg == REG_BMMHPOS) {
 			sts.timestamp_ms = us * 1000;
-			if (value >= (1<<29)) value -= (1<<30);
+			if (value >= (1<<29)) value -= (1<<30); // bmmh is 30 bit signed
+			value &= 4095;
 			sts.sail_deg = qc_to_angle(&motor_params[BMMH], value);
 			while (sts.sail_deg < -180.0) sts.sail_deg += 360.0;
 			while (sts.sail_deg >  180.0) sts.sail_deg -= 360.0;

@@ -23,7 +23,10 @@ struct Timer {
 
 int64_t now_us();  // current time in microseconds.  calls gettimeofday(2).
 
-// Register that the timer started (start != 0) or stopped (start == 0)at now_us.
+enum { TIMER_START = 1, TIMER_STOP = 0 /*, TIMER_RESTART = 2 */ };
+
+// Register that the timer started (start == TIMER_START), stopped
+// (start == TIMER_STOP) or restarted (start == TIMER_RESTART) at now_us.
 // repeated calls with the same value of start are ignored (t->ignoredup is true)
 // or cause the current event to be updated (default).
 // Returns the number of microseconds since last start.
