@@ -26,7 +26,7 @@ EBUS=/tmp/ebus  # /var/run/ebus
 LBUS=/tmp/lbus  # /var/run/lbus
 
 # for experimental use, get the binaries directly from the source tree.
-if !which linebusd; then
+if ! which linebusd; then
     AVALONROOT=/home/avalon/avalonsailing
     export PATH=$AVALONROOT/io:$AVALONROOT/io/rudderd2:$AVALONROOT/helmsman:$AVALONROOT/systools:$PATH
 fi
@@ -91,8 +91,8 @@ echo "   kill \`cat $LBUS.pid\`"
 	kill `cat $EBUS.pid`
     )&
 
-    plug -i $EBUS `which eposprobe` -f 10 -T &	 # periodically issue status register probe commands (needed by ruddersts and -mon)
-    plug -o -n "eposmon" $EBUS `which eposmon` & # summarize and report epos communication errors to syslog
+    plug -i $EBUS -- `which eposprobe` -f 2 -T &	 # periodically issue status register probe commands (needed by ruddersts and -mon)
+    plug -o -n "eposmon" $EBUS -- `which eposmon` & # summarize and report epos communication errors to syslog
 
     #   ruddersts: decode ebus status registers to lbus ruddersts: messages
     #   plug -f rudderctl: forward rudderctl: messages to ebus
@@ -108,9 +108,9 @@ done
 )&
 
 # todo: each of these in a restart loop (with rate limiting)
-(imucfg $PORT_IMU &&
- plug -i $LBUS -- `which imucat` $PORT_IMU 		; logger -s -p local2.crit "imucat exited.")&
+# (imucfg $PORT_IMU && plug -i $LBUS -- `which imucat` $PORT_IMU 		; logger -s -p local2.crit "imucat exited.")&
 #(plug -o -n "imutime" -f "imu:" $LBUS -- `which imutime`	; logger -s -p local2.crit "imutime exited.")&
+#imutume
 
 (plug -i $LBUS -- `which compasscat` $PORT_COMPASS 	; logger -s -p local2.crit "compasscat exited.")&
 (plug -i $LBUS -- `which windcat` $PORT_WIND 		; logger -s -p local2.crit "windcat exited.")&

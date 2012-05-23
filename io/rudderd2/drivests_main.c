@@ -100,7 +100,7 @@ int main(int argc, char* argv[]) {
 		if (us == 0) us = now_us();
 
 		if (serial == motor_params[BMMH].serial_number && reg == REG_BMMHPOS) {
-			sts.timestamp_ms = us * 1000;
+			sts.timestamp_ms = us / 1000;
 			if (value >= (1<<29)) value -= (1<<30); // bmmh is 30 bit signed
 			value &= 4095;
 			sts.sail_deg = qc_to_angle(&motor_params[BMMH], value);
@@ -122,7 +122,7 @@ int main(int argc, char* argv[]) {
 			homed[RIGHT] = value&STATUS_HOMEREF;
 
 		} else if (serial == motor_params[LEFT].serial_number && reg == REG_CURRPOS && homed[LEFT]) {
-			sts.timestamp_ms = us * 1000;
+			sts.timestamp_ms = us / 1000;
 			sts.rudder_l_deg = qc_to_angle(&motor_params[LEFT], value);
 			if (homed[LEFT] && (us > timer_started(&timer[LEFT]) + min_us)) {
 				timer_tick(&timer[LEFT], us, 0);
@@ -131,7 +131,7 @@ int main(int argc, char* argv[]) {
 			}
 
 		} else if (serial == motor_params[RIGHT].serial_number && reg == REG_CURRPOS && homed[RIGHT]) {
-			sts.timestamp_ms = us * 1000;
+			sts.timestamp_ms = us / 1000;
 			sts.rudder_r_deg = qc_to_angle(&motor_params[RIGHT], value);
 			if (homed[RIGHT] && (us > timer_started(&timer[RIGHT]) + min_us )) {
 				timer_tick(&timer[RIGHT], us, 0);
