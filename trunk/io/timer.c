@@ -22,6 +22,7 @@ int64_t now_us() {
         return us1 + us2;
 }
 
+// TODO handle restart 
 int64_t timer_tick(struct Timer* t,  int64_t now, int start) {
 	start = start ? 0 : 1;
 	if (start == (t->count & 1) && t->ignoredups) return 0;

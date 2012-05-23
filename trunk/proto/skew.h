@@ -6,7 +6,7 @@
 
 struct SkewProto {
 	int64_t timestamp_ms;
-	double angle_deg;
+	double angle_deg;      // bmmh reported (actual) angle - motor reported angle
 };
 
 #define INIT_SKEWPROTO {0, NAN}
