@@ -107,6 +107,7 @@ int main(int argc, char* argv[]) {
 		 if(found) break;
 		 // TODO(lvd) if (found < required) so sail won't run without both motor and bmmh?
 		 slog(LOG_ERR, "No epos devices found on port %s, sleeping for 30 seconds", argv[0]);
+		 crash("No epos devices found");   // TODO(lvd) recover gracefully from others hogging the serial port
 		 sleep(30);
 	 }
 
