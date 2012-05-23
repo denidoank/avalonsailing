@@ -43,6 +43,20 @@ if [ "$err" != "" ]; then
     exit 1
 fi
 
+#
+# General setup: the lbus has the low frequency/high level communication (ais, compass, helmsman etc)
+# the ebus does the high frequency/low latency low level epos commands in ebus.h protocol (mostly)
+# programs are connected to the bus with the plug program.
+# it's options:
+#    -i  only take the output of the program as input to the bus (i.e. dont receive any messages from the bus)
+#    -o  only take what comes from the bus and feed it to the program (i.e. dont send any messages to the bus)
+#    -n name  a name for debugging when you ask for stats with kill -USR1 $bus.pid, not (yet) relevant for -i plugs.
+#    -f instal a filter on prefix (not relevant for -i plugs).
+#  programs like eposcom and sailctl that are connected to the bus with both stdin and stdout typically install their own filters
+#  on the linebus, so there's no need to specify them there.
+#  the -- is needed in plug [options] $BUS -- command [command options] to explain to plug where to stop interpreting its options.
+#
+
 logger -s -p local2.Notice "Avalon subsystems starting up"
 
 linebusd $LBUS	# blocks until socket exists
@@ -91,7 +105,7 @@ echo "   kill \`cat $LBUS.pid\`"
 	kill `cat $EBUS.pid`
     )&
 
-    plug -i $EBUS -- `which eposprobe` -f 2 -T &	 # periodically issue status register probe commands (needed by ruddersts and -mon)
+    plug -i $EBUS -- `which eposprobe` -f 2 -T &    # periodically (-f Hz) issue status register probe commands (needed by ruddersts and -mon)
     plug -o -n "eposmon" $EBUS -- `which eposmon` & # summarize and report epos communication errors to syslog
 
     #   ruddersts: decode ebus status registers to lbus ruddersts: messages
@@ -104,13 +118,12 @@ echo "   kill \`cat $LBUS.pid\`"
 
 done
 
-    logger -s -p local2.crit "Epos subsystems NOT RESTARTING (lbus pidfile gone)"
+    logger -s -p local2.crit "Epos subsystems NOT RESTARTING (lbus gone)"
 )&
 
 # todo: each of these in a restart loop (with rate limiting)
-# (imucfg $PORT_IMU && plug -i $LBUS -- `which imucat` $PORT_IMU 		; logger -s -p local2.crit "imucat exited.")&
-#(plug -o -n "imutime" -f "imu:" $LBUS -- `which imutime`	; logger -s -p local2.crit "imutime exited.")&
-#imutume
+(imucfg $PORT_IMU && plug -i $LBUS -- `which imucat` $PORT_IMU 	; logger -s -p local2.crit "imucat exited.")&
+(plug -o -n "imutime" -f "imu:" $LBUS -- `which imutime` ; logger -s -p local2.crit "imutime exited.")&
 
 (plug -i $LBUS -- `which compasscat` $PORT_COMPASS 	; logger -s -p local2.crit "compasscat exited.")&
 (plug -i $LBUS -- `which windcat` $PORT_WIND 		; logger -s -p local2.crit "windcat exited.")&
@@ -119,7 +132,9 @@ done
 if /bin/false; then  # not needed yet / disabled for testing
 
     (plug -n "helmsman" $LBUS -- `which helmsman` 2>&1 | logger -p local2.debug)&
-    (plug -i $LBUS -- `which fcmon` $PORT_FUELCELL ; logger -s -p local2.crit "fcmon exited.")&  # TODO or direct to syslog?    
+    (plug -i $LBUS -- `which fcmon` $PORT_FUELCELL ; logger -s -p local2.crit "fcmon exited.")&  # TODO or direct to syslog?
+
+    # aiscat is not connected to the lbus
     (aiscat $PORT_AIS | aisbuf /var/run/ais.txt; logger -s -p local2.crit "aiscat exited.")&
 
     (plug -i $LBUS -- `which modemd`  --queue=/var/run/modem --device=$PORT_MODEM) &
@@ -129,3 +144,4 @@ fi
 
 echo "Und immer eine Handbreit Wasser unter dem Kiel!"
 echo "May she always have a good passage, wherever she goes!"
+echo
