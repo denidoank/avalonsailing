@@ -124,9 +124,11 @@ int main(int argc, char** argv) {
   FuelcellProto fuelcell_status = INIT_FUELCELLPROTO;
   int fuelcell_counter = 0;
   RemoteProto remote_status = INIT_REMOTEPROTO;
+  remote_status.command = 1;
   int remote_counter = 0;
 
   time_t start_time = time(NULL);
+  time_t last_remote_command = start_time;
   time_t status_time = start_time - status_interval + initial_timeout;
   time_t remote_cmd_time = start_time;
   int status_counter = 0;
