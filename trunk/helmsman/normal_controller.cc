@@ -42,19 +42,22 @@ NormalController::NormalController(RudderController* rudder_controller,
 
 NormalController::~NormalController() {}
 
+// Entry needs to set all variable states.
 void NormalController::Entry(const ControllerInput& in,
                              const FilteredMeasurements& filtered) {
   // Make sure we get the right idea of the direction change when we come
   // from another state.
   prev_alpha_star_restricted_ = SymmetricRad(filtered.phi_z_boat);
+  alpha_star_restricted_ = SymmetricRad(filtered.phi_z_boat);
   alpha_star_rate_limited_ = SymmetricRad(filtered.phi_z_boat);
   ref_.SetReferenceValues(prev_alpha_star_restricted_, in.drives.gamma_sail_rad);
   give_up_counter_ = 0;
+  start_time_ms_ = now_ms();
   if (debug) {
     fprintf(stderr, " NormalController::Entry alpha star_limited: %lf\n",  prev_alpha_star_restricted_);
-    start_time_ms_ = now_ms();
     fprintf(stderr, "Entry Time: %6.3lf %6.3lf s\n", (double)now_ms(), (double)start_time_ms_);
   }
+  rudder_controller_->Reset();
 }
 
 void NormalController::Run(const ControllerInput& in,
@@ -97,7 +100,7 @@ void NormalController::Run(const ControllerInput& in,
   // with postive boat speeds, but at the transition from the InitialController the very slowly
   // boat speed may be still negative. We simply clip the speed here. If the speed gets too low then
   // we'll leave the NormalController anyway (see GiveUp() ).
-  double positive_speed = std::max(0.1, filtered.mag_boat);
+  double positive_speed = std::max(0.25, filtered.mag_boat);
   rudder_controller_->Control(phi_star,
                               omega_star,
                               SymmetricRad(filtered.phi_z_boat),
@@ -126,6 +129,11 @@ bool NormalController::IsJump(double old_direction, double new_direction) {
   // between continuous direction changes and maneuvers (tack or jibe).
   const double JibeZoneWidth = M_PI - JibeZoneRad();
   CHECK(JibeZoneWidth < TackZoneRad());
+
+  if (debug) fprintf(stderr, "IsJump old %6.2lf new %6.2lf \n",
+                     old_direction, new_direction);
+
+
   return fabs(DeltaOldNewRad(old_direction, new_direction)) >
               1.8 * JibeZoneWidth;
 }
@@ -134,17 +142,16 @@ bool NormalController::ShapeAlphaStar(double alpha_star,
                                       double alpha_true_wind,
                                       double* alpha_star_restricted) {
   // Rate limit alpha_star, rather slow now.
-  //const double alpha_star_rate_limit_ = Deg2Rad(4) * kSamplingPeriod;  // degrees per second
   LimitRateWrapRad(alpha_star, alpha_star_rate_limit_, &alpha_star_rate_limited_);
-
+if (debug) fprintf(stderr, "Shape alpha_star_rate_limited_ %6.2lf\n", alpha_star_rate_limited_);
   // Stay in sailable zone
   double new_alpha_star_restricted =
       BestSailableHeading(alpha_star_rate_limited_, alpha_true_wind);
-
+if (debug) fprintf(stderr, "Shape new_alpha_star_restricted %6.2lf\n", new_alpha_star_restricted);
   bool jump = IsJump(alpha_star_restricted_, new_alpha_star_restricted);
   alpha_star_restricted_ = new_alpha_star_restricted;
   *alpha_star_restricted = new_alpha_star_restricted;
-
+if (debug) fprintf(stderr, "Shape alpha_star_restricted_ %6.2lf\n", alpha_star_restricted_);
   return jump;
 }
 
@@ -157,9 +164,12 @@ ManeuverType NormalController::ReferenceValueSwitch(double alpha_star,
                                                     double* omega_z_star,
                                                     double* gamma_sail_star) {
   bool jump = false;
-  double alpha_star_restricted = alpha_star;
+  double alpha_star_restricted;
   if (!skip_alpha_star_shaping_) {
     jump = ShapeAlphaStar(alpha_star, alpha_true, &alpha_star_restricted);
+    if (debug && jump) fprintf(stderr, "Jumping!" );
+  } else {
+    alpha_star_restricted = alpha_star;
   }
   if (debug) fprintf(stderr, "* %6.2lf %6.2lf %6.2lf\n", alpha_star, alpha_star_rate_limited_, alpha_star_restricted);
 
@@ -194,6 +204,10 @@ ManeuverType NormalController::ReferenceValueSwitch(double alpha_star,
   } else {
     // Normal case, minor changes of the desired heading.
     *phi_z_star = alpha_star_restricted;
+    // Feed forward of the rotation speed helps, but if the boats speed
+    // is estimated too low, we get overshoot due to exaggerated gamma_0
+    // values.
+    //  (alpha_star_restricted - prev_alpha_star_restricted_) / kSamplingPeriod;
     *omega_z_star = 0;
     // The apparent wind data are quickly filtered to suppress noise in
     // the sail drive reference value.
@@ -210,12 +224,16 @@ bool NormalController::TackingOrJibing() {
 
 bool NormalController::GiveUp(const ControllerInput& in,
                               const FilteredMeasurements& filtered) {
-  // Got stuck for more than a minute.
-  if (filtered.mag_boat < -0.08)
+  // Got stuck for more than 2 minutes.
+  // If the drift caused by stream is too big, we will not detect loss of control here
+  // because our speed over ground is e.g. 0.5 knots.
+  // Abort every 2 hours? Abort if epsilon is too big?
+  // TODO: Contemplate this!
+  if (filtered.mag_boat < 0.03)
     ++give_up_counter_;
   else
     give_up_counter_ = 0;
-  return give_up_counter_ > 120.0 / kSamplingPeriod;  // the speed is filtered with 60s and rather imprecise
+  return give_up_counter_ > 120.0 / kSamplingPeriod;  // The speed is filtered with 60s and rather imprecise
 }
 
 double NormalController::NowSeconds() {

@@ -26,7 +26,7 @@ extern int debug;  // global shared
 
 namespace {
 
-const double kZeroTolerance = Deg2Rad(2);
+const double kZeroTolerance = Deg2Rad(5);
 const double kZeroTimeoutCount = 10.0 / kSamplingPeriod;
 // This depends on the homing speed (?)
 // and the angle range of the rudders (see actuator.c, 150 degrees) .
