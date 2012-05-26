@@ -19,7 +19,7 @@
 extern int debug;
 
 // General minimal time for a turn, in s
-const static double kDurationNormal = 2;
+const static double kDurationNormal = 4;
 // A tack changes the apparent wind angle and that angle measurement is
 // filtered and delayed, such that the sail angle calculated from it is
 // temporarily incorrect. When the stabilization passed then the
@@ -72,7 +72,7 @@ void ReferenceValues::NewPlan(double phi_z_1,
 
   // * The rudders don't stall.
   // maximum rotational acceleration is speed dependant.
-  double acc_max = 0.25 * speed * speed;
+  double acc_max = 0.25 * speed * speed;  // rad/s^2
   acc_max = std::max(acc_max, 0.1);  // lower limit to limit the duration
   // Minimum time for the turn due to acceleration limit.
   double duration_acc = sqrt(fabs(delta_phi) / acc_max * 36.0 / 5);

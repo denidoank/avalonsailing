@@ -12,7 +12,8 @@ class Controller {
  public:
   virtual ~Controller();
 
-  // with default implementaton here
+  // with default implementaton here.
+  // Entry needs to update all variable states!
   virtual void Entry(const ControllerInput& in,
                      const FilteredMeasurements& filtered);
   virtual void Run(const ControllerInput& in,
@@ -25,34 +26,4 @@ class Controller {
 };
 
 
-
-/*
-class NormalToStormController : public Controller {
- public:
-  virtual void Entry(const ControllerInput& in,
-                     const FilteredMeasurements& filtered);
-  virtual void Run(const ControllerInput& in,
-                   const FilteredMeasurements& filtered,
-                   ControllerOutput* out);
-  virtual void Exit();
-  virtual const char* Name() { return "Straight"; };
- private:
-  int sign_gamma_sail_;
-};
-
-class StormController : public Controller {
- public:
-  virtual void Entry(const ControllerInput& in,
-                     const FilteredMeasurements& filtered);
-  virtual void Run(const ControllerInput& in,
-                   const FilteredMeasurements& filtered,
-                   ControllerOutput* out);
-  virtual void Exit();
-  virtual const char* Name() { return "Straight"; };
- private:
-  int sign_gamma_sail_;
-};
-
-
-*/
 #endif  // HELMSMAN_CONTROLLER_H
