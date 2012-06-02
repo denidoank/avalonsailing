@@ -3,6 +3,12 @@
 // that can be found in the LICENSE file.
 // Steffen Grundmann, June 2011
 
+// Make synchronized reference angles for tack, jibe and change maneuvers.
+// If we sail closed reach and we sail a tack then we first tack to the other
+// closed reach., stabilize for 2 seconds and then turn further if necessary.
+// The maneuvers are calculated with overshoot, but limited to the minimal
+// maneuver angle.
+
 #include "helmsman/reference_values.h"
 
 #include <algorithm>  // max
@@ -26,7 +32,7 @@ const static double kDurationNormal = 4;
 // apparent wind angle is has become correct and we follow it,
 // as usual.
 // After a tack (or other maneuver) the sail angle is held stable for this time.
-const static double kStabilizationPeriod = 2;
+const static double kStabilizationPeriod = 1.2;
 
 ReferenceValues::ReferenceValues()
     : tick_(1E6),
@@ -88,12 +94,12 @@ void ReferenceValues::NewPlan(double phi_z_1,
   // correct acc_max
   acc_ = delta_phi * 36.0 / (5 * duration * duration);
 
-  omega_sail_increment_ = delta_gamma_sail / duration * kSamplingPeriod;
+  omega_sail_increment_ = delta_gamma_sail / all_ticks_;
   tick_ = 0;
   if (debug) {
-    fprintf(stderr, "New Plan: delta_phi: %6.4f deg\n", Rad2Deg(delta_phi));
-    fprintf(stderr, "delta_gamma_sail: %6.4f deg, duration %6.4f s\n", Rad2Deg(delta_gamma_sail), duration);
-    fprintf(stderr, "duration_sail: %6.4f s, duration_acc: %6.4f s\n", duration_sail, duration_acc);
+    fprintf(stderr, "New Plan: delta_phi: %6.4lf deg\n", Rad2Deg(delta_phi));
+    fprintf(stderr, "delta_gamma_sail: %6.4lf deg, duration %6.4lf s\n", Rad2Deg(delta_gamma_sail), duration);
+    fprintf(stderr, "duration_sail: %6.4lf s, duration_acc: %6.4lf s\n", duration_sail, duration_acc);
   }
 }
 

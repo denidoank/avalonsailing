@@ -153,7 +153,7 @@ TEST(FilterBlock, All) {
   EXPECT_FLOAT_EQ(0, filtered.mag_true);
   EXPECT_FLOAT_EQ(0, filtered.angle_app);
   EXPECT_FLOAT_EQ(0, filtered.mag_app);
-  EXPECT_TRUE(filtered.valid);
+  EXPECT_FALSE(filtered.valid);
   EXPECT_FALSE(b.ValidTrueWind());
   EXPECT_FALSE(b.ValidSpeed());
 
@@ -170,7 +170,7 @@ TEST(FilterBlock, All) {
   calls_until_valid += !filtered.valid;
   calls_until_wind_valid += !b.ValidTrueWind();
   calls_until_speed_valid += !b.ValidSpeed();
-  EXPECT_TRUE(filtered.valid);
+  EXPECT_FALSE(filtered.valid);
   EXPECT_FLOAT_EQ(0, filtered.angle_app);
 
 
@@ -235,7 +235,7 @@ TEST(FilterBlock, All) {
   EXPECT_TRUE(b.ValidTrueWind());
   EXPECT_TRUE(b.ValidSpeed());
 
-  EXPECT_EQ(int(3.1 / kSamplingPeriod + 0.5), calls_until_valid);
+  EXPECT_EQ(int(7.9 / kSamplingPeriod + 0.5), calls_until_valid);
   EXPECT_EQ(int(102.1 / kSamplingPeriod + 0.5), calls_until_wind_valid);
   EXPECT_EQ(int(59.9 / kSamplingPeriod + 0.5), calls_until_speed_valid);
 
