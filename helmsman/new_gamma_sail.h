@@ -15,51 +15,10 @@
 // to come up with the new sail angle, the direction to turn the sail
 // and the maneuver type.
 
-// This old and complex routine is exact but requires the true wind
-// and boat motion data. I kept this as a reference in tests.
-// Use NewGammaSail for the boat!
-void ComplexNewGammaSail(double alpha_true, double mag_true,
-                  double alpha_boat, double mag_boat,
-                  double new_alpha_boat,
-                  SailController* sail_controller,
-                  double* new_gamma_sail,
-                  double* delta_gamma_sail,
-                  ManeuverType* maneuver_type);
 
-void NewGammaSailWithOldGammaSail(
-                  double alpha_true, double mag_true,
-                  double alpha_boat, double mag_boat,
-                  double new_alpha_boat,
-                  double old_gamma_sail,
-                  ManeuverType maneuver_type,
-                  double alpha_true_wind_unused,
-                  double overshoot_unused,
-                  SailController* sail_controller,
-                  double* new_gamma_sail,
-                  double* delta_gamma_sail);
-
-
-// We don't want to depend on the boat speed because the IMU does
-// not deliver this information reliably. We assume the following:
-// The boat speed is a fraction of the wind speed around 0.25.
-// (We might read this ratio from the experimentally verified Polardiagram.)
-// Then we can do an estimation with less than 10 degree error, which
-// is good enough and robust against boat speed errors.
-// In the test we compare this approximation with the precise result.
-void NextGammaSailWithOldGammaSail(
-                  double old_alpha_app, double old_mag_app,  // apparent wind, angle and magnitude
-                  double old_alpha_boat,                     // boat direction old
-                  double new_alpha_boat,                     // boat direction new
-                  double old_gamma_sail,
-                  ManeuverType maneuver_type,
-                  double alpha_true_wind,
-                  double overshoot,
-                  SailController* sail_controller,
-                  double* new_gamma_sail,
-                  double* delta_gamma_sail);                 // delta_gamma_sail is produced here, because
-                                                             // delta is not always new-old. In some cases (jibes)
-                                                             // the sail must turn by more than 180 degrees.
-
+// This simple routine assumes that a maneuver is more or less symmetrical
+// in relation to the wind.
+// N.B. a tack is assymmetrical due to the intentional overshoot.
 void NewGammaSail(double old_gamma_sail,
                   ManeuverType maneuver_type,
                   double alpha_true_wind,
