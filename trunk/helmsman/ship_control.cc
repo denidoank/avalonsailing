@@ -7,7 +7,7 @@
 
 #include <stdio.h>
 
-extern int debug; // global shared
+extern int debug; // globally shared
 
 MetaState ShipControl::meta_state_  = kNormal;
 WindStrengthRange ShipControl::wind_strength_          = kCalmWind;
@@ -24,7 +24,8 @@ NormalController  ShipControl::normal_controller_(&ShipControl::rudder_controlle
 TestController    ShipControl::test_controller_(&ShipControl::sail_controller_);
 
 // This is the state of the ship controller state machine.
-Controller* ShipControl::controller_ = &ShipControl::test_controller_;
+Controller* ShipControl::controller_ = &ShipControl::test_controller_;  // for drive and sensor tests
+// Controller* ShipControl::controller_ = &ShipControl::initial_controller_; // for fast startup and Atlantic
 
 FilteredMeasurements ShipControl::filtered_;
 FilterBlock* ShipControl::filter_block_ = new FilterBlock;

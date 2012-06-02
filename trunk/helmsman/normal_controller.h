@@ -42,21 +42,24 @@ class NormalController : public Controller {
               const FilteredMeasurements& filtered);
   // for tests
   void SkipAlphaStarShaping(bool skip);
+  double RateLimit();
 
+  // These are public for test accessibility only.
+  ManeuverType ShapeReferenceValue(double alpha_star,
+                                   double alpha_true, double mag_true,
+                                   double phi_z_boat, double mag_boat,
+                                   double angle_app,  double mag_app,
+                                   double old_gamma_sail,
+                                   double* phi_z_star,
+                                   double* omega_z_star,
+                                   double* gamma_sail_star);
  private:
-  ManeuverType ReferenceValueSwitch(double alpha_star,
-                            double alpha_true, double mag_true,
-                            double alpha_boat, double mag_boat,
-                            double alpha_app,  double mag_app,
-                            double old_gamma_sail,
-                            double* phi_z_star,
-                            double* omega_z_star,
-                            double* gamma_sail_star);
-
+  // Near for bearings.
+  bool Near(double a, double b);
   bool IsJump(double old_direction, double new_direction);
-  bool ShapeAlphaStar(double alpha_star,
-                      double alpha_true_wind,
-                      double* alpha_star_restricted);
+  // The current bearing is near the TackZone (close reach) or near the Jibe Zone (broad reach)
+  // and we will have to do a maneuver.
+  bool IsGoodForManeuver(double old_direction, double new_direction, double angle_true);
 
   bool OutputChanges(const DriveReferenceValuesRad& out,
                      double gamma_rudder_star,
@@ -66,21 +69,14 @@ class NormalController : public Controller {
 
   RudderController* rudder_controller_;
   SailController* sail_controller_;
-  // The desired direction is usually "shaped". See steps 1 and 2 below.
-  // For tests shaping can be switched off with SkipAlphaStarShaping(true).
-  bool skip_alpha_star_shaping_;
-  // 1. The external alpha_star is rate limited.
+  // alpha* is rate limited.
   double alpha_star_rate_limit_;
-  double alpha_star_rate_limited_;
-  // 2. alpha_star_rate_limited_ is restricted to the sailable sectors.
-  double alpha_star_restricted_;
+  double old_phi_z_star_;  // keeps the last shaped alpha*, needed for maneuver distinction.
 
-  double prev_alpha_star_restricted_;  // keeps the last shaped alpha, needed for maneuver distinction.
-
-  ReferenceValues ref_;
+  ReferenceValues ref_;  // Has state about running maneuvers.
   int give_up_counter_;
   int64_t start_time_ms_;
-  int trap2_;
+  int trap2_;  // paranoid protection against incomplete compilation errors.
 };
 
 #endif  // HELMSMAN_NORMAL_CONTROLLER_H

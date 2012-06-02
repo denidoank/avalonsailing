@@ -17,8 +17,8 @@
 
 // This old and complex routine is exact but requires the true wind
 // and boat motion data. I kept this as a reference in tests.
-// Use NextGammaSail for the boat!
-void NewGammaSail(double alpha_true, double mag_true,
+// Use NewGammaSail for the boat!
+void ComplexNewGammaSail(double alpha_true, double mag_true,
                   double alpha_boat, double mag_boat,
                   double new_alpha_boat,
                   SailController* sail_controller,
@@ -32,6 +32,8 @@ void NewGammaSailWithOldGammaSail(
                   double new_alpha_boat,
                   double old_gamma_sail,
                   ManeuverType maneuver_type,
+                  double alpha_true_wind_unused,
+                  double overshoot_unused,
                   SailController* sail_controller,
                   double* new_gamma_sail,
                   double* delta_gamma_sail);
@@ -50,10 +52,20 @@ void NextGammaSailWithOldGammaSail(
                   double new_alpha_boat,                     // boat direction new
                   double old_gamma_sail,
                   ManeuverType maneuver_type,
+                  double alpha_true_wind,
+                  double overshoot,
                   SailController* sail_controller,
                   double* new_gamma_sail,
                   double* delta_gamma_sail);                 // delta_gamma_sail is produced here, because
                                                              // delta is not always new-old. In some cases (jibes)
                                                              // the sail must turn by more than 180 degrees.
 
+void NewGammaSail(double old_gamma_sail,
+                  ManeuverType maneuver_type,
+                  double alpha_true_wind,
+                  double overshoot,
+                  double* new_gamma_sail,
+                  double* delta_gamma_sail);                 // delta_gamma_sail is produced here, because
+                                                             // delta is not always new-old. In some cases (jibes)
+                                                             // the sail must turn by more than 180 degrees.
 #endif   // HELMSMAN_NEW_GAMMA_SAIL_H

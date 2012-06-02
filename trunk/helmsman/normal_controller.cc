@@ -22,21 +22,22 @@
 #include "helmsman/sampling_period.h"
 
 extern int debug;
+static const double kTackOvershootRad = 15 / 180.0 * M_PI;
 
 NormalController::NormalController(RudderController* rudder_controller,
                                    SailController* sail_controller)
    : rudder_controller_(rudder_controller),
      sail_controller_(sail_controller),
-     skip_alpha_star_shaping_(false),
-     alpha_star_rate_limit_(Deg2Rad(4) * kSamplingPeriod),  // 4 deg/s
-     alpha_star_rate_limited_(0),
-     alpha_star_restricted_(0),
-     prev_alpha_star_restricted_(0),
+     alpha_star_rate_limit_(Deg2Rad(4)),  // 4 deg/s
+     old_phi_z_star_(0),
      give_up_counter_(0),
      start_time_ms_(now_ms()),
      trap2_(999) {
-  if (debug) fprintf(stderr, " NormalController::Entry time  %lld s\n",
-                     start_time_ms_ / 1000 );
+  debug = 1;
+  if (debug) fprintf(stderr, "NormalController::Entry time  %lld s\n",
+                     start_time_ms_ / 1000);
+  if (debug) fprintf(stderr, "NormalController::rate limit  %lf rad/s, %lf deg/s\n",
+                     alpha_star_rate_limit_, Rad2Deg(alpha_star_rate_limit_));
   CHECK_EQ(999, trap2_);
 }
 
@@ -47,14 +48,12 @@ void NormalController::Entry(const ControllerInput& in,
                              const FilteredMeasurements& filtered) {
   // Make sure we get the right idea of the direction change when we come
   // from another state.
-  prev_alpha_star_restricted_ = SymmetricRad(filtered.phi_z_boat);
-  alpha_star_restricted_ = SymmetricRad(filtered.phi_z_boat);
-  alpha_star_rate_limited_ = SymmetricRad(filtered.phi_z_boat);
-  ref_.SetReferenceValues(prev_alpha_star_restricted_, in.drives.gamma_sail_rad);
+  old_phi_z_star_ = SymmetricRad(filtered.phi_z_boat);
+  ref_.SetReferenceValues(old_phi_z_star_, in.drives.gamma_sail_rad);
   give_up_counter_ = 0;
   start_time_ms_ = now_ms();
   if (debug) {
-    fprintf(stderr, " NormalController::Entry alpha star_limited: %lf\n",  prev_alpha_star_restricted_);
+    fprintf(stderr, " NormalController::Entry old_phi_z_star_: %lf\n",  old_phi_z_star_);
     fprintf(stderr, "Entry Time: %6.3lf %6.3lf s\n", (double)now_ms(), (double)start_time_ms_);
   }
   rudder_controller_->Reset();
@@ -68,14 +67,16 @@ void NormalController::Run(const ControllerInput& in,
     //fprintf(stderr, "Time ms: %lf  strt was %lf diff %lf \n", (double)now_ms(), (double)(start_time_ms_), (double)(now_ms()-start_time_ms_));
     //fprintf(stderr, "Time: %6.3lf Ref: %6.1lf ", NowSeconds(), Rad2Deg(in.alpha_star_rad));
     fprintf(stderr, "Actuals: True %6.1lf deg %6.1lf m/s ", Rad2Deg(filtered.alpha_true), filtered.mag_true);
-    fprintf(stderr, "Actuals: Boat %6.1lf deg %6.1lf m/s ", Rad2Deg(filtered.phi_z_boat), filtered.mag_boat);
-    fprintf(stderr, "Actuals: App  %6.1lf deg %6.1lf m/s\n", Rad2Deg(filtered.angle_app),  filtered.mag_app);
+    fprintf(stderr, "Boat %6.1lf deg %6.1lf m/s ", Rad2Deg(filtered.phi_z_boat), filtered.mag_boat);
+    fprintf(stderr, "App. %6.1lf deg %6.1lf m/s\n", Rad2Deg(filtered.angle_app),  filtered.mag_app);
   }
   CHECK_EQ(999, trap2_);  // Triggers at incomplete compilation errors.
   double phi_star;
   double omega_star;
   double gamma_sail_star;
-  ManeuverType maneuver = ReferenceValueSwitch(SymmetricRad(in.alpha_star_rad),
+  // maneuver is set just once to kJibe or kTack, when the maneuver starts.
+  // TODO: Put out->status updates into this method.
+  ManeuverType maneuver = ShapeReferenceValue(SymmetricRad(in.alpha_star_rad),
                        SymmetricRad(filtered.alpha_true), filtered.mag_true,
                        SymmetricRad(filtered.phi_z_boat), filtered.mag_boat,
                        SymmetricRad(filtered.angle_app),  filtered.mag_app,
@@ -124,97 +125,136 @@ void NormalController::Exit() {
 
 bool NormalController::IsJump(double old_direction, double new_direction) {
   // All small direction changes are handled directly by the rudder control,
-  // without reference value shaping or planning.
-  // Limit for the magnitude of jumps in the reference values to differentiate
-  // between continuous direction changes and maneuvers (tack or jibe).
+  // with rate limitation for the reference value. Bigger changes and maneuvers
+  // require planning because of the synchronized motion of boat and sail.
+  // For them IsJump returns true.
   const double JibeZoneWidth = M_PI - JibeZoneRad();
   CHECK(JibeZoneWidth < TackZoneRad());
 
-  if (debug) fprintf(stderr, "IsJump old %6.2lf new %6.2lf \n",
-                     old_direction, new_direction);
-
-
+  if (0 && debug) fprintf(stderr, "IsJump old %6.2lf new %6.2lf \n",
+                          old_direction, new_direction);
   return fabs(DeltaOldNewRad(old_direction, new_direction)) >
               1.8 * JibeZoneWidth;
 }
 
-bool NormalController::ShapeAlphaStar(double alpha_star,
-                                      double alpha_true_wind,
-                                      double* alpha_star_restricted) {
-  // Rate limit alpha_star, rather slow now.
-  LimitRateWrapRad(alpha_star, alpha_star_rate_limit_, &alpha_star_rate_limited_);
-if (debug) fprintf(stderr, "Shape alpha_star_rate_limited_ %6.2lf\n", alpha_star_rate_limited_);
-  // Stay in sailable zone
-  double new_alpha_star_restricted =
-      BestSailableHeading(alpha_star_rate_limited_, alpha_true_wind);
-if (debug) fprintf(stderr, "Shape new_alpha_star_restricted %6.2lf\n", new_alpha_star_restricted);
-  bool jump = IsJump(alpha_star_restricted_, new_alpha_star_restricted);
-  alpha_star_restricted_ = new_alpha_star_restricted;
-  *alpha_star_restricted = new_alpha_star_restricted;
-if (debug) fprintf(stderr, "Shape alpha_star_restricted_ %6.2lf\n", alpha_star_restricted_);
-  return jump;
+// a in [b-eps, b+eps] interval
+bool NormalController::Near(double a, double b) {
+  const double tolerance = 2 * kSamplingPeriod * alpha_star_rate_limit_;
+  return b - tolerance <= a && a <= b + tolerance;
 }
 
-ManeuverType NormalController::ReferenceValueSwitch(double alpha_star,
-                                                    double alpha_true, double mag_true,
-                                                    double phi_z_boat, double mag_boat,
-                                                    double angle_app,  double mag_app,
-                                                    double old_gamma_sail,
-                                                    double* phi_z_star,
-                                                    double* omega_z_star,
-                                                    double* gamma_sail_star) {
-  bool jump = false;
-  double alpha_star_restricted;
-  if (!skip_alpha_star_shaping_) {
-    jump = ShapeAlphaStar(alpha_star, alpha_true, &alpha_star_restricted);
-    if (debug && jump) fprintf(stderr, "Jumping!" );
-  } else {
-    alpha_star_restricted = alpha_star;
+
+// The current bearing is near the TackZone (close reach) or near the Jibe Zone (broad reach)
+// and we will have to do a maneuver.
+bool NormalController::IsGoodForManeuver(double old_direction, double new_direction, double angle_true) {
+  //const double JibeZoneWidth = M_PI - JibeZoneRad();
+  double old_relative = SymmetricRad(old_direction - angle_true);
+  double new_relative = SymmetricRad(new_direction - angle_true);
+  // Critical angles to the wind vector. Because the PolarDiagram follows the
+  // "wind blows from" convention, we have to turn the tack zone and jibe zone angles.
+  double tack_zone = M_PI-TackZoneRad();
+  double jibe_zone = M_PI-JibeZoneRad();
+  if (new_relative < 0)
+    return Near(old_relative, jibe_zone) || Near(old_relative, tack_zone);
+  else
+    return Near(old_relative, -jibe_zone) || Near(old_relative, -tack_zone);
+}
+
+// Every tack or jibe uses the same angle, i.e. we have standardized jibes and tacks.
+double LimitToMinimalManeuver(double old, double new_bearing, double alpha_true, double maneuver_type) {
+  if (maneuver_type == kChange)
+    return new_bearing;
+  double old_to_wind = DeltaOldNewRad(old, alpha_true);
+  if (maneuver_type == kTack) {
+    double tack_angle = 2 * TackZoneRad() + kTackOvershootRad;
+    if (old_to_wind < 0)
+      return SymmetricRad(old + tack_angle);
+    else
+      return SymmetricRad(old - tack_angle);
   }
-  if (debug) fprintf(stderr, "* %6.2lf %6.2lf %6.2lf\n", alpha_star, alpha_star_rate_limited_, alpha_star_restricted);
+  if (maneuver_type == kJibe) {
+    double jibe_angle = 2 * (M_PI - JibeZoneRad());
+    if (old_to_wind < 0)
+      return SymmetricRad(old - jibe_angle);
+    else
+      return SymmetricRad(old + jibe_angle);
+  }
+  CHECK(0);  // Define behaviour for new maneuver type!
+  return new_bearing;
+}
 
+// Shape the reference value alpha* into something
+// sailable, feasible (not too fast changing) and calculate the
+// suitable sail angle.
+// States: old_phi_z_star_ because phi_z_star must not jump
+//   and ref_ because a running plan trumps everything else.
+ManeuverType NormalController::ShapeReferenceValue(double alpha_star,
+                                                   double alpha_true, double mag_true,
+                                                   double phi_z_boat, double mag_boat,
+                                                   double angle_app,  double mag_app,
+                                                   double old_gamma_sail,
+                                                   double* phi_z_star,
+                                                   double* omega_z_star,
+                                                   double* gamma_sail_star) {
   ManeuverType maneuver_type = kChange;
-  if (!ref_.RunningPlan() && jump) {
-    double new_gamma_sail;
-    double delta_gamma_sail;
-    maneuver_type = FindManeuverType(prev_alpha_star_restricted_,
-                                     alpha_star_restricted,
-                                     alpha_true);
-    if (debug) fprintf(stderr, "Maneuver Type %s %lg %lg\n", ManeuverToString(maneuver_type), prev_alpha_star_restricted_, alpha_star_restricted);
-    NextGammaSailWithOldGammaSail(angle_app, mag_app,
-                                 phi_z_boat,
-                                 alpha_star_restricted,
-                                 old_gamma_sail,
-                                 maneuver_type,
-                                 sail_controller_,
-                                 &new_gamma_sail,
-                                 &delta_gamma_sail);
-    ref_.SetReferenceValues(prev_alpha_star_restricted_, old_gamma_sail);
-    ref_.NewPlan(alpha_star_restricted,
-                 delta_gamma_sail,
-                 mag_boat);
+  if (debug) fprintf(stderr, "app %6.2lf true %6.2lf old_sail %6.2lf\n", angle_app, alpha_true, old_gamma_sail);
 
-    ref_.GetReferenceValues(phi_z_star, omega_z_star, gamma_sail_star);
-  } else if (ref_.RunningPlan()) {
+  // 3 cases:
+  // If a maneuver is running (tack or jibe or change) we finish that maneuver first
+  // else if the new alpha* differs from the old alpha* by more than 20 degrees then
+  //     we start a new plan
+  // else we restrict alpha* to the sailable range and rate limit it to [-4deg/s, 4deg/s]
+  if (ref_.RunningPlan()) {
     // The plan includes a stabilization period of a second at the end
     // with constant reference values.
     ref_.GetReferenceValues(phi_z_star, omega_z_star, gamma_sail_star);
-    // We don't accept new reference values here, so we also don't follow up
-    // with the previous one.
+    if (debug) fprintf(stderr, "* %6.2lf %6.2lf %6.2lf\n", alpha_star, alpha_star, *phi_z_star);
   } else {
-    // Normal case, minor changes of the desired heading.
-    *phi_z_star = alpha_star_restricted;
-    // Feed forward of the rotation speed helps, but if the boats speed
-    // is estimated too low, we get overshoot due to exaggerated gamma_0
-    // values.
-    //  (alpha_star_restricted - prev_alpha_star_restricted_) / kSamplingPeriod;
-    *omega_z_star = 0;
-    // The apparent wind data are quickly filtered to suppress noise in
-    // the sail drive reference value.
-    *gamma_sail_star =
-        sail_controller_->BestStabilizedGammaSail(angle_app, mag_app);
+    // Stay in sailable zone
+    double new_sailable = BestSailableHeading(alpha_star, alpha_true);
+    if (debug) fprintf(stderr, "new sailable: %6.2lf\n", new_sailable);
+    if (IsGoodForManeuver(old_phi_z_star_, new_sailable, alpha_true) &&
+        IsJump(old_phi_z_star_, new_sailable)) {
+      // We need a new plan ...
+      maneuver_type = FindManeuverType(old_phi_z_star_,
+                                       new_sailable,
+                                       alpha_true);
+      // Limit new_sailable to the other side of the maneuver zone.
+      new_sailable = LimitToMinimalManeuver(old_phi_z_star_, new_sailable, alpha_true, maneuver_type);
+      if (debug) fprintf(stderr, "Start %s maneuver, from  %lg to %lg degrees\n", ManeuverToString(maneuver_type), Rad2Deg(old_phi_z_star_), Rad2Deg(new_sailable));
+      double new_gamma_sail;
+      double delta_gamma_sail;
+      NewGammaSail(old_gamma_sail,
+                   maneuver_type,
+                   alpha_true,
+                   kTackOvershootRad,
+                   &new_gamma_sail,
+                   &delta_gamma_sail);
+
+      ref_.SetReferenceValues(old_phi_z_star_, old_gamma_sail);
+      ref_.NewPlan(new_sailable, delta_gamma_sail, mag_boat);
+      ref_.GetReferenceValues(phi_z_star, omega_z_star, gamma_sail_star);
+    } else {
+      // Normal case, minor changes of the desired heading.
+      // Rate limit alpha_star.
+      double limited = old_phi_z_star_;
+      LimitRateWrapRad(new_sailable, alpha_star_rate_limit_ * kSamplingPeriod, &limited);
+      *phi_z_star = limited;
+      // Feed forward of the rotation speed helps, but if the boats speed
+      // is estimated too low, we get a big overshoot due to exaggerated gamma_0
+      // values.
+      *omega_z_star = 0;
+      // The apparent wind data are quickly filtered to suppress noise in
+      // the sail drive reference value.
+      *gamma_sail_star =
+            sail_controller_->BestStabilizedGammaSail(angle_app, mag_app);
+
+      //if (debug) fprintf(stderr, "S %6.2lf %6.2lf %6.2lf\n", angle_app, mag_app, *gamma_sail_star);
+    }
+    if (debug) fprintf(stderr, "* %6.2lf %6.2lf %6.2lf\n", alpha_star, new_sailable, *phi_z_star);
   }
-  prev_alpha_star_restricted_ = alpha_star_restricted;
+
+  old_phi_z_star_ = *phi_z_star;
   return maneuver_type;
 }
 
@@ -240,6 +280,6 @@ double NormalController::NowSeconds() {
   return (now_ms() - start_time_ms_) / 1000.0;
 }
 
-void NormalController::SkipAlphaStarShaping(bool skip) {
-  skip_alpha_star_shaping_ = skip;
+double NormalController::RateLimit() {
+  return alpha_star_rate_limit_;
 }
