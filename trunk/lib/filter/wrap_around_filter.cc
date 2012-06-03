@@ -10,7 +10,6 @@
 
 #include <math.h>
 #include <stdio.h>
-#include "lib/fm/log.h"
 
 #include "common/check.h"
 #include "common/normalize.h"
@@ -23,9 +22,7 @@ WrapAroundFilter:: WrapAroundFilter(FilterInterface* filter)
   CHECK_GT(period_, 0);
 }
 
-WrapAroundFilter::~WrapAroundFilter() {
-  delete filter_;
-}
+WrapAroundFilter::~WrapAroundFilter() { }
 
 // Returns filtered value in [0, 2*pi)
 double WrapAroundFilter::Filter(double in) {

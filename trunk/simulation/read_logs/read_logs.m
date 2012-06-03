@@ -8,11 +8,9 @@ function read_logs()
 
 close all
 
-file_name = "
+file_name = "./imu_part.txt";
 
-";
-
-column_file_name = "/home/grundmann/www/no_crawl/avalon/imu.h";
+column_file_name = "./imu.h";
 
 
 % IMU data, scenario is unknown, "Marine" is likely.
@@ -233,7 +231,7 @@ endfor
 %   pause
 % endfor
 
-if 0  % switch on for check of phi_y versus om_z
+if 1  % switch on for check of phi_z     versus om_z
 for r = turn_phases
   r 
   disp("start at ");
