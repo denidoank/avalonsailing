@@ -12,6 +12,7 @@
 
 class WrapAroundFilter : public FilterInterface {
  public:
+  // WrapAroundFilter does not take ownership of filter and does not delete it.
   WrapAroundFilter(FilterInterface* filter);
   virtual ~WrapAroundFilter();
   virtual double Filter(double in_rad);

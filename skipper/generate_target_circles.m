@@ -17,6 +17,7 @@ if fid == -1
 endif
 
 % The Caribbean Plan
+% lat lon radius / all in degree
 points = [ ...
 16.877  -61.7721 0.09  % 15 km south of Antigua
 16.877  -61.2887 0.1

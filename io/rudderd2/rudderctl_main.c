@@ -118,9 +118,54 @@ static int rudder_init(void)
 	if(delta < 0) delta = -delta;
         minpos -= 10*delta;
         maxpos += 10*delta;
-        int32_t method = (params->home_pos_qc < params->extr_pos_qc) ? 1 : 2;
+        // See [EPOS-FirmwareSpecification-E.pdf, page 24ff]
+	// We have no limit switch, we have a home switch. Modes 11 and 7 work even if the drives
+	// position is beyond the home switch and are therefore more robust.
+	// 11: Home Switch Negative Speed & Index, 7: Home Switch Positive Speed & Index
+	// Previously this was Negative Limit Switch & Index (1) : Positive Limit Switch & Index (2)
+        int32_t method = (params->home_pos_qc < params->extr_pos_qc) ? 11 : 7;
+	/*
+	See Application Note Device Programming, page 3
+        4 undefined parameters for rudder and sail each:
+	Motor Type, Continuous Current Limit, Pole Pair Number, Thermal Time Constant Winding
+	0x6402-00 0x6410-01 0x6410-03 0x6410-05
+	Motor specific [10] Motor specific [5000] Motor specific [1] Motor specific [40]
+	[Endbericht.pdf]:
+	Rudder motor type: Maxon EC45 (250W, 24V, 136210) with GP 52 C gear, Encoder 
+	Motor type EC
+	pole pairs: 1
+	nom. continuous current 12.5A,
+	thermal time constant winding: 31s
+	nominal speed 7970rpm, no load: 8670rpm
 
-        r &= device_set_register(dev, REGISTER(0x2080, 0),   500);  // homing current_threshold       User specific [500 mA]
+	The GP52 C has the following transmission ratio options: 1 :
+	4.3, 18.8, 81.4 or 352.6 (These are planetary gears so the can have odd transmission ratios)
+
+
+	Sail motor type: Maxon EC60 (400W, 48V, 167132) with GP 81 A gear, Encoder and Baumer BMH ???? Absolute Position encoder, multiturn on mast axis
+	http://www.specamotor.com/de/Maxon/motors/EC-60-167131/
+	There are 2 winding options 167131 (nominal speed 2680rpm at 48V)
+	and 167132 (4960rpm at 48V, 400W)
+	We've got 24V, so we can assume that we are using the latter (167132) type
+
+	motor type EC
+	pole pairs: 1
+	nom. current 9.32A
+	thermal time constant: 33.7s
+	nominal speed 2480rpm at 24V
+
+	The GP81A has the following transmission ratio options: 1: 
+	3.7, 13.7, 25.0, 50.9, 92.7, or 307.6
+
+        TODOs:
+	What are the 4 parameters set to currently?
+        Speed limit for sail to 2500rpm.
+	*/
+
+        r &= device_set_register(dev, REGISTER(0x6410, 1),  8000);  // continous current limit for EC45 (actually 12500), enough to pull out a wedged rudder. 
+        // This current determines the torque applied when should we ever jam the rudders edge at the hull.
+	// It also sets the threshold when friction in the rudder gear is interpreted as a mechanical limit. 
+        r &= device_set_register(dev, REGISTER(0x2080, 0),  1000);  // homing current_threshold       User specific [500 mA],
         r &= device_set_register(dev, REGISTER(0x2081, 0),     0);  // home_position User specific [0 qc]
         r &= device_set_register(dev, REGISTER(0x6065, 0), 50*delta); // max_following_error User specific [2000 qc]
         r &= device_set_register(dev, REGISTER(0x6067, 0), delta);  // position window [qc], see 14.66
@@ -128,14 +173,15 @@ static int rudder_init(void)
         r &= device_set_register(dev, REGISTER(0x607C, 0),     0);  // home_offset User specific [0 qc]
         r &= device_set_register(dev, REGISTER(0x607D, 1), minpos); // min_position_limit User specific [-2147483648 qc]
         r &= device_set_register(dev, REGISTER(0x607D, 2), maxpos); // max_position_limit User specific [2147483647 qc]
-        r &= device_set_register(dev, REGISTER(0x607F, 0), 25000);  // max_profile_velocity  Motor specific [25000 rpm]
+        r &= device_set_register(dev, REGISTER(0x607F, 0), 8000);   // max_profile_velocity  Motor specific [25000 rpm]
         r &= device_set_register(dev, REGISTER(0x6081, 0),  3000);  // profile_velocity Desired Velocity [1000 rpm]
         r &= device_set_register(dev, REGISTER(0x6083, 0), 10000);  // profile_acceleration User specific [10000 rpm/s]
         r &= device_set_register(dev, REGISTER(0x6084, 0), 10000);  // profile_deceleration User specific [10000 rpm/s]
         r &= device_set_register(dev, REGISTER(0x6085, 0), 10000);  // quickstop_deceleration User specific [10000 rpm/s]
-        r &= device_set_register(dev, REGISTER(0x6086, 0),     0);  // motion_profile_type  User specific [0]
-        r &= device_set_register(dev, REGISTER(0x6098, 0), method); // homing_method           see firmware doc
-        r &= device_set_register(dev, REGISTER(0x6099, 1),   200);  // switch_search_speed     User specific [100 rpm]
+        r &= device_set_register(dev, REGISTER(0x6086, 0),     0);  // normal motion_profile_type: linear ramps  User specific [0]
+        // Homing
+	r &= device_set_register(dev, REGISTER(0x6098, 0), method); // homing_method           see firmware doc
+	r &= device_set_register(dev, REGISTER(0x6099, 1),   300);  // switch_search_speed     User specific [100 rpm]
         r &= device_set_register(dev, REGISTER(0x6099, 2),    10);  // zero_search_speed       User specific [10 rpm]
         r &= device_set_register(dev, REGISTER(0x609A, 0),  1000);  // homing_acceleration     User specific [1000 rpm/s]
 
