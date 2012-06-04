@@ -6,8 +6,8 @@
  
 || *Item* || *Who/when done* ||
 || Check rudder and find reason why left rudder reacts to commands with delay || lvd/2012-04-12 ||
-|| Change rudder axis design such that we get less slack and better adjustability of the cone wheels. The current version might be too soft (Nut/Feder connection had big slack) || (after lake test) ||
-|| Have 2 new rudder axis manufactured. Replace the old ones. || (after lake test) ||
+|| Change rudder axis design such that we get less slack and better adjustability of the cone wheels. The current version might be too soft (Nut/Feder connection had big slack) || after lake test would be too late ||
+|| Have 2 new rudder axis manufactured. Replace the old ones. || after lake test would be too late ||
 || Make IMU box fixation without magnetizable screws. ||grundmann/2012-04-02 ||
 || Mount compass in IMU box || grundmann/2012-04-05 ||
 || Make watertight IMU box (currently 2 sealings leak). Test it. || grundmann/2012-03-19 ||
@@ -20,8 +20,9 @@
 
 || *Item* || *Who/when done* ||
 || Electric schema || (give up on this?) ||
-|| Test maximum voltage and have a look with a scope at the supply voltage at full light, fully charged, drives accelerating and braking. || ||
-|| Change or replace CPU box such that the processor gets cooling. Currently it reaches 65 degrees Celsius at the outside because the processor box and the cooling plate are separated by air. || (after lake test) || 
+|| Test maximum voltage and have a look with a scope at the supply voltage at full light, fully charged, drives accelerating and braking. || test done, slight push of boom gives extra 3V, need brake chopper on mains line, grundmann/2012-05-28 ||
+|| Overvoltage discharge brake chopper 25W/50W peak. ||  ||
+|| Change or replace CPU box such that the processor gets cooling. Currently it reaches 65 degrees Celsius at the outside because the processor box and the cooling plate are separated by air. || bridged air gap with aluminium and heat conduction paste, grundmann/2012-05-28  || 
 || Test bilge pump (better outside than in the lobby) ||  ||
 || Finally, remove mushroom switch (not seawater tight). || (after lake test) ||
 || Finally, mount new AIS antenna. (material purchased already) Test reception. || (after lake test) ||
