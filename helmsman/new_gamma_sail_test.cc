@@ -33,7 +33,6 @@ TEST(NewGammaSail, NewTack) {
   double delta_gamma_sail = -1;
   NewGammaSail(old_gamma_sail,  // -37.87 degree
                kTack,
-               alpha_true,
                0,
                &new_gamma_sail,
                &delta_gamma_sail);
@@ -42,7 +41,6 @@ TEST(NewGammaSail, NewTack) {
 
   NewGammaSail(-old_gamma_sail,
                kTack,
-               alpha_true,
                0,
                &new_gamma_sail,
                &delta_gamma_sail);
@@ -59,7 +57,6 @@ TEST(NewGammaSail, NewTack) {
 
   NewGammaSail(old_gamma_sail,  // -33.4 degree
                kTack,
-               alpha_true,
                0,
                &new_gamma_sail,
                &delta_gamma_sail);
@@ -68,7 +65,6 @@ TEST(NewGammaSail, NewTack) {
 
   NewGammaSail(-old_gamma_sail,
                kTack,
-               alpha_true,
                0,
                &new_gamma_sail,
                &delta_gamma_sail);
@@ -78,7 +74,6 @@ TEST(NewGammaSail, NewTack) {
   // overshoot
   NewGammaSail(old_gamma_sail,
                kTack,
-               alpha_true,
                0.1,
                &new_gamma_sail,
                &delta_gamma_sail);
@@ -109,7 +104,6 @@ TEST(NewGammaSail, NewJibe) {
   double delta_gamma_sail = -1;
   NewGammaSail(old_gamma_sail,  // -85.1 degree
                kJibe,
-               alpha_true,
                0,
                &new_gamma_sail,
                &delta_gamma_sail);
@@ -120,7 +114,6 @@ TEST(NewGammaSail, NewJibe) {
 
   NewGammaSail(-old_gamma_sail,   // 85.1 degree
                kJibe,
-               alpha_true,
                0,
                &new_gamma_sail,
                &delta_gamma_sail);
@@ -138,7 +131,6 @@ TEST(NewGammaSail, NewJibe) {
 
   NewGammaSail(old_gamma_sail,  // -84 degree
                kJibe,
-               alpha_true,
                0,
                &new_gamma_sail,
                &delta_gamma_sail);
@@ -148,7 +140,6 @@ TEST(NewGammaSail, NewJibe) {
 
   NewGammaSail(-old_gamma_sail,  // 84 degree
                kJibe,
-               alpha_true,
                0,
                &new_gamma_sail,
                &delta_gamma_sail);
@@ -158,7 +149,6 @@ TEST(NewGammaSail, NewJibe) {
   // No overshoot for jibe
   NewGammaSail(-old_gamma_sail,  // 84 degree
                kJibe,
-               alpha_true,
                0.1,
                &new_gamma_sail,
                &delta_gamma_sail);
