@@ -16,7 +16,17 @@
   <widget class="QWidget" name="centralWidget">
    <layout class="QHBoxLayout" name="horizontalLayout_6">
     <item>
-     <widget class="QGraphicsView" name="graphicsView"/>
+     <widget class="QGraphicsView" name="graphicsView">
+      <property name="toolTip">
+       <string>SPACE: BrakeController
+H J K L: Override skipper bearing
+Z X C: Manual Rudder (Idle)
+A S D: Manual Sail (Idle)
+Auto: fully automatic
+Dock: sail and rudders straight
+1 - 6 : meteo</string>
+      </property>
+     </widget>
     </item>
    </layout>
   </widget>
@@ -26,7 +36,7 @@
      <x>0</x>
      <y>0</y>
      <width>830</width>
-     <height>27</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -62,6 +72,7 @@
    <addaction name="actionOverride_bearing"/>
    <addaction name="actionBrake"/>
    <addaction name="actionIdleHelmsman"/>
+   <addaction name="separator"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
   <widget class="QDockWidget" name="dockWidget_5">

@@ -113,9 +113,11 @@ void FilterBlock::Filter(const ControllerInput& in,
 
   // yaw (== bearing) from 2 independant sources: IMU Kalman filter, raw IMU magnetic sensor and
   // independant compass.
+  // The IMU magnetic sensor is variable by +- 8 degrees in standstill so the IMU weight
+  // is reduced to 0.3 in total. Effectively the IMU serves as a hot back-up.
   double consensus = 0;
-  double compass_phi_z = compass_mixer_.Mix(in.imu.attitude.phi_z_rad, imu_fault_ ? 1 : 0,
-                                            in.imu.compass.phi_z_rad, in.imu.compass.valid ? 1 : 0,
+  double compass_phi_z = compass_mixer_.Mix(in.imu.attitude.phi_z_rad, imu_fault_ ? 0.15 : 0,
+                                            in.imu.compass.phi_z_rad, in.imu.compass.valid ? 0.15 : 0,
                                             in.compass_sensor.phi_z_rad, 1,  // invalid if outdated TODO
                                             &consensus);
   if (consensus >= 0.5) {

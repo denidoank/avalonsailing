@@ -132,6 +132,17 @@ void HandleRemoteControl(RemoteProto remote, int* control_mode) {
   }
 }
 
+void HandleRemoteControlFailSafe(int control_mode, int64_t last_remote_message_millis) {
+  // See the alive_timer_ in remote_control/mainwindow.cc .
+  const int64_t kRemoteControlTimeOutSeconds = 5;  // We get a message every 2 s and we are allowed to miss one.
+  if ((control_mode == kIdleHelmsmanMode ||
+       control_mode == kOverrideSkipperMode) &&
+      now_ms() > last_remote_message_millis + kRemoteControlTimeOutSeconds * 1000) {
+    syslog(LOG_WARNING, "helsman main: remote control communication timeout, braking");
+    ShipControl::Brake();
+  }
+}
+
 } // namespace
 
 // -----------------------------------------------------------------------------
@@ -180,6 +191,8 @@ int main(int argc, char* argv[]) {
   struct RemoteProto remote = INIT_REMOTEPROTO;
   ctrl_in.alpha_star_rad = Deg2Rad(225);  // Going SouthWest is a good guess (and breaks up a deadlock)
   int control_mode = kNormalControlMode;
+  int64_t last_remote_message_millis = now_ms();
+
   int loops = 0;
 
   // Run ship controller exactly once every 100ms
@@ -242,7 +255,8 @@ int main(int argc, char* argv[]) {
 	    !isnan(ctl.alpha_star_deg))
 	  ctrl_in.alpha_star_rad = Deg2Rad(ctl.alpha_star_deg);
       } else if (sscanf(line, IFMT_REMOTEPROTO(&remote, &nn)) > 0) {
-	HandleRemoteControl(remote, &control_mode);
+    HandleRemoteControl(remote, &control_mode);
+    last_remote_message_millis = now_ms();
 	if (control_mode == kOverrideSkipperMode)
 	  ctrl_in.alpha_star_rad = Deg2Rad(remote.alpha_star_deg);
       } else {
@@ -251,6 +265,8 @@ int main(int argc, char* argv[]) {
 	syslog(LOG_DEBUG, "Unreadable input \n>>>%s<<<\n", line);
       }
     }
+
+    HandleRemoteControlFailSafe(control_mode, last_remote_message_millis);
 
     if (!CalculateTimeOut(next_call_micros, &timeout)) {
       ctrl_out.Reset();

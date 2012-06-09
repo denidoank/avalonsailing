@@ -22,7 +22,11 @@
 
 MainWindow::MainWindow(ClientState* state, QWidget *parent) :
   QMainWindow(parent),
-    ui(new Ui::MainWindow), state_(state), config_dialog_(state, this), scroll_pos_(0, 0)
+    ui(new Ui::MainWindow),
+    state_(state),
+    config_dialog_(state, this),
+    last_proto_command_(kNormalControlMode),
+    scroll_pos_(0, 0)
 {
   ui->setupUi(this);
   drawBoat();
@@ -37,6 +41,10 @@ MainWindow::MainWindow(ClientState* state, QWidget *parent) :
   true_wind_direction_deg_ = 0.0;
   true_wind_speed_kt_ = 19.43;  // 10 mps.
   meteo_turbulence_ = 0;
+  connect(&alive_timer_, SIGNAL(timeout()), SLOT(on_periodicAliveTimer_triggered()));
+
+  alive_timer_.start(2000);  // Fail safe mechanism: Message every 2s, fall back to
+  // BrakeController if no message for 5s.
 }
 
 MainWindow::~MainWindow()
@@ -335,14 +343,16 @@ void MainWindow::keyPressEvent(QKeyEvent* event) {
   switch(event->key()) {
   case Qt::Key_C:
           rudder_controller_->setAngle(rudder_controller_->angle() - 2); break;
-  case Qt::Key_Z:
-          rudder_controller_->setAngle(rudder_controller_->angle() + 2); break;
   case Qt::Key_X:
           rudder_controller_->setAngle(0); break;
+  case Qt::Key_Z:
+          rudder_controller_->setAngle(rudder_controller_->angle() + 2); break;
 
   case Qt::Key_A:
           boom_controller_->setAngle(
                 SymmetricDeg(boom_controller_->angle() - 5)); break;
+  case Qt::Key_S:
+          boom_controller_->setAngle(0); break;
   case Qt::Key_D:
           boom_controller_->setAngle(
                 SymmetricDeg(boom_controller_->angle() + 5)); break;
@@ -366,6 +376,7 @@ void MainWindow::keyPressEvent(QKeyEvent* event) {
   case Qt::Key_Z:
   case Qt::Key_X:
   case Qt::Key_A:
+  case Qt::Key_S:
   case Qt::Key_D:
           sendRemoteProto(kIdleHelmsmanMode); break;
 
@@ -383,6 +394,8 @@ void MainWindow::keyPressEvent(QKeyEvent* event) {
 void MainWindow::sendRemoteProto(int command) {
   RemoteProto proto = INIT_REMOTEPROTO;
   proto.command = command;
+  last_proto_command_ = command;
+  proto.timestamp_s = time(NULL);
   proto.alpha_star_deg = heading_controller_->angle();
   size_t BufSize = 256;
   char buf[BufSize];
@@ -402,26 +415,39 @@ void MainWindow::sendMeteoProto() {
   state_->writeToBus(buf);
 }
 
+// normal control skipper and helmsman operate
 void MainWindow::on_actionAuto_pilot_triggered() {
   sendRemoteProto(kNormalControlMode);
 }
 
+// docking mode, saoil and rudder straight
 void MainWindow::on_actionDocking_triggered()
 {
   sendRemoteProto(kDockingControlMode);
 }
 
+// brake and heave-to
 void MainWindow::on_actionBrake_triggered()
 {
   sendRemoteProto(kBrakeControlMode);
 }
 
+// Skipper bearing is overridden by remote control
 void MainWindow::on_actionOverride_bearing_triggered()
 {
   sendRemoteProto(kOverrideSkipperMode);
 }
 
+// manual control of rudders and sail, helmsman does not control
 void MainWindow::on_actionIdleHelmsman_triggered()
 {
   sendRemoteProto(kIdleHelmsmanMode);
+}
+
+void MainWindow::on_periodicAliveTimer_triggered()
+{
+  if (last_proto_command_ == kIdleHelmsmanMode ||
+      last_proto_command_ == kOverrideSkipperMode) {
+  sendRemoteProto(last_proto_command_);
+  }
 }
