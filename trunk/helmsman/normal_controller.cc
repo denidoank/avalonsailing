@@ -226,7 +226,6 @@ ManeuverType NormalController::ShapeReferenceValue(double alpha_star,
       double delta_gamma_sail;
       NewGammaSail(old_gamma_sail,
                    maneuver_type,
-                   alpha_true,
                    kTackOvershootRad,
                    &new_gamma_sail,
                    &delta_gamma_sail);

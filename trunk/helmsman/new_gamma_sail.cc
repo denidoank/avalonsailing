@@ -24,25 +24,22 @@
 
 void NewGammaSail(double old_gamma_sail,  // star
                   ManeuverType maneuver_type,
-                  double alpha_true_wind,
                   double overshoot,
                   double* new_gamma_sail,
                   double* delta_gamma_sail) {
   old_gamma_sail = SymmetricRad(old_gamma_sail);
-  double sail_to_wind = DeltaOldNewRad(alpha_true_wind, old_gamma_sail);
 
   fprintf(stderr, "old_gamma_sail %6.2lf deg\n", Rad2Deg(old_gamma_sail));
-  fprintf(stderr, "alpha_true_wind %6.2lf deg\n", Rad2Deg(alpha_true_wind));
-  fprintf(stderr, "sail_to_wind %6.2lf deg\n", Rad2Deg(sail_to_wind));
+  fprintf(stderr, "overshoot contribution %6.2lf deg\n", Rad2Deg(Sign(old_gamma_sail) * overshoot));
 
   switch(maneuver_type) {
     case kJibe:
-      *new_gamma_sail = SymmetricRad(alpha_true_wind - sail_to_wind);
+      *new_gamma_sail = SymmetricRad(-old_gamma_sail);
       fprintf(stderr, "*new_gamma_sail %6.2lf deg\n", Rad2Deg(*new_gamma_sail));
       break;
     case kTack:
-      *new_gamma_sail = SymmetricRad(alpha_true_wind - sail_to_wind - Sign(sail_to_wind) * overshoot);
-      fprintf(stderr, "*new_gamma_sail %6.2lf deg\n", Rad2Deg(*new_gamma_sail));
+      *new_gamma_sail = SymmetricRad(-old_gamma_sail + Sign(old_gamma_sail) * overshoot);
+      fprintf(stderr, "Alternative!! *new_gamma_sail %6.2lf deg\n", Rad2Deg(*new_gamma_sail));
       break;
     case kChange:
       // When used with the NormalController this branch is never used.
@@ -53,8 +50,6 @@ void NewGammaSail(double old_gamma_sail,  // star
       break;
   }
   double delta = *new_gamma_sail - old_gamma_sail;
-  // fprintf(stderr, "old gamma: %6.2f deg\n", Rad2Deg(old_gamma_sail));
-  // fprintf(stderr, "delta: %6.2f deg %g\n", Rad2Deg(delta), Sign(delta));
 
   if (maneuver_type == kJibe)
     *delta_gamma_sail = delta - 2 * M_PI * Sign(delta);

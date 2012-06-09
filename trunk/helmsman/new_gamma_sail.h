@@ -21,7 +21,6 @@
 // N.B. a tack is assymmetrical due to the intentional overshoot.
 void NewGammaSail(double old_gamma_sail,
                   ManeuverType maneuver_type,
-                  double alpha_true_wind,
                   double overshoot,
                   double* new_gamma_sail,
                   double* delta_gamma_sail);                 // delta_gamma_sail is produced here, because
