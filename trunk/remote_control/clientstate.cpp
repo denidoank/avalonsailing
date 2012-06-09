@@ -22,7 +22,7 @@ ClientState::ClientState(QObject *parent) :
   connect(&ssh_process_, SIGNAL(finished(int, QProcess::ExitStatus)),
           SLOT(processFinished(int, QProcess::ExitStatus)));
 
-  connect(&restart_timer_, SIGNAL(timeout()), SLOT(tryToConnect()));
+  connect(&restart_timer_, SIGNAL(timeout()), SLOT(tryToConnect()));  
 }
 
 void ClientState::setCommand(const QString& command) {

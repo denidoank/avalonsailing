@@ -34,6 +34,7 @@ private:
   Ui::MainWindow *ui;
   ClientState* state_;
   ConfigDialog config_dialog_;
+  int last_proto_command_;
 
   QGraphicsScene scene_;
   QGraphicsPolygonItem* boat_;
@@ -63,6 +64,9 @@ private:
   QTimer update_timer_;
   QPointF scroll_pos_;
   QTime scroll_update_time_;
+  // triggers periodic messages in remote control modes to implement the fail safe mechanism
+  QTimer alive_timer_;
+
 
   virtual void keyPressEvent(QKeyEvent* event);
 
@@ -80,6 +84,7 @@ private slots:
   void on_actionDocking_triggered();
   void on_actionAuto_pilot_triggered();
   void on_actionIdleHelmsman_triggered();
+  void on_periodicAliveTimer_triggered();
 
   void on_actionConfig_triggered();
   void updateView();
