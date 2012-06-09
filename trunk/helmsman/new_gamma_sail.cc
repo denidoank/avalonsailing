@@ -38,7 +38,7 @@ void NewGammaSail(double old_gamma_sail,  // star
       fprintf(stderr, "*new_gamma_sail %6.2lf deg\n", Rad2Deg(*new_gamma_sail));
       break;
     case kTack:
-      *new_gamma_sail = SymmetricRad(-old_gamma_sail + Sign(old_gamma_sail) * overshoot);
+      *new_gamma_sail = SymmetricRad(-old_gamma_sail - Sign(old_gamma_sail) * overshoot);  // was +
       fprintf(stderr, "Alternative!! *new_gamma_sail %6.2lf deg\n", Rad2Deg(*new_gamma_sail));
       break;
     case kChange:
