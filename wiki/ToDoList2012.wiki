@@ -7,7 +7,7 @@
 || *Item* || *Who/when done* ||
 || Check rudder and find reason why left rudder reacts to commands with delay || lvd/2012-04-12 ||
 || Change rudder axis design such that we get less slack and better adjustability of the cone wheels. The current version might be too soft (Nut/Feder connection had big slack) || after lake test would be too late ||
-|| Have 2 new rudder axis manufactured. Replace the old ones. || after lake test would be too late ||
+|| Have 2 new rudder axis manufactured. Replace the old ones. || Esteemed to be not the weakest point ||
 || Make IMU box fixation without magnetizable screws. ||grundmann/2012-04-02 ||
 || Mount compass in IMU box || grundmann/2012-04-05 ||
 || Make watertight IMU box (currently 2 sealings leak). Test it. || grundmann/2012-03-19 ||
@@ -15,6 +15,8 @@
 || Additional fixation for solar panels (each needs 2 bolts) ||  ||
 || One bolt in bow hatch is missing, would leak water || grundmann/2012-05-18  ||
 || Two bolts in starboard front hatch are missing, would leak water || grundmann/2012-05-18 ||
+|| Pump up carriage tyres || grundmann ||
+|| Charge accumulators || grundmann ||
 
 == Electric ==
 
