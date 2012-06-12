@@ -13,7 +13,7 @@
 
 namespace {
 // magnetic bearing is true geographic bearing plus declination.
-static const double declination = Deg2Rad(1);  // +1 is East
+static const double declination = Deg2Rad(1);  // +1 is East, for Zurich only
 static const double inclination = Deg2Rad(61);
 }
 
@@ -36,6 +36,7 @@ bool GravityVectorToPitchAndRoll(double acc_x,
                                  double* roll_rad) {
   if (!CheckAccMagnitude(acc_x, acc_y, acc_z))
     return false;
+  // The check above excludes the possibility of zero values for acc_x, acc_y and acc_z.  
   *pitch_rad = atan2(+acc_x, -acc_z);
   *roll_rad  = atan2(-acc_y, -acc_z);
   //fprintf(stderr, "acc pitch: %6.2lf deg, acc roll %6.2lf deg\n", Rad2Deg(*pitch_rad), Rad2Deg(*roll_rad));
@@ -59,20 +60,20 @@ bool VectorsToBearing(double acc_x,
                                            acc_z,
                                            &pitch_rad,
                                            &roll_rad);
-  double proj_x = 0;
-  double proj_y = 0;
-  if (valid) {
-    proj_x = mag_x * cos(pitch_rad) +
-             mag_y * sin(roll_rad) * sin(pitch_rad) -
-             mag_z * cos(roll_rad) * sin(pitch_rad);
-    proj_y = mag_y * cos(roll_rad) +
-             mag_z * sin(roll_rad);
-    // We like to get the boats bearing relative to the magnetic vector
-    // so we invert the angle.
-    CHECK(declination>0);
-    *bearing_rad = SymmetricRad(-atan2(proj_y, proj_x));
-  }
-  return valid;
+  if (!valid)
+    return false;                                         
+
+  double proj_x = mag_x * cos(pitch_rad) +
+                  mag_y * sin(roll_rad) * sin(pitch_rad) -
+                  mag_z * cos(roll_rad) * sin(pitch_rad);
+  double proj_y = mag_y * cos(roll_rad) +
+                  mag_z * sin(roll_rad);
+  const double eps = 1E-3;
+  if (fabs(proj_x) < eps && fabs(proj_y) < eps)
+    return false;
+  // We like to get the boats bearing relative to the magnetic vector so we invert the angle.
+  *bearing_rad = SymmetricRad(-atan2(proj_y, proj_x));
+  return true;
 }
 
 // Assume that pitch and roll are zero.

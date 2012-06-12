@@ -61,8 +61,8 @@ double CompassMixer::Mix(double alpha1_rad, double weight1,
     *consensus = std::min(sum_of_weights, *consensus);
   } else {
     if (debug)
-      fprintf(stderr, "Compassmixer censensus is %6.4lf: KFL %6.4lf (%6.4lf), IMU %6.4lf (%6.4lf), CMP %6.4lf (%6.4lf) -> %6.4lf\n",
-            *consensus, alpha1_rad, weight1, alpha2_rad, weight2, alpha3_rad, weight3, NormalizeRad(result));
+      fprintf(stderr, "Compassmixer consensus is %6.4lf: KFL %6.4lf (%6.4lf), IMU %6.4lf (%6.4lf), CMP %6.4lf (%6.4lf) -> %6.4lf\n",
+            *consensus, input_[0], weight1, input_[1], weight2, input_[2], weight3, NormalizeRad(result));
   }
   return NormalizeRad(result);
 }
