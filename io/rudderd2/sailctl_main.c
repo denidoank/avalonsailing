@@ -53,7 +53,7 @@ static int processinput() {
 		struct RudderProto msg = INIT_RUDDERPROTO;
 		int nn;
 		int n = sscanf(line, IFMT_RUDDERPROTO_CTL(&msg, &nn));
-		if (n != 5)
+		if (n != IFMT_RUDDERPROTO_CTL_ITEMS)
 			return 0;
 
 		target_angle_deg = msg.sail_deg;

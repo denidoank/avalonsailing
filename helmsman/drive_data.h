@@ -43,7 +43,6 @@ struct DriveReferenceValues {
   double gamma_rudder_star_left_deg;
   double gamma_rudder_star_right_deg;
   double gamma_sail_star_deg;
-  int storm_flag;  // means: keep the sail brake closed
 };
 
 // Internally used radians versions.
