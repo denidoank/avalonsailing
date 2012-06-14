@@ -23,7 +23,7 @@
 || *Item* || *Who/when done* ||
 || Electric schema || (give up on this?) ||
 || Test maximum voltage and have a look with a scope at the supply voltage at full light, fully charged, drives accelerating and braking. || test done, slight push of boom gives extra 3V, need brake chopper on mains line, grundmann/2012-05-28 ||
-|| Overvoltage discharge brake chopper 25W/50W peak. ||  ||
+|| Overvoltage discharge brake chopper 25W/50W peak. || 60W at 30.1V grundmann/2012-06-12 ||
 || Change or replace CPU box such that the processor gets cooling. Currently it reaches 65 degrees Celsius at the outside because the processor box and the cooling plate are separated by air. || bridged air gap with aluminium and heat conduction paste, grundmann/2012-05-28  || 
 || Test bilge pump (better outside than in the lobby) ||  ||
 || Finally, remove mushroom switch (not seawater tight). || (after lake test) ||
