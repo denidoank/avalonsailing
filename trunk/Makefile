@@ -18,8 +18,9 @@ install installconf installinit:
 	@for d in $(SUBDIRS); do $(MAKE) -C $$d $@; done
 	$(MAKE) installscript
 
-installscript: start_avalon.sh
-	$(INSTALL) $+  $(DESTDIR)/usr/bin
+installscript: start_avalon.sh test_rudder.sh
+	$(INSTALL) start_avalon.sh  $(DESTDIR)/usr/bin
+	$(INSTALL) test_rudder.sh  $(DESTDIR)/usr/bin
 
 tarball: clean
 	tar zcpf $(OUTDIR)/$(PROJECT)-$(DATE).tar.gz --exclude .svn --exclude "svn*" .
