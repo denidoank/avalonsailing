@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #
 # Copyright 2011 The Avalon Project Authors. All rights reserved.
 # Use of this source code is governed by the Apache License 2.0
@@ -12,12 +12,21 @@
 # for experimental use, get the binaries directly from the source tree.
 if ! which linebusd; then
     echo "Running from source tree"
-    AVALONROOT=/home/avalon/avalonsailing
+    AVALONROOT=$(dirname $0)
     export PATH=$AVALONROOT/io:$AVALONROOT/io/rudderd2:$AVALONROOT/helmsman:$AVALONROOT/systools:$PATH
+
+    EBUS=/tmp/ebus
+    LBUS=/tmp/lbus
+
+else
+
+    EBUS=/var/run/ebus
+    LBUS=/var/run/lbus
+
 fi
 
 err=""
-for p in linebusd plug eposprobe ruddersts rudderctlfwd eposmon eposcom rudderctl sailctl drivests skewmon \
+for p in linebusd plug eposprobe ruddersts eposmon eposcom rudderctl sailctl drivests skewmon \
 	imucfg imucat aiscat aisbuf compasscat windcat fcmon; do
     which $p >/dev/null 2>&1 || err="$err $p"
 done
@@ -79,9 +88,6 @@ fi
 #  on the linebus, so there's no need to specify them there.
 #  the -- is needed in plug [options] $BUS -- command [command options] to explain to plug where to stop interpreting its options.
 #
-
-EBUS=/tmp/ebus  # /var/run/ebus
-LBUS=/tmp/lbus  # /var/run/lbus
 
 logger -s -p local2.Notice "Avalon subsystems starting up"
 
