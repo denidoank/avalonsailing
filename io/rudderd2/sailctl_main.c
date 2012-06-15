@@ -244,10 +244,11 @@ int main(int argc, char* argv[]) {
 	if (signal(SIGBUS, fault) == SIG_ERR)  crash("signal(SIGBUS)");
 	if (signal(SIGSEGV, fault) == SIG_ERR)  crash("signal(SIGSEGV)");
 
-	setlinebuf(stdout);
-
 	openlog(argv0, debug?LOG_PERROR:0, LOG_LOCAL2);
 	if(!debug) setlogmask(LOG_UPTO(LOG_NOTICE));
+
+	if(setlinebuf(stdout))
+		syslog(LOG_WARNING, "Failed to make stdout line-buffered.");
 
 	// ask linebusd to install filters
 	printf("$name sail\n");

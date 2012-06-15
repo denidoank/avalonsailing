@@ -338,12 +338,13 @@ int main(int argc, char* argv[]) {
 	if (signal(SIGBUS, fault) == SIG_ERR)  crash("signal(SIGBUS)");
 	if (signal(SIGSEGV, fault) == SIG_ERR)  crash("signal(SIGSEGV)");
 
-	setlinebuf(stdout);
-
 	char label[1024];
 	snprintf(label, sizeof label, "%s(%s)", argv0, params->label);
 	openlog(label, debug?LOG_PERROR:0, LOG_LOCAL2);
 	if(!debug) setlogmask(LOG_UPTO(LOG_NOTICE));
+
+	if(setlinebuf(stdout))
+		syslog(LOG_WARNING, "Failed to make stdout line-buffered.");
 
 	// ask linebusd to install filters
 	printf("$name %s\n", params->label);
