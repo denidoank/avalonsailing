@@ -338,6 +338,8 @@ int main(int argc, char* argv[]) {
 	if (signal(SIGBUS, fault) == SIG_ERR)  crash("signal(SIGBUS)");
 	if (signal(SIGSEGV, fault) == SIG_ERR)  crash("signal(SIGSEGV)");
 
+	setlinebuf(stdout);
+
 	char label[1024];
 	snprintf(label, sizeof label, "%s(%s)", argv0, params->label);
 	openlog(label, debug?LOG_PERROR:0, LOG_LOCAL2);
@@ -349,7 +351,6 @@ int main(int argc, char* argv[]) {
 	printf("$subscribe rudderctl:\n");  // must match IFMT_RUDDER_CTL
 	fflush(stdout);
 
-	setlinebuf(stdout);
 	bus = bus_new(stdout);	
 	bus_enable_timestamp(bus, dotimestamps);
 	dev = bus_open_device(bus, params->serial_number);

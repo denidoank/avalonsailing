@@ -244,6 +244,8 @@ int main(int argc, char* argv[]) {
 	if (signal(SIGBUS, fault) == SIG_ERR)  crash("signal(SIGBUS)");
 	if (signal(SIGSEGV, fault) == SIG_ERR)  crash("signal(SIGSEGV)");
 
+	setlinebuf(stdout);
+
 	openlog(argv0, debug?LOG_PERROR:0, LOG_LOCAL2);
 	if(!debug) setlogmask(LOG_UPTO(LOG_NOTICE));
 
@@ -254,7 +256,6 @@ int main(int argc, char* argv[]) {
 	printf("$subscribe skew:\n");  // must match IFMT_SKEW
 	fflush(stdout);
 
-	setlinebuf(stdout);
 	bus = bus_new(stdout);
 	bus_enable_timestamp(bus, dotimestamps);
 	motor = bus_open_device(bus, motor_params[SAIL].serial_number);
