@@ -49,7 +49,7 @@ crash(const char* fmt, ...)
 			(errno) ? ": " : "",
 			(errno) ? strerror(errno):"" );
 	else
-		syslog(LOG_CRIT, "%s%s%s\n", buf,
+		syslog(LOG_ERR, "%s%s%s\n", buf,
 		       (errno) ? ": " : "",
 		       (errno) ? strerror(errno):"" );
 	exit(1);
@@ -199,7 +199,7 @@ msg_xchg(int fd, const uint8_t* w_msg, size_t w_size, uint8_t* r_msg, size_t r_s
 {
 	int i;
 	r_msg[0] = 0;
-	for (i = 0; i < 200; ++i) {
+	for (i = 0; i < 5; ++i) {  // Retry 5 times.
 		if (debug) fprintf(stderr, "Sending message 0x%x..(0x%02x)..%c\r", w_msg[2], r_msg[0], "-\\|/"[i%4]);
 		tcflush(fd, TCIFLUSH);
 		if (msg_write(fd, w_msg, w_size)) crash("writing %d bytes", w_size);
@@ -265,7 +265,13 @@ int main(int argc, char* argv[]) {
 
 	if (argc != 1) usage();
 
-	if (!debug) openlog(argv0, LOG_PERROR, LOG_DAEMON);
+	if (!debug) {	
+		char* port = strrchr(argv[0], '/');  // basename of /dev/ttyXYZ
+		if (port) ++port; else port = argv[0];
+		char label[100];
+		snprintf(label, sizeof label, "%s(%s)", argv0, port);
+		openlog(label, LOG_PERROR, LOG_DAEMON);
+	}
 
 	if (signal(SIGBUS, fault) == SIG_ERR)  crash("signal(SIGBUS)");
 	if (signal(SIGSEGV, fault) == SIG_ERR)  crash("signal(SIGSEGV)");
@@ -350,6 +356,8 @@ int main(int argc, char* argv[]) {
 		r = msg_xchg(port,  kMsgGotoMeasurement, sizeof kMsgGotoMeasurement, msg, sizeof msg);
 		if (r < 0) crash("Unable to go to measurement mode.");
 	}
+
+	syslog(LOG_INFO, "Configured IMU.");
 
 	return 0;
 }
