@@ -173,6 +173,7 @@ int device_get_register(Device* dev, uint32_t regidx, uint32_t* val) {
 			fprintf(dev->bus->ctl, EBUS_GET_T_OFMT(dev->serial, regidx, now));
 		else
 			fprintf(dev->bus->ctl, EBUS_GET_OFMT(dev->serial, regidx));
+		fflush(dev->bus->ctl);  // setlinebuf is unreliable in uclibc
 	}
 
 	return 0;
@@ -201,7 +202,7 @@ int device_set_register(Device* dev, uint32_t regidx, uint32_t val) {
 		fprintf(dev->bus->ctl, EBUS_SET_T_OFMT(dev->serial, regidx, val, now));
 	else
 		fprintf(dev->bus->ctl, EBUS_SET_OFMT(dev->serial, regidx, val));
-
+	fflush(dev->bus->ctl);   // setlinebuf is unreliable in uclibc
 	return 0;
 }
 
