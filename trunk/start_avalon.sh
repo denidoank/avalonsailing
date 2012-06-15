@@ -9,24 +9,9 @@
 ## Script to start all subsystems
 ##
 
-# these ports are the ones you get on the laptop if you first plug in the 8-port and then the imu.
-
-PORT_RUDDER_L=/dev/ttyUSB0
-PORT_RUDDER_R=/dev/ttyUSB1
-PORT_SAIL=/dev/ttyUSB2
-PORT_FUELCELL=/dev/ttyUSB3
-PORT_COMPASS=/dev/ttyUSB4
-PORT_AIS=/dev/ttyUSB5
-PORT_MODEM=/dev/ttyUSB6
-PORT_WIND=/dev/ttyUSB7
-
-PORT_IMU=/dev/ttyUSB8	#  /dev/xsensIMU
-
-EBUS=/tmp/ebus  # /var/run/ebus
-LBUS=/tmp/lbus  # /var/run/lbus
-
 # for experimental use, get the binaries directly from the source tree.
 if ! which linebusd; then
+    echo "Running from source tree"
     AVALONROOT=/home/avalon/avalonsailing
     export PATH=$AVALONROOT/io:$AVALONROOT/io/rudderd2:$AVALONROOT/helmsman:$AVALONROOT/systools:$PATH
 fi
@@ -43,6 +28,44 @@ if [ "$err" != "" ]; then
     exit 1
 fi
 
+
+# the ports you get depend on the order the imu and the 8-port are detected
+
+if imucfg /dev/ttyUSB0; then
+
+    PORT_IMU=/dev/ttyUSB0
+
+    PORT_RUDDER_L=/dev/ttyUSB1
+    PORT_RUDDER_R=/dev/ttyUSB2
+    PORT_SAIL=/dev/ttyUSB3
+    PORT_FUELCELL=/dev/ttyUSB4
+    PORT_COMPASS=/dev/ttyUSB5
+    PORT_AIS=/dev/ttyUSB6
+    PORT_MODEM=/dev/ttyUSB7
+    PORT_WIND=/dev/ttyUSB8
+
+elif imucfg /dev/ttyUSB8; then
+
+    PORT_RUDDER_L=/dev/ttyUSB0
+    PORT_RUDDER_R=/dev/ttyUSB1
+    PORT_SAIL=/dev/ttyUSB2
+    PORT_FUELCELL=/dev/ttyUSB3
+    PORT_COMPASS=/dev/ttyUSB4
+    PORT_AIS=/dev/ttyUSB5
+    PORT_MODEM=/dev/ttyUSB6
+    PORT_WIND=/dev/ttyUSB7
+
+    PORT_IMU=/dev/ttyUSB8
+
+else
+
+    echo "No IMU found on ttyUSB0 or ttyUSB8"
+    echo "quitting."
+    exit 1
+
+fi
+
+
 #
 # General setup: the lbus has the low frequency/high level communication (ais, compass, helmsman etc)
 # the ebus does the high frequency/low latency low level epos commands in ebus.h protocol (mostly)
@@ -56,6 +79,9 @@ fi
 #  on the linebus, so there's no need to specify them there.
 #  the -- is needed in plug [options] $BUS -- command [command options] to explain to plug where to stop interpreting its options.
 #
+
+EBUS=/tmp/ebus  # /var/run/ebus
+LBUS=/tmp/lbus  # /var/run/lbus
 
 logger -s -p local2.Notice "Avalon subsystems starting up"
 
@@ -122,7 +148,7 @@ done
 )&
 
 # todo: each of these in a restart loop (with rate limiting)
-(imucfg $PORT_IMU && plug -i $LBUS -- `which imucat` $PORT_IMU 	; logger -s -p local2.crit "imucat exited.")&
+(plug -i $LBUS -- `which imucat` $PORT_IMU 		; logger -s -p local2.crit "imucat exited.")&
 (plug -o -n "imutime" -f "imu:" $LBUS -- `which imutime` ; logger -s -p local2.crit "imutime exited.")&
 
 (plug -i $LBUS -- `which compasscat` $PORT_COMPASS 	; logger -s -p local2.crit "compasscat exited.")&
