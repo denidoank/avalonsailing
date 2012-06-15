@@ -265,10 +265,10 @@ int main(int argc, char* argv[]) {
 
 	if (argc != 1) usage();
 
+	char label[100];
 	if (!debug) {	
 		char* port = strrchr(argv[0], '/');  // basename of /dev/ttyXYZ
 		if (port) ++port; else port = argv[0];
-		char label[100];
 		snprintf(label, sizeof label, "%s(%s)", argv0, port);
 		openlog(label, LOG_PERROR, LOG_DAEMON);
 	}
