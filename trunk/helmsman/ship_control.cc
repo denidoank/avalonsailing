@@ -32,7 +32,7 @@ FilterBlock* ShipControl::filter_block_ = new FilterBlock;
 
 // All methods are static.
 void ShipControl::Transition(Controller* new_state, const ControllerInput& in) {
-  if(debug)
+  if (debug)
     fprintf(stderr,"Transition %s -> %s\n", controller_->Name(), new_state->Name());
   controller_->Exit();
   controller_ = new_state;
@@ -40,7 +40,7 @@ void ShipControl::Transition(Controller* new_state, const ControllerInput& in) {
 }
 
 void ShipControl::StateMachine(const ControllerInput& in) {
-  if(debug)
+  if (debug && 0)
     fprintf(stderr, "Entering Statemachine with %s\n", controller_->Name());
 
   switch (meta_state_) {
@@ -101,7 +101,7 @@ void ShipControl::StateMachine(const ControllerInput& in) {
       Transition(&normal_controller_, in);
       return;
     } 
-    if(debug)
+    if (debug)
       fprintf(stderr, "InitialState, wait for true wind info and alpha_star\n");
   }
 
@@ -114,7 +114,7 @@ void ShipControl::StateMachine(const ControllerInput& in) {
     }
   }
 
-  if(debug)
+  if (debug && 0)
     fprintf(stderr, "ShipControl::StateMachine stationary in state %s\n", controller_->Name());
 }
 

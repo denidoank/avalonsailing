@@ -14,7 +14,9 @@ enum SailMode {
 class SailModeLogic {
  public:
   SailModeLogic();
-  SailMode BestMode(double alpha_apparent_wind_rad, double wind_strength_m_s) const;
+  // apparent is supposed to be the absolute value, but can go below zero (hysteresis effect).
+  // Side effect: sets mode_
+  SailMode BestMode(double alpha_apparent_wind_rad, double wind_strength_m_s);
   SailMode BestStabilizedMode(double alpha_apparent_wind_rad, double wind_strength_m_s);
   void LockInWingMode();
   void UnlockMode();
@@ -57,13 +59,14 @@ class SailController {
   double GammaSailInternal(double alpha_wind_rad,
                            double mag_wind,
                            bool stabilized);
-  double HandleSign(double alpha_wind_rad, bool stabilized);
+  double HandleSign(double alpha_wind_rad);
 
   double optimal_angle_of_attack_rad_;
   SailModeLogic logic_;
-  int sign_;  // The sign has to be inert, otherwise we might get into a
-              // situation if the apparent wind is around zero and we would have
-              // to turn the sail from -90 to +90 degrees permanently.
+  int sign_;  // The sign has no inertia
+  // But we might get into a
+  // situation if the apparent wind is around zero and we would have
+  // to turn the sail back and forth between -90 and +90.
 };
 
 #endif  // HELMSMAN_SAIL_CONTROLLER_H

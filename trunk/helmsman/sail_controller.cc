@@ -24,29 +24,32 @@ SailModeLogic::SailModeLogic()
       delay_counter_(0)
   {}
 
-SailMode SailModeLogic::BestMode(double apparent, double wind_strength_m_s) const {
-  CHECK_GE(apparent, 0);
-  return apparent < kSwitchpoint && wind_strength_m_s < kSpinakkerLimit ? SPINNAKER : WING;
+// apparent is mostly positive (may be negative)!
+SailMode SailModeLogic::BestMode(double apparent_absolute, double wind_strength_m_s) {
+  mode_ = apparent_absolute < kSwitchpoint && wind_strength_m_s < kSpinakkerLimit ? SPINNAKER : WING;
+  return mode_;
 }
 
-SailMode SailModeLogic::BestStabilizedMode(double apparent, double wind_strength_m_s) {
+SailMode SailModeLogic::BestStabilizedMode(double apparent_absolute, double wind_strength_m_s) {
   const int delay = static_cast<int>(kSwitchBackDelay / kSamplingPeriod + 0.5);
   if (mode_ == WING_LOCKED) {
     return WING_LOCKED;
   }
-  if (wind_strength_m_s > kSpinakkerLimit)
+  if (wind_strength_m_s > kSpinakkerLimit) {
+    fprintf(stderr, "Storm winds: WING\n");
     return WING;
+  }
   if (mode_ == WING) {
-    if (apparent <= kSwitchpoint - 2 * kHalfHysteresis ||
-        (apparent < kSwitchpoint - kHalfHysteresis &&
+    if (apparent_absolute <= kSwitchpoint - 2 * kHalfHysteresis ||
+        (apparent_absolute < kSwitchpoint - kHalfHysteresis &&
          ++delay_counter_ > delay)) {
       mode_ = SPINNAKER;
       delay_counter_ = 0;
       if (debug) fprintf(stderr, "SailModeLogic::BestMode: Switched to spinnaker.\n");
     }
   } else {  // SPINNAKER
-    if (apparent > kSwitchpoint + 2 * kHalfHysteresis ||
-        (apparent > kSwitchpoint + kHalfHysteresis &&
+    if (apparent_absolute > kSwitchpoint + 2 * kHalfHysteresis ||
+        (apparent_absolute > kSwitchpoint + kHalfHysteresis &&
          ++delay_counter_ > delay)) {
       mode_ = WING;
       delay_counter_ = 0;
@@ -56,7 +59,8 @@ SailMode SailModeLogic::BestStabilizedMode(double apparent, double wind_strength
   return mode_;
 }
 
-void SailModeLogic::LockInWingMode() {
+void SailModeLogic::LockInWingMode() {// ever called?
+   fprintf(stderr, "SailModeLogic::LOCKED in WING mode. ************************************\n");
   mode_ = WING_LOCKED;
 }
 
@@ -109,6 +113,7 @@ double SailController::BestGammaSail(double alpha_wind_rad, double mag_wind) {
 }
 
 double SailController::BestStabilizedGammaSail(double alpha_wind_rad, double mag_wind) {
+  // fprintf(stderr, "mode %s wind %6.2lf mag %6.2lf sign %d\n", logic_.ModeString(), alpha_wind_rad, mag_wind, sign_);
   return GammaSailInternal(alpha_wind_rad, mag_wind, true);
 }
 
@@ -129,7 +134,7 @@ double SailController::GammaSailInternal(double alpha_wind_rad,
   CHECK_LT(0.1, optimal_angle_of_attack_rad_);
 
   alpha_wind_rad = SymmetricRad(alpha_wind_rad);
-  alpha_wind_rad = HandleSign(alpha_wind_rad, stabilized);
+  alpha_wind_rad = HandleSign(alpha_wind_rad);
   CHECK_LE(alpha_wind_rad, M_PI);  // in [0, pi]
 
   // other lower limit, to avoid unnecessary sail motor activity at low winds?
@@ -149,6 +154,10 @@ double SailController::GammaSailInternal(double alpha_wind_rad,
 
 double SailController::BestGammaSailForReverseMotion(double alpha_wind_rad,
                                                      double mag_wind) {
+  // Avoid unnecessary sail motor activity at low wind.
+  if (mag_wind < 0.5)
+    return M_PI / 2;
+
   assert(alpha_wind_rad < 10);
   assert(-alpha_wind_rad > -10);
   alpha_wind_rad = SymmetricRad(alpha_wind_rad);
@@ -158,10 +167,6 @@ double SailController::BestGammaSailForReverseMotion(double alpha_wind_rad,
     alpha_wind_rad = -alpha_wind_rad;
   }
   CHECK_LE(alpha_wind_rad, M_PI);  // in [0, pi]
-
-  // other lower limit, to avoid unnecessary sail motor activity at low winds?
-  if (mag_wind == 0)
-    return M_PI / 2;
 
   double gamma_sail_rad = alpha_wind_rad < (M_PI - kSwitchpoint) || mag_wind > kSpinakkerLimit ?
       (M_PI - alpha_wind_rad + AngleOfAttack(mag_wind)) :
@@ -178,16 +183,8 @@ void SailController::UnlockMode() {
   logic_.UnlockMode();
 }
 
-// For Stabilized results make a hysteresis around 0.
-// For non-stabilized operation make no hysteresis
-double SailController::HandleSign(double alpha_wind_rad, bool stabilized) {
-  if (stabilized) {
-    if (sign_ * alpha_wind_rad < -kHalfHysteresisSign) {
-      sign_ = SignNotZero(alpha_wind_rad);
-    }
-  } else {
-    sign_ = SignNotZero(alpha_wind_rad);
-  }
+double SailController::HandleSign(double alpha_wind_rad) {
+  sign_ = SignNotZero(alpha_wind_rad);
   return sign_ * alpha_wind_rad;
 }
 

@@ -53,7 +53,7 @@ void ReferenceValues::SetReferenceValues(double phi_z_star,
   gamma_sail_final_ = gamma_sail_star;
   gamma_sail_ = gamma_sail_star;
   all_ticks_ = 0;
-  if (debug) fprintf(stderr, "SetRef:heading %6.2g deg Sail:%6.2g deg\n", Rad2Deg(phi_z_), Rad2Deg(gamma_sail_));
+  if (debug) fprintf(stderr, "SetRef:heading %6.2lf deg Sail:%6.2lf deg\n", Rad2Deg(phi_z_), Rad2Deg(gamma_sail_));
 }
 
 // Do a turn of the boat (a normal change of direction, a tack or a jibe)
@@ -100,6 +100,7 @@ void ReferenceValues::NewPlan(double phi_z_1,
     fprintf(stderr, "New Plan: delta_phi: %6.4lf deg\n", Rad2Deg(delta_phi));
     fprintf(stderr, "delta_gamma_sail: %6.4lf deg, duration %6.4lf s\n", Rad2Deg(delta_gamma_sail), duration);
     fprintf(stderr, "duration_sail: %6.4lf s, duration_acc: %6.4lf s\n", duration_sail, duration_acc);
+    fprintf(stderr, "!!End state: phi_z %6.4lf, gamma_sail: %6.4lf\n", phi_z_final_, gamma_sail_final_);
   }
 }
 

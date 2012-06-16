@@ -185,7 +185,8 @@ void FilterBlock::Filter(const ControllerInput& in,
       fil->alpha_true = SymmetricRad(alpha_true_wrap_.Filter(NormalizeRad(wind_true.AngleRad())));
       fil->mag_true = mag_true_filter_.Filter(wind_true.Mag());
       if (debug)
-        fprintf(stderr, "trueInOut alpha mag: %lg, %lg, app: %lg, %lg\n", wind_true.AngleRad(), wind_true.Mag(), fil->alpha_true, fil->mag_true);
+        fprintf(stderr, "trueInOut alpha mag: %lg, %lg, filtered: %lg, %lg\n",
+                wind_true.AngleRad(), wind_true.Mag(), fil->alpha_true, fil->mag_true);
       // The validity of the true wind takes some time and is flagged separately with
       // valid_true_wind.
     } else {

@@ -132,12 +132,13 @@ void HandleRemoteControl(RemoteProto remote, int* control_mode) {
   }
 }
 
-void HandleRemoteControlFailSafe(int control_mode, int64_t last_remote_message_millis) {
+void HandleRemoteControlFailSafe(int64_t last_remote_message_millis, int* control_mode) {
   // See the alive_timer_ in remote_control/mainwindow.cc .
   const int64_t kRemoteControlTimeOutSeconds = 5;  // We get a message every 2 s and we are allowed to miss one.
-  if ((control_mode == kIdleHelmsmanMode ||
-       control_mode == kOverrideSkipperMode) &&
+  if ((kIdleHelmsmanMode == *control_mode ||
+       kOverrideSkipperMode == *control_mode) &&
       now_ms() > last_remote_message_millis + kRemoteControlTimeOutSeconds * 1000) {
+    *control_mode = kBrakeControlMode;
     syslog(LOG_WARNING, "helsman main: remote control communication timeout, braking");
     ShipControl::Brake();
   }
@@ -169,10 +170,12 @@ int main(int argc, char* argv[]) {
 
   if (argc != 0) usage();
 
-  setlinebuf(stdout);
-
   openlog(argv0, debug?LOG_PERROR:0, LOG_LOCAL0);
   if(!debug) setlogmask(LOG_UPTO(LOG_NOTICE));
+
+  if (setlinebuf(stdout))
+    syslog(LOG_WARNING, "Failed to make stdout line-buffered.");
+
 
   if (signal(SIGBUS, bus_fault) == SIG_ERR)  crash("signal(SIGBUS)");
   if (signal(SIGSEGV, segv_fault) == SIG_ERR)  crash("signal(SIGSEGV)");
@@ -266,7 +269,7 @@ int main(int argc, char* argv[]) {
       }
     }
 
-    HandleRemoteControlFailSafe(control_mode, last_remote_message_millis);
+    HandleRemoteControlFailSafe(last_remote_message_millis, &control_mode);
 
     if (!CalculateTimeOut(next_call_micros, &timeout)) {
       ctrl_out.Reset();

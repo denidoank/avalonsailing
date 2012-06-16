@@ -47,7 +47,7 @@ private:
   QGraphicsEllipseItem* compass_;
   QGraphicsLineItem* target_heading_;
   QGraphicsLineItem* wind_;
-  QGraphicsLineItem* true_wind_;
+  QGraphicsPolygonItem* true_wind_;
   QGraphicsTextItem* true_wind_speed_;
 
   AngleController* boom_controller_;

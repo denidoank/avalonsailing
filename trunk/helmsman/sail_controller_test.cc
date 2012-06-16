@@ -43,11 +43,19 @@ TEST(SailController, Basic) {
 
   EXPECT_FLOAT_EQ(0.05 - kDragMax, controller.BestGammaSail(0.1, 5));
 
+  controller.BestGammaSail(1.5, 5);
+  // assume mode_ was WING
   EXPECT_FLOAT_EQ(alpha_wind - M_PI + aoa_optimal,
                   controller.BestStabilizedGammaSail( alpha_wind, 5));
-
   EXPECT_FLOAT_EQ(-(alpha_wind - M_PI + aoa_optimal),
                   controller.BestStabilizedGammaSail(-alpha_wind, 5));
+
+  controller.BestGammaSail(0.1, 5);
+  // assume mode_ was SPINAKKER
+  EXPECT_FLOAT_EQ(0.5 * alpha_wind - kDragMax,
+                  controller.BestStabilizedGammaSail( alpha_wind, 5));
+  controller.BestGammaSail(1.5, 5);
+  // set mode_ to WING
 
   // No wind case.
   EXPECT_FLOAT_EQ(0, controller.BestStabilizedGammaSail(-alpha_wind, 0));
