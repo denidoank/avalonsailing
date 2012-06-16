@@ -62,9 +62,9 @@ void InitialController::Run(const ControllerInput& in,
     fprintf(stderr, "WindSensor: %s\n", in.wind_sensor.ToString().c_str());
     fprintf(stderr, "DriveActuals: %s\n", in.drives.ToString().c_str());
     if (filtered.valid_app_wind)
-      fprintf(stderr, "AppFiltered: %lfdeg %lfm/s\n", Rad2Deg(filtered.angle_app), filtered.mag_app);
+      fprintf(stderr, "AppFiltered: %6.2lf deg %6.2lf m/s\n", Rad2Deg(filtered.angle_app), filtered.mag_app);
     else
-      fprintf(stderr, "AppFiltered: Magnitude %lfm/s\n", filtered.mag_app);
+      fprintf(stderr, "AppFiltered: Magnitude %6.2lf m/s\n", filtered.mag_app);
   }
   
   double angle_app = SymmetricRad(filtered.angle_app);
@@ -78,7 +78,7 @@ void InitialController::Run(const ControllerInput& in,
       if (++count_ > 5.0 / kSamplingPeriod &&
           in.drives.homed_sail &&
           (in.drives.homed_rudder_left ||
-          in.drives.homed_rudder_right)) {
+           in.drives.homed_rudder_right)) {
         count_ = 0;
         phase_ = TURTLE;
         // Decide which way to go.
@@ -98,8 +98,7 @@ void InitialController::Run(const ControllerInput& in,
         // For stronger winds we have enough momentum pushing back.
         const double run_sector = filtered.mag_app > 5 ? Deg2Rad(120) : Deg2Rad(90);
         // Turn into a sailable direction if necessary.
-        if (fabs(angle_app) > run_sector ||
-            WindStrength(kCalmWind, filtered.mag_app) == kCalmWind) {
+        if (fabs(angle_app) > run_sector) {
           gamma_rudder = kReverseMotionRudderAngle * sign_;
           gamma_sail = sail_controller_->BestGammaSailForReverseMotion(angle_app, filtered.mag_app);
           break;
@@ -125,8 +124,8 @@ void InitialController::Run(const ControllerInput& in,
   out->drives_reference.gamma_rudder_star_right_rad = gamma_rudder;
 
    if (debug) {
-     fprintf(stderr, "out gamma_sail:%lf deg\n", Rad2Deg(gamma_sail));
-     fprintf(stderr, "out gamma_rudder_star left/right:%lf deg\n", Rad2Deg(gamma_rudder));
+     fprintf(stderr, "out gamma_sail:%6.2lf deg\n", Rad2Deg(gamma_sail));
+     fprintf(stderr, "out gamma_rudder_star left/right:%6.2lf deg\n", Rad2Deg(gamma_rudder));
    }
 }
 
@@ -141,7 +140,11 @@ void InitialController::Entry(const ControllerInput& in,
 void InitialController::Exit() {}
 
 bool InitialController::Done() {
-  const bool done = (phase_ == KOGGE) && (count_ >  15.0 / kSamplingPeriod);
+  // The delay of 20s could be smaller but if we need to tack immediately
+  // after leaving the InitialController then the speed measurement filter should
+  // have a stabilized value. This depends on the quality of the IMU speed
+  // calculation. Therefore the more conservative waiting time of 20s.
+  const bool done = (phase_ == KOGGE) && (count_ > 20.0 / kSamplingPeriod);
   if (done && debug) fprintf(stderr, "InitialController::Done\n");
   return done;
 }

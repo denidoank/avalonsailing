@@ -8,6 +8,7 @@
 #ifndef CLIENTSTATE_H
 #define CLIENTSTATE_H
 
+#include <math.h>
 #include <QObject>
 #include <QString>
 #include <QProcess>
@@ -28,10 +29,20 @@ public:
   QString getVar(const QString& daemon, const QString& var) const {
         return data_.value(daemon).value(var);
   }
+
   double getDouble(const QString& daemon, const QString& var) const {
     QString value = getVar(daemon, var);
     if (value.isEmpty() || value == "nan") {
       return 0;
+    } else {
+      return value.toDouble();
+    }
+  }
+
+  double getDoubleOrNan(const QString& daemon, const QString& var) const {
+    QString value = getVar(daemon, var);
+    if (value.isEmpty() || value == "nan") {
+      return NAN;
     } else {
       return value.toDouble();
     }

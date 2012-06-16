@@ -3,13 +3,11 @@
 // that can be found in the LICENSE file.
 // Steffen Grundmann, June 2011
 
-//#include "common/boat.h"  // constants from simulation/boat.m
-
 #include "helmsman/normal_controller.h"
 
 #include <math.h>
 #include <stdint.h>
-#include <sys/time.h>
+//#include <sys/time.h>
 #include <time.h>
 #include "common/delta_angle.h"
 #include "common/normalize.h"
@@ -33,7 +31,6 @@ NormalController::NormalController(RudderController* rudder_controller,
      give_up_counter_(0),
      start_time_ms_(now_ms()),
      trap2_(999) {
-  debug = 1;
   if (debug) fprintf(stderr, "NormalController::Entry time  %lld s\n",
                      start_time_ms_ / 1000);
   if (debug) fprintf(stderr, "NormalController::rate limit  %lf rad/s, %lf deg/s\n",
@@ -49,6 +46,7 @@ void NormalController::Entry(const ControllerInput& in,
   // Make sure we get the right idea of the direction change when we come
   // from another state.
   old_phi_z_star_ = SymmetricRad(filtered.phi_z_boat);
+  sail_controller_->BestGammaSail(filtered.angle_app, filtered.mag_app);
   ref_.SetReferenceValues(old_phi_z_star_, in.drives.gamma_sail_rad);
   give_up_counter_ = 0;
   start_time_ms_ = now_ms();
@@ -64,11 +62,9 @@ void NormalController::Run(const ControllerInput& in,
                            ControllerOutput* out) {
   if (debug) {
     fprintf(stderr, "------------NormalController::Run----------\n");
-    //fprintf(stderr, "Time ms: %lf  strt was %lf diff %lf \n", (double)now_ms(), (double)(start_time_ms_), (double)(now_ms()-start_time_ms_));
-    //fprintf(stderr, "Time: %6.3lf Ref: %6.1lf ", NowSeconds(), Rad2Deg(in.alpha_star_rad));
     fprintf(stderr, "Actuals: True %6.1lf deg %6.1lf m/s ", Rad2Deg(filtered.alpha_true), filtered.mag_true);
     fprintf(stderr, "Boat %6.1lf deg %6.1lf m/s ", Rad2Deg(filtered.phi_z_boat), filtered.mag_boat);
-    fprintf(stderr, "App. %6.1lf deg %6.1lf m/s\n", Rad2Deg(filtered.angle_app),  filtered.mag_app);
+    fprintf(stderr, "App. %6.1lf deg %6.1lf m/s\n", Rad2Deg(filtered.angle_app), filtered.mag_app);
   }
   CHECK_EQ(999, trap2_);  // Triggers at incomplete compilation errors.
   double phi_star;
@@ -86,10 +82,8 @@ void NormalController::Run(const ControllerInput& in,
                        &gamma_sail_star);
   if (maneuver == kTack) {
     out->status.tacks++;
-    // if (debug) fprintf(stderr, "\nTack\n\n");
   } else if (maneuver == kJibe) {
     out->status.jibes++;
-    // if (debug) fprintf(stderr, "\nJibe\n\n");
   }
 
   if (debug) fprintf(stderr, "IntRef: %6.2lf %6.2lf\n", Rad2Deg(phi_star), Rad2Deg(omega_star));
@@ -116,7 +110,7 @@ void NormalController::Run(const ControllerInput& in,
   out->drives_reference.gamma_rudder_star_left_rad  = gamma_rudder_star;
   out->drives_reference.gamma_rudder_star_right_rad = gamma_rudder_star;
   out->drives_reference.gamma_sail_star_rad = gamma_sail_star;
-  if (debug) fprintf(stderr, "Controls: %6.2lf %6.2lf\n", Rad2Deg(gamma_rudder_star), Rad2Deg(gamma_sail_star));
+  if (debug) fprintf(stderr, "Controls: %6.2lf %6.2lf\n\n", Rad2Deg(gamma_rudder_star), Rad2Deg(gamma_sail_star));
 }
 
 void NormalController::Exit() {
@@ -130,9 +124,6 @@ bool NormalController::IsJump(double old_direction, double new_direction) {
   // For them IsJump returns true.
   const double JibeZoneWidth = M_PI - JibeZoneRad();
   CHECK(JibeZoneWidth < TackZoneRad());
-
-  if (0 && debug) fprintf(stderr, "IsJump old %6.2lf new %6.2lf \n",
-                          old_direction, new_direction);
   return fabs(DeltaOldNewRad(old_direction, new_direction)) >
               1.8 * JibeZoneWidth;
 }
@@ -142,7 +133,6 @@ bool NormalController::Near(double a, double b) {
   const double tolerance = 2 * kSamplingPeriod * alpha_star_rate_limit_;
   return b - tolerance <= a && a <= b + tolerance;
 }
-
 
 // The current bearing is near the TackZone (close reach) or near the Jibe Zone (broad reach)
 // and we will have to do a maneuver.
@@ -221,7 +211,8 @@ ManeuverType NormalController::ShapeReferenceValue(double alpha_star,
                                        alpha_true);
       // Limit new_sailable to the other side of the maneuver zone.
       new_sailable = LimitToMinimalManeuver(old_phi_z_star_, new_sailable, alpha_true, maneuver_type);
-      if (debug) fprintf(stderr, "Start %s maneuver, from  %lg to %lg degrees\n", ManeuverToString(maneuver_type), Rad2Deg(old_phi_z_star_), Rad2Deg(new_sailable));
+      if (debug) fprintf(stderr, "Start %s maneuver, from  %lf to %lf degrees\n",
+                         ManeuverToString(maneuver_type), Rad2Deg(old_phi_z_star_), Rad2Deg(new_sailable));
       double new_gamma_sail;
       double delta_gamma_sail;
       NewGammaSail(old_gamma_sail,
@@ -272,7 +263,7 @@ bool NormalController::GiveUp(const ControllerInput& in,
     ++give_up_counter_;
   else
     give_up_counter_ = 0;
-  return give_up_counter_ > 120.0 / kSamplingPeriod;  // The speed is filtered with 60s and rather imprecise
+  return give_up_counter_ > 120.0 / kSamplingPeriod;  // The speed is filtered with 60s and rather imprecise.
 }
 
 double NormalController::NowSeconds() {

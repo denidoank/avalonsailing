@@ -44,7 +44,7 @@ class NormalController : public Controller {
   void SkipAlphaStarShaping(bool skip);
   double RateLimit();
 
-  // These are public for test accessibility only.
+  // This method is public for test accessibility only.
   ManeuverType ShapeReferenceValue(double alpha_star,
                                    double alpha_true, double mag_true,
                                    double phi_z_boat, double mag_boat,
@@ -72,9 +72,8 @@ class NormalController : public Controller {
   // alpha* is rate limited.
   double alpha_star_rate_limit_;
   double old_phi_z_star_;  // keeps the last shaped alpha*, needed for maneuver distinction.
-
-  ReferenceValues ref_;  // Has state about running maneuvers.
-  int give_up_counter_;
+  ReferenceValues ref_;    // Has state about running maneuvers.
+  int give_up_counter_;    // delays fallback to the InitialController
   int64_t start_time_ms_;
   int trap2_;  // paranoid protection against incomplete compilation errors.
 };

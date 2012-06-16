@@ -10,7 +10,7 @@
 // Constants for the mode hysteresis logic
 // 3m/s: 73.5, 6m/s 72.5, 9m/s: 72.5, 12m/s: 68.5 degrees
 const double kSwitchpoint = Deg2Rad(72.5);       // degrees, middle of hysteresis
-const double kHalfHysteresis = Deg2Rad(7.5);     // degrees,
+const double kHalfHysteresis = Deg2Rad(5);       // degrees, less than jibe zone/2
 const double kDragMax = Deg2Rad(93);             // 93 degree because of slightly asymmetric C_drag-curve of the sail.
 // For a race we might reduce the switch back delay to 4 s.
 // For cruising we should not increase it beyond the

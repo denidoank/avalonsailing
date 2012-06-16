@@ -37,7 +37,7 @@ MainWindow::MainWindow(ClientState* state, QWidget *parent) :
                              SLOT(setChecked(bool)));
 
   connect(&update_timer_, SIGNAL(timeout()), SLOT(updateGraphics()));
-  update_timer_.setInterval(50);
+  update_timer_.setInterval(100);
   true_wind_direction_deg_ = 0.0;
   true_wind_speed_kt_ = 19.43;  // 10 mps.
   meteo_turbulence_ = 0;
@@ -116,8 +116,20 @@ void MainWindow::updateGraphics() {
   sprintf(wind_speed_str, "%3.1lfkt T%d",
           true_wind_speed_kt_, meteo_turbulence_);
   true_wind_speed_->setPlainText(wind_speed_str);
-  true_wind_->setRotation(state_->getDouble("skipper_input", "angle_true_deg") +
-                          true_wind_direction_deg_);
+  // True wind rotates with the skipper disc. Intially the true wind speed is unknown.
+  double angle_true = state_->getDoubleOrNan("skipper_input", "angle_true_deg");
+
+  QPen none_pen(QColor(99, 99, 80));
+  none_pen.setWidth(0);
+  QPen true_wind_pen(QColor(0, 50, 120));
+  true_wind_pen.setWidth(3);
+
+  if (isnan(angle_true)) {
+    true_wind_->setPen(none_pen);
+  } else {
+    true_wind_->setPen(true_wind_pen);
+  }
+  true_wind_->setRotation(state_->getDouble("skipper_input", "angle_true_deg"));  // the true wind as seen by Avalon
 
   QPointF speed(state_->getDouble("imu", "vel_y_m_s"), state_->getDouble("imu", "vel_x_m_s"));
 
@@ -174,9 +186,10 @@ void MainWindow::drawBoat() {
   boom_->setPen(black_border);
   boom_->setPos(0, -20);
 
+  // Verklikker
   wind_ = new QGraphicsLineItem(0, 0, 0, -30, boom_, &scene_);
   wind_->setPos(0, -20);
-  QPen wind_pen(QColor(0, 99, 0));
+  QPen wind_pen(QColor(0, 50, 120));
   wind_pen.setWidth(2);
   wind_->setPen(wind_pen);
 
@@ -211,10 +224,10 @@ void MainWindow::drawBoat() {
 
 
   // Draw the compass.
-  compass_ = new QGraphicsEllipseItem(-40, -40, 80, 80);
+  compass_ = new QGraphicsEllipseItem(-50, -50, 100, 100);
   scene_.addItem(compass_);
   QGraphicsTextItem* north = new QGraphicsTextItem("N", compass_);
-  north->setPos(-north->boundingRect().width()/2, -40);
+  north->setPos(-north->boundingRect().width()/2, -50);
 
   QGraphicsTextItem* east = new QGraphicsTextItem("E", compass_);
   east->setRotation(90);
@@ -239,14 +252,26 @@ void MainWindow::drawBoat() {
   // Speed and true wind display
   skipper_disc_ = new QGraphicsEllipseItem(-40, -40, 80, 80);
   scene_.addItem(skipper_disc_);
-  skipper_disc_->setPos(-160, 0);
-  true_wind_ = new QGraphicsLineItem(0, 0, 0, -45, skipper_disc_, &scene_);
-  true_wind_->setPen(wind_pen);
+  skipper_disc_->setPos(-160, 0);  // x, y,  origin is upper left corner ?
+  QPen true_wind_pen(QColor(0, 50, 120));
+  true_wind_pen.setWidth(0);
+  true_wind_ = new QGraphicsPolygonItem(skipper_disc_, &scene_);
+
+  // true wind arrow
+  QPolygonF wind_poly;
+  wind_poly << QPointF(0, 0)
+            << QPointF(0, -40)
+            << QPointF(5, -30)
+            << QPointF(0, -40)
+            << QPointF(-5, -30)
+            << QPointF(0, -40);
+  true_wind_->setPolygon(wind_poly);
+  true_wind_->setPen(true_wind_pen);
   true_wind_speed_ = new QGraphicsTextItem("19.0kt T0");
   scene_.addItem(true_wind_speed_);
   true_wind_speed_->setPos(-160 + true_wind_->boundingRect().width() / 2 -
                            true_wind_speed_->boundingRect().width() / 2,
-                           true_wind_->boundingRect().height() / 2 +
+                           10 + true_wind_->boundingRect().height() / 2 +
                            true_wind_speed_->boundingRect().height() / 2);
 
   QPixmap background(":/images/water_texture.png");

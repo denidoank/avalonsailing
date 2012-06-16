@@ -12,7 +12,6 @@
 #include "helmsman/apparent.h"
 #include "helmsman/controller_io.h"
 #include "helmsman/rudder_controller_const.h"
-
 #include "lib/testing/testing.h"
 
 
@@ -165,7 +164,7 @@ EXPECT_FLOAT_EQ(0, Rad2Deg(out.drives_reference.gamma_rudder_star_left_rad));
 
 in.alpha_star_rad = alpha_star_rad - Deg2Rad(0.1);  // -0.1 degree control error
 
-// PI vcontroller response
+// PI controller response
 for (int i = 0; i < 10; ++i) {
   printf("%d  \n", i);
   c.Run(in, filtered, &out);
@@ -239,19 +238,34 @@ TEST(NormalController, Synthetic) {
   EXPECT_FLOAT_EQ(-25, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
 }
 
+
+#define SHAPE(alpha_star) \
+  c.ShapeReferenceValue(SymmetricRad(Deg2Rad(alpha_star)),     \
+                        wind_true.AngleRad(), wind_true.Mag(), \
+                        boat.AngleRad(), boat.Mag(),           \
+                        SymmetricRad(wind_true.AngleRad() - phi_z_star), filtered.mag_app,  \
+                        old_gamma_sail,                        \
+                        &phi_z_star,                           \
+                        &omega_z_star,                         \
+                        &gamma_sail_star);                     \
+    printf("%6.2lf %6.2lf %6.2lf\n", phi_z_star, omega_z_star, gamma_sail_star);\
+    old_gamma_sail = gamma_sail_star;
+
+
 // Tests of the reference value rate limiting and maneuver planning.
+// Approximate the apparent wind as true wind direction - boat direction.
+// Run this test as make normal_controller_test.run > x.csv
+// to get graph output.
 TEST(NormalController, ReferenceValueShaping) {
   RudderController rudder_controller;
   // coefficients for        omega_z, phi_z, int(phi_z), no feedforward
   rudder_controller.SetFeedback(0,    1000,     0,       false);
-
   SailController sail_controller;
   sail_controller.SetOptimalAngleOfAttack(Deg2Rad(20));
   NormalController c(&rudder_controller, &sail_controller);
   ControllerInput in;
   FilteredMeasurements filtered;
   ControllerOutput out;
-
   Polar wind_true(0, 25);  // Wind vector blowing to the North, with 25m/s.
   Polar boat(Deg2Rad(90), kMagicTestSpeed);  // Boat going East, with about 1.1 m/s.
                             // So the apparent wind vector is at about +90 degrees to
@@ -263,19 +277,10 @@ TEST(NormalController, ReferenceValueShaping) {
   double phi_z_star = Deg2Rad(90);
   double omega_z_star = 0;
   double gamma_sail_star = Deg2Rad(90 - 20);
+  double old_gamma_sail = gamma_sail_star;
   // The boat turns and the apparent wind direction is going to change.
   // For a slow boat we might approximate the apparent wind as true wind
   // direction - boat direction .
-#define SHAPE(alpha_star) \
-  c.ShapeReferenceValue(Deg2Rad(alpha_star),                   \
-                        wind_true.AngleRad(), wind_true.Mag(), \
-                        boat.AngleRad(), boat.Mag(),           \
-                        wind_true.AngleRad() - phi_z_star, filtered.mag_app,  \
-                        gamma_sail_star,                       \
-                        &phi_z_star,                           \
-                        &omega_z_star,                         \
-                        &gamma_sail_star);                     \
-    printf("77 %6.2lf %6.2lf %6.2lf\n", phi_z_star, omega_z_star, gamma_sail_star);
 
   SHAPE(90);
   EXPECT_FLOAT_EQ(Deg2Rad(90), phi_z_star);
@@ -325,11 +330,153 @@ TEST(NormalController, ReferenceValueShaping) {
     SHAPE(-89);
   }
 
+  // The NormalController enforces a rate limit on the desired direction.
+  // Tacks happen faster than than, jibes take longer because of the
+  // 180 degree sail rotation (180 degree / 13 degree/s = 14s).
+  // So we estimate each change to take delta_angle / kRateLimit with
+  // an extra 10s for jibes.
+  for (int i = 0; i < (Deg2Rad(fabs(66 - -89)) / c.RateLimit())/kSamplingPeriod; ++i) {
+    SHAPE(66);
+  }
+  EXPECT_FLOAT_EQ(0, omega_z_star);
+  EXPECT_FLOAT_EQ(Deg2Rad(66), phi_z_star);
 
+  for (int i = 0;
+       i < Deg2Rad(fabs(50 - 60)) / c.RateLimit() / kSamplingPeriod + 30;
+       ++i) {
+    SHAPE(50);
+  }
+  EXPECT_FLOAT_EQ(0, omega_z_star);
+  EXPECT_FLOAT_EQ(Deg2Rad(50), phi_z_star);
 
-#undef SHAPE
+  // Jibes need about 14s extra time for the sail turn of 180 degrees.
+  for (int i = 0; i < Deg2Rad(fabs(-150 - 50)) / c.RateLimit() / kSamplingPeriod + 10; ++i) {
+    SHAPE(-120);
+  }
+  EXPECT_FLOAT_EQ(0, omega_z_star);
+  EXPECT_FLOAT_EQ(Deg2Rad(-120), phi_z_star);
+  EXPECT_IN_INTERVAL(-50, Rad2Deg(gamma_sail_star), -40);
+
+  for (int i = 0; i < Deg2Rad(fabs(50 - -120)) / c.RateLimit() / kSamplingPeriod; ++i) {
+    SHAPE(50);
+  }
+  EXPECT_FLOAT_EQ(0, omega_z_star);
+  EXPECT_FLOAT_EQ(Deg2Rad(50), phi_z_star);
 }
 
+// storm, sail controller always in wing mode.
+TEST(NormalController, ReferenceValueShapingStormJibe) {
+  RudderController rudder_controller;
+  // coefficients for        omega_z, phi_z, int(phi_z), no feedforward
+  rudder_controller.SetFeedback(0,    1000,     0,       false);
+  SailController sail_controller;
+  sail_controller.SetOptimalAngleOfAttack(Deg2Rad(20));
+  NormalController c(&rudder_controller, &sail_controller);
+  ControllerInput in;
+  FilteredMeasurements filtered;
+  ControllerOutput out;
+  Polar wind_true(Deg2Rad(-90), 25);  // Wind vector blowing to the West, with 25m/s. (15 is storm limit)
+  Polar boat(Deg2Rad(-90), kMagicTestSpeed);  // Boat going East, with about 1.1 m/s.
+                            // So the apparent wind vector is 0 degrees to
+                            // the boats x-axis, 24m/s magnitude.
+
+  SetEnv(wind_true, boat, &in, &filtered, &out);  // calculates the apparent wind
+  // NorthEast, downwind.
+  in.alpha_star_rad = Deg2Rad(-45);
+  c.Entry(in, filtered);
+  double phi_z_star = Deg2Rad(-45);
+  double omega_z_star = 0;
+  double gamma_sail_star = Deg2Rad(93);
+  double old_gamma_sail = gamma_sail_star;
+  // Approximate the apparent wind as true wind direction - boat direction .
+
+  for (int i = 0; i < Deg2Rad(fabs(-180 - -45)) / c.RateLimit() / kSamplingPeriod; ++i) {
+    SHAPE(-180);
+  }
+  EXPECT_FLOAT_EQ(0, omega_z_star);
+  EXPECT_FLOAT_EQ(Deg2Rad(-180), phi_z_star);
+  EXPECT_IN_INTERVAL(-80, Rad2Deg(gamma_sail_star), -70);
+
+  // South to North.
+  for (int i = 0; i < Deg2Rad(fabs(0 - -180)) / c.RateLimit() / kSamplingPeriod; ++i) {
+    SHAPE(0);
+  }
+  EXPECT_FLOAT_EQ(0, omega_z_star);
+  EXPECT_FLOAT_EQ(Deg2Rad(0), phi_z_star);
+  EXPECT_IN_INTERVAL(60, Rad2Deg(gamma_sail_star), 80);
+}
+
+
+TEST(NormalController, ReferenceValueShapingWest) {
+  RudderController rudder_controller;
+  // coefficients for        omega_z, phi_z, int(phi_z), no feedforward
+  rudder_controller.SetFeedback(0,    1000,     0,       false);
+  SailController sail_controller;
+  sail_controller.SetOptimalAngleOfAttack(Deg2Rad(20));
+  NormalController c(&rudder_controller, &sail_controller);
+  ControllerInput in;
+  FilteredMeasurements filtered;
+  ControllerOutput out;
+  Polar wind_true(Deg2Rad(-90), 10);  // Wind vector blowing to the West, with 10m/s (15 is storm limit).
+  Polar boat(Deg2Rad(-90), kMagicTestSpeed);  // Boat going East, with about 1.1 m/s.
+                            // So the apparent wind vector is 0 degrees to
+                            // the boats x-axis, 24m/s magnitude.
+
+  SetEnv(wind_true, boat, &in, &filtered, &out);  // calculates the apparent wind
+  // NorthEast, downwind.
+  in.alpha_star_rad = Deg2Rad(-45);
+  c.Entry(in, filtered);
+  double phi_z_star = Deg2Rad(-45);
+  double omega_z_star = 0;
+  double gamma_sail_star = Deg2Rad(93);
+  double old_gamma_sail = gamma_sail_star;
+  // Approximate the apparent wind as true wind direction - boat direction .
+
+  for (int i = 0; i < Deg2Rad(fabs(-180 - -45)) / c.RateLimit() / kSamplingPeriod; ++i) {
+    SHAPE(-180);
+  }
+  EXPECT_FLOAT_EQ(0, omega_z_star);
+  EXPECT_FLOAT_EQ(Deg2Rad(-180), phi_z_star);
+  EXPECT_IN_INTERVAL(-80, Rad2Deg(gamma_sail_star), -70);
+
+  // South to North Jibe.
+  for (int i = 0;
+       i < Deg2Rad(fabs(0 - -180)) / c.RateLimit() / kSamplingPeriod + 80;
+       ++i) {
+    SHAPE(0);
+  }
+  EXPECT_FLOAT_EQ(0, omega_z_star);
+  EXPECT_FLOAT_EQ(Deg2Rad(0), phi_z_star);
+  EXPECT_IN_INTERVAL(60, Rad2Deg(gamma_sail_star), 80);
+
+  for (int i = 0;
+       i < Deg2Rad(fabs(30 - 0)) / c.RateLimit() / kSamplingPeriod + 20;
+       ++i) {
+    SHAPE(30);
+  }
+  EXPECT_FLOAT_EQ(0, omega_z_star);
+  EXPECT_FLOAT_EQ(Deg2Rad(30), phi_z_star);
+  EXPECT_IN_INTERVAL(40, Rad2Deg(gamma_sail_star), 50);
+
+  // A tack.
+  for (int i = 0;
+       i < Deg2Rad(fabs(150 - 30)) / c.RateLimit() / kSamplingPeriod + 20;
+       ++i) {
+    SHAPE(150);
+  }
+  EXPECT_FLOAT_EQ(0, omega_z_star);
+  EXPECT_FLOAT_EQ(Deg2Rad(150), phi_z_star);
+  EXPECT_IN_INTERVAL(-50, Rad2Deg(gamma_sail_star), -40);
+
+  // A circle.
+  printf("Circle\n");
+  for (int i = 0; i < Deg2Rad(500) / c.RateLimit() / kSamplingPeriod; ++i) {
+    SHAPE(Rad2Deg(i * c.RateLimit() * kSamplingPeriod));
+  }
+
+}
+
+#undef SHAPE
 
 int main(int argc, char* argv[]) {
   NormalController_AllSail();
@@ -337,5 +484,7 @@ int main(int argc, char* argv[]) {
   NormalController_AllEast();
   NormalController_Synthetic();
   NormalController_ReferenceValueShaping();
+  NormalController_ReferenceValueShapingStormJibe();
+  NormalController_ReferenceValueShapingWest();
   return 0;
 }
