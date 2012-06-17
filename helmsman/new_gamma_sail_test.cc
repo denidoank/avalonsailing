@@ -71,14 +71,22 @@ TEST(NewGammaSail, NewTack) {
   EXPECT_FLOAT_EQ(old_gamma_sail, new_gamma_sail);
   EXPECT_FLOAT_EQ(2*old_gamma_sail, delta_gamma_sail);
 
+  NewGammaSail(-old_gamma_sail,
+               kTack,
+               0.1,
+               &new_gamma_sail,
+               &delta_gamma_sail);
+  EXPECT_FLOAT_EQ(old_gamma_sail - 0.1, new_gamma_sail);
+  EXPECT_FLOAT_EQ(2*old_gamma_sail - 0.1, delta_gamma_sail);
+
   // overshoot
   NewGammaSail(old_gamma_sail,
                kTack,
                0.1,
                &new_gamma_sail,
                &delta_gamma_sail);
-  EXPECT_FLOAT_EQ(-old_gamma_sail - 0.1, new_gamma_sail);
-  EXPECT_FLOAT_EQ(-2 * old_gamma_sail - 0.1, delta_gamma_sail);
+  EXPECT_FLOAT_EQ(-old_gamma_sail + 0.1, new_gamma_sail);
+  EXPECT_FLOAT_EQ(-2 * old_gamma_sail + 0.1, delta_gamma_sail);
 }
 
 

@@ -12,6 +12,8 @@
 #include <math.h>
 #include <stdio.h>
 
+extern int debug;
+
 // All maneuvers are minimal and symmetric to the wind axis,
 // i.e. a tack turns from close reach to close reach
 // and a jibe turns just through the jibe zone. This is guaranteed by
@@ -29,17 +31,20 @@ void NewGammaSail(double old_gamma_sail,  // star
                   double* delta_gamma_sail) {
   old_gamma_sail = SymmetricRad(old_gamma_sail);
 
-  fprintf(stderr, "old_gamma_sail %6.2lf deg\n", Rad2Deg(old_gamma_sail));
-  fprintf(stderr, "overshoot contribution %6.2lf deg\n", Rad2Deg(Sign(old_gamma_sail) * overshoot));
+  if (debug) {
+    fprintf(stderr, "old_gamma_sail %6.2lf deg\n", Rad2Deg(old_gamma_sail));
+    fprintf(stderr, "overshoot contribution %6.2lf deg\n", Rad2Deg(Sign(old_gamma_sail) * overshoot));
+  }
 
   switch(maneuver_type) {
     case kJibe:
       *new_gamma_sail = SymmetricRad(-old_gamma_sail);
-      fprintf(stderr, "*new_gamma_sail %6.2lf deg\n", Rad2Deg(*new_gamma_sail));
+      if (debug) {
+        fprintf(stderr, "*new_gamma_sail %6.2lf deg\n", Rad2Deg(*new_gamma_sail));
+      }
       break;
     case kTack:
-      *new_gamma_sail = SymmetricRad(-old_gamma_sail - Sign(old_gamma_sail) * overshoot);  // was +
-      fprintf(stderr, "Alternative!! *new_gamma_sail %6.2lf deg\n", Rad2Deg(*new_gamma_sail));
+      *new_gamma_sail = SymmetricRad(-old_gamma_sail - Sign(old_gamma_sail) * overshoot);
       break;
     case kChange:
       // When used with the NormalController this branch is never used.

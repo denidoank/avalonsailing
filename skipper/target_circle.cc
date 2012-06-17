@@ -30,7 +30,7 @@ double TargetCircle::DistanceSquared(double x, double y) const {
 }
 
 bool TargetCircle::In(double x, double y, double expansion) const {
-  //printf("dist %g deg\n", sqrt(DistanceSquared(x, y)));
+  //printf("dist %lg deg\n", sqrt(DistanceSquared(x, y)));
   return DistanceSquared(x, y) <=
          radius_squared_ * expansion * expansion;
 }

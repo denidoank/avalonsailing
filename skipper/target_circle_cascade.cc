@@ -65,6 +65,6 @@ bool TargetCircleCascade::TargetReached(LatLon lat_lon) {
 void TargetCircleCascade::Print() {
   printf("Target circle\n%d target circles\n index x y radius\n", chain_.size());
   for (int i = 0; i < chain_.size(); ++i) {
-    printf("%d %g %g %g\n", i, chain_[i].x0(), chain_[i].y0(), chain_[i].radius());
+    printf("%d %lg %lg %lg\n", i, chain_[i].x0(), chain_[i].y0(), chain_[i].radius());
   }
 }

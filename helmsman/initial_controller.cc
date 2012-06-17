@@ -28,7 +28,8 @@ const double kMinWindSpeedMPerS = 0.5;
 
 
 InitialController::InitialController(SailController* sail_controller)
-    : sail_controller_(sail_controller) {
+    : sail_controller_(sail_controller),
+      positive_speed_(false) {
   Reset();
 }
   
@@ -57,7 +58,8 @@ void InitialController::Run(const ControllerInput& in,
 		      in.drives.homed_rudder_left ? "" : "left",
 		      in.drives.homed_rudder_left ? "" : "right");
   }
-  
+
+  positive_speed_ = filtered.mag_boat > 0.15;
   if (debug) {
     fprintf(stderr, "WindSensor: %s\n", in.wind_sensor.ToString().c_str());
     fprintf(stderr, "DriveActuals: %s\n", in.drives.ToString().c_str());
@@ -144,7 +146,9 @@ bool InitialController::Done() {
   // after leaving the InitialController then the speed measurement filter should
   // have a stabilized value. This depends on the quality of the IMU speed
   // calculation. Therefore the more conservative waiting time of 20s.
-  const bool done = (phase_ == KOGGE) && (count_ > 20.0 / kSamplingPeriod);
+  const bool done = (phase_ == KOGGE) &&
+                    (count_ > 20.0 / kSamplingPeriod) &&
+                     positive_speed_;
   if (done && debug) fprintf(stderr, "InitialController::Done\n");
   return done;
 }

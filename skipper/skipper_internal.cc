@@ -47,20 +47,16 @@ void SkipperInternal::Run(const SkipperInput& in,
 
 
 
-
-
-
-
   if (fabs(planned - safe) > 0.1)
       fprintf(stderr,
-              "Override %8.6g with %8.6g because it is not collision free.\n",
+              "Override %8.6lg with %8.6lg because it is not collision free.\n",
               planned, safe);
 
   double feasible = BestSailableHeadingDeg(safe, in.angle_true_deg);
   if (fabs(safe - feasible) > 0.1)
-      fprintf(stderr, "Override %8.6g with %8.6g because it is not sailable.\n",
+      fprintf(stderr, "Override %8.6lg with %8.6lg because it is not sailable.\n",
               safe, feasible);
-  if (debug) fprintf(stderr, "planner %g , alpha* %g,  true wind: %g, feasible: %g\n",
+  if (debug) fprintf(stderr, "planner %lg , alpha* %lg,  true wind: %lg, feasible: %lg\n",
                      planned, safe, in.angle_true_deg, feasible);
 
   *alpha_star_deg = feasible;

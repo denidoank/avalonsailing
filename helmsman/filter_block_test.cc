@@ -212,7 +212,7 @@ TEST(FilterBlock, All) {
 
   for (int i = 0; i < 2.0 / kSamplingPeriod; ++i) {
     b.Filter(in, &filtered);
-    // printf("%6.4f\n", filtered.mag_app);
+    // printf("%6.4lf\n", filtered.mag_app);
     calls_until_valid += !filtered.valid;
     calls_until_wind_valid += !b.ValidTrueWind();
     calls_until_speed_valid += !b.ValidSpeed();
@@ -251,7 +251,7 @@ TEST(FilterBlock, All) {
   // slow filter for true wind
   for (int i = 0; i < 2000; ++i) {
     b.Filter(in, &filtered);
-    //printf("true alpha: %6.4f mag:%6.4f\n",
+    //printf("true alpha: %6.4lf mag:%6.4lf\n",
     //       filtered.alpha_true, filtered.mag_true);
   }
   EXPECT_FLOAT_EQ(0.0, filtered.alpha_true);
@@ -276,7 +276,7 @@ TEST(FilterBlock, All) {
   printf("From East wind\n");
   for (int i = 0; i < 10 / kSamplingPeriod; ++i) {
     b.Filter(in, &filtered);
-    printf("app: %6.4f %6.4f true: %6.4f\n",
+    printf("app: %6.4lf %6.4lf true: %6.4lf\n",
            filtered.mag_app, filtered.angle_app, filtered.mag_true);
   }
   EXPECT_FLOAT_EQ(-M_PI * 3.0 / 4, filtered.angle_app);

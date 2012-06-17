@@ -30,7 +30,7 @@ TEST(RefeferenceValues, Tack) {
   double t = 0;
   while (ref.RunningPlan()) {
     ref.GetReferenceValues(&phi_z_star, &omega_star, &gamma_sail_star);
-    printf("%6.4g %6.4g %6.4g %6.4g\n",
+    printf("%6.4lf %6.4lf %6.4lf %6.4lf\n",
            t, Rad2Deg(phi_z_star), Rad2Deg(omega_star),
            Rad2Deg(gamma_sail_star));
     t += kSamplingPeriod;      
@@ -55,7 +55,7 @@ TEST(RefeferenceValues, Tack) {
   int i = 0;
   while (ref.RunningPlan()) {
     ref.GetReferenceValues(&phi_z_star, &omega_star, &gamma_sail_star);
-    printf("%6.4g %6.4g %6.4g %6.4g\n",
+    printf("%6.4lf %6.4lf %6.4lf %6.4lf\n",
            i * kSamplingPeriod, Rad2Deg(phi_z_star), Rad2Deg(omega_star),
            Rad2Deg(gamma_sail_star));
     ++i;
@@ -78,7 +78,7 @@ TEST(RefeferenceValues, Tack) {
   i = 0;
   while (ref.RunningPlan()) {
     ref.GetReferenceValues(&phi_z_star, &omega_star, &gamma_sail_star);
-    printf("%6.4g %6.4g %6.4g %6.4g\n",
+    printf("%6.4lf %6.4lf %6.4lf %6.4lf\n",
            i * kSamplingPeriod, Rad2Deg(phi_z_star), Rad2Deg(omega_star),
            Rad2Deg(gamma_sail_star));
     ++i;
@@ -100,7 +100,7 @@ TEST(RefeferenceValues, Tack) {
   i = 0;
   while (ref.RunningPlan()) {
     ref.GetReferenceValues(&phi_z_star, &omega_star, &gamma_sail_star);
-    printf("%6.4g %6.4g %6.4g %6.4g\n",
+    printf("%6.4lf %6.4lf %6.4lf %6.4lf\n",
            i * kSamplingPeriod, Rad2Deg(phi_z_star), Rad2Deg(omega_star),
            Rad2Deg(gamma_sail_star));
     ++i;
@@ -117,7 +117,7 @@ TEST(RefeferenceValues, Tack) {
   i = 0;
   while (ref.RunningPlan()) {
     ref.GetReferenceValues(&phi_z_star, &omega_star, &gamma_sail_star);
-    printf("%6.4g %6.4g %6.4g %6.4g\n",
+    printf("%6.4lf %6.4lf %6.4lf %6.4lf\n",
            i * kSamplingPeriod, Rad2Deg(phi_z_star), Rad2Deg(omega_star),
            Rad2Deg(gamma_sail_star));
     ++i;

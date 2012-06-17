@@ -53,6 +53,7 @@ class InitialController : public Controller {
   // sign_ = -1 means: Turn to portside, sail away to portside.
   int sign_; 
   int count_;
+  bool positive_speed_;
 };
 
 #endif  // HELMSMAN_INITIAL_CONTROLLER_H

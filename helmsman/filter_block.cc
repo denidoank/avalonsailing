@@ -156,7 +156,12 @@ void FilterBlock::Filter(const ControllerInput& in,
 
   ASSIGN_NOT_NAN(fil->temperature_c, in.imu.temperature_c);           // in deg Celsius
 
-  fprintf(stderr, "filter in:%c homed: %c sensor: %lg %lg\n", in.wind_sensor.valid ? 'V' : 'I', in.drives.homed_sail ? 'V' : 'I', in.wind_sensor.alpha_deg, in.wind_sensor.mag_m_s);
+  if (debug && !(counter_ % 20)) {
+    fprintf(stderr, "filter wind sensor: %c homed: %c wind sensor: %lf %lf\n",
+            in.wind_sensor.valid ? 'V' : 'I',
+            in.drives.homed_sail ? 'V' : 'I',
+            in.wind_sensor.alpha_deg, in.wind_sensor.mag_m_s);
+  }
 
   // The wind sensor updates the wind once per second.
   double alpha_wind_rad = NormalizeRad(Deg2Rad(in.wind_sensor.alpha_deg));
@@ -219,6 +224,7 @@ void FilterBlock::Filter(const ControllerInput& in,
     fprintf(stderr, "%c true: %lg %lg, app: %c %lg %lg \n",
             fil->valid_true_wind ? 'V' : 'I', fil->alpha_true, fil->mag_true,
             valid_app_wind_ ?  'V' : 'I', fil->angle_app,  fil->mag_app);
+  ++counter_;
 }
 
 

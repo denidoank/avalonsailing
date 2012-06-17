@@ -67,7 +67,7 @@ void OpenKML(const string& name) {
 
 void DotKML(double latitude, double longitude) {
   // 500m altitude is above Lake Zurich, so we get properly tesselated onto the surface.
-  fprintf(kml_file, "    %8.6f,%8.6f,500\n", longitude, latitude);
+  fprintf(kml_file, "    %8.6lf,%8.6lf,500\n", longitude, latitude);
 }
 
 void CloseKML() {
@@ -118,9 +118,9 @@ TEST(SkipperInternal, All) {
     double phi_rad = Deg2Rad(alpha_star);
     x0 += v * cos(phi_rad) * time_step;
     y0 += v * sin(phi_rad) * time_step;
-    printf("%8.6f %8.6f %8.6f %6.4f\n", t, x0, y0, alpha_star);
+    printf("%8.6lf %8.6lf %8.6lf %6.4lf\n", t, x0, y0, alpha_star);
   }
-  printf("end time: %8.6f days.\n", end_time / kDays);
+  printf("end time: %8.6lf days.\n", end_time / kDays);
   EXPECT_GT(60 * kDays, end_time);
 }
 
@@ -158,10 +158,10 @@ TEST(SkipperInternal, SukkulentenhausPlan) {
     double phi_rad = Deg2Rad(alpha_star);
     x0 += v * cos(phi_rad) * time_step;
     y0 += v * sin(phi_rad) * time_step;
-    printf("%8.6f %8.6f %8.6f %6.4f\n", t, x0, y0, alpha_star);
+    printf("%8.6lf %8.6lf %8.6lf %6.4lf\n", t, x0, y0, alpha_star);
     DotKML(x0, y0);
   }
-  printf("end time: %8.6f days.\n", end_time / kDays);
+  printf("end time: %8.6lf days.\n", end_time / kDays);
   EXPECT_GT(60 * kDays, end_time);
   CloseKML();
 }
@@ -202,10 +202,10 @@ TEST(SkipperInternal, ThalwilOpposingWind) {
     double phi_rad = Deg2Rad(alpha_star);
     x0 += v * cos(phi_rad) * time_step;
     y0 += v * sin(phi_rad) * time_step;
-    printf("%8.6f %8.6f %8.6f %6.4f\n", t, x0, y0, alpha_star);
+    printf("%8.6lf %8.6lf %8.6lf %6.4lf\n", t, x0, y0, alpha_star);
     DotKML(x0, y0);
   }
-  printf("end time: %8.6f days.\n", end_time / kDays);
+  printf("end time: %8.6lf days.\n", end_time / kDays);
   EXPECT_GT(60 * kDays, end_time);
   CloseKML();
 }
@@ -250,10 +250,10 @@ TEST(SkipperInternal, Atlantic) {
     double phi_rad = Deg2Rad(alpha_star);
     x0 += v * cos(phi_rad) * time_step;
     y0 += v * sin(phi_rad) * time_step;
-    printf("%8.6f %8.6f %8.6f %6.4f\n", t / kDays, x0, y0, alpha_star);
+    printf("%8.6lf %8.6lf %8.6lf %6.4lf\n", t / kDays, x0, y0, alpha_star);
     DotKML(x0, y0);
   }
-  printf("end time: %8.6f days.\n", end_time / kDays);
+  printf("end time: %8.6lf days.\n", end_time / kDays);
   EXPECT_GT(63 * kDays, end_time);
   CloseKML();
 }
@@ -312,10 +312,10 @@ TEST(SkipperInternal, ChangingAtlantic) {
     x0 += 5 / to_cartesian_meters * time_step * (rand() % 100 - 50) / 100.0;
     y0 += 5 / to_cartesian_meters * time_step * (rand() % 100 - 50) / 100.0;
 
-    printf("%8.6f %8.6f %8.6f %6.4f\n", t / kDays, x0, y0, alpha_star);
+    printf("%8.6lf %8.6lf %8.6lf %6.4lf\n", t / kDays, x0, y0, alpha_star);
     DotKML(x0, y0);
   }
-  printf("end time: %8.6f days.\n", end_time / kDays);
+  printf("end time: %8.6lf days.\n", end_time / kDays);
   EXPECT_GT(63 * kDays, end_time);
   CloseKML();
 }
@@ -368,7 +368,7 @@ TEST(SkipperInternal, StormyAtlantic) {
     x0 += 50 / to_cartesian_meters * time_step * (rand() % 100 - 50) / 100.0;
     y0 += 50 / to_cartesian_meters * time_step * (rand() % 100 - 50) / 100.0;
 
-    printf("%8.6f %8.6f %8.6f %6.4f\n", t / kDays, x0, y0, alpha_star);
+    printf("%8.6lf %8.6lf %8.6lf %6.4lf\n", t / kDays, x0, y0, alpha_star);
     DotKML(x0, y0);
   }
   // Here the end point is not met (stroms 25 times stronger than the boat)

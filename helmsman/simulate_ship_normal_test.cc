@@ -26,6 +26,7 @@ const double kSamplingPeriod = 0.1;
 extern int debug;
 
 static int print_model = 0;
+
 void NormalControllerTest(double wind_direction_deg,
                           double expected_min_speed_m_s,
                           double wind_strength_m_s = 10) {
@@ -67,7 +68,7 @@ void NormalControllerTest(double wind_direction_deg,
     ++rounds;
     micros_sum += micros;
     micros_max = std::max(micros_max, micros);
-    if ((print_model /*&& t > 99.0*/) || debug)
+    if ((print_model) || debug)                                 /* && t > 99.0 */
       model.Print(t);
   }
   printf("\n");
@@ -75,9 +76,9 @@ void NormalControllerTest(double wind_direction_deg,
   model.Print(t);
   EXPECT_LT(expected_min_speed_m_s, model.GetSpeed());
   if (fabs(model.GetPhiZ() - in.alpha_star_rad) > Deg2Rad(5))
-    printf("final heading %g for wind direction %g\n", Rad2Deg(model.GetPhiZ()), wind_direction_deg);
+    printf("final heading %lg for wind direction %lg\n", Rad2Deg(model.GetPhiZ()), wind_direction_deg);
   printf("\nRuntimes/microseconds\n=================\n");
-  printf("Average:    %6.4f micros\n", micros_sum / static_cast<double>(rounds));
+  printf("Average:    %6.4lf micros\n", micros_sum / static_cast<double>(rounds));
   printf("Max:        %lld micros\n", micros_max);
   printf("\n");
 }
@@ -95,8 +96,8 @@ TEST(SimShip, Wind_1) {
 }
 
 TEST(SimShip, Wind_2) {
-  // Cannot sail with less than 0.65m/s wind strength.
-  for (double wind_strength = 2; wind_strength < 20; wind_strength *= 1.15)
+  // Cannot sail with less than 2m/s wind strength.
+  for (double wind_strength = 1; wind_strength < 20; wind_strength *= 1.15)
   // All initial wind directions are handled correctly.
   for (double wind_direction = -180; wind_direction < 180; wind_direction += 0.3) {
     if (fabs(wind_direction - -90) < 20)  // Not sailable.
