@@ -90,8 +90,6 @@ static void init(int argc, char** argv) {
 int main(int argc, char** argv) {
   init(argc, argv);
   openlog(argv[0], LOG_PERROR, LOG_DAEMON);
-  setlinebuf(stdout);
-  setlinebuf(stderr);
   // Register signal handlers for a nice shutdown.
   signal(SIGHUP, &signal_handler);
   signal(SIGINT, &signal_handler);

@@ -169,7 +169,7 @@ if /bin/false; then  # not needed yet / disabled for testing
     # aiscat is not connected to the lbus
     (aiscat $PORT_AIS | aisbuf /var/run/ais.txt; logger -s -p local2.crit "aiscat exited.")&
 
-    (plug -i $LBUS -- `which modemd`  --queue=/var/run/modem --device=$PORT_MODEM) &
+    (modemd  --queue=/var/run/modem --device=$PORT_MODEM) &
     (plug -o -n "statusd" $LBUS -- `which statusd` --queue=/var/run/modem --initial_timeout=180 --status_interval=86400 --remote_cmd_interval=5) &
 
 fi

@@ -68,8 +68,6 @@ static void init(int argc, char** argv) {
 int main(int argc, char** argv) {
   init(argc, argv);
   openlog(argv[0], LOG_PERROR, LOG_DAEMON);
-  setlinebuf(stdout);
-  setlinebuf(stderr);
 
   syslog(LOG_INFO, "Using modem device: %s, phone number: %s, queue: %s\n",
          modem_device, phone_number, queue);
