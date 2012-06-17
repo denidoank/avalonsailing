@@ -27,3 +27,7 @@ tarball: clean
 
 image: clean
 	$(MAKE) -C buildroot $@
+
+# temporary for ease in laketests
+installscp:
+	@for d in io io/rudderd2 helmsman; do $(MAKE) -C $$d $@; done
