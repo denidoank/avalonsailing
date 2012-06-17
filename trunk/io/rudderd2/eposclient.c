@@ -9,6 +9,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <stdio.h>
+
 #include "ebus.h"
 #include "../timer.h"
 
@@ -169,10 +171,12 @@ int device_get_register(Device* dev, uint32_t regidx, uint32_t* val) {
 		now = now_us();
 		timer_tick(&reg->timer, now, 1);
 		reg->state = PENDING;
+		int n;
 		if (dev->bus->timestamp)
-			fprintf(dev->bus->ctl, EBUS_GET_T_OFMT(dev->serial, regidx, now));
+			n = fprintf(dev->bus->ctl, EBUS_GET_T_OFMT(dev->serial, regidx, now));
 		else
-			fprintf(dev->bus->ctl, EBUS_GET_OFMT(dev->serial, regidx));
+			n = fprintf(dev->bus->ctl, EBUS_GET_OFMT(dev->serial, regidx));
+//		fprintf(stderr, "get reg: %d characters\n", n);
 		fflush(dev->bus->ctl);  // setlinebuf is unreliable in uclibc
 	}
 
@@ -197,12 +201,14 @@ int device_set_register(Device* dev, uint32_t regidx, uint32_t val) {
 	timer_tick(&reg->timer, now, 1);
 	reg->state = PENDING;
 	reg->value = val;
-
+	int n;
 	if (dev->bus->timestamp)
-		fprintf(dev->bus->ctl, EBUS_SET_T_OFMT(dev->serial, regidx, val, now));
+		n = fprintf(dev->bus->ctl, EBUS_SET_T_OFMT(dev->serial, regidx, val, now));
 	else
-		fprintf(dev->bus->ctl, EBUS_SET_OFMT(dev->serial, regidx, val));
+		n = fprintf(dev->bus->ctl, EBUS_SET_OFMT(dev->serial, regidx, val));
 	fflush(dev->bus->ctl);   // setlinebuf is unreliable in uclibc
+
+//	fprintf(stderr, "set reg: %d characters\n", n);
 	return 0;
 }
 

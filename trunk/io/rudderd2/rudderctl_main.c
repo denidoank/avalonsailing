@@ -54,7 +54,7 @@ static int processinput() {
 		struct RudderProto msg = INIT_RUDDERPROTO;
 		int nn;
 		int n = sscanf(line, IFMT_RUDDERPROTO_CTL(&msg, &nn));
-		if (n != 5)
+		if (n != IFMT_RUDDERPROTO_CTL_ITEMS)
 			return 0;
 
 		target_angle_deg = (params == &motor_params[LEFT]) ? msg.rudder_l_deg : msg.rudder_r_deg;
@@ -343,7 +343,7 @@ int main(int argc, char* argv[]) {
 	openlog(label, debug?LOG_PERROR:0, LOG_LOCAL2);
 	if(!debug) setlogmask(LOG_UPTO(LOG_NOTICE));
 
-	if(setlinebuf(stdout))
+	if(setvbuf(stdout, NULL, _IOLBF, 0))
 		syslog(LOG_WARNING, "Failed to make stdout line-buffered.");
 
 	// ask linebusd to install filters
