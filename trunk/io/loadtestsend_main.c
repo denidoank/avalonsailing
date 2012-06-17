@@ -15,7 +15,8 @@ int main(int argc, char* argv[]) {
 
 	int pid = getpid();
 
-	setlinebuf(stdout);
+	if(setvbuf(stdout, NULL, _IOLBF, 0))
+		fprintf(stderr, "Failed to make stdout line-buffered.");
 
 	int i = 0;
 

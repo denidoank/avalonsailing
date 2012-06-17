@@ -173,9 +173,8 @@ int main(int argc, char* argv[]) {
   openlog(argv0, debug?LOG_PERROR:0, LOG_LOCAL0);
   if(!debug) setlogmask(LOG_UPTO(LOG_NOTICE));
 
-  if (setlinebuf(stdout))
+  if(setvbuf(stdout, NULL, _IOLBF, 0))
     syslog(LOG_WARNING, "Failed to make stdout line-buffered.");
-
 
   if (signal(SIGBUS, bus_fault) == SIG_ERR)  crash("signal(SIGBUS)");
   if (signal(SIGSEGV, segv_fault) == SIG_ERR)  crash("signal(SIGSEGV)");
