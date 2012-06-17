@@ -73,4 +73,4 @@ plug -o -n "eposmon" $EBUS -- `which eposmon` & # summarize and report epos comm
     sleep 5
     echo 'rudderctl: timestamp_ms:0 rudder_l_deg:-10 rudder_r_deg:-10 sail_deg:10'
     sleep 5
-) | plug -i $EBUS
+done) | plug -i $EBUS

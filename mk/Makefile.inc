@@ -67,6 +67,12 @@ ifneq ($(strip $(BINARIES)),)
 	$(INSTALL) $+ $(DESTDIR)/usr/bin
 endif
 
+# temporary for ease in laketests
+installscp: $(BINARIES)
+ifneq ($(strip $(BINARIES)),)
+	echo scp $+ root@192.168.1.29:/usr/bin/
+endif
+
 installconf: $(CONF_FILES)
 ifneq ($(strip $(CONF_FILES)),)
 	$(INSTALL) $+ $(DESTDIR)/etc
