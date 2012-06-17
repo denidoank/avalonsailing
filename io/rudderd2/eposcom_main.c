@@ -80,7 +80,7 @@ int main(int argc, char* argv[]) {
 	 openlog(argv0, debug?LOG_PERROR:0, LOG_LOCAL2);
 	 //if(!debug) setlogmask(LOG_UPTO(LOG_NOTICE));
 
-	 if(setlinebuf(stdout))
+	if(setvbuf(stdout, NULL, _IOLBF, 0))
 		 syslog(LOG_WARNING, "Failed to make stdout line-buffered.");
 
 	 if (signal(SIGBUS, fault) == SIG_ERR)  crash("signal(SIGBUS)");
