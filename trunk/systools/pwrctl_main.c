@@ -97,9 +97,12 @@ int main(int argc, char* argv[]) {
 
   if (argc < 2) usage();
 
-  setlinebuf(stdout);
-
   if (!debug) openlog(argv0, LOG_PERROR, LOG_DAEMON);
+
+
+  if(setvbuf(stdout, NULL, _IOLBF, 0))
+    syslog(LOG_WARNING, "Failed to make stdout line-buffered.");
+
 
   // Open serial port.
   int port = -1;

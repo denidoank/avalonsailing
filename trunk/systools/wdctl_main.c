@@ -79,8 +79,10 @@ int main(int argc, char* argv[]) {
   argc -= optind;
   if (argc != 0) usage();
 
-  setlinebuf(stdout);
   if (!debug) openlog(argv0, LOG_PERROR, LOG_DAEMON);
+
+  if(setvbuf(stdout, NULL, _IOLBF, 0))
+    syslog(LOG_WARNING, "Failed to make stdout line-buffered.");
 
   int wdfd = open("/dev/watchdog", O_RDWR);
   if (wdfd == -1) crash("open /dev/watchdog");
