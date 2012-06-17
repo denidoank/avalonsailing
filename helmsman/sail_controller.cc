@@ -36,7 +36,6 @@ SailMode SailModeLogic::BestStabilizedMode(double apparent_absolute, double wind
     return WING_LOCKED;
   }
   if (wind_strength_m_s > kSpinakkerLimit) {
-    fprintf(stderr, "Storm winds: WING\n");
     return WING;
   }
   if (mode_ == WING) {
