@@ -87,9 +87,10 @@ int main(int argc, char* argv[]) {
 
 	if (argc != 0) usage();
 
-	setlinebuf(stdout);
-
 	if (!debug) openlog(argv0, LOG_PERROR, LOG_LOCAL0);
+
+	if(setvbuf(stdout, NULL, _IOLBF, 0))
+		syslog(LOG_WARNING, "Failed to make stdout line-buffered.");
 
 	if (signal(SIGBUS, fault) == SIG_ERR)  crash("signal(SIGBUS)");
 	if (signal(SIGSEGV, fault) == SIG_ERR)  crash("signal(SIGSEGV)");
