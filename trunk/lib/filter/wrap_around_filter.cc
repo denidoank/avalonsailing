@@ -42,7 +42,7 @@ double WrapAroundFilter::Filter(double in) {
   } else if (delta < -period_ / 2) {
     delta += period_;
   }
-  //printf("delta:   %6.4f \n", delta);
+  //printf("delta:   %6.4lf \n", delta);
   CHECK_GT(M_PI, delta);
   CHECK_LE(-M_PI, delta);
   // continuous_ doesn't jump.
@@ -60,7 +60,7 @@ double WrapAroundFilter::Filter(double in) {
     Shift(limit);
   }
 
-  //printf("cont: %6.4f \n", continuous_);
+  //printf("cont: %6.4lf \n", continuous_);
   double out = filter_->Filter(continuous_);
   return(NormalizeRad(out));
 }

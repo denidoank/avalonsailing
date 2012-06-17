@@ -65,6 +65,7 @@ class FilterBlock {
   QuickSlidingAverageFilter angle_aoa_filter_;
   WrapAroundFilter angle_aoa_wrap_;
   CompassMixer compass_mixer_;
+  int counter_;  // for logging downsampling
 };
 
 

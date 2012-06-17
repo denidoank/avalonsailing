@@ -61,13 +61,13 @@ void Planner::Init(const LatLon& lat_lon) {
     plan_.Build(wollerau_plan);
   } else {
     fprintf(stderr, "According to our GPS we are not on lake zuerich.");
-    fprintf(stderr, "lat %8.6g lon %8.6g ", lat_lon.lat, lat_lon.lon);
+    fprintf(stderr, "lat %8.6lg lon %8.6lg ", lat_lon.lat, lat_lon.lon);
     if (brest.In(lat_lon)) {
       fprintf(stderr, "According to our GPS we are near Brest.");
-      fprintf(stderr, "lat %8.6g lon %8.6g ", lat_lon.lat, lat_lon.lon);
+      fprintf(stderr, "lat %8.6lg lon %8.6lg ", lat_lon.lat, lat_lon.lon);
     } else {
       fprintf(stderr, "According to our GPS we are in the middle of our journey");
-      fprintf(stderr, "lat %8.6g lon %8.6g", lat_lon.lat, lat_lon.lon);
+      fprintf(stderr, "lat %8.6lg lon %8.6lg", lat_lon.lat, lat_lon.lon);
     }
     fprintf(stderr, "Caribbean plan");
     plan_.Build(caribbean_plan);
@@ -93,7 +93,7 @@ double Planner::ToDeg(double lat_deg, double lon_deg) {
     if (NowSeconds() > last_turn_time_ + 120) {
       last_turn_time_ = NowSeconds();
       alpha_star_ = NormalizeDeg(alpha_star_ + 165);
-      fprintf(stderr, "Turning by 165 to %f.", alpha_star_);
+      fprintf(stderr, "Turning by 165 to %lf.", alpha_star_);
     } else {
       fprintf(stderr, "Not turning.");
     }

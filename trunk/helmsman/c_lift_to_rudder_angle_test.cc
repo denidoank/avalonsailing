@@ -18,7 +18,7 @@ void LogCLiftDiagram() {
   double speeds_kn[] = {-1, 0.5, 1, 2, 3, 6};
   for (size_t i = 0; i < sizeof(speeds_kn) / sizeof(speeds_kn[0]); ++i) {
     double water_speed = KnotsToMeterPerSecond(speeds_kn[i]);
-    printf("\n For water_speed: %g m/s\n", water_speed);
+    printf("\n For water_speed: %lg m/s\n", water_speed);
     printf("C_Lift, angle/degree, limited\n");
     for (double c_lift = -1.5; c_lift <= 1.5; c_lift += 0.2) {
       int limited;
@@ -27,7 +27,7 @@ void LogCLiftDiagram() {
                           water_speed,
                           &rudder_angle,
                           &limited);
-      printf("%6.3g,%6.3g,%6d\n",
+      printf("%6.3lg,%6.3lg,%6d\n",
              c_lift, Rad2Deg(rudder_angle), limited);
     }
   }
@@ -47,7 +47,7 @@ void LogCLiftOverSpeedDiagram() {
                         water_speed,
                         &rudder_angle,
                         &limited);
-    printf("%6.3g,%6.3g,%6d\n",
+    printf("%6.3lg,%6.3lg,%6d\n",
            water_speed, Rad2Deg(rudder_angle), limited);
   }
   printf("Desired C_lift = 0.5 . Never limited.\n");
@@ -60,7 +60,7 @@ void LogCLiftOverSpeedDiagram() {
                         water_speed,
                         &rudder_angle,
                         &limited);
-    printf("%6.3g,%6.3g,%6d\n",
+    printf("%6.3lg,%6.3lg,%6d\n",
            water_speed, Rad2Deg(rudder_angle), limited);
   }
 }

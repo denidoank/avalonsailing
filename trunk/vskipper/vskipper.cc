@@ -194,7 +194,7 @@ void SkipperImpl(const AvalonState& now,
 Bearing RunVSkipper(const AvalonState& now,
                     const std::vector<AisInfo>& ais_in,
                     int debug) {
-  fprintf(stderr, "in: %g\n", now.target.deg());
+  fprintf(stderr, "in: %6.2lg\n", now.target.deg());
 
   std::vector<LocalAis> ships(ais_in.size());
   for (size_t i = 0; i < ais_in.size(); ++i) {
@@ -213,7 +213,7 @@ Bearing RunVSkipper(const AvalonState& now,
     }
   }
 
-  fprintf(stderr, "out: %g\n", out.deg());
+  fprintf(stderr, "out: %6.2lf\n", out.deg());
   return out;
 }
 

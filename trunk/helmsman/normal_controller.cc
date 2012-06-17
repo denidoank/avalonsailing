@@ -51,8 +51,8 @@ void NormalController::Entry(const ControllerInput& in,
   give_up_counter_ = 0;
   start_time_ms_ = now_ms();
   if (debug) {
-    fprintf(stderr, " NormalController::Entry old_phi_z_star_: %lf\n",  old_phi_z_star_);
-    fprintf(stderr, "Entry Time: %6.3lf %6.3lf s\n", (double)now_ms(), (double)start_time_ms_);
+    fprintf(stderr, "NormalController::Entry old_phi_z_star_: %6.1lf deg\n",  Rad2Deg(old_phi_z_star_));
+    fprintf(stderr, "Entry Time: %10.1lf s\n", (double)start_time_ms_ / 1000);
   }
   rudder_controller_->Reset();
 }

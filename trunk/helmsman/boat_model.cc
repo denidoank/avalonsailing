@@ -146,8 +146,6 @@ void UpdateMagnetic(double phi_z, ControllerInput* in) {
 void BoatModel::Simulate(const DriveReferenceValuesRad& drives_reference,
                          Polar true_wind,
                          ControllerInput* in) {
-  debug = 0;
-
   // std::string deb_string = drives_reference.ToString();
   // fprintf(stderr, "Simulate: %s\n", deb_string.c_str());
 
@@ -164,13 +162,13 @@ void BoatModel::Simulate(const DriveReferenceValuesRad& drives_reference,
   double force_rudder_x;
   IntegrateRudderModel(&delta_omega,
                        &force_rudder_x);
-  // fprintf(stderr, "delta_omega %g \n", delta_omega);
+  // fprintf(stderr, "delta_omega %lg \n", delta_omega);
   omega_ += delta_omega;
   // Euler integration, acc turns clockwise
   phi_z_ += omega_ * period_;
   phi_z_ = NormalizeRad(phi_z_);
 
-  //fprintf(stderr, "v_x %g %g %g\n", v_x_, kRhoWater, gamma_sail_);
+  //fprintf(stderr, "v_x %lg %lg %lg\n", v_x_, kRhoWater, gamma_sail_);
 
   // effective cross section area (with C_d=1) for forward and backward motion.
   // equiv. area 0.03m^2 for forward, 0.022m^2 according to simulation code.
@@ -183,7 +181,7 @@ void BoatModel::Simulate(const DriveReferenceValuesRad& drives_reference,
   // Turbulent drag above 5 knots, not very scientific.
   if (v_x_ > 2.5)
     force_x -= (v_x_ - 2.5) * 300.0;
-  //fprintf(stderr, "force_x %g\n", force_x);
+  //fprintf(stderr, "force_x %lg\n", force_x);
   v_x_ += force_x * period_ / kMass;
 
   // Produce GPS info.
@@ -240,7 +238,7 @@ void BoatModel::Simulate(const DriveReferenceValuesRad& drives_reference,
 
   UpdateMagnetic(phi_z_, in);
 
-  // fprintf(stderr, "model: latlon:%g/%g phi_z:%g vx: %g om: %g\n", north_deg_, east_deg_, phi_z_, v_x_, omega_);
+  // fprintf(stderr, "model: latlon:%lg/%lg phi_z:%lg vx: %lg om: %lg\n", north_deg_, east_deg_, phi_z_, v_x_, omega_);
   // deb_string = in->imu.ToString();
   // fprintf(stderr, "%s\n", deb_string.c_str());
 
@@ -339,7 +337,7 @@ void BoatModel::RudderModel(double omega,
                             double period,
                             double* delta_omega_rudder,
                             double* force_rudder_x) {
-  // if (debug) fprintf(stderr, "N: omega: %6.4lf deg/s, v: %6.4lf m/s period: %gs\n", Rad2Deg(omega), v_x_, period);
+  // if (debug) fprintf(stderr, "N: omega: %6.4lf deg/s, v: %6.4lf m/s period: %lgs\n", Rad2Deg(omega), v_x_, period);
   // Relative speed vector of the rudder axis through the water.
   double v_y = omega * kLeverR;
   double v_rudder_mag = sqrt(v_x_ * v_x_ + v_y * v_y);  // (1) assuming the boat has no y speed
@@ -475,11 +473,12 @@ void BoatModel::IntegrateRudderModel(double* delta_omega_rudder,
     fprintf(stderr, "Using  %6.4lf from 1:%6.4lf 2:%6.4lf m:%6.4lf \n", *delta_omega_rudder, delta_omega1, delta_omega2, delta_omega_m);
 
     // Redo with debug logging on.
+    int old_debug = debug;
     debug = 1;
     RudderModel(omega_, period_, &delta_omega1, &force_rudder_x1);
     RudderModel(omega_ + delta_omega1, period_, &delta_omega2, &force_rudder_x2);
     RudderModel(omega_ + (delta_omega1 + delta_omega2) / 2, period_, &delta_omega_m, &force_rudder_x_m);
-    debug = 0;
+    debug = old_debug;
   }
 }
 
@@ -503,7 +502,7 @@ double BoatModel::ForceLift(double alpha_aoa_rad, double speed) {
     c_lift = naca0010::kCLiftPerRadReverse * (alpha_aoa_rad - Deg2Rad(180));
   }
   if (debug && stalled)
-    fprintf(stderr, "Rudder stall, cL: %g\n", c_lift);
+    fprintf(stderr, "Rudder stall, cL: %lg\n", c_lift);
   // if (debug) fprintf(stderr, "N: c_lift: %6.4lf \n", sign * c_lift);
   return sign * c_lift * speed * speed *
           (kAreaR * kRhoWater / 2);      // area * rho_water / 2;
