@@ -160,6 +160,8 @@ done
 (plug -i $LBUS -- `which compasscat` $PORT_COMPASS 	; logger -s -p local2.crit "compasscat exited.")&
 (plug -i $LBUS -- `which windcat` $PORT_WIND 		; logger -s -p local2.crit "windcat exited.")&
 
+(plug -n "helmsman" $LBUS -- `which helmsman` 2>&1 | logger -p local2.debug)&
+
 
 if /bin/false; then  # not needed yet / disabled for testing
 
