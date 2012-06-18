@@ -175,7 +175,6 @@ int main(int argc, char* argv[]) {
   FILE* nmea = fdopen(port, "r");
 
   int garbage = 0;
-  char out[1024];
 
   while(!feof(nmea)) {
     if (ferror(nmea)) {
@@ -207,8 +206,7 @@ int main(int argc, char* argv[]) {
         if (debug) fprintf(stderr, "Invalid C sentence: '%s'\n", line);
         continue;
       }
-      snprintf(out, sizeof out, OFMT_COMPASSPROTO(vars));
-      puts(out);
+      printf(OFMT_COMPASSPROTO(vars));
       continue;
     }
 

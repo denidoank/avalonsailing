@@ -28,6 +28,8 @@
 
 #include "../proto/wind.h"
 
+#define DEFAULT_BIAS_DEG 120.0
+
 // -----------------------------------------------------------------------------
 //   Together with getopt in main, this is our minimalistic UI
 // -----------------------------------------------------------------------------
@@ -64,6 +66,7 @@ usage(void)
 	fprintf(stderr,
 		"usage: %s [options] /dev/ttyXX\n"
 		"options:\n"
+		"\t-a bias	add this many degrees to measured angle\n"
 		"\t-b baudrate         (default 4800)\n"
 		"\t-d debug            (don't syslog, -dd is open serial as plain file)\n"
 		, argv0);
@@ -148,12 +151,14 @@ int main(int argc, char* argv[]) {
 
 	int ch;
 	int baudrate = 4800;
+	double bias_deg = DEFAULT_BIAS_DEG;
 
 	argv0 = strrchr(argv[0], '/');
 	if (argv0) ++argv0; else argv0 = argv[0];
 
-	while ((ch = getopt(argc, argv, "b:dhv")) != -1){
+	while ((ch = getopt(argc, argv, "a:b:dhv")) != -1){
 		switch (ch) {
+		case 'a': bias_deg = strtod(optarg, NULL); break;
 		case 'b': baudrate = atoi(optarg); break;
 		case 'd': ++debug; break;
 		case 'v': ++verbose; break;
@@ -240,6 +245,11 @@ int main(int argc, char* argv[]) {
 				if (debug) fprintf(stderr, "Invalid WIMWV sentence: '%s'\n", line);
 				continue;
 			}
+			if (bias_deg != 0.0) {
+				vars.angle_deg += bias_deg;
+				while(vars.angle_deg >= 360.0) vars.angle_deg -= 360.0;
+				while(vars.angle_deg <    0.0) vars.angle_deg += 360.0;
+			}	
                         printf(OFMT_WINDPROTO(vars));
 			continue;
 		}
