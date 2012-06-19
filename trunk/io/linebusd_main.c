@@ -396,7 +396,7 @@ int main(int argc, char* argv[]) {
 
 		sigset_t empty_mask;
 		sigemptyset(&empty_mask);
-		if(timer_tick_now(&timer, 0) > (debug?200:500)) {  // 200us should do, but lets not spam the log
+		if(timer_tick_now(&timer, 0) > (debug?200:2000)) {  // 200us should do, but lets not spam the log
 			struct TimerStats stats;
 			timer_stats(&timer, &stats);
 			slog((debug?LOG_DEBUG:LOG_WARNING), "slow cycle: " OFMT_TIMER_STATS(stats));
