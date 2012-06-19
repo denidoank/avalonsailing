@@ -28,7 +28,7 @@
 
 #include "../proto/wind.h"
 
-#define DEFAULT_BIAS_DEG 120.0
+#define DEFAULT_BIAS_DEG -120.0
 
 // -----------------------------------------------------------------------------
 //   Together with getopt in main, this is our minimalistic UI
