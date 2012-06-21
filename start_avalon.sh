@@ -160,12 +160,11 @@ done
 (plug -i $LBUS -- `which compasscat` $PORT_COMPASS 	; logger -s -p local2.crit "compasscat exited.")&
 (plug -i $LBUS -- `which windcat` $PORT_WIND 		; logger -s -p local2.crit "windcat exited.")&
 
-(plug -n "helmsman" $LBUS -- `which helmsman` 2>&1 | logger -p local2.debug)&
+(plug -n "helmsman" $LBUS -- `which helmsman` 2>&1 >> /var/log/helmsman.log)&  # TODO: Delete the log file occasionally and reduce logging output.
 
 
 if /bin/false; then  # not needed yet / disabled for testing
 
-    (plug -n "helmsman" $LBUS -- `which helmsman` 2>&1 | logger -p local2.debug)&
     (plug -i $LBUS -- `which fcmon` $PORT_FUELCELL ; logger -s -p local2.crit "fcmon exited.")&  # TODO or direct to syslog?
 
     # aiscat is not connected to the lbus
