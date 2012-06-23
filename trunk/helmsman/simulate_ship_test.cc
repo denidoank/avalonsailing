@@ -15,17 +15,14 @@
 #include "common/convert.h"
 #include "common/delta_angle.h"
 #include "common/polar.h"
-
-
+#include "helmsman/sampling_period.h"
 #include "lib/testing/testing.h"
 
-
-namespace {
-const double kSamplingPeriod = 0.1;
-}
+extern int logging_aoa;
 
 void InitialControllerTest(double wind_direction_deg,
                            double expected_min_speed_m_s) {
+  logging_aoa = 0;
   BoatModel model(kSamplingPeriod,
                   0,                // omega_ / rad, turning rate, + turns right
                   0,                // phi_z_ / rad, heading relative to North, + turns right

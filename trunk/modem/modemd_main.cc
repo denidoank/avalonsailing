@@ -142,7 +142,7 @@ int main(int argc, char** argv) {
     // Check for new SMS messages.
     list<Modem::SmsMessage> messages;
     if (m.ReceiveSMSMessages(&messages) == Modem::OK) {
-      syslog(LOG_INFO, "Received SMS messages: %d messages.", messages.size());
+      syslog(LOG_INFO, "Received SMS messages: %d messages.", (int)messages.size());
     } else {
       syslog(LOG_ERR, "Receive SMS messages: command failed!");
     }

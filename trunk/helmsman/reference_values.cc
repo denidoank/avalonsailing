@@ -32,7 +32,8 @@ const static double kDurationNormal = 4;
 // apparent wind angle is has become correct and we follow it,
 // as usual.
 // After a tack (or other maneuver) the sail angle is held stable for this time.
-const static double kStabilizationPeriod = 1.2;
+// This depends on the apparent wind angle filter time constant in the FilterBlock.
+const static double kStabilizationPeriod = 3;
 
 ReferenceValues::ReferenceValues()
     : tick_(1E6),
