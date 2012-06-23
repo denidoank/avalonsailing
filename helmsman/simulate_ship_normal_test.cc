@@ -16,20 +16,19 @@
 #include "common/delta_angle.h"
 #include "common/polar.h"
 #include "common/now.h"
+#include "helmsman/sampling_period.h"
 #include "lib/testing/testing.h"
 #include "lib/util/stopwatch.h"
 
-namespace {
-const double kSamplingPeriod = 0.1;
-}
-
 extern int debug;
+extern int logging_aoa;
 
 static int print_model = 0;
 
 void NormalControllerTest(double wind_direction_deg,
                           double expected_min_speed_m_s,
                           double wind_strength_m_s = 10) {
+  logging_aoa = 0;
   BoatModel model(kSamplingPeriod,
                   0,                // omega_ / rad, turning rate, + turns right
                   0,                // phi_z_ / rad, heading relative to North, + turns right

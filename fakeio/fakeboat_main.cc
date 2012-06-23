@@ -100,6 +100,12 @@ int main(int argc, char* argv[]) {
   ControllerInput controller_input;
   controller_input.alpha_star_rad = Deg2Rad(90);  // go East!
   DriveReferenceValuesRad drives_ref;
+  // Drive status transport delay line.
+  struct RudderProto prev_status_drives  = INIT_RUDDERPROTO;      // out
+  struct RudderProto prev_prev_status_drives  = INIT_RUDDERPROTO; // out
+  // Wind measurement transport delay.
+  struct WindProto prev_wind_sensor = INIT_WINDPROTO;      // out
+
 
   BoatModel model(kSamplingPeriod,
                   0,                // omega_ / rad, turning rate, + turns right
@@ -174,7 +180,7 @@ int main(int argc, char* argv[]) {
                    true_wind,
                    &controller_input);
 
-    struct RudderProto status_drives  = INIT_RUDDERPROTO;           // out
+    struct RudderProto status_drives  = INIT_RUDDERPROTO;    // out
     struct WindProto wind_sensor = INIT_WINDPROTO;           // out
     struct CompassProto compass = INIT_COMPASSPROTO;         // out
 
@@ -190,23 +196,32 @@ int main(int argc, char* argv[]) {
 
     // Here come the lions, i.e. the stochastic delays by our
     // computer system, the Out-of-sync processing and communication delays by e.g.
-    // wind, drive and IMU demons.
-    // We can later introduce these here, for the time being we assume that they are small
-    // in comparison to our sampling period of 100ms.
+    // wind, drive and IMU sensors and X-cats.
     controller_input.ToProto(&wind_sensor,
                              &status_drives,
                              &imu, &compass);
 
+    // The wind sensor measures for a second, then sends that averaged value.
     if (rounds % 10 == 0) {
-      wind_sensor.timestamp_ms = now_ms();
-      printf(OFMT_WINDPROTO(wind_sensor));
+      prev_wind_sensor.timestamp_ms = now_ms();
+      printf(OFMT_WINDPROTO(prev_wind_sensor));
     }
-    if (rounds % 1 == 0) {
+    // Take the middle measurement as a representative of the average over the last second.
+    if (rounds % 10 == 5) {
+      prev_wind_sensor = wind_sensor;
+    }
+
+    // Assume a delay of about 200ms for the drive status.
+    // We get a fresh message every 5 ticks.
+    if (rounds % 5 == 0) {
       // TODO Occasionally drop a status for realistic effect.
-      printf(OFMT_STATUS_LEFT(status_drives));
-      printf(OFMT_STATUS_RIGHT(status_drives));
-      printf(OFMT_STATUS_SAIL(status_drives));
+      printf(OFMT_STATUS_LEFT(prev_prev_status_drives));
+      printf(OFMT_STATUS_RIGHT(prev_prev_status_drives));
+      printf(OFMT_STATUS_SAIL(prev_prev_status_drives));
     }
+    prev_prev_status_drives = prev_status_drives;
+    prev_status_drives = status_drives;
+
     if (rounds % 4 == 0) {
       imu.timestamp_ms = now_ms();
       printf(OFMT_IMUPROTO(imu));

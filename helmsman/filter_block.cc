@@ -31,6 +31,9 @@
 #include "common/polar.h"
 #include "common/unknown.h"
 
+
+int logging_aoa = 1;
+
 namespace {
 
 const double kOmegaZFilterPeriod = 8.0;
@@ -45,31 +48,35 @@ bool ValidGPS(const ControllerInput& in) {
          !(in.imu.position.longitude_deg == 0 && in.imu.position.latitude_deg == 0);
 }
 
+const int FilterBlock::len_0_6s = 0.6   / kSamplingPeriod + 0.5;
+const int FilterBlock::len_1s   = 1.0   / kSamplingPeriod + 0.5;
+const int FilterBlock::len_4s   = 4.0   / kSamplingPeriod + 0.5;
+const int FilterBlock::len_30s  = 30.0  / kSamplingPeriod + 0.5;
+const int FilterBlock::len_100s = 100.0 / kSamplingPeriod + 0.5;  // 100s, N.B. The ship control state Initial cannot be
+                                                                  // shorter than this time period.
 
 FilterBlock::FilterBlock()
   : valid_app_wind_(false),
     imu_fault_(false),
     gps_fault_(false),
-    len_1s_(1.0 / kSamplingPeriod),
-    len_30s_(30.0 / kSamplingPeriod),
-    len_100s_(100.0 / kSamplingPeriod),     // 100s, N.B. The ship control state Initial cannot be
-                                            // shorter than this time period.
 
     om_z_filter_(kOmegaZFilterPeriod / kSamplingPeriod),
     speed_filter_(kSpeedFilterPeriod / kSamplingPeriod),
 
-    mag_app_filter_(len_1s_),
-    mag_true_filter_(len_100s_),
-    mag_aoa_filter_(len_30s_),
+    mag_app_filter_(len_4s),
+    mag_true_filter_(len_100s),
+    mag_aoa_filter_(len_30s),
 
     phi_z_filter_(),
     phi_z_wrap_(&phi_z_filter_),
-    angle_app_filter_(len_1s_),
+    angle_app_filter_(len_4s),
     angle_app_wrap_(&angle_app_filter_),
-    alpha_true_filter_(len_100s_),
+    alpha_true_filter_(len_100s),
     alpha_true_wrap_(&alpha_true_filter_),
-    angle_aoa_filter_(len_30s_),
-    angle_aoa_wrap_(&angle_aoa_filter_) {}
+    angle_aoa_filter_(len_30s),
+    angle_aoa_wrap_(&angle_aoa_filter_),
+    gamma_sail_filter_(len_0_6s),
+    gamma_sail_wrap_(&gamma_sail_filter_) {}
 
 
 // Clip magnitude at the maximum possible boat speed.
@@ -123,7 +130,7 @@ void FilterBlock::Filter(const ControllerInput& in,
   if (consensus >= 0.5) {
     fil->phi_z_boat = phi_z_wrap_.Filter(compass_phi_z);
     if (debug) {
-      fprintf(stderr, "filtered compass phi_z %lg deg\n", Rad2Deg(fil->phi_z_boat));
+      fprintf(stderr, "filtered compass phi_z %lf deg\n", Rad2Deg(fil->phi_z_boat));
     }
   } else {
     fprintf(stderr, "No compass consensus, %lf\n", consensus);
@@ -163,20 +170,35 @@ void FilterBlock::Filter(const ControllerInput& in,
             in.wind_sensor.alpha_deg, in.wind_sensor.mag_m_s);
   }
 
-  // The wind sensor updates the wind once per second.
-  double alpha_wind_rad = NormalizeRad(Deg2Rad(in.wind_sensor.alpha_deg));
-  double mag_wind_m_s = in.wind_sensor.mag_m_s;
+  double alpha_wind_rad = 0;
+  double mag_wind_m_s = 0;
+  // The wind sensor updates the wind once per second, so initially it may be invalid.
+  if (in.wind_sensor.valid) {
+    alpha_wind_rad = NormalizeRad(Deg2Rad(in.wind_sensor.alpha_deg));
+    mag_wind_m_s = in.wind_sensor.mag_m_s;
 
-  fil->angle_aoa = SymmetricRad(angle_aoa_wrap_.Filter(SymmetricRad(alpha_wind_rad + kWindSensorOffsetRad)));
-  fil->mag_aoa = mag_aoa_filter_.Filter(mag_wind_m_s);
-
+    fil->angle_aoa = SymmetricRad(angle_aoa_wrap_.Filter(SymmetricRad(alpha_wind_rad + kWindSensorOffsetRad)));
+    fil->mag_aoa = mag_aoa_filter_.Filter(mag_wind_m_s);
+    // For AOA optimization
+    if (logging_aoa && !(counter_ % 20)) {
+      fprintf(stderr, "aoa: %lg deg %lg m/s cspeed %lg m/s\n",
+              Rad2Deg(fil->angle_aoa), fil->mag_aoa, fil->mag_boat);
+    }
+  } else {
+    fprintf(stderr, "aoa, sensor invalid\n");
+  }
 
   if (in.drives.homed_sail && in.wind_sensor.valid) {
+    // Delay the sail angle similar to the wind angle sensor signal
+    // such that both signal paths have the same average delay.
+    //fprintf(stderr, "gamma sail: %lg rad\n", in.drives.gamma_sail_rad);
+    double gamma_sail = gamma_sail_wrap_.Filter(in.drives.gamma_sail_rad);
+
     // The wind sensor is telling where the wind is coming *from*, but we work
-    // with motion vectors pointing here the wind is going *to*, that is why we have M_PI here.
+    // with motion vectors pointing where the wind is going *to*, thatswhy we have M_PI here.
     // kWindSensorOffsetRad reflects the mounting inaccuracies of mast, mast top unit and sensor,
-    // it should be small.
-    double angle_app = SymmetricRad(alpha_wind_rad - M_PI + kWindSensorOffsetRad + in.drives.gamma_sail_rad);
+    // it should be small. Note that the windcat also has a flag to correct the sensor rotation (-120degree).
+    double angle_app = SymmetricRad(alpha_wind_rad - M_PI + kWindSensorOffsetRad + gamma_sail);
     double mag_app = mag_wind_m_s;
     if (mag_app == 0)
       angle_app = 0;

@@ -40,9 +40,11 @@ class FilterBlock {
   bool imu_fault_;       // No speed, no orientation.
   bool gps_fault_;       // time and position are missing
 
-  const int len_1s_;     // 1s
-  const int len_30s_;    // 30s (heel)
-  const int len_100s_;   // 100s
+  static const int len_0_6s;   // 0.6s
+  static const int len_1s;     // 1s
+  static const int len_4s;     // 4s (apparent wind)
+  static const int len_30s;    // 30s (heel)
+  static const int len_100s;   // 100s
   // for omega_z
   Median5Filter om_z_med_;
   SlidingAverageFilter om_z_filter_;
@@ -64,6 +66,9 @@ class FilterBlock {
   WrapAroundFilter alpha_true_wrap_;
   QuickSlidingAverageFilter angle_aoa_filter_;
   WrapAroundFilter angle_aoa_wrap_;
+  SlidingAverageFilter gamma_sail_filter_;
+  WrapAroundFilter gamma_sail_wrap_;
+
   CompassMixer compass_mixer_;
   int counter_;  // for logging downsampling
 };

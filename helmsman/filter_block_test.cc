@@ -294,7 +294,8 @@ TEST(FilterBlock, All) {
   // With gamma sail we expect ...
   gamma_sail = 0.1;
   SetEnv(wind_true, boat, gamma_sail, &in);
-  for (int i = 0; i < 20; ++i) {
+  // Apparent wind filter has 4s.
+  for (int i = 0; i < 45; ++i) {
     b.Filter(in, &filtered);
   }
   // no effect on true and apparent wind ...

@@ -146,7 +146,8 @@ void ShipControl::Run(const ControllerInput& in, ControllerOutput* out) {
 
 // Needed for tests only
 void ShipControl::Reset() {
-  delete filter_block_;
+  if (filter_block_)
+    delete filter_block_;
   filter_block_ = new FilterBlock;
   wind_strength_ = kCalmWind;
   wind_strength_apparent_ = kCalmWind;
