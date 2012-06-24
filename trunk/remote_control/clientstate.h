@@ -84,6 +84,7 @@ private:
   QMap<QString, QMap<QString, QString> > data_;
   QTimer restart_timer_;
   bool connection_wanted_;
+  uint update_counter_;
 };
 
 #endif // CLIENTSTATE_H

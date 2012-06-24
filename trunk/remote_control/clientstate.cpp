@@ -13,6 +13,7 @@ ClientState::ClientState(QObject *parent) :
     QObject(parent)
 {
   connection_wanted_ = false;
+  update_counter_ = 0;
   setCommand("/usr/bin/ssh root@192.168.1.29 plug /var/run/lbus");
 
   connect(&ssh_process_, SIGNAL(readyReadStandardOutput()), SLOT(gotData()));
@@ -21,8 +22,8 @@ ClientState::ClientState(QObject *parent) :
           SLOT(processError(QProcess::ProcessError)));
   connect(&ssh_process_, SIGNAL(finished(int, QProcess::ExitStatus)),
           SLOT(processFinished(int, QProcess::ExitStatus)));
+  connect(&restart_timer_, SIGNAL(timeout()), SLOT(tryToConnect()));
 
-  connect(&restart_timer_, SIGNAL(timeout()), SLOT(tryToConnect()));  
 }
 
 void ClientState::setCommand(const QString& command) {
@@ -81,7 +82,10 @@ void ClientState::processLine(const QString& line) {
    keys.append(entry[0]);
    data_[source][entry[0]] = entry[1].trimmed();
  }
- emit dataUpdate();
+ // If each message causes a GUI update, we need 50-90% of the Macs CPU.
+ if (++update_counter_ % 15 == 0) {
+   emit dataUpdate();
+ }
 }
 
 void ClientState::gotData() {
