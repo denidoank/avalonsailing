@@ -51,7 +51,7 @@
 == System and Test ==
 
 || *Item* || *Who/when done* ||
-|| Drive tests, check response times with TestController ||  ||
+|| Drive tests, check response times with TestController || grundmann/2012-06-05 ||
 || Logging tests. Check that we can get complete logs from all processes easily and reliably. || ||
-|| Wind sensor test. Check that wind sensor/ RS485 converter / driver / wind cat  work. Check that wind direction is calculated properly with fan. || grundmann/ ||
-|| IMU magnetic output plus compass test. Check that the IMU box containing IMU and compass is producing reliable and correct bearing vectors. || grundmann/ ||
+|| Wind sensor test. Check that wind sensor/ RS485 converter / driver / wind cat  work. Check that wind direction is calculated properly with fan. || grundmann/done, tested in reality ||
+|| IMU magnetic output plus compass test. Check that the IMU box containing IMU and compass is producing reliable and correct bearing vectors. || grundmann/done, seems to work, test under extreme conditions to be done ||
