@@ -158,10 +158,11 @@ done
 (plug -o -n "imutime" -f "imu:" $LBUS -- `which imutime` ; logger -s -p local2.crit "imutime exited.")&
 
 (plug -i $LBUS -- `which compasscat` $PORT_COMPASS 	; logger -s -p local2.crit "compasscat exited.")&
-(plug -i $LBUS -- `which windcat` $PORT_WIND 		; logger -s -p local2.crit "windcat exited.")&
+(plug -i $LBUS -- `which windcat` $PORT_WIND -a -120 ; logger -s -p local2.crit "windcat exited.")&
 
-(plug -n "helmsman" $LBUS -- `which helmsman` 2>&1 >> /var/log/helmsman.log)&  # TODO: Delete the log file occasionally and reduce logging output.
+(plug -n "helmsman" $LBUS -- `which helmsman` 2>> /var/log/helmsman.log)&  # TODO: Delete the log file occasionally and reduce logging output.
 
+(modemd  --queue=/var/run/modem --device=$PORT_MODEM) &
 
 if /bin/false; then  # not needed yet / disabled for testing
 
@@ -170,7 +171,6 @@ if /bin/false; then  # not needed yet / disabled for testing
     # aiscat is not connected to the lbus
     (aiscat $PORT_AIS | aisbuf /var/run/ais.txt; logger -s -p local2.crit "aiscat exited.")&
 
-    (modemd  --queue=/var/run/modem --device=$PORT_MODEM) &
     (plug -o -n "statusd" $LBUS -- `which statusd` --queue=/var/run/modem --initial_timeout=180 --status_interval=86400 --remote_cmd_interval=5) &
 
 fi

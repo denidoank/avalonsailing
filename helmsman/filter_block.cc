@@ -123,7 +123,7 @@ void FilterBlock::Filter(const ControllerInput& in,
   // The IMU magnetic sensor is variable by +- 8 degrees in standstill so the IMU weight
   // is reduced to 0.3 in total. Effectively the IMU serves as a hot back-up.
   double consensus = 0;
-  double compass_phi_z = compass_mixer_.Mix(in.imu.attitude.phi_z_rad, imu_fault_ ? 0.15 : 0,
+  double compass_phi_z = compass_mixer_.Mix(in.imu.attitude.phi_z_rad, imu_fault_ ? 0 : 0.15,
                                             in.imu.compass.phi_z_rad, in.imu.compass.valid ? 0.15 : 0,
                                             in.compass_sensor.phi_z_rad, 1,  // invalid if outdated TODO
                                             &consensus);
@@ -218,7 +218,13 @@ void FilterBlock::Filter(const ControllerInput& in,
       // valid_true_wind.
     } else {
       if (debug)
-        fprintf(stderr, "Imu failed -> no true wind.");
+        fprintf(stderr, "Imu failed -> Approximate true wind.\n");
+      fil->alpha_true = SymmetricRad(alpha_true_wrap_.Filter(NormalizeRad(angle_app + fil->phi_z_boat)));
+      fil->mag_true = mag_true_filter_.Filter(mag_app);
+      if (debug)
+        fprintf(stderr, "Approximated trueInOut alpha mag: %lg, %lg, filtered: %lg, %lg\n",
+                NormalizeRad(angle_app + fil->phi_z_boat), mag_app, fil->alpha_true, fil->mag_true);
+
     }
     fil->angle_app = SymmetricRad(angle_app_wrap_.Filter(angle_app));
     fil->mag_app =  mag_app_filter_.Filter(mag_app);

@@ -71,6 +71,7 @@ endif
 installscp: $(BINARIES)
 ifneq ($(strip $(BINARIES)),)
 	scp $+ root@192.168.1.29:/usr/bin/
+  scp start_avalon.sh root@192.168.1.29:/usr/bin/
 endif
 
 installconf: $(CONF_FILES)
