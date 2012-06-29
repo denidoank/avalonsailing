@@ -144,6 +144,59 @@ int parse_wimvx(char* sentence, struct WindProto* wp) {
 	return 1;
 }
 
+// $WIXDR, C,35.2,C,2, U,28.3,N,0, U,28.6,V,1, U,3.520,V,2 *7F
+
+int parse_wixdr(char* sentence, struct WixdrProto* wp) {
+	char* flde;
+	char* fld = strsep(&sentence, ",");   // field 0: sender and message type
+	if (!fld) return 0;
+
+	fld = strsep(&sentence, ",");   // field 1: transducer 2 type, should be "C"
+	if (!fld) return 0;
+	fld = strsep(&sentence, ",");   // field 2: temperature in celcius
+	if (!fld) return 0;
+	wp->temp_c = strtod(fld, &flde);
+	if (*flde) return 0;
+	fld = strsep(&sentence, ",");   // field 3: transducer 2 units, should be "C"
+	if (!fld) return 0;
+	fld = strsep(&sentence, ",");   // field 4: transducer 2 id, should be "2"
+	if (!fld) return 0;
+
+	fld = strsep(&sentence, ",");   // field 5: transducer 0 type, should be "U"
+	if (!fld) return 0;
+	fld = strsep(&sentence, ",");   // field 6: heating voltage
+	if (!fld) return 0;
+	wp->vheat_v = strtod(fld, &flde);
+	if (*flde) return 0;
+	fld = strsep(&sentence, ",");   // field 7: transducer 0 units, could be ?
+	if (!fld) return 0;
+	fld = strsep(&sentence, ",");   // field 8: transducer 0 id, should be "0"
+	if (!fld) return 0;
+
+	fld = strsep(&sentence, ",");   // field 9: transducer 1 type, should be "U"
+	if (!fld) return 0;
+	fld = strsep(&sentence, ",");   // field 10: supply voltage
+	if (!fld) return 0;
+	wp->vsupply_v = strtod(fld, &flde);
+	if (*flde) return 0;
+	fld = strsep(&sentence, ",");   // field 11: transducer 2 units, should be "V"
+	if (!fld) return 0;
+	fld = strsep(&sentence, ",");   // field 12: transducer 2 id, should be "1"
+	if (!fld) return 0;
+
+	fld = strsep(&sentence, ",");   // field 9: transducer  type, should be "U"
+	if (!fld) return 0;
+	fld = strsep(&sentence, ",");   // field 10: reference voltage
+	if (!fld) return 0;
+	wp->vref_v = strtod(fld, &flde);
+	if (*flde) return 0;
+	fld = strsep(&sentence, ",");   // field 11: transducer 2 units, should be "V"
+	if (!fld) return 0;
+	fld = strsep(&sentence, ",");   // field 12: transducer 2 id, should be "1"
+	if (!fld) return 0;
+
+	return 1;
+}
 
 // -----------------------------------------------------------------------------
 
@@ -254,12 +307,17 @@ int main(int argc, char* argv[]) {
 			continue;
 		}
 
-//		if (strncmp(start, "WIXDR", 5) == 0) {
-//			// ignore: temperature and voltages
-//			continue;
-//		}
+		if (strncmp(start, "WIXDR", 5) == 0) {
+			struct WixdrProto vars = { now_ms(), 0, 0, 0, 0 };
+			if (!parse_wixdr(start, &vars)) {
+				if (debug) fprintf(stderr, "Invalid WIMWV sentence: '%s'\n", line);
+				continue;
+			}		
+                        printf(OFMT_WIXDRPROTO(vars));	
+			continue;
+		}
 
-		if (1 || debug) fprintf(stderr, "Ignoring NMEA sentence: '%s'\n", line);  // TODO remove or improve voltage logging
+		if (debug) fprintf(stderr, "Ignoring NMEA sentence: '%s'\n", line);  // TODO remove or improve voltage logging
 	}
 
 	crash("Terminating.");
