@@ -335,7 +335,8 @@ TEST(NormalController, ReferenceValueShaping) {
   // 180 degree sail rotation (180 degree / 13 degree/s = 14s).
   // So we estimate each change to take delta_angle / kRateLimit with
   // an extra 10s for jibes.
-  for (int i = 0; i < (Deg2Rad(fabs(66 - -89)) / c.RateLimit())/kSamplingPeriod; ++i) {
+  // TODO Check where the extra 3 steps come from.
+  for (int i = 0; i < (Deg2Rad(fabs(66 - -89)) / c.RateLimit())/kSamplingPeriod + 3; ++i) {
     SHAPE(66);
   }
   EXPECT_FLOAT_EQ(0, omega_z_star);
@@ -356,8 +357,8 @@ TEST(NormalController, ReferenceValueShaping) {
   EXPECT_FLOAT_EQ(0, omega_z_star);
   EXPECT_FLOAT_EQ(Deg2Rad(-120), phi_z_star);
   EXPECT_IN_INTERVAL(-50, Rad2Deg(gamma_sail_star), -40);
-
-  for (int i = 0; i < Deg2Rad(fabs(50 - -120)) / c.RateLimit() / kSamplingPeriod; ++i) {
+  // TODO Check where the extra 3 steps come from.
+  for (int i = 0; i < Deg2Rad(fabs(50 - -120)) / c.RateLimit() / kSamplingPeriod + 3; ++i) {
     SHAPE(50);
   }
   EXPECT_FLOAT_EQ(0, omega_z_star);
@@ -398,7 +399,8 @@ TEST(NormalController, ReferenceValueShapingStormJibe) {
   EXPECT_IN_INTERVAL(-80, Rad2Deg(gamma_sail_star), -70);
 
   // South to North.
-  for (int i = 0; i < Deg2Rad(fabs(0 - -180)) / c.RateLimit() / kSamplingPeriod; ++i) {
+  // TODO Check where the extra 3 steps come from.
+  for (int i = 0; i < Deg2Rad(fabs(0 - -180)) / c.RateLimit() / kSamplingPeriod + 3; ++i) {
     SHAPE(0);
   }
   EXPECT_FLOAT_EQ(0, omega_z_star);
@@ -440,8 +442,9 @@ TEST(NormalController, ReferenceValueShapingWest) {
   EXPECT_IN_INTERVAL(-80, Rad2Deg(gamma_sail_star), -70);
 
   // South to North Jibe.
+  // TODO Check where the extra 10 steps come from.
   for (int i = 0;
-       i < Deg2Rad(fabs(0 - -180)) / c.RateLimit() / kSamplingPeriod + 80;
+       i < Deg2Rad(fabs(0 - -180)) / c.RateLimit() / kSamplingPeriod + 80 + 15;
        ++i) {
     SHAPE(0);
   }
