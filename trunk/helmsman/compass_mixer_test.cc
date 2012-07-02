@@ -93,6 +93,22 @@ ATEST(CompassMixer, NoConsensus) {
 
   EXPECT_FLOAT_EQ(3, mixer.Mix(3 - M_PI/3, 1,  3, 1,  3 + M_PI/3, 1,  &consensus));
   EXPECT_FLOAT_EQ(0.6666667, consensus);
+
+  EXPECT_FLOAT_EQ(3.83766, mixer.Mix(0, 0.15,  3.8797, 0.15,  3.7350 , 1, &consensus));
+  EXPECT_FLOAT_EQ(0.791921, consensus);
+
+  EXPECT_FLOAT_EQ(3.34214, mixer.Mix(0, 0.15,  3.4916, 0.15,  3.2899 , 1, &consensus));
+  EXPECT_FLOAT_EQ(0.769208, consensus);
+  // This test is correct. The log is not correct:
+  //is 0.9977: KFL 0.0000 (0.1500), IMU 3.4916 (0.1500), CMP 3.2899 (1.0000) -> 3.3161
+  //filtered compass phi_z 190.093163 deg
+
+  EXPECT_FLOAT_EQ(2.86118, mixer.Mix(3, 1,  0, 1,  3, 1, &consensus));
+  EXPECT_FLOAT_EQ(0.33994, consensus);
+
+  EXPECT_FLOAT_EQ(2.98857, mixer.Mix(3, 1,  0, 0.15,  3, 1, &consensus));
+  EXPECT_FLOAT_EQ(0.86122, consensus);
+
 }
 
 int main(int argc, char* argv[]) {
