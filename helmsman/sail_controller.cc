@@ -90,8 +90,10 @@ const char* SailModeLogic::ModeString() {
 
 
 // The optimal angle of attack for the trimmed sail, subject to
-// optimization, 10 - 25 degrees.
-static const double kAOADefaultRad = M_PI / 9;  // Deg2Rad(20.0);
+// optimization, 20 - 40 degrees. One must not forget that this
+// is the boom angle. The sail towards the mast top is twisted
+// and has a lesser angle of attack.
+static const double kAOADefaultRad = M_PI / 5;  // Deg2Rad(36.0);
 SailController::SailController()
     : optimal_angle_of_attack_rad_(kAOADefaultRad),
       sign_(1) {
