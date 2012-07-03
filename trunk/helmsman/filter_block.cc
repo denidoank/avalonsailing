@@ -153,8 +153,10 @@ void FilterBlock::Filter(const ControllerInput& in,
     ASSIGN_NOT_NAN(fil->phi_y_rad, in.imu.attitude.phi_y_rad);      // pitch, nick angle;
     fil->mag_boat = CensorSpeed(speed_filter_.Filter(in.imu.velocity.x_m_s));
     if (debug) {
-      fprintf(stderr, "raw boat speed*0.8 %6.3lf filtered %l6.3f m/s, lat_lon %.7lf %.7lf phi_z %6.3lf\n",
-              in.imu.velocity.x_m_s, fil->mag_boat, fil->latitude_deg, fil->longitude_deg, fil->phi_z_boat);
+      fprintf(stderr, "raw boat speed*0.8 %6.3lf filtered %6.3lf m/s, lat_lon %.7lf %.7lf phi_z %6.3lf\n",
+              in.imu.velocity.x_m_s, fil->mag_boat,
+              in.imu.position.latitude_deg, in.imu.position.longitude_deg,
+              in.imu.attitude.phi_z_rad);
     }
   }
 
