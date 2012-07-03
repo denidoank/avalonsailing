@@ -11,7 +11,8 @@ const double kInertiaZ = 150;  // kg m^2
 const double kAreaR = 0.085;   // m^2
 const double kNumberR = 2;   // number of rudders
 const double kLeverR = 1.43048;    // m, COG to rudder axis lever
-const double kWindSensorOffsetRad = 0;   // rad
+// N.B. Besides this there is a wind sensor offset compensation in the windcat!
+const double kWindSensorOffsetRad = 0;   // rad.
 const double kRhoWater = 1030;  // kg/m^3
 const double kOmegaMaxSail = 0.241661;  // rad/s
 const double kOmegaMaxRudder = 0.523599;  // rad/s

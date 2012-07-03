@@ -151,8 +151,11 @@ void FilterBlock::Filter(const ControllerInput& in,
   if (!imu_fault_) {
     ASSIGN_NOT_NAN(fil->phi_x_rad, in.imu.attitude.phi_x_rad);      // roll angle, heel;
     ASSIGN_NOT_NAN(fil->phi_y_rad, in.imu.attitude.phi_y_rad);      // pitch, nick angle;
-
     fil->mag_boat = CensorSpeed(speed_filter_.Filter(in.imu.velocity.x_m_s));
+    if (debug) {
+      fprintf(stderr, "raw boat speed*0.8 %6.3lf filtered %l6.3f m/s, lat_lon %.7lf %.7lf phi_z %6.3lf\n",
+              in.imu.velocity.x_m_s, fil->mag_boat, fil->latitude_deg, fil->longitude_deg, fil->phi_z_boat);
+    }
   }
 
   double om_z = 0;
