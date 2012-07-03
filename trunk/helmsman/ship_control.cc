@@ -153,7 +153,8 @@ void ShipControl::Reset() {
   wind_strength_apparent_ = kCalmWind;
   rudder_controller_.Reset();
   sail_controller_.Reset();
-  controller_ = &initial_controller_; 
+  sail_controller_.SetOptimalAngleOfAttack(Deg2Rad(20));
+  controller_ = &initial_controller_;
 }
 
 bool ShipControl::Idling() {

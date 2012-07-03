@@ -24,7 +24,7 @@ SailModeLogic::SailModeLogic()
       delay_counter_(0)
   {}
 
-// apparent is mostly positive (may be negative)!
+// apparent wind angle is not negative.
 SailMode SailModeLogic::BestMode(double apparent_absolute, double wind_strength_m_s) {
   mode_ = apparent_absolute < kSwitchpoint && wind_strength_m_s < kSpinakkerLimit ? SPINNAKER : WING;
   return mode_;
@@ -105,7 +105,7 @@ void SailController::SetOptimalAngleOfAttack(double optimal_angle_of_attack_rad)
 }
 
 double SailController::GetOptimalAngleOfAttack() {
-  CHECK_LT(0.1, optimal_angle_of_attack_rad_);
+  CHECK_LT(0.1, optimal_angle_of_attack_rad_);  // paranoid
   return optimal_angle_of_attack_rad_;
 }
 
@@ -135,8 +135,8 @@ double SailController::GammaSailInternal(double alpha_wind_rad,
   CHECK_LT(0.1, optimal_angle_of_attack_rad_);
 
   alpha_wind_rad = SymmetricRad(alpha_wind_rad);
-  alpha_wind_rad = HandleSign(alpha_wind_rad);
-  CHECK_LE(alpha_wind_rad, M_PI);  // in [0, pi]
+  HandleSign(&alpha_wind_rad, &sign_);
+  CHECK_IN_INTERVAL(0, alpha_wind_rad, M_PI);
 
   // other lower limit, to avoid unnecessary sail motor activity at low winds?
   if (mag_wind == 0)
@@ -184,9 +184,9 @@ void SailController::UnlockMode() {
   logic_.UnlockMode();
 }
 
-double SailController::HandleSign(double alpha_wind_rad) {
-  sign_ = SignNotZero(alpha_wind_rad);
-  return sign_ * alpha_wind_rad;
+void SailController::HandleSign(double* alpha_wind_rad, int* sign ) {
+  *sign = SignNotZero(*alpha_wind_rad);
+  *alpha_wind_rad *= *sign;
 }
 
 void SailController::Reset() {

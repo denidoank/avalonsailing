@@ -43,6 +43,8 @@ TEST(NormalController, AllSail) {
   rudder_controller.SetFeedback(452.39, 563.75, 291.71, true);
 
   SailController sail_controller;
+  sail_controller.SetOptimalAngleOfAttack(Deg2Rad(20));
+
   NormalController c(&rudder_controller, &sail_controller);
   ControllerInput in;
   FilteredMeasurements filtered;
@@ -93,6 +95,120 @@ TEST(NormalController, AllSail) {
   EXPECT_FLOAT_EQ(25, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
 }
 
+// Check sail control
+TEST(NormalController, AllSailCloseHauled) {
+  RudderController rudder_controller;
+  // coefficients for omega_z, phi_z, int(phi_z)
+  rudder_controller.SetFeedback(452.39, 563.75, 291.71, true);
+
+  SailController sail_controller;
+  sail_controller.SetOptimalAngleOfAttack(Deg2Rad(20));
+
+  NormalController c(&rudder_controller, &sail_controller);
+  ControllerInput in;
+  FilteredMeasurements filtered;
+  ControllerOutput out;
+
+  Polar wind_true(0, 2);      // Wind vector forward to North, with 2m/s.
+  Polar boat(Deg2Rad(130), 1);  // Boat going SouthEast, with 1 m/s.
+                              // Close hauled, on backbord bow.
+  SetEnv(wind_true, boat, &in, &filtered, &out);
+  in.alpha_star_rad = Deg2Rad(130);
+
+  c.Entry(in, filtered);
+  c.Run(in, filtered, &out);
+  EXPECT_FLOAT_EQ(0, Rad2Deg(out.drives_reference.gamma_rudder_star_left_rad));
+  EXPECT_EQ(out.drives_reference.gamma_rudder_star_left_rad,
+            out.drives_reference.gamma_rudder_star_right_rad);
+  // Sail very close to the middle
+  EXPECT_FLOAT_EQ(13.8351, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
+
+  c.Run(in, filtered, &out);
+  c.Run(in, filtered, &out);
+  EXPECT_FLOAT_EQ(13.8351, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
+
+  c.Run(in, filtered, &out);
+
+  EXPECT_FLOAT_EQ(13.8351, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
+
+  wind_true = Polar(Deg2Rad(-35), 2);  // wind turns against us
+  // so the apparent wind vector is around 180 degrees
+  SetEnv(wind_true, boat, &in, &filtered, &out);
+  in.alpha_star_rad = Deg2Rad(130);
+
+  c.Run(in, filtered, &out);
+  // sail opposing the apparent wind.
+  // Limited by CHP +kCloseHauledLimit
+  EXPECT_FLOAT_EQ(4, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
+
+  wind_true = Polar(Deg2Rad(-49.9), 2);  // wind turns completely against us
+  // so the apparent wind vector is around 180 degrees
+  SetEnv(wind_true, boat, &in, &filtered, &out);
+  in.alpha_star_rad = Deg2Rad(130);
+
+  c.Run(in, filtered, &out);
+  // sail opposing the apparent wind.
+  // Limited by CHP
+  EXPECT_FLOAT_EQ(4, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
+}
+
+// Check sail control negative
+TEST(NormalController, AllSailCloseHauledNegative) {
+  RudderController rudder_controller;
+  // coefficients for omega_z, phi_z, int(phi_z)
+  rudder_controller.SetFeedback(452.39, 563.75, 291.71, true);
+
+  SailController sail_controller;
+  sail_controller.SetOptimalAngleOfAttack(Deg2Rad(20));
+
+  NormalController c(&rudder_controller, &sail_controller);
+  ControllerInput in;
+  FilteredMeasurements filtered;
+  ControllerOutput out;
+
+  Polar wind_true(0, 2);      // Wind vector forward to North, with 2m/s.
+  Polar boat(Deg2Rad(-130), 1);  // Boat going SouthWest, with 1 m/s.
+                              // Close hauled, on starboard bow.
+  SetEnv(wind_true, boat, &in, &filtered, &out);
+  in.alpha_star_rad = Deg2Rad(-130);
+
+  c.Entry(in, filtered);
+  c.Run(in, filtered, &out);
+  EXPECT_FLOAT_EQ(0, Rad2Deg(out.drives_reference.gamma_rudder_star_left_rad));
+  EXPECT_EQ(out.drives_reference.gamma_rudder_star_left_rad,
+            out.drives_reference.gamma_rudder_star_right_rad);
+  // Sail very close to the middle
+  EXPECT_FLOAT_EQ(-13.8351, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
+
+  c.Run(in, filtered, &out);
+  c.Run(in, filtered, &out);
+  EXPECT_FLOAT_EQ(-13.8351, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
+
+  c.Run(in, filtered, &out);
+
+  EXPECT_FLOAT_EQ(-13.8351, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
+
+  wind_true = Polar(Deg2Rad(35), 2);  // wind turns against us
+  // so the apparent wind vector is around 180 degrees
+  SetEnv(wind_true, boat, &in, &filtered, &out);
+  in.alpha_star_rad = Deg2Rad(-130);
+
+  c.Run(in, filtered, &out);
+  // sail opposing the apparent wind.
+  // Limited by CHP +kCloseHauledLimit
+  EXPECT_FLOAT_EQ(-4, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
+
+  wind_true = Polar(Deg2Rad(49.9), 2);  // wind turns completely against us
+  // so the apparent wind vector is around 180 degrees
+  SetEnv(wind_true, boat, &in, &filtered, &out);
+  in.alpha_star_rad = Deg2Rad(130);
+
+  c.Run(in, filtered, &out);
+  // sail opposing the apparent wind.
+  // Limited by CHP
+  EXPECT_FLOAT_EQ(-4, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
+}
+
 TEST(NormalController, AllRudder) {
     // With the magic test speed and the amplification coefficients set right
     // the rudder angle will be equal to the negative control error.
@@ -101,6 +217,8 @@ TEST(NormalController, AllRudder) {
     rudder_controller.SetFeedback(0,    1000,     0,       false);
 
     SailController sail_controller;
+    sail_controller.SetOptimalAngleOfAttack(Deg2Rad(20));
+
     NormalController c(&rudder_controller, &sail_controller);
     double alpha_star_rad = Deg2Rad(90);  // So we steer a sailable course.
     ControllerInput in;
@@ -138,6 +256,8 @@ RudderController rudder_controller;
 rudder_controller.SetFeedback(452.39, 563.75, 291.71, true);
 
 SailController sail_controller;
+sail_controller.SetOptimalAngleOfAttack(Deg2Rad(20));
+
 NormalController c(&rudder_controller, &sail_controller);
 ControllerInput in;
 FilteredMeasurements filtered;
@@ -182,6 +302,8 @@ TEST(NormalController, Synthetic) {
   rudder_controller.SetFeedback(0,    1000,     0,       false);
 
   SailController sail_controller;
+  sail_controller.SetOptimalAngleOfAttack(Deg2Rad(20));
+
   NormalController c(&rudder_controller, &sail_controller);
   ControllerInput in;
   FilteredMeasurements filtered;
@@ -482,6 +604,8 @@ TEST(NormalController, ReferenceValueShapingWest) {
 #undef SHAPE
 
 int main(int argc, char* argv[]) {
+  NormalController_AllSailCloseHauled();
+  NormalController_AllSailCloseHauledNegative();
   NormalController_AllSail();
   NormalController_AllRudder();
   NormalController_AllEast();

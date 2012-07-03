@@ -59,7 +59,7 @@ class SailController {
   double GammaSailInternal(double alpha_wind_rad,
                            double mag_wind,
                            bool stabilized);
-  double HandleSign(double alpha_wind_rad);
+  void HandleSign(double* alpha_wind_rad, int* sign);
 
   double optimal_angle_of_attack_rad_;
   SailModeLogic logic_;

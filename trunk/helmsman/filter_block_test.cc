@@ -197,7 +197,7 @@ TEST(FilterBlock, All) {
   EXPECT_FLOAT_EQ(0, filtered.omega_boat);
   EXPECT_FLOAT_EQ(0, filtered.angle_app);
   EXPECT_FLOAT_EQ(1, filtered.mag_app);
-  EXPECT_FLOAT_EQ(M_PI, filtered.angle_aoa);
+  EXPECT_LT(fabs(SymmetricRad(-M_PI - filtered.angle_aoa)), 0.000001);
   EXPECT_FLOAT_EQ(1, filtered.mag_aoa);
   EXPECT_FLOAT_EQ(0, filtered.longitude_deg);
   EXPECT_FLOAT_EQ(0, filtered.latitude_deg);

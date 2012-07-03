@@ -29,6 +29,7 @@ void NormalControllerTest(double wind_direction_deg,
                           double expected_min_speed_m_s,
                           double wind_strength_m_s = 10) {
   logging_aoa = 0;
+  // debug = 1;
   BoatModel model(kSamplingPeriod,
                   0,                // omega_ / rad, turning rate, + turns right
                   0,                // phi_z_ / rad, heading relative to North, + turns right

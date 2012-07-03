@@ -72,14 +72,15 @@ void NormalController::Run(const ControllerInput& in,
   double gamma_sail_star;
   // maneuver is set just once to kJibe or kTack, when the maneuver starts.
   // TODO: Put out->status updates into this method.
-  ManeuverType maneuver = ShapeReferenceValue(SymmetricRad(in.alpha_star_rad),
-                       SymmetricRad(filtered.alpha_true), filtered.mag_true,
-                       SymmetricRad(filtered.phi_z_boat), filtered.mag_boat,
-                       SymmetricRad(filtered.angle_app),  filtered.mag_app,
-                       in.drives.gamma_sail_rad,
-                       &phi_star,
-                       &omega_star,
-                       &gamma_sail_star);
+  ManeuverType maneuver =
+      ShapeReferenceValue(SymmetricRad(in.alpha_star_rad),
+                          SymmetricRad(filtered.alpha_true), filtered.mag_true,
+                          SymmetricRad(filtered.phi_z_boat), filtered.mag_boat,
+                          SymmetricRad(filtered.angle_app),  filtered.mag_app,
+                          in.drives.gamma_sail_rad,
+                          &phi_star,
+                          &omega_star,
+                          &gamma_sail_star);
   if (maneuver == kTack) {
     out->status.tacks++;
   } else if (maneuver == kJibe) {
@@ -234,10 +235,27 @@ ManeuverType NormalController::ShapeReferenceValue(double alpha_star,
       // is estimated too low, we get a big overshoot due to exaggerated gamma_0
       // values.
       *omega_z_star = 0;
-      // The apparent wind data are quickly filtered to suppress noise in
+      // The apparent wind data are filtered to suppress noise in
       // the sail drive reference value.
       *gamma_sail_star =
             sail_controller_->BestStabilizedGammaSail(angle_app, mag_app);
+      // When sailing close hauled (hard to the wind) we observed sail angle oscillations
+      // leading to the sail swinging over the boat symmetry axis. This will be
+      // suppressed.
+      const double kCloseHauledLimit = Deg2Rad(4);
+      bool close_hauled_positive = DeltaOldNewRad(alpha_true, phi_z_boat) > Deg2Rad(120);
+      bool close_hauled_negative = DeltaOldNewRad(alpha_true, phi_z_boat) < Deg2Rad(-120);
+      if (close_hauled_positive) {
+        if (debug) fprintf(stderr, "CHP %lf ", *gamma_sail_star);
+        *gamma_sail_star = std::max(*gamma_sail_star, kCloseHauledLimit);
+        if (debug) fprintf(stderr, "to %lf\n", *gamma_sail_star);
+      }
+      if (close_hauled_negative) {
+        if (debug) fprintf(stderr, "CHN %lf ", *gamma_sail_star);
+        *gamma_sail_star = std::min(*gamma_sail_star, -kCloseHauledLimit);
+        if (debug) fprintf(stderr, "to %lf\n", *gamma_sail_star);
+      }
+      // TODO sail drive lazyness
 
       //if (debug) fprintf(stderr, "S %6.2lf %6.2lf %6.2lf\n", angle_app, mag_app, *gamma_sail_star);
     }
