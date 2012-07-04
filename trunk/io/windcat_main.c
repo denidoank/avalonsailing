@@ -108,94 +108,43 @@ char* valid_nmea(char* line) {
 	return start + 1;
 }
 
+// $WIMWV,179,R,8.0,N,A
 int parse_wimvx(char* sentence, struct WindProto* wp) {
-	char* flde;
-	char* fld = strsep(&sentence, ",");   // field 0: sender and message type
-	if (!fld) return 0;
+	char rel = 0;
+	char units = 0;
+	char valid = 0;
+ 	double speed = NAN;
+	int n = sscanf(sentence, "WIMWV,%lf,%c,%lf,%c,%c,", &wp->angle_deg, &rel, &speed, &units, &valid);
+	if (n != 5) {
+		wp->angle_deg = NAN;
+		speed = NAN;
+		n = sscanf(sentence, "WIMWV,,%c,,%c,%c,", &rel, &units, &valid);
+		if (n != 3) return 0;
+	}
 
-	fld = strsep(&sentence, ",");   // field 1: angle in degrees
-	if (!fld) return 0;
-	wp->angle_deg = strtod(fld, &flde);
-	if (*flde) return 0;
-
-	fld = strsep(&sentence, ",");  // field 2: "R" for relative
-	if (!fld) return 0;
-	wp->relative = (*fld == 'R');
-
-	fld = strsep(&sentence, ",");  // field 3: speed
-	if (!fld) return 0;
-	double speed = strtod(fld, &flde);
-	if (*flde) return 0;
-
-	fld = strsep(&sentence, ",");  // field 4: units
-	if (!fld) return 0;
-	switch(fld[0]) {
+	wp->relative = rel == 'R';
+	switch(units) {
 	case 'K': wp->speed_m_s = speed * (1000.0/3600.0); break;// 1 km/h == 1000m / 3600s
 	case 'M': wp->speed_m_s = speed; break;
 	case 'N': wp->speed_m_s = speed * (1852.0/3600.0); break; // 1 knot == 1852m / 3600s
 	default: return 0;
 	}
 
-	fld = strsep(&sentence, ",");  // field 5: 'A' for valid
-	if (!fld) return 0;
-
-	wp->valid = *fld == 'A';
+	wp->valid = valid == 'A';
 
 	return 1;
 }
 
 // $WIXDR, C,35.2,C,2, U,28.3,N,0, U,28.6,V,1, U,3.520,V,2 *7F
-
 int parse_wixdr(char* sentence, struct WixdrProto* wp) {
-	char* flde;
-	char* fld = strsep(&sentence, ",");   // field 0: sender and message type
-	if (!fld) return 0;
-
-	fld = strsep(&sentence, ",");   // field 1: transducer 2 type, should be "C"
-	if (!fld) return 0;
-	fld = strsep(&sentence, ",");   // field 2: temperature in celcius
-	if (!fld) return 0;
-	wp->temp_c = strtod(fld, &flde);
-	if (*flde) return 0;
-	fld = strsep(&sentence, ",");   // field 3: transducer 2 units, should be "C"
-	if (!fld) return 0;
-	fld = strsep(&sentence, ",");   // field 4: transducer 2 id, should be "2"
-	if (!fld) return 0;
-
-	fld = strsep(&sentence, ",");   // field 5: transducer 0 type, should be "U"
-	if (!fld) return 0;
-	fld = strsep(&sentence, ",");   // field 6: heating voltage
-	if (!fld) return 0;
-	wp->vheat_v = strtod(fld, &flde);
-	if (*flde) return 0;
-	fld = strsep(&sentence, ",");   // field 7: transducer 0 units, could be ?
-	if (!fld) return 0;
-	fld = strsep(&sentence, ",");   // field 8: transducer 0 id, should be "0"
-	if (!fld) return 0;
-
-	fld = strsep(&sentence, ",");   // field 9: transducer 1 type, should be "U"
-	if (!fld) return 0;
-	fld = strsep(&sentence, ",");   // field 10: supply voltage
-	if (!fld) return 0;
-	wp->vsupply_v = strtod(fld, &flde);
-	if (*flde) return 0;
-	fld = strsep(&sentence, ",");   // field 11: transducer 2 units, should be "V"
-	if (!fld) return 0;
-	fld = strsep(&sentence, ",");   // field 12: transducer 2 id, should be "1"
-	if (!fld) return 0;
-
-	fld = strsep(&sentence, ",");   // field 9: transducer  type, should be "U"
-	if (!fld) return 0;
-	fld = strsep(&sentence, ",");   // field 10: reference voltage
-	if (!fld) return 0;
-	wp->vref_v = strtod(fld, &flde);
-	if (*flde) return 0;
-	fld = strsep(&sentence, ",");   // field 11: transducer 2 units, should be "V"
-	if (!fld) return 0;
-	fld = strsep(&sentence, ",");   // field 12: transducer 2 id, should be "1"
-	if (!fld) return 0;
-
-	return 1;
+	char dumc;
+	int dumd;
+	int n = sscanf(sentence, "WIXDR,%c,%lf,%c,%d,%c,%lf,%c,%d,%c,%lf,%c,%d,%c,%lf,%c,%d,", 
+		       &dumc, &wp->temp_c, &dumc, &dumd,
+		       &dumc, &wp->vheat_v, &dumc, &dumd,
+		       &dumc, &wp->vsupply_v, &dumc, &dumd,
+		       &dumc, &wp->vref_v, &dumc, &dumd);
+	return n == 16;
 }
 
 // -----------------------------------------------------------------------------
