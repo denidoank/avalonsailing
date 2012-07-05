@@ -18,9 +18,9 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-#include "../../proto/skew.h"
-#include "../timer.h"
-#include "../log.h"
+#include "proto/skew.h"
+#include "timer.h"
+#include "log.h"
 #include "ebus.h"
 #include "actuator.h"
 

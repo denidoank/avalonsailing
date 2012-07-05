@@ -15,8 +15,8 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-#include "../../proto/rudder.h"
-#include "../log.h"
+#include "proto/rudder.h"
+#include "log.h"
 #include "actuator.h"
 
 // -----------------------------------------------------------------------------
