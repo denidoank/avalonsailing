@@ -16,6 +16,7 @@
 //    $stats               Echo to the client some statistics about all clients
 //    $xoff		   don't send any further output to this client.
 //    $subscribe <prefix>  Install a filter (see below)
+//    $precious		   when this client exits, take down the bus
 //
 // By default each client is eligible to receive all messages, but this can
 // be changed by setting filters.  As soon as a client $subscribes to a <prefix>
@@ -174,6 +175,7 @@ static struct Client {
 	socklen_t addrlen;
 	char* name;
 	int xoff;
+	int precious;
 	int dropped;
 	struct FilterList* filters;
 } *clients = NULL;
@@ -244,6 +246,10 @@ reap_clients()
 	while (*prevp) {
 		struct Client* curr = *prevp;
 		if (curr->fd < 0) {
+			if (curr->precious) {
+				syslog(LOG_WARNING, "Closed precious client %s, shutting down.\n", curr->name ? curr->name : "<anon>");
+				crash("lost precious client.");
+			}
 			syslog(LOG_NOTICE, "Closed client %s.\n", curr->name ? curr->name : "<anon>");
 			*prevp = curr->next;
 			free_filters(curr->filters);
@@ -252,6 +258,7 @@ reap_clients()
 			prevp = &curr->next;
 		}
 	}
+	return 0;
 }
 
 static int client_puts(struct Client* client, const char* line){ return lb_putline(&client->out, (char*)line); }
@@ -282,6 +289,12 @@ handle_cmd(struct Client* client, char* line) {
 	if (strcmp("xoff", line) == 0) {
 		client->xoff = 1;
 		syslog(LOG_NOTICE, "Client %s (%d) set xoff\n", client_name(client), client->fd);
+		return;
+	}
+
+	if (strcmp("precious", line) == 0) {
+		client->precious = 1;
+		syslog(LOG_NOTICE, "Client %s (%d) set precious\n", client_name(client), client->fd);
 		return;
 	}
 
@@ -396,7 +409,7 @@ int main(int argc, char* argv[]) {
 
 		sigset_t empty_mask;
 		sigemptyset(&empty_mask);
-		if(timer_tick_now(&timer, 0) > (debug?200:2000)) {  // 200us should do, but lets not spam the log
+		if(timer_tick_now(&timer, 0) > (debug?200:4000)) {  // 200us should do, but lets not spam the log
 			struct TimerStats stats;
 			timer_stats(&timer, &stats);
 			slog((debug?LOG_DEBUG:LOG_WARNING), "slow cycle: " OFMT_TIMER_STATS(stats));
@@ -463,7 +476,7 @@ int main(int argc, char* argv[]) {
 		}
 
 		// Reap old and accept new clients.
-		reap_clients();
+		reap_clients();  // will crash on losing precious client.
 		reap_filters();
 		if (FD_ISSET(sck, &rfds)) new_client(sck);
 
