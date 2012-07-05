@@ -4,6 +4,12 @@
 % Steffen Grundmann, June 2011
 
 function [merged_start, merged_end] = merge_blocks(blocked_start, blocked_end)
+% function [merged_start, merged_end] = merge_blocks(blocked_start, blocked_end)
+% Given a set of N forbidden intervals of angles merge them into one list of
+% forbidden intervals.
+% The minimum of each intervall is contained in blocked_start,
+% the maximum of each is contained in blocked_end.
+
   assert(all(imag(blocked_start) == 0));
   assert(all(imag(blocked_end) == 0));
   blocked_start = sort(blocked_start);

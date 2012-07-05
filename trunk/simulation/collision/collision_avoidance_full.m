@@ -12,7 +12,7 @@ function [alpha, phi_c_full, t_c_full, v_a_full, blocked_start_full, blocked_end
 % We are interested in the directions that we can steer without colliding [*] with any B
 % for a given future time horizon t_scope.
 % x0 is a matrix of initial positions, each column for one B.
-% v is a matrix of constant speeds, each column for one B.
+% v is a matrix of constant speeds, each column (having x and y component) for one B.
 % t_scope is or temporal scope
 % [*] colliding is defined as getting closer than minimum_distance to that object .
 % speed v, t_scope and minimum_distance have to be gven in compatible units to x0 and v.
