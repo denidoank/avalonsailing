@@ -92,25 +92,21 @@ int main(int argc, char* argv[]) {
 
 	 int found = 0;
 	 int nodeid;
-	 for(;;) {
-		 for (nodeid = 1; nodeid < nelem(nodeidmap); ++nodeid) {
-			 // Read serial number register 0x1018[4]
-			 uint32_t err = epos_readobject(fd, 0x1018, 4, nodeid, nodeidmap + nodeid);
-			 if (err != 0) continue;
-			 slog(LOG_INFO, "port:%s nodeid:%d serial:0x%x\n", argv[0], nodeid, nodeidmap[nodeid]);
-			 memset(&timer[nodeid], 0, sizeof timer[0]);
-			 // Ask linebusd to filter.  Note: we assume all clients will print serial in hex,
-			 // which they will if they use eposclient.h EPOS_G/SET_OFMT
-			 printf("$subscribe 0x%x\n", nodeidmap[nodeid]);
-			 ++found;
-		 }
 
-		 if(found) break;
-		 // TODO(lvd) if (found < required) so sail won't run without both motor and bmmh?
-		 slog(LOG_ERR, "No epos devices found on port %s, sleeping for 30 seconds", argv[0]);
-		 crash("No epos devices found");   // TODO(lvd) recover gracefully from others hogging the serial port
-		 sleep(30);
+	 for (nodeid = 1; nodeid < nelem(nodeidmap); ++nodeid) {
+		 // Read serial number register 0x1018[4]
+		 uint32_t err = epos_readobject(fd, 0x1018, 4, nodeid, nodeidmap + nodeid);
+		 if (err != 0) continue;
+		 slog(LOG_INFO, "port:%s nodeid:%d serial:0x%x\n", argv[0], nodeid, nodeidmap[nodeid]);
+		 memset(&timer[nodeid], 0, sizeof timer[0]);
+		 // Ask linebusd to filter.  Note: we assume all clients will print serial in hex,
+		 // which they will if they use eposclient.h EPOS_G/SET_OFMT
+		 printf("$subscribe 0x%x\n", nodeidmap[nodeid]);
+		 ++found;
 	 }
+
+	 if(!found)
+		 crash("No epos devices found");
 
 	 while (!feof(stdin)) {
 
