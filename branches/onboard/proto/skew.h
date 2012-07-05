@@ -14,6 +14,6 @@ struct SkewProto {
 // For use in printf and friends.
 #define OFMT_SKEWPROTO(x)    "skew: timestamp_ms:%lld angle_deg:%.3lf\n", (x).timestamp_ms, (x).angle_deg
 
-#define IFMT_SKEWPROTO(x, n) "skew: timestamp_ms:%lld angle_deg:%lf\n%n", &(x)->timestamp_ms, &(x)->angle_deg, (n)
+#define IFMT_SKEWPROTO(x, n) "skew: timestamp_ms:%lld angle_deg:%lf%n", &(x)->timestamp_ms, &(x)->angle_deg, (n)
 
 #endif // PROTO_WIND_H
