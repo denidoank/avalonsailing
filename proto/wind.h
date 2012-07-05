@@ -15,13 +15,13 @@ struct WindProto {
 #define INIT_WINDPROTO {0, NAN, -1, NAN, 0}
 
 // For use in printf and friends.
-#define OFMT_WINDPROTO(x) \
+#define OFMT_WINDPROTO(x)						\
 	"wind: timestamp_ms:%lld angle_deg:%.3lf speed_m_s:%.2lf valid:%d\n", \
-	(x).timestamp_ms, (x).angle_deg, (x).speed_m_s, (x).valid
+		(x).timestamp_ms, (x).angle_deg, (x).speed_m_s, (x).valid
 
 #define IFMT_WINDPROTO(x, n) \
-	"wind: timestamp_ms:%lld angle_deg:%lf speed_m_s:%lf valid:%d\n%n", \
-	&(x)->timestamp_ms, &(x)->angle_deg, &(x)->speed_m_s, &(x)->valid, (n)
+	"wind: timestamp_ms:%lld angle_deg:%lf speed_m_s:%lf valid:%d%n", \
+		&(x)->timestamp_ms, &(x)->angle_deg, &(x)->speed_m_s, &(x)->valid, (n)
 
 
 
@@ -34,9 +34,9 @@ struct WixdrProto {
 
 #define INIT_WIXDRPROTO { 0, NAN, NAN, NAN, NAN }
 
-#define OFMT_WIXDRPROTO(x) \
-	"wixdr: timestamp_ms:%lld temp_c:%.1lf vheat_v:%.2lf vsupply_v:%.2lf vref_v:%.2lf \n", \
-	(x).timestamp_ms, (x).temp_c, (x).vheat_v, (x).vsupply_v, (x).vref_v
+#define OFMT_WIXDRPROTO(x)						\
+	"wixdr: timestamp_ms:%lld temp_c:%.1lf vheat_v:%.2lf vsupply_v:%.2lf vref_v:%.2lf\n", \
+		(x).timestamp_ms, (x).temp_c, (x).vheat_v, (x).vsupply_v, (x).vref_v
 
 
 
