@@ -51,6 +51,7 @@ usage(void)
 		"\t-n name  diagnostic name for linebusd\n"
 		"\t-d debug (don't go daemon, don't syslog)\n"
 		"\t-c cmdchar linebusd uses alternate command character (default '$')\n"
+		"\t-p tell the linebusd this client is precious, i.e. the bus should go down if this client exits.\n"
 		, argv0);
 	exit(2);
 }
@@ -85,6 +86,7 @@ int main(int argc, char* argv[]) {
 	int ch;
 	int noin = 0;
 	int noout = 0;
+	int precious = 0;
 	int cmdchar = '$';
 	char *name = NULL;
 
@@ -95,7 +97,7 @@ int main(int argc, char* argv[]) {
 
         argv0 = argv[0];
 
-	while ((ch = getopt(argc, argv, "c:df:hin:ov")) != -1){
+	while ((ch = getopt(argc, argv, "c:df:hin:opv")) != -1){
 		switch (ch) {
 		case 'c': cmdchar = optarg[0]; break;
 		case 'n': name = optarg; break;
@@ -104,6 +106,7 @@ int main(int argc, char* argv[]) {
 		case 'v': ++verbose; break;
 		case 'o': ++noin; break;
 		case 'i': ++noout; break;
+		case 'p': ++precious; break;
 		case 'h':
 		default:
 			usage();
@@ -139,6 +142,11 @@ int main(int argc, char* argv[]) {
 
 	if(name) {
 		int n = snprintf(cmdbuf, sizeof cmdbuf, "%cname %s\n", cmdchar, name);
+		write(s, cmdbuf, n);
+	}
+
+	if(precious) {
+		int n = snprintf(cmdbuf, sizeof cmdbuf, "%cprecious\n", cmdchar);
 		write(s, cmdbuf, n);
 	}
 
