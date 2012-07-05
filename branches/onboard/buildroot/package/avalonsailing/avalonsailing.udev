@@ -1,5 +1,0 @@
-# Rule for Xsens-IMU:
-# info from     $ udevinfo -a -p $(udevinfo -q path -n /dev/ttyUSB0)
-# BUS=="usb", KERNEL=="ttyUSB?",SYSFS{iserial}=="XSRXREVO",SYMLINK+="xsensIMU"
-BUS=="usb",KERNEL=="ttyUSB?",ATTRS{serial}=="XSRXREVO",NAME="xsensIMU"
-BUS=="usb",KERNEL=="ttyUSB?",ATTRS{serial}=="W84555902-0",NAME="windsensor"
