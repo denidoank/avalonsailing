@@ -39,32 +39,22 @@ fi
 
 
 # the ports you get depend on the order the imu and the 8-port are detected
-
+# TODO don't use the imu, or fall back to the windsensor or the compass
 if imucfg /dev/ttyUSB0; then
 
-    PORT_IMU=/dev/ttyUSB0
-
-    PORT_RUDDER_L=/dev/ttyUSB1
-    PORT_RUDDER_R=/dev/ttyUSB2
-    PORT_SAIL=/dev/ttyUSB3
-    PORT_FUELCELL=/dev/ttyUSB4
-    PORT_COMPASS=/dev/ttyUSB5
-    PORT_AIS=/dev/ttyUSB6
-    PORT_MODEM=/dev/ttyUSB7
-    PORT_WIND=/dev/ttyUSB8
+    let i=0
+    for d in imu rudder_l rudder_r sail fuelcell compass ais modem wind; do
+	ln -fs /dev/ttyUSB$i /dev/$d
+	let i=$i+1
+    done
 
 elif imucfg /dev/ttyUSB8; then
 
-    PORT_RUDDER_L=/dev/ttyUSB0
-    PORT_RUDDER_R=/dev/ttyUSB1
-    PORT_SAIL=/dev/ttyUSB2
-    PORT_FUELCELL=/dev/ttyUSB3
-    PORT_COMPASS=/dev/ttyUSB4
-    PORT_AIS=/dev/ttyUSB5
-    PORT_MODEM=/dev/ttyUSB6
-    PORT_WIND=/dev/ttyUSB7
-
-    PORT_IMU=/dev/ttyUSB8
+    let i=0
+    for d in rudder_l rudder_r sail fuelcell compass ais modem wind imu; do
+	ln -fs /dev/ttyUSB$i /dev/$d
+	let i=$i+1
+    done
 
 else
 
@@ -80,101 +70,79 @@ fi
 # the ebus does the high frequency/low latency low level epos commands in ebus.h protocol (mostly)
 # programs are connected to the bus with the plug program.
 # it's options:
+#
 #    -i  only take the output of the program as input to the bus (i.e. dont receive any messages from the bus)
 #    -o  only take what comes from the bus and feed it to the program (i.e. dont send any messages to the bus)
 #    -n name  a name for debugging when you ask for stats with kill -USR1 $bus.pid, not (yet) relevant for -i plugs.
 #    -f instal a filter on prefix (not relevant for -i plugs).
+#    -p tell the linebusd this one is 'precious': if it exits, take down the bus
+#
 #  programs like eposcom and sailctl that are connected to the bus with both stdin and stdout typically install their own filters
 #  on the linebus, so there's no need to specify them there.
 #  the -- is needed in plug [options] $BUS -- command [command options] to explain to plug where to stop interpreting its options.
 #
 
-logger -s -p local2.Notice "Avalon subsystems starting up"
+##    modemd  --queue=/var/run/modem --device=/dev/modem &
 
-linebusd $LBUS	# blocks until socket exists
-echo "to stop all avalon systems"
-echo "   kill \`cat $LBUS.pid\`"
+for attempt in 1 2 3; do
 
-# keep restarting rudder suite until LBUS is gone.
-# plug will return false in that case. the echo is to make it exit if it does connect.
-(while echo | plug -i $LBUS > /dev/null 2>&1 ; do
+    logger -s -p local2.Notice "Avalon subsystems starting up (attempt $attempt)"
+
+    kill `cat $LBUS.pid` 2> /dev/null 
+    linebusd $LBUS	# blocks until socket exists, then goes daemon
+
+    # input subsystems
+
+    plug -pi $LBUS -- `which imucat` /dev/imu
+    plug -pi $LBUS -- `which compasscat` /dev/compass
+    plug -pi $LBUS -- `which windcat` /dev/wind
+
+    plug -po -n "imutime" -f "imu:" $LBUS -- `which imutime`
+    plug -i $LBUS -- `which fcmon` /dev/fuelcell
+
+
+    # output subsystems
 
     kill `cat $EBUS.pid` 2> /dev/null 
-    linebusd $EBUS	# blocks until socket exists
+    linebusd $EBUS	# blocks until socket exists, then goes daemon
 
-    logger -s -p local2.notice "(Re)Starting epos subsystems"
-
-    for p in $PORT_RUDDER_L  $PORT_RUDDER_R $PORT_SAIL 
-    do
-	(
-	    plug -n "epos-$(basename $p)" $EBUS -- `which eposcom` -T $p
-	    logger -s -p local2.crit "Eposcom $p exited."
-	    kill `cat $EBUS.pid`
-	)&
+    for p in /dev/rudder_l /dev/rudder_r /dev/sail;  do
+	    plug -n "epos-$(basename $p)" $EBUS -- `which eposcom` -T $p &
     done
 
-    (
-	plug $EBUS -- `which rudderctl` -l -T		# homing and positioning of left rudder
-	logger  -s -p local2.crit "Rudderctl (LEFT) exited."
-	kill `cat $EBUS.pid`
-    )&
-
-    (
-	plug $EBUS -- `which rudderctl` -r -T		# homing and positioning of right rudder
-	logger  -s -p local2.crit "Rudderctl (RIGHT) exited."
-	kill `cat $EBUS.pid`
-    )&
-
-    (
-	plug $EBUS -- `which skewmon` -T		# monitor sail motor/bmmh sensor angle skew
-	logger  -s -p local2.crit "Skewmon exited."
-	kill `cat $EBUS.pid`
-    )&
-
-    (
-	plug $EBUS -- `which sailctl` -T		# positioning for sail
-	logger  -s -p local2.crit "Sailctl exited."
-	kill `cat $EBUS.pid`
-    )&
-
-    plug -i $EBUS -- `which eposprobe` -f 2 -T &    # periodically (-f Hz) issue status register probe commands (needed by ruddersts and -mon)
+    plug -p $EBUS -- `which rudderctl` -l -T &		# homing and positioning of left rudder
+    plug -p $EBUS -- `which rudderctl` -r -T &		# homing and positioning of right rudder
+    plug -p $EBUS -- `which skewmon` -T &		# monitor sail motor/bmmh sensor angle skew
+    plug -p $EBUS -- `which sailctl` -T &		# positioning for sail
+    plug -pi $EBUS -- `which eposprobe` -f 2 -T &    # periodically (-f Hz) issue status register probe commands (needed by drivests and eposmon)
     plug -o -n "eposmon" $EBUS -- `which eposmon` & # summarize and report epos communication errors to syslog
 
-    #   ruddersts: decode ebus status registers to lbus ruddersts: messages
+    #   drivests: decode ebus status registers to lbus status_: messages
     #   plug -f rudderctl: forward rudderctl: messages to ebus
-    plug -o -n "drivests" $EBUS | drivests -n 100 | plug -n "rudderctlfwd" -f "rudderctl:" $LBUS | plug -i $EBUS
+    plug -po -n "drivests" $EBUS | drivests -n 100 | plug -pn "rudderctlfwd" -f "rudderctl:" $LBUS | plug -pi $EBUS &
 
-    # the above will block until the ebus, the lbus or probe/stsmon exits
-    logger -s -p local2.crit "Epos status subsystem exited."
-    kill `cat $EBUS.pid`
+    
+    plug -n "helmsman" $LBUS -- `which helmsman` 2>> /var/log/helmsman.log & 
+
+
+
+    # aiscat is not connected to the lbus
+    #  (aiscat /dev/ais | aisbuf /var/run/ais.txt; logger -s -p local2.crit "aiscat exited.")&
+
+    # plug -o -n "statusd" $LBUS -- `which statusd` --queue=/var/run/modem --initial_timeout=180 --status_interval=86400 --remote_cmd_interval=5 &
+
+    echo "Und immer eine Handbreit Wasser unter dem Kiel!"
+    echo "May she always have a good passage, wherever she goes!"
+    echo
+
+    ## keep a plug with a dummy filter on the lbus and wait for it to exit
+    plug -n "watch" -f xxx $LBUS > /dev/null
+
+    imucfg -R /dev/imu || logger -s -p local2.Notice "Failed to reset IMU"
 
 done
 
-    logger -s -p local2.crit "Epos subsystems NOT RESTARTING (lbus gone)"
-)&
 
-# todo: each of these in a restart loop (with rate limiting)
-(plug -i $LBUS -- `which imucat` $PORT_IMU 		; logger -s -p local2.crit "imucat exited.")&
-(plug -o -n "imutime" -f "imu:" $LBUS -- `which imutime` ; logger -s -p local2.crit "imutime exited.")&
+logger -s -p local2.crit "Main loop ran 3 times, time to reboot ...."
 
-(plug -i $LBUS -- `which compasscat` $PORT_COMPASS 	; logger -s -p local2.crit "compasscat exited.")&
-(plug -i $LBUS -- `which windcat` $PORT_WIND -a -120 ; logger -s -p local2.crit "windcat exited.")&
-
-(plug -n "helmsman" $LBUS -- `which helmsman` 2>> /var/log/helmsman.log)&  # TODO: Delete the log file occasionally and reduce logging output.
-
-(modemd  --queue=/var/run/modem --device=$PORT_MODEM) &
-
-if /bin/false; then  # not needed yet / disabled for testing
-
-    (plug -i $LBUS -- `which fcmon` $PORT_FUELCELL ; logger -s -p local2.crit "fcmon exited.")&  # TODO or direct to syslog?
-
-    # aiscat is not connected to the lbus
-    (aiscat $PORT_AIS | aisbuf /var/run/ais.txt; logger -s -p local2.crit "aiscat exited.")&
-
-    (plug -o -n "statusd" $LBUS -- `which statusd` --queue=/var/run/modem --initial_timeout=180 --status_interval=86400 --remote_cmd_interval=5) &
-
-fi
-
-echo "Und immer eine Handbreit Wasser unter dem Kiel!"
-echo "May she always have a good passage, wherever she goes!"
-echo
+# in production we'd send an sms here and reboot
