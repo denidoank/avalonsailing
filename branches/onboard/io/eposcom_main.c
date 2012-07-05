@@ -17,8 +17,8 @@
 
 #include "com.h"
 #include "seq.h"
-#include "../log.h"
-#include "../timer.h"
+#include "log.h"
+#include "timer.h"
 #include "ebus.h"
 
 //static const char* version = "$Id: $";

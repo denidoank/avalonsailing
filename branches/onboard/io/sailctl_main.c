@@ -14,11 +14,11 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "../../proto/rudder.h"
-#include "../../proto/skew.h"
+#include "proto/rudder.h"
+#include "proto/skew.h"
 
-#include "../log.h"
-#include "../timer.h"
+#include "log.h"
+#include "timer.h"
 #include "actuator.h"
 #include "eposclient.h"
 
