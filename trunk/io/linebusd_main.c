@@ -16,7 +16,7 @@
 //    $stats               Echo to the client some statistics about all clients
 //    $xoff		   don't send any further output to this client.
 //    $subscribe <prefix>  Install a filter (see below)
-//    $precious		   when this client exits, take down the bus
+//    $precious		   when this client exits or hangs, take down the bus
 //
 // By default each client is eligible to receive all messages, but this can
 // be changed by setting filters.  As soon as a client $subscribes to a <prefix>
@@ -258,7 +258,7 @@ reap_clients()
 			prevp = &curr->next;
 		}
 	}
-	return 0;
+	return;
 }
 
 static int client_puts(struct Client* client, const char* line){ return lb_putline(&client->out, (char*)line); }
@@ -304,7 +304,6 @@ handle_cmd(struct Client* client, char* line) {
 		// TODO: per client read/write xstimes
 		for(cl = clients; cl; cl=cl->next) {
 			snprintf(buf, sizeof buf, "%d %s dropped: %d\n", cl->fd, client_name(cl), cl->dropped); 
-			cl->dropped = 0;
 			client_puts(client, buf);
 		}
 		return;
@@ -461,8 +460,15 @@ int main(int argc, char* argv[]) {
 					if (cl->filters && !filter_hit(cl->filters)) continue;
 					if (client_puts(cl, buf) < 0) {
 						cl->dropped++;
-						syslog(LOG_DEBUG, "Dropping output to client %s (%d)\n", client_name(cl), cl->fd);
-					}
+						if (cl->dropped % 10 == 0)
+							syslog(LOG_DEBUG, "Client %s (%d) dropped %d messages\n", client_name(cl), cl->fd, cl->dropped);
+						if (cl->precious && cl->dropped > 100) { // drop 100 messages and you're hung
+							syslog(LOG_WARNING, "Assuming client %s (%d) is hung\n", client_name(cl), cl->fd);
+							close(cl->fd);
+							cl->fd = -1;
+						}
+					} else
+						cl->dropped >>= 1;  // halve the dropped count, so the client has a chance to slowly catch up.
 				}
 			}
 
