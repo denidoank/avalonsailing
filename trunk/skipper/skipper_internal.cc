@@ -7,14 +7,18 @@
 
 #include "common/unknown.h"
 #include "common/convert.h"
+#include "common/delta_angle.h"
 #include "common/polar_diagram.h"
 #include "helmsman/normal_controller.h"
 #include "lib/fm/log.h"
 #include "skipper/planner.h"
 
+extern int debug;
+
 static const double kDefaultDirection = 225;  // SouthWest as an approximation of the whole journey.
 
-extern int debug;
+double SkipperInternal::old_alpha_star_deg_ = kDefaultDirection;
+WindStrengthRange SkipperInternal::wind_strength_ = kCalmWind;
 
 void SkipperInternal::Run(const SkipperInput& in,
                           const vector<skipper::AisInfo>& ais,
@@ -28,24 +32,39 @@ void SkipperInternal::Run(const SkipperInput& in,
     fprintf(stderr, "No true wind info so far, going SW.\n");
     return;
   }
+
+  wind_strength_ = WindStrength(wind_strength_, KnotsToMeterPerSecond(in.mag_true_kn));
+
+  double planned = 0;
+  double safe = 0;
   if (in.longitude_deg == kUnknown ||
       in.latitude_deg == kUnknown ||
       isnan(in.longitude_deg) ||
       isnan(in.latitude_deg)) {
-    *alpha_star_deg = kDefaultDirection;  // Southwest is our general direction.
-    fprintf(stderr, "No position info so far, going SW.\n");
-    return;
+    if (!Planner::Initialized()) {
+      *alpha_star_deg = kDefaultDirection;  // Southwest is our general direction.
+      fprintf(stderr, "No position info so far, going SW.\n");
+      return;
+    } else {
+      // Temporary loss of GPS fix. This might happen due to big
+      // waves washing over the GPS antenna, excessive boat heel or
+      // other temporary effects. But we have had a GPS fix already and we know
+      // were to go for the next days, so it is ok to go on.
+      planned = old_alpha_star_deg_;
+      // Without GPS fix there is no way to find a safe course, but it is likely
+      // that our last safe course is still valid.
+      safe = old_alpha_star_deg_;
+    }
+  } else {
+    planned = Planner::ToDeg(in.latitude_deg, in.longitude_deg);
+    // Finally the helmsman will steer a +-15 deg course relative to the wind (jibe zone).
+    if (kStormWind == wind_strength_) {
+      planned = in.angle_true_deg;
+      fprintf(stderr, "Storm, going downwind to %6.2lf deg.\n", planned);
+    }
+    safe = RunCollisionAvoider(planned, in, ais);
+    old_alpha_star_deg_ = safe;
   }
-  double planned = Planner::ToDeg(in.latitude_deg, in.longitude_deg);
-
-
-  // Remove comment when it works!
-  // double safe = RunCollisionAvoider(planned, in, ais);
-  double safe = planned;
-
-
-
-
 
   if (fabs(planned - safe) > 0.1)
       fprintf(stderr,
@@ -53,11 +72,14 @@ void SkipperInternal::Run(const SkipperInput& in,
               planned, safe);
 
   double feasible = BestSailableHeadingDeg(safe, in.angle_true_deg);
-  if (fabs(safe - feasible) > 0.1)
-      fprintf(stderr, "Override %8.6lg with %8.6lg because it is not sailable.\n",
-              safe, feasible);
-  if (debug) fprintf(stderr, "planner %lg , alpha* %lg,  true wind: %lg, feasible: %lg\n",
-                     planned, safe, in.angle_true_deg, feasible);
+
+  if (fabs(DeltaOldNewDeg(safe, feasible)) > 0.1)
+    fprintf(stderr, "Override %8.6lg deg with %8.6lg deg because it is not sailable.\n",
+            safe, feasible);
+
+  if (debug)
+    fprintf(stderr, "planner %lg , alpha* %lg,  true wind: %lg, feasible: %lg\n",
+            planned, safe, in.angle_true_deg, feasible);
 
   *alpha_star_deg = feasible;
 }

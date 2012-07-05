@@ -15,11 +15,11 @@ namespace skipper {
 class Bearing {
  public:
   Bearing() : rad_(0) {}
-  static Bearing Degrees(double deg) { return Bearing(deg / 180.0 * M_PI); }
-  static Bearing Radians(double rad) { return Bearing(rad); }
+  static Bearing Degrees(double deg) { return Bearing(NormalizeRad(deg / 180.0 * M_PI)); }
+  static Bearing Radians(double rad) { return Bearing(NormalizeRad(rad)); }
   static Bearing West() { return Bearing::Degrees(270); }
 
-  double deg() const { return NormalizeDeg(rad_ * 180.0 / M_PI); }
+  double deg() const { return rad_ * 180.0 / M_PI; }
   double rad() const { return rad_; }
 
  private:

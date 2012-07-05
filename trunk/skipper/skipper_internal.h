@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "helmsman/skipper_input.h"  
+#include "helmsman/wind_strength.h"
 #include "skipper/ais.h"
 #include "skipper/lat_lon.h"
 #include "vskipper/vskipper.h"
@@ -24,6 +25,8 @@ class SkipperInternal {
   static double RunCollisionAvoider(double alpha_planner_deg,
                                     const SkipperInput& in,
                                     const std::vector<skipper::AisInfo>& ais );
+  static double old_alpha_star_deg_;
+  static WindStrengthRange wind_strength_;
 };
 
 #endif  // SKIPPER_SKIPPER_INTERNAL_H

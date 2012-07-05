@@ -22,7 +22,7 @@ void TargetCircleCascade::Build(const TargetCirclePoint* plan) {
     Add(t);
     ++plan;
   }
-  if (debug) fprintf(stderr, "Built plan with %d circles.", chain_.size());
+  if (debug) fprintf(stderr, "Built plan with %d circles.\n", (int)chain_.size());
   CHECK_GT(chain_.size(), 0);
 }
 
@@ -30,7 +30,7 @@ void TargetCircleCascade::Build(const TargetCirclePoint* plan) {
 // The direction (in degrees) to follow.
 double TargetCircleCascade::ToDeg(double x, double y) {
   if (chain_.size() == 0) {
-    fprintf(stderr, "No plan! Going south west.");
+    fprintf(stderr, "No plan! Going south west.\n");
     return kDefaultDirection;
   }
   // We might get blown off track by a storm or currents
@@ -39,13 +39,17 @@ double TargetCircleCascade::ToDeg(double x, double y) {
   // big enough to cover our current position. This leads
   // us back on track.
   const double expansion_factor = 1.1;
-  for (double expand = 1.0; ; expand *= expansion_factor) {
-    for (int index = 0; index < chain_.size(); ++index)
-      if (chain_[index].In(x, y, expand)) {
-        if (debug) fprintf(stderr, "In target circle %d.", index);
-        return chain_[index].ToDeg(x, y);
+  for (double expand = 1.0; expand < 50; expand *= expansion_factor) {
+    for (int i = 0; i < (int)chain_.size(); ++i) {
+      // if (debug) fprintf(stderr, "i : %d, expand: %lf\n", i, expand);
+      if (chain_[i].In(x, y, expand)) {
+        //if (debug) fprintf(stderr, "In target circle %d, dir %lf deg.\n", i, chain_[i].ToDeg(x, y));
+        if (debug && expand > 1) {
+          fprintf(stderr, "Needed to expand target circles to %lf %%!\n", expand * 100);
+        }
+        return chain_[i].ToDeg(x, y);
       }
-    //if (debug) fprintf(stderr, "Need to expand target circles to %lf %%!", expand * expansion_factor / 100);
+    }
   }
 }
 
@@ -63,8 +67,8 @@ bool TargetCircleCascade::TargetReached(LatLon lat_lon) {
 
 // Use this to print the target circle chain and to visualize it.
 void TargetCircleCascade::Print() {
-  printf("Target circle\n%d target circles\n index x y radius\n", chain_.size());
-  for (int i = 0; i < chain_.size(); ++i) {
-    printf("%d %lg %lg %lg\n", i, chain_[i].x0(), chain_[i].y0(), chain_[i].radius());
+  printf("Target circle\n%d target circles\n index x y radius\n", (int)chain_.size());
+  for (int i = 0; i < (int)chain_.size(); ++i) {
+    printf("%d %lf %lf %lf\n", i, chain_[i].x0(), chain_[i].y0(), chain_[i].radius());
   }
 }

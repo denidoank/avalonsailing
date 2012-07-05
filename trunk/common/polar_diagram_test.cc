@@ -107,7 +107,7 @@ LogPolarDiagram();
 
 TEST(PolarDiagramTest, BestSailable) {
   const double JibeZoneWidth = 180 - JibeZoneDeg();
-  //                               alpha_star, alpha_true
+  //                                             alpha_star, alpha_true
   EXPECT_FLOAT_EQ( JibeZoneWidth, BestSailableHeadingDeg(+1, 0));
   EXPECT_FLOAT_EQ(-JibeZoneWidth, BestSailableHeadingDeg(-1, 0));
   EXPECT_FLOAT_EQ(0, BestSailableHeadingDeg(0, 90));

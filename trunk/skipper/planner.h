@@ -10,6 +10,7 @@ class Planner {
                                                          double longitude_deg); // East, degrees
   static void Init(const LatLon& lat_lon);
   static bool TargetReached(const LatLon& lat_lon);
+  static bool Initialized();
  private:
   static bool initialized_;
   static TargetCircleCascade plan_;

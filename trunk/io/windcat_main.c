@@ -237,7 +237,9 @@ int main(int argc, char* argv[]) {
 		if (!start) {
 			if (debug) fprintf(stderr, "Invalid NMEA sentence: '%s'\n", line);
 			continue;
-		}
+		} else {
+            if (debug) fprintf(stderr, "NMEA sentence: '%s'\n", line);
+        }
 
 		garbage = 0;
 
@@ -246,7 +248,10 @@ int main(int argc, char* argv[]) {
 			if (!parse_wimvx(start, &vars)) {
 				if (debug) fprintf(stderr, "Invalid WIMWV sentence: '%s'\n", line);
 				continue;
-			}
+			} else {
+                if (debug) fprintf(stderr, "WIMWV sentence: '%s'\n", line);
+
+            }
 			if (bias_deg != 0.0) {
 				vars.angle_deg += bias_deg;
 				while(vars.angle_deg >= 360.0) vars.angle_deg -= 360.0;
