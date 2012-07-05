@@ -87,6 +87,11 @@ ATEST(VSkipper, Smoke) {
   Bearing actual = RunVSkipper(state, std::vector<AisInfo>(), 0);
 
   EXPECT_NEAR(270, 5, actual.deg());
+
+  state.target = Bearing::Radians(0.003);
+  actual = RunVSkipper(state, std::vector<AisInfo>(), 0);
+
+  EXPECT_EQ(0.003, actual.rad());
 }
 
 ATEST(VSkipper, Around) {

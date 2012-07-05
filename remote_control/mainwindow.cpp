@@ -37,7 +37,7 @@ MainWindow::MainWindow(ClientState* state, QWidget *parent) :
                              SLOT(setChecked(bool)));
 
   connect(&update_timer_, SIGNAL(timeout()), SLOT(updateGraphics()));
-  update_timer_.setInterval(100);
+  update_timer_.setInterval(200);
   true_wind_direction_deg_ = 0.0;
   true_wind_speed_kt_ = 19.43;  // 10 mps.
   meteo_turbulence_ = 0;

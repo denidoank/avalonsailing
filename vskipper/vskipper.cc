@@ -144,9 +144,11 @@ void SkipperImpl(const AvalonState& now,
                  bool* safe,
                  Bearing* out) {
   std::vector<CandidateBearing> candidates;
+  // TODO(zis): Perhaps use a larger step (i.e. fewer than 360 candidates).
   for (int i = 0; i < 360; ++i) {
-    // TODO(zis): Perhaps use a larger step (i.e. fewer than 360 candidates).
-    candidates.push_back(CandidateBearing(Bearing::Degrees(i)));
+    // Make sure our target is one of the candidates.
+    candidates.push_back(CandidateBearing(
+        Bearing::Radians(now.target.rad() + i * M_PI / 180.0) ));
   }
 
   for (size_t i = 0; i < candidates.size(); ++i) {
@@ -194,7 +196,7 @@ void SkipperImpl(const AvalonState& now,
 Bearing RunVSkipper(const AvalonState& now,
                     const std::vector<AisInfo>& ais_in,
                     int debug) {
-  fprintf(stderr, "in: %6.2lg\n", now.target.deg());
+  // fprintf(stderr, "in : %6.2lf\n", now.target.deg());
 
   std::vector<LocalAis> ships(ais_in.size());
   for (size_t i = 0; i < ais_in.size(); ++i) {
@@ -213,7 +215,7 @@ Bearing RunVSkipper(const AvalonState& now,
     }
   }
 
-  fprintf(stderr, "out: %6.2lf\n", out.deg());
+  // fprintf(stderr, "out: %6.2lf\n", out.deg());
   return out;
 }
 

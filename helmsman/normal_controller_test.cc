@@ -218,7 +218,6 @@ TEST(NormalController, AllRudder) {
 
     SailController sail_controller;
     sail_controller.SetOptimalAngleOfAttack(Deg2Rad(20));
-
     NormalController c(&rudder_controller, &sail_controller);
     double alpha_star_rad = Deg2Rad(90);  // So we steer a sailable course.
     ControllerInput in;

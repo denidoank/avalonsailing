@@ -1,0 +1,12 @@
+DEPS+=common
+DEPS+=lib/util
+DEPS+=helmsman
+DEPS+=vskipper
+
+TARGET_ARCH=-m32
+
+# but not on Mac:
+LDFLAGS+=-static
+
+# CXXFLAGS+= -std=gnu++0x
+include ../mk/Makefile.inc

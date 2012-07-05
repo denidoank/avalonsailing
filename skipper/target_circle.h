@@ -49,13 +49,17 @@ pick the nearest one and try to get to its center.
 // All we have to do is to add a minus sign to all West and South coordinates.
 
 
+// the angular error is 10 degree because of the scaling of the longitude.
+// eliminate the scalar versions , work with degree only!
+
+
 #include <math.h>
 #include "common/check.h"
 #include "skipper/lat_lon.h"
 
 class TargetCircle {
  public:
-  // x0, y0 and radius in comptible units
+  // x0, y0 and radius in degree. (x0 center latitude, y0 center longitude)
   TargetCircle(double x0, double y0, double radius);
 
   // Lat-Lon-input
@@ -79,9 +83,10 @@ class TargetCircle {
  private: 
   double DistanceSquared(double x, double y) const;
   
-  double x0_;
-  double y0_;
-  double radius_squared_;
+  double x0_;  // in degree
+  double y0_;  // in degree
+  double radius_squared_;  // in deg^2
+  double lon_factor_;
 };
 
 #endif  // SKIPPER_TARGET_CIRCLE_H

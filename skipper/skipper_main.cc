@@ -2,9 +2,12 @@
 // Use of this source code is governed by the Apache License 2.0
 // that can be found in the LICENSE file.
 //
-// Main loop for skpper: open client sockets to aisd and helmsmand, and shovel
+// Main loop for skipper: open client sockets to aisd and helmsmand, and shovel
 // data between all open file descriptors and the main controller.
 //
+
+// TODO Make this like the helmsman main.
+
 
 #include <vector>
 

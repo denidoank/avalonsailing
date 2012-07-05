@@ -18,7 +18,7 @@ double NowSeconds() {
 bool Planner::initialized_ = false;
 TargetCircleCascade Planner::plan_;
 double Planner::alpha_star_ = 225;
-double Planner:: last_turn_time_ = 0;
+double Planner::last_turn_time_ = 0;
 
 
 // We may start from
@@ -32,51 +32,44 @@ double Planner:: last_turn_time_ = 0;
 
 void Planner::Init(const LatLon& lat_lon) {
   if (sukku.In(lat_lon)) {
-    printf("sukku plan\n");
-    fprintf(stderr, "sukku plan");
+    fprintf(stderr, "sukku plan\n");
     plan_.Build(sukku_plan);
   } else if (kilchberg.In(lat_lon)) {
-    printf("kilchberg plan\n");
-    fprintf(stderr, "kilchberg plan");
+    fprintf(stderr, "kilchberg plan\n");
     plan_.Build(kilchberg_plan);
   } else if (thalwil.In(lat_lon)) {
-    printf("thalwil plan\n");
-    fprintf(stderr, "thalwil plan");
+    fprintf(stderr, "thalwil plan\n");
     plan_.Build(thalwil_plan);
   } else if (horgen.In(lat_lon)) {
-    printf("horgen plan\n");
-    fprintf(stderr, "horgen plan");
+    fprintf(stderr, "horgen plan\n");
     plan_.Build(horgen_plan);
   } else if (au.In(lat_lon)) {
-    printf("au plan\n");
-    fprintf(stderr, "au plan");
+    fprintf(stderr, "au plan\n");
     plan_.Build(au_plan);
   } else if (waedenswil.In(lat_lon)) {
-    printf("waedenswil plan\n");
-    fprintf(stderr, "waedenswil plan");
+    fprintf(stderr, "waedenswil plan\n");
     plan_.Build(waedenswil_plan);
   } else if (wollerau.In(lat_lon)) {
-    printf("wollerau plan\n");
-    fprintf(stderr, "wollerau plan");
+    fprintf(stderr, "wollerau plan\n");
     plan_.Build(wollerau_plan);
   } else {
-    fprintf(stderr, "According to our GPS we are not on lake zuerich.");
-    fprintf(stderr, "lat %8.6lg lon %8.6lg ", lat_lon.lat, lat_lon.lon);
+    fprintf(stderr, "According to our GPS we are not on lake zuerich.\n");
+    fprintf(stderr, "lat %8.6lg lon %8.6lg \n", lat_lon.lat, lat_lon.lon);
     if (brest.In(lat_lon)) {
-      fprintf(stderr, "According to our GPS we are near Brest.");
-      fprintf(stderr, "lat %8.6lg lon %8.6lg ", lat_lon.lat, lat_lon.lon);
+      fprintf(stderr, "According to our GPS we are near Brest.\n");
+      fprintf(stderr, "lat %8.6lg lon %8.6lg \n", lat_lon.lat, lat_lon.lon);
     } else {
-      fprintf(stderr, "According to our GPS we are in the middle of our journey");
-      fprintf(stderr, "lat %8.6lg lon %8.6lg", lat_lon.lat, lat_lon.lon);
+      fprintf(stderr, "According to our GPS we are in the middle of our journey\n");
+      fprintf(stderr, "lat %8.6lg lon %8.6lg\n", lat_lon.lat, lat_lon.lon);
     }
-    fprintf(stderr, "Caribbean plan");
+    fprintf(stderr, "Caribbean plan\n");
     plan_.Build(caribbean_plan);
-    fprintf(stderr, "Built the Caribbean plan");
+    fprintf(stderr, "Built the Caribbean plan\n");
   }
 }
 
 double Planner::ToDeg(double lat_deg, double lon_deg) {
-  //fprintf(stderr, "ToDeg %lg %lg\n", lat_deg, lon_deg);
+ // fprintf(stderr, "ToDeg %lg %lg\n", lat_deg, lon_deg);
 
   CHECK(!isnan(lat_deg));
   CHECK(!isnan(lon_deg));
@@ -85,24 +78,25 @@ double Planner::ToDeg(double lat_deg, double lon_deg) {
   if (!initialized_) {
     Init(lat_lon);
     initialized_ = true;
-    printf("initialized\n");
   }
   if (plan_.TargetReached(lat_lon)) {
-    fprintf(stderr, "Hurray! Target Reached! CrissCrossing now.");
-    fprintf(stderr, "On Target\n");
-    if (NowSeconds() > last_turn_time_ + 120) {
+    fprintf(stderr, "Hurray! Target Reached!\n");
+    if (NowSeconds() > last_turn_time_ + 120) { // TODO: Increase this time after lake tests!
       last_turn_time_ = NowSeconds();
-      alpha_star_ = NormalizeDeg(alpha_star_ + 165);
-      fprintf(stderr, "Turning by 165 to %lf.", alpha_star_);
-    } else {
-      fprintf(stderr, "Not turning.");
+      alpha_star_ = NormalizeDeg(alpha_star_ - 90);
+      fprintf(stderr, "Turn left to %lf.", alpha_star_);
     }
   } else {
     alpha_star_ = plan_.ToDeg(lat_deg, lon_deg);
+    // fprintf(stderr, "Planner alpha_star %lf.\n", alpha_star_);
   }
   return alpha_star_;
 }
 
 bool Planner::TargetReached(const LatLon& lat_lon){
   return plan_.TargetReached(lat_lon);
+}
+
+bool Planner::Initialized() {
+  return initialized_;
 }
