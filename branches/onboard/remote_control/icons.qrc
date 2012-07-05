@@ -1,0 +1,13 @@
+<RCC>
+    <qresource prefix="/icons">
+        <file>connect.png</file>
+        <file>dock.png</file>
+        <file>override.png</file>
+        <file>auto_pilot.png</file>
+        <file>brake.png</file>
+        <file>idle.png</file>
+    </qresource>
+    <qresource prefix="/images">
+        <file>water_texture.png</file>
+    </qresource>
+</RCC>
