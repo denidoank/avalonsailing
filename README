@@ -10,10 +10,6 @@ sailboat to sail autonomously across the Atlantic as part of the
 MicroTransat Challenge (http://www.microtransat.org/2011.php). For
 more information see: http://code.google.com/p/avalonsailing/
 
-(*) Note: Googlers can add themselves to the AUTHORS list.  ETH
-students please hold off until we've written up the agreement, after
-which this note will be deleted/modified.
-
 The layout of this directory
 ============================
 <root>
@@ -22,8 +18,6 @@ The layout of this directory
 
         mk/             The build system, see mk/README
                 Makefile.*.template     copy one of these to your subsystems directory.
-
-        doc/            Human readable documentation that for some reason isn't on the Wiki.
 
         planner/        Global route planning given destination, prevailing winds and currents.
 
@@ -34,23 +28,5 @@ The layout of this directory
                 ...                    
 
         io/             Input and output to the sensors and actuators.
-                sail/
-                rudder/
                 .../
 
-Changelists and Code reviews
-============================
-
-This code is hosted on code.google.com, and the review process is
-through Rietveld at codereview.appspot.com Try to find a reviewer from
-'above' and 'below' your layer in the overall system.
- 
-
-Conventions, rules, guidelines, etc
-==================================
- *  On the boat: C/C++ only, on shore (i.e. the planner): anything
- *  Try to keep the style Google conform.
- *  Two reviewers for every commit.
- *  Review for reliability as the most important attribute of the code.
- *  Dependencies must be a strict DAG.
- *  No Google-internal code.      
