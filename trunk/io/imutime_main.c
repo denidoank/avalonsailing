@@ -15,6 +15,7 @@
 #include <string.h>
 #include <syslog.h>
 #include <sys/time.h>
+#include <unistd.h>
 
 #include "../proto/imu.h"
 #include "log.h"
@@ -32,6 +33,7 @@ usage(void)
 		"usage: [plug -o /path/to/bus |] %s [options]\n"
 		"options:\n"
 		"\t-d debug (don't syslog)\n"
+		"\t-g 30 guard time (minutes): if imu time is unavailable for more than this many minutes, exit."
 		, argv0);
 	exit(2);
 }
@@ -50,16 +52,21 @@ static int cmpuint64(const void* a, const void* b) {
 	return *aa - *bb;
 }
 
+static int alarm_s = 30*60;
+
+void timeout() { crash("No valid imu time for %d minutes.", alarm_s/60); }
+
 int main(int argc, char* argv[]) {
 	int ch;
 
 	argv0 = strrchr(argv[0], '/');
 	if (argv0) ++argv0; else argv0 = argv[0];
 
-	while ((ch = getopt(argc, argv, "dhv")) != -1){
+	while ((ch = getopt(argc, argv, "dg:hv")) != -1){
 		switch (ch) {
 		case 'd': ++debug; break;
 		case 'v': ++verbose; break;
+		case 'g': alarm_s = 60*atoi(optarg); break;
 		case 'h': 
 		default:
 			usage();
@@ -71,10 +78,11 @@ int main(int argc, char* argv[]) {
 
 	if (argc != 0) usage();
 
-	if (!debug) openlog(argv0, debug?LOG_PERROR:0, LOG_DAEMON);
+	openlog(argv0, debug?LOG_PERROR:0, LOG_DAEMON);
 
 	if (signal(SIGBUS, fault) == SIG_ERR)  crash("signal(SIGBUS)");
 	if (signal(SIGSEGV, fault) == SIG_ERR)  crash("signal(SIGSEGV)");
+	if (signal(SIGALRM, timeout) == SIG_ERR)  crash("signal(SIGSALRM)");
 
 	struct IMUProto imu = INIT_IMUPROTO;
 	char line[1024];
@@ -84,10 +92,13 @@ int main(int argc, char* argv[]) {
 	const int N = (sizeof(diffs) / sizeof(diffs[0]));
 	int i = 0;
 
+	if (alarm_s) alarm(alarm_s);
+
 	while (!feof(stdin)) {
 		while(fgets(line, sizeof line, stdin)) {
 			if (!sscanf(line, IFMT_IMUPROTO(&imu, &nn))) continue;
 			if (imu.timestamp_ms == 0) continue;
+			if (alarm_s) alarm(alarm_s);
 			if (imu.timestamp_ms - lastadj_ms < 60*1000) continue;
 			int64_t now = now_ms();
 			int ii = ++i % N;
