@@ -1,4 +1,4 @@
-#summary Everything to do to get ready for lake tests in 2012.
+#summary Everything to do to in 2012.
 
 = To Do Items =
 
@@ -48,7 +48,7 @@
 || Fix odd sail drive behaviour. Leave brake released. Brake 10s after the last reference value change. || lvd/done ||
 || Make image and put controller into boat. || lvd&liam/ ||
 || Make imucfg reset the IMU if it produces invalid messages for half an hour || lvd ||
-
+|| Check system power management options. Currently the computer gets rather hot when not loaded. ||  ||
 
 
 
