@@ -5,8 +5,8 @@
 // Rate limit radians angles with correct handling of wrap arounds.
 
 #include <math.h>
-#include "common/check.h"
-#include "common/normalize.h"
+#include "check.h"
+#include "normalize.h"
 
 namespace {
 

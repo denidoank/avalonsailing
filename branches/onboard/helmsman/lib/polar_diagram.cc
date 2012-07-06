@@ -4,10 +4,10 @@
 // Author: grundmann@google.com (Steffen Grundmann)
 #include <math.h>
 
-#include "common/check.h"
-#include "common/convert.h"
-#include "common/delta_angle.h"
-#include "common/normalize.h"
+#include "check.h"
+#include "convert.h"
+#include "delta_angle.h"
+#include "normalize.h"
 
 namespace {
 const double kTackZoneDeg = 50;        // degrees, a safe guess.

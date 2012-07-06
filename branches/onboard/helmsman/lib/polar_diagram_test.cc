@@ -2,11 +2,11 @@
 // Use of this source code is governed by the Apache License 2.0
 // that can be found in the LICENSE file.
 // Author: grundmann@google.com (Steffen Grundmann)
-#include "common/polar_diagram.h"
+#include "polar_diagram.h"
 
 #include <math.h>
 #include <stdio.h>
-#include "common/convert.h"
+#include "convert.h"
 #include "lib/testing/testing.h"
 
 // print polar diagram as x-y-chart.

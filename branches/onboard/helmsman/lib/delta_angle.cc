@@ -4,10 +4,10 @@
 // Steffen Grundmann, May 2011
 
 // Functions to handle [-pi, pi) angles and their differences
-#include "common/delta_angle.h"
+#include "delta_angle.h"
 
 #include <math.h>
-#include "common/normalize.h"
+#include "normalize.h"
 
 double DeltaOldNewRad(double old_rad, double new_rad) {
   return SymmetricRad(new_rad - old_rad);

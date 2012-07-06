@@ -5,8 +5,8 @@
 // December 2011
 
 #include <math.h>
-#include "common/probe.h"
-#include "common/check.h"
+#include "probe.h"
+#include "check.h"
 
 Probe::Probe() {
   Reset();

@@ -8,9 +8,9 @@
 #include <math.h>
 #include <stdio.h>
 
-#include "common/check.h"
-#include "common/convert.h"
-#include "common/normalize.h"
+#include "check.h"
+#include "convert.h"
+#include "normalize.h"
 
 Polar::Polar(double alpha_rad, double mag)
     : alpha_(alpha_rad),
