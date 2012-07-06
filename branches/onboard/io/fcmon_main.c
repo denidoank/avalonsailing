@@ -15,6 +15,7 @@
 #include <string.h>
 #include <termios.h>
 #include <time.h>
+#include <sys/time.h>
 #include <unistd.h>
 
 #include "proto/fuelcell.h"
@@ -22,7 +23,6 @@
 #include "log.h"
 
 static const char* argv0;
-static int verbose = 0;
 static int debug = 0;
 
 static void
