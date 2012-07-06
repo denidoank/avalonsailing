@@ -67,7 +67,7 @@ LIBA = lib.a
 
 lib.a: $(LIB_CCSRCS:.cc=.o) $(LIB_CSRCS:.c=.o)
 	@rm -f $@
-	$(AR) -v -q $@ $^
+	@$(AR) -v -q $@ $^
 endif
 
 $(BIN_CCSRCS:_main.cc=) $(BIN_CSRCS:_main.c=) \

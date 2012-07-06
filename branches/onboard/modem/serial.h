@@ -6,7 +6,7 @@
 
 #include <stdio.h>
 
-#include "lib/util/reader.h"
+#include "reader.h"
 
 // Wrapper class for a bi-directional serial-port.
 //

@@ -1,7 +1,7 @@
 // Copyright 2011 The Avalon Project Authors. All rights reserved.
 // Use of this source code is governed by the Apache License 2.0
 // that can be found in the LICENSE file.
-#include "modem/sms.h"
+#include "sms.h"
 
 #include <stdio.h>
 #include <string.h>

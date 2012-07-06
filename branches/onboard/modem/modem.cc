@@ -1,9 +1,9 @@
 // Copyright 2011 The Avalon Project Authors. All rights reserved.
 // Use of this source code is governed by the Apache License 2.0
 // that can be found in the LICENSE file.
-#include "lib/util/reader.h"
-#include "modem/modem.h"
-#include "modem/sms.h"
+#include "reader.h"
+#include "modem.h"
+#include "sms.h"
 
 #include <ctype.h>
 #include <errno.h>
@@ -27,11 +27,12 @@
 // Maximum size of the encoded SMS PDU message.
 #define MAX_SMS_PDU_LENGTH 256
 
-#define PI 3.1415926
-
 // Iridium time shift compared with UNIX time.
-#define IRIDIUM_SYSTEM_TIME_SHIFT 833587211
 
+// Iridium system time epoch: March 8, 2007, 03:50:21.00 GMT. 
+// (Note: the original Iridium system time epoch was June 1, 1996, 00:00:11 GMT, and was reset to the new epoch in January, 2008).
+// #define IRIDIUM_SYSTEM_TIME_SHIFT_S 833587211  //  June 1, 1996, 00:00:11 GMT on 
+#define IRIDIUM_SYSTEM_TIME_SHIFT_S 1173325821  //  Thu Mar  8 03:50:21 UTC 2007
 
 // Extract a comma separated list of integers from a string.
 // The list can be comma separated and may have quotes. Example: 2, "6",005.
@@ -52,11 +53,6 @@ vector<int> get_int_list(const string& str, const vector<int>& base) {
   return ints;
 }
 
-Modem::Modem() {
-}
-
-Modem::~Modem() {
-}
 
 bool Modem::Init(const char *devname) {
   if (!serial_.Init(devname, B9600)) {
@@ -138,8 +134,7 @@ Modem::ResultCode Modem::GetNetworkRegistration(bool* registered) {
     *registered = false;
     while (!async_status_.empty()) {
       if (async_status_.front().substr(0, 6) == "+CREG:") {
-        vector<int> ints = get_int_list(async_status_.front().substr(6),
-                                        vector<int>(2, 10));
+        vector<int> ints = get_int_list(async_status_.front().substr(6), vector<int>(2, 10));
         if (ints.size() >= 2 && (ints[1] == 1 || ints[1] == 5)) {
           // Registered home network (1) or roaming (5).
           *registered = true;
@@ -157,8 +152,7 @@ Modem::ResultCode Modem::GetSignalQuality(int* signal_quality) {
     *signal_quality = 0;
     while (!async_status_.empty()) {
       if (async_status_.front().substr(0, 5) == "+CSQ:") {
-        vector<int> ints = get_int_list(async_status_.front().substr(5),
-                                        vector<int>(1, 10));
+        vector<int> ints = get_int_list(async_status_.front().substr(5), vector<int>(1, 10));
         if (ints.size() >= 1)
 	  *signal_quality = ints[0];
       }
@@ -168,23 +162,21 @@ Modem::ResultCode Modem::GetSignalQuality(int* signal_quality) {
   return result;  
 }
 
-Modem::ResultCode Modem::GetGeolocation(double* lat, double* lng,
-                                        time_t* timestamp) {
+Modem::ResultCode Modem::GetGeolocation(double* lat, double* lng, int64_t* timestamp_ms) {
   ResultCode result = SendCommand("AT-MSGEO");
   if (result == OK) {
     while (!async_status_.empty()) {
       *lat = *lng = 0.0;
-      *timestamp = 0;
+      *timestamp_ms = 0;
       if (async_status_.front().substr(0, 7) == "-MSGEO:") {
         vector<int> base(3, 10);  // Expect 3 integers for x, y, z.
         base.push_back(16);  // and one hexa timestamp.
         vector<int> ints = get_int_list(async_status_.front().substr(7), base);
         if (ints.size() == 4) {
-          *lat = atan2(ints[2], sqrt(ints[0] * ints[0] + ints[1] * ints[1])) *
-                 180.0 / PI;
-          *lng = atan2(ints[1], ints[0]) * 180.0 / PI;
+          *lat = atan2(ints[2], sqrt(ints[0] * ints[0] + ints[1] * ints[1])) * (180.0 / M_PI);
+          *lng = atan2(ints[1], ints[0]) * (180.0 / M_PI);
           // Iridium clock runs on 90ms frequency.
-          *timestamp = ints[3] / (1000.0 / 90) + IRIDIUM_SYSTEM_TIME_SHIFT;
+          *timestamp_ms = ints[3] * 90LL + (IRIDIUM_SYSTEM_TIME_SHIFT_S * 1000LL);
         }
       }
       async_status_.pop_front();
