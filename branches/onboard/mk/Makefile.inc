@@ -13,7 +13,7 @@
 # everything else goes into lib.a
 #
 # if a dependency lib.a, this will recurse into that modules directory and run make,
-# but it will not rebuilt if it's out of date.   For that, run 'make all' in the top
+# but it will not rebuild if it's out of date.   For that, run 'make all' in the top
 # level directory.
 
 # C++ Source files
@@ -26,15 +26,6 @@ BIN_CSRCS = $(wildcard *_main.c)
 TST_CSRCS = $(wildcard *_test.c)
 LIB_CSRCS = $(filter-out $(BIN_CSRCS) $(TST_CSRCS), $(wildcard *.c))
 
-# Configuration files
-CONF_SRCS = $(wildcard *.conf)
-TEST_CONF_SRCS = $(wildcard *_test.conf)
-
-CONF_FILES = $(filter-out $(TEST_CONF_SRCS), $(CONF_SRCS))
-
-# Initscripts files
-INIT_FILES = $(wildcard S*.sh)
-
 # All the binaries we've found
 BINARIES = $(BIN_CCSRCS:_main.cc=) $(BIN_CSRCS:_main.c=)
 
@@ -42,10 +33,9 @@ BINARIES = $(BIN_CCSRCS:_main.cc=) $(BIN_CSRCS:_main.c=)
 TOP = $(realpath $(dir $(lastword $(MAKEFILE_LIST)))..)
 
 # make includes relative to the top work
-CFLAGS+=-I$(TOP) -m32 -Wall
-CXXFLAGS+=-I$(TOP) -fno-rtti -fno-exceptions -m32 -Wall
-LDFLAGS+=-fno-rtti -fno-exceptions -m32
-INSTALL = install
+CFLAGS+=-I$(TOP) -Wall
+CXXFLAGS+=-I$(TOP) -fno-rtti -fno-exceptions -Wall
+LDFLAGS+=-fno-rtti -fno-exceptions
 
 .PHONY: all bin test test.run clean
 
@@ -65,23 +55,6 @@ test: $(TST_CCSRCS:.cc=) $(TST_CSRCS:.c=)
 install: $(BINARIES)
 ifneq ($(strip $(BINARIES)),)
 	$(INSTALL) $+ $(DESTDIR)/usr/bin
-endif
-
-# temporary for ease in laketests
-installscp: $(BINARIES)
-ifneq ($(strip $(BINARIES)),)
-	scp $+ root@192.168.1.29:/usr/bin/
-	scp start_avalon.sh root@192.168.1.29:/usr/bin/
-endif
-
-installconf: $(CONF_FILES)
-ifneq ($(strip $(CONF_FILES)),)
-	$(INSTALL) $+ $(DESTDIR)/etc
-endif
-
-installinit: $(INIT_FILES)
-ifneq ($(strip $(INIT_FILES)),)
-	$(INSTALL) $+ $(DESTDIR)/etc/init.d
 endif
 
 test.run: $(TST_CCSRCS:.cc=.run) $(TST_CSRCS:.c=.run)
