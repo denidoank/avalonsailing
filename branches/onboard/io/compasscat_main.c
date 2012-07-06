@@ -39,8 +39,9 @@ usage(void)
 		"usage: %s [options] /dev/ttyXX\n"
 		"options:\n"
 		"\t-b baudrate (default 19200)\n"
-		"\t-d debug, -dd is open argument as plain file)\n",
-		argv0);
+		"\t-d debug, -dd is open argument as plain file\n"
+		"\t-g seconds default 10, use 0 to disable:if no signal for this many seconds, exit.\n"
+		, argv0);
 	exit(2);
 }
 
@@ -78,6 +79,8 @@ parse_compass(char* sentence, struct CompassProto* cp)
 	return 0;
 }
 
+static int alarm_s = 10;
+static void timeout() { crash("No valid compass signal for %d seconds.", alarm_s); }
 
 int main(int argc, char* argv[]) {
 
@@ -87,10 +90,11 @@ int main(int argc, char* argv[]) {
 	argv0 = strrchr(argv[0], '/');
 	if (argv0) ++argv0; else argv0 = argv[0];
 
-	while ((ch = getopt(argc, argv, "b:dh")) != -1){
+	while ((ch = getopt(argc, argv, "b:dg:h")) != -1){
 		switch (ch) {
 		case 'b': baudrate = atoi(optarg); break;
 		case 'd': ++debug; break;
+		case 'g': alarm_s = atoi(optarg); break;
 		case 'h': 
 		default:
 			usage();
@@ -104,8 +108,14 @@ int main(int argc, char* argv[]) {
 
 	if (!debug) openlog(argv0, LOG_PERROR, LOG_DAEMON);
 
+	if (signal(SIGBUS, fault) == SIG_ERR)  crash("signal(SIGBUS)");
+	if (signal(SIGSEGV, fault) == SIG_ERR)  crash("signal(SIGSEGV)");
+	if (signal(SIGALRM, timeout) == SIG_ERR)  crash("signal(SIGSALRM)");
+
 	if(setvbuf(stdout, NULL, _IOLBF, 0))
 		syslog(LOG_WARNING, "Failed to make stdout line-buffered.");
+
+	if (alarm_s) alarm(2*alarm_s);
 
 	// Open serial port.
 	int port = -1;
@@ -164,6 +174,7 @@ int main(int argc, char* argv[]) {
 		}
 
 		garbage = 0;
+		if (alarm_s) alarm(alarm_s);
 
 		if (strncmp(start, "C", 1) == 0) {
 			struct CompassProto vars = INIT_COMPASSPROTO;

@@ -17,8 +17,9 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-#include "../proto/imu.h"
+#include "proto/imu.h"
 #include "log.h"
+#include "timer.h"
 
 // -----------------------------------------------------------------------------
 // static const char* version = "$Id: $";
@@ -32,17 +33,9 @@ usage(void)
 		"usage: [plug -o /path/to/bus |] %s [options]\n"
 		"options:\n"
 		"\t-d debug (don't syslog)\n"
-		"\t-g 30 guard time (minutes): if imu time is unavailable for more than this many minutes, exit."
+		"\t-g 30 guard time (minutes): if imu time is unavailable for more than this many minutes, exit. 0 to disable."
 		, argv0);
 	exit(2);
-}
-
-static uint64_t now_ms() {
-	struct timeval tv;
-	if (gettimeofday(&tv, NULL) < 0) crash("gettimeofday");
-	uint64_t ms1 = tv.tv_sec;  ms1 *= 1000;
-	uint64_t ms2 = tv.tv_usec; ms2 /= 1000;
-	return ms1 + ms2;
 }
 
 static int cmpuint64(const void* a, const void* b) {
@@ -53,7 +46,7 @@ static int cmpuint64(const void* a, const void* b) {
 
 static int alarm_s = 30*60;
 
-void timeout() { crash("No valid imu time for %d minutes.", alarm_s/60); }
+static void timeout() { crash("No valid imu time for %d minutes.", alarm_s/60); }
 
 int main(int argc, char* argv[]) {
 	int ch;

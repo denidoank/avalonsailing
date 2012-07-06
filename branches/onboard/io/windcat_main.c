@@ -43,8 +43,9 @@ usage(void)
 		"usage: %s [options] /dev/ttyXX\n"
 		"options:\n"
 		"\t-a bias	add this many degrees to measured angle\n"
-		"\t-b baudrate         (default 4800)\n"
-		"\t-d debug            (don't syslog, -dd is open serial as plain file)\n"
+		"\t-b baudrate  (default 4800)\n"
+		"\t-d debug     -dd is open serial as plain file\n"
+		"\t-g seconds   default 10, use 0 to disable:if no signal for this many seconds, exit.\n"
 		, argv0);
 	exit(2);
 }
@@ -112,6 +113,10 @@ int parse_wixdr(char* sentence, struct WixdrProto* wp) {
 	return n == 16;
 }
 
+
+static int alarm_s = 10;
+static void timeout() { crash("No valid wind signal for %d seconds.", alarm_s); }
+
 // -----------------------------------------------------------------------------
 
 int main(int argc, char* argv[]) {
@@ -123,11 +128,12 @@ int main(int argc, char* argv[]) {
 	argv0 = strrchr(argv[0], '/');
 	if (argv0) ++argv0; else argv0 = argv[0];
 
-	while ((ch = getopt(argc, argv, "a:b:dh")) != -1){
+	while ((ch = getopt(argc, argv, "a:b:dg:h")) != -1){
 		switch (ch) {
 		case 'a': bias_deg = strtod(optarg, NULL); break;
 		case 'b': baudrate = atoi(optarg); break;
 		case 'd': ++debug; break;
+		case 'g': alarm_s = atoi(optarg); break;
 		case 'h': 
 		default:
 			usage();
@@ -141,11 +147,15 @@ int main(int argc, char* argv[]) {
 	
 	if (signal(SIGBUS, fault) == SIG_ERR)  crash("signal(SIGBUS)");
 	if (signal(SIGSEGV, fault) == SIG_ERR)  crash("signal(SIGSEGV)");
+	if (signal(SIGALRM, timeout) == SIG_ERR)  crash("signal(SIGSALRM)");
 
-	if (!debug) openlog(argv0, LOG_PERROR, LOG_DAEMON);
+	openlog(argv0, debug?LOG_PERROR:0, LOG_DAEMON);
 
 	if(setvbuf(stdout, NULL, _IOLBF, 0))
 		syslog(LOG_WARNING, "Failed to make stdout line-buffered.");
+
+	
+	if (alarm_s) alarm(2*alarm_s);
 
 	// Open serial port.
 	int port = -1;
@@ -204,6 +214,7 @@ int main(int argc, char* argv[]) {
 		}
 
 		garbage = 0;
+		if (alarm_s) alarm(alarm_s);
 
 		if (strncmp(start, "WIMWV", 5) == 0) {
 			struct WindProto vars = { now_ms(), 0, 0, 0 };

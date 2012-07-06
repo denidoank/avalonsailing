@@ -1,0 +1,48 @@
+This directory contains the binaries for low level i/o in avalon, and
+the 'linebus' to glue them all together.
+
+The linebusd maintains a unix socket to accepts client connections,
+and for each client it writes every line that comes in to all other
+clients, making sure blocking clients dont' interrupt the rest of the
+flow.  The linebus has no idea about the contents of the lines, but
+allows clients to receive only messages that match a prefix. The
+messages on the bus are almost all formatted by the OFMT_xxx macros in
+../proto/*.h, with the exception of the ais: messages which are
+variadic.
+
+All main binaries end in _main.c, the rest is put in lib.a.
+All programs print a short usage notice when invoked without parameters.
+
+the linebus:
+
+	linebusd    server for a line oriented message bus over a unix socket
+	plug        generic client for linebusd
+	loadtestrecv, loadtestsend: test loads for linebusd/plug used by test_linebus.sh
+
+input related:
+
+	aiscat      decode NMEA sentences with AIS messages
+	aisbuf      read output from aiscat and maintain a text file with the last entry per vessel.
+
+	compasscat  decode NMEA sentences from the Oceanserver OS500 digital compass
+	windcat	    decode NMEA sentences from the DEIF Ultrasonic wind measuring system WSS
+
+	imucat	    decode "mtcp" messages from the Xsens IMU
+	imucfg      connect to the Xsens IMU and configure it for correct operation with imucat
+	imutime	    read output from imucat and adjust the system time to the GPS time
+
+	fcmon	    probe and decode status messages from the Efoy Pro Fuel Cell.
+
+actuator related:
+
+	eposcom	    read/write 'ebus' protocol on stdin/out and communicate with an EPOS 24/5 on a serial port.
+	skewmon	    monitor the correspondence between the BMMH absolute position and the sail's Epos position.
+	eposmon     report epos communication errors and fault states to syslog
+	eposprobe   heartbeat to ask for epos status registers
+	drivests    read epos status registers and decode sail and rudder positions
+	rudderctl   read rudderctl: messages and try to get a rudder to the desired state
+	sailctl     read rudderctl: messages and try to get the sail to the desired state
+
+
+
+
