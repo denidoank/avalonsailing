@@ -22,6 +22,7 @@ struct Timer {
 };
 
 int64_t now_us();  // current time in microseconds.  calls gettimeofday(2).
+int64_t now_ms();  // current time in milliseconds.  now_us()/1000
 
 enum { TIMER_START = 1, TIMER_STOP = 0 /*, TIMER_RESTART = 2 */ };
 

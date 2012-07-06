@@ -19,12 +19,7 @@
 #include "actuator.h"
 #include "com.h"
 
-// -----------------------------------------------------------------------------
-//   Together with getopt in main, this is our minimalistic UI
-// -----------------------------------------------------------------------------
-// static const char* version = "$Id: $";
 static const char* argv0;
-static int verbose = 0;
 static int debug = 0;
 
 static void usage(void) {
@@ -87,12 +82,11 @@ int main(int argc, char* argv[]) {
 	argv0 = strrchr(argv[0], '/');
 	if (argv0) ++argv0; else argv0 = argv[0];
 
-	while ((ch = getopt(argc, argv, "dhn:vx:")) != -1){
+	while ((ch = getopt(argc, argv, "dhn:x:")) != -1){
 		switch (ch) {
 		case 'd': ++debug; break;
 		case 'n': min_s = atoi(optarg); break;
 		case 'x': max_s = atoi(optarg); break;
-		case 'v': ++verbose; break;
 		case 'h': 
 		default:
 			usage();

@@ -22,36 +22,10 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-// -----------------------------------------------------------------------------
-//   Together with getopt in main, this is our minimalistic UI
-// -----------------------------------------------------------------------------
+#include "log.h"
 
-// static const char* version = "$Id: $";
 static const char* argv0;
-static int verbose = 0;
 static int debug = 0;
-
-static void
-crash(const char* fmt, ...)
-{
-	va_list ap;
-	char buf[1000];
-	va_start(ap, fmt);
-	vsnprintf(buf, sizeof(buf), fmt, ap);
-	if (debug)
-		fprintf(stderr, "%s:%s%s%s\n", argv0, buf,
-			(errno) ? ": " : "",
-			(errno) ? strerror(errno):"" );
-	else
-		syslog(LOG_CRIT, "%s%s%s\n", buf,
-		       (errno) ? ": " : "",
-		       (errno) ? strerror(errno):"" );
-	exit(1);
-	va_end(ap);
-	return;
-}
-
-static void fault() { crash("fault"); }
 
 static void
 usage(void)
@@ -77,7 +51,10 @@ static struct AISMsg {
         int tail;
 } *msgs = NULL;
 
-static int samemsg(struct AISMsg *a, struct AISMsg *b) {
+
+static int
+samemsg(struct AISMsg *a, struct AISMsg *b)
+{
 	if (a->mmsi != b->mmsi) return 0;
 	if (a->msgtype == b->msgtype) return 1;
 	switch(a->msgtype) {
@@ -96,7 +73,9 @@ static int samemsg(struct AISMsg *a, struct AISMsg *b) {
 // otherwise.  if the buffer overflows before EOL sets the discard flag which will
 // cause the current line to be discarded until an EOL is found.
 // the line will be 0-terminated.
-static int msg_read(int fd, struct AISMsg* lb) {
+static int
+msg_read(int fd, struct AISMsg* lb)
+{
         int n = read(fd, lb->line+lb->head, sizeof(lb->line) - lb->head - 1);
         switch (n) {
         case 0:
@@ -129,12 +108,11 @@ int main(int argc, char* argv[]) {
 	argv0 = strrchr(argv[0], '/');
 	if (argv0) ++argv0; else argv0 = argv[0];
 
-	while ((ch = getopt(argc, argv, "u:g:dhv")) != -1){
+	while ((ch = getopt(argc, argv, "u:g:dh")) != -1){
 		switch (ch) {
 		case 'u': update_s = atoi(optarg); break;
 		case 'g': garbage_s = atoi(optarg); break;
 		case 'd': ++debug; break;
-		case 'v': ++verbose; break;
 		case 'h': 
 		default:
 			usage();

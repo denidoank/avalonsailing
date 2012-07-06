@@ -28,37 +28,13 @@
 
 #include "../proto/wind.h"
 
+#include "log.h"
+#include "timer.h"
+
 #define DEFAULT_BIAS_DEG -120.0
 
-// -----------------------------------------------------------------------------
-//   Together with getopt in main, this is our minimalistic UI
-// -----------------------------------------------------------------------------
-// static const char* version = "$Id: $";
 static const char* argv0;
-static int verbose = 0;
 static int debug = 0;
-
-static void
-crash(const char* fmt, ...)
-{
-	va_list ap;
-	char buf[1000];
-	va_start(ap, fmt);
-	vsnprintf(buf, sizeof(buf), fmt, ap);
-	if (debug)
-		fprintf(stderr, "%s:%s%s%s\n", argv0, buf,
-			(errno) ? ": " : "",
-			(errno) ? strerror(errno):"" );
-	else
-		syslog(LOG_CRIT, "%s%s%s\n", buf,
-		       (errno) ? ": " : "",
-		       (errno) ? strerror(errno):"" );
-	exit(1);
-	va_end(ap);
-	return;
-}
-
-static void fault() { crash("fault"); }
 
 static void
 usage(void)
@@ -73,22 +49,11 @@ usage(void)
 	exit(2);
 }
 
-
-static int64_t
-now_ms() 
-{
-        struct timeval tv;
-        if (gettimeofday(&tv, NULL) < 0) crash("no working clock");
-
-        int64_t ms1 = tv.tv_sec;  ms1 *= 1000;
-        int64_t ms2 = tv.tv_usec; ms2 /= 1000;
-        return ms1 + ms2;
-}
-
-
 // -----------------------------------------------------------------------------
 // Return NULL if not valid, or a pointer to the 2+3 sender/message type field
-char* valid_nmea(char* line) {
+static char*
+valid_nmea(char* line)
+{
 	char* start = strchr(line, '$');
 	if (!start) return NULL;
 	char* chk = strchr(start, '*');
@@ -158,12 +123,11 @@ int main(int argc, char* argv[]) {
 	argv0 = strrchr(argv[0], '/');
 	if (argv0) ++argv0; else argv0 = argv[0];
 
-	while ((ch = getopt(argc, argv, "a:b:dhv")) != -1){
+	while ((ch = getopt(argc, argv, "a:b:dh")) != -1){
 		switch (ch) {
 		case 'a': bias_deg = strtod(optarg, NULL); break;
 		case 'b': baudrate = atoi(optarg); break;
 		case 'd': ++debug; break;
-		case 'v': ++verbose; break;
 		case 'h': 
 		default:
 			usage();

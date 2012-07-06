@@ -23,7 +23,6 @@
 
 //static const char* version = "$Id: $";
 static const char* argv0;
-static int verbose=0;
 static int debug=0;
 
 static void usage(void) {
@@ -60,13 +59,12 @@ int main(int argc, char* argv[]) {
 	int timeout_ms = 1000;
 	argv0 = argv[0];
 
-	 while ((ch = getopt(argc, argv,"dhrTt:v")) != -1){
+	 while ((ch = getopt(argc, argv,"dhrTt:")) != -1){
 		 switch (ch) {
 		 case 'd': ++debug; break;
 		 case 'r': ++raw; break;
 		 case 'T': ++dotimestamps; break;
 		 case 't': timeout_ms = atoi(optarg); break;
-		 case 'v': ++verbose; break;
 		 default:
 			 usage();
 		 }
