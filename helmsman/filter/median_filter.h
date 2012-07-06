@@ -7,7 +7,7 @@
 #ifndef LIB_FILTER_MEDIAN_FILTER_H
 #define LIB_FILTER_MEDIAN_FILTER_H
 
-#include "lib/filter/filter_interface.h"
+#include "filter_interface.h"
 
 class Median3Filter : public FilterInterface {
  public:

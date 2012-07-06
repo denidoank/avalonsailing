@@ -4,11 +4,11 @@
 // Steffen Grundmann, June 2011
 #include "wrap_around_filter.h"
 
-#include "common/array_size.h"
-#include "common/delta_angle.h"
-#include "common/normalize.h"
+#include "helmsman/lib/array_size.h"
+#include "helmsman/lib/delta_angle.h"
+#include "helmsman/lib/normalize.h"
 #include "lib/testing/testing.h"
-#include "lib/util/stopwatch.h"
+#include "../stopwatch.h"
 
 #include "quick_sliding_average_filter.h"
 #include "sliding_average_filter.h"

@@ -9,7 +9,7 @@
 #ifndef LIB_FILTER_LOW_PASS_FILTER_H
 #define LIB_FILTER_LOW_PASS_FILTER_H
 
-#include "lib/filter/filter_interface.h"
+#include "filter_interface.h"
 
 class LowPass1Filter : public FilterInterface {
  public:

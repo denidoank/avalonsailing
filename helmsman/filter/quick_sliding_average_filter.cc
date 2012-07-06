@@ -3,10 +3,10 @@
 // that can be found in the LICENSE file.
 // Steffen Grundmann, May 2011
 
-#include "lib/filter/quick_sliding_average_filter.h"
+#include "quick_sliding_average_filter.h"
 
 #include <stdio.h>
-#include "common/check.h"
+#include "helmsman/lib/check.h"
 
 QuickSlidingAverageFilter::QuickSlidingAverageFilter(int samples)
     : SlidingAverageFilter:: SlidingAverageFilter(samples),

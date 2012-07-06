@@ -7,7 +7,7 @@
 #ifndef LIB_FILTER_SLIDING_AVERAGE_FILTER_H
 #define LIB_FILTER_SLIDING_AVERAGE_FILTER_H
 
-#include "lib/filter/filter_interface.h"
+#include "filter_interface.h"
 
 class SlidingAverageFilter : public FilterInterface {
  public:

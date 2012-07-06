@@ -9,7 +9,7 @@
 #ifndef LIB_FILTER_QUICK_SLIDING_AVERAGE_FILTER_H
 #define LIB_FILTER_QUICK_SLIDING_AVERAGE_FILTER_H
 
-#include "lib/filter/sliding_average_filter.h"
+#include "sliding_average_filter.h"
 
 class QuickSlidingAverageFilter : public SlidingAverageFilter {
  public:
