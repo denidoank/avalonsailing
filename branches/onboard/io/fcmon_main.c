@@ -21,6 +21,7 @@
 #include "proto/fuelcell.h"
 
 #include "log.h"
+#include "timer.h"
 
 static const char* argv0;
 static int debug = 0;
@@ -35,17 +36,6 @@ usage(void)
 		"\t-p period           (60s)\n"
 		, argv0);
 	exit(2);
-}
-
-static int64_t
-now_ms() 
-{
-        struct timeval tv;
-        if (gettimeofday(&tv, NULL) < 0) crash("no working clock");
-
-        int64_t ms1 = tv.tv_sec;  ms1 *= 1000;
-        int64_t ms2 = tv.tv_usec; ms2 /= 1000;
-        return ms1 + ms2;
 }
 
 static int
@@ -93,8 +83,10 @@ fc_status(FILE *fc)
 }
 
 int main(int argc, char* argv[]) {
+
 	argv0 = strrchr(argv[0], '/');
 	if (argv0) ++argv0; else argv0 = argv[0];
+
 	int ch;
 	int period = 60;
 	while ((ch = getopt(argc, argv, "dp:h")) != -1){
@@ -144,9 +136,12 @@ int main(int argc, char* argv[]) {
 	if (fc == NULL) crash("fdopen");
 	if (setvbuf(fc, NULL, _IONBF, 0) != 0) crash("set unbuffered write");
 	
-	while (1) {
+	while (!ferror(fc)) {
 		fprintf(fc, "sfc\r");
 		if (fc_status(fc) != 0 && debug > 0) crash("fc_status");
 		sleep(period);
 	}
+	
+	 crash("main loop exit");
+	 return 0;
 }

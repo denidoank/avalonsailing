@@ -10,6 +10,7 @@
 #include <string.h>
 #include <sys/time.h>
 
+int64_t now_ms() { return now_us()/1000; }
 int64_t now_us() {
         struct timeval tv;
         if (gettimeofday(&tv, NULL) < 0) {

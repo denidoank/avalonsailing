@@ -18,34 +18,11 @@
 #include <unistd.h>
 
 #include "ais.h"
+#include "log.h"
+#include "timer.h"
 
-// -----------------------------------------------------------------------------
-//   Together with getopt in main, this is our minimalistic UI
-// -----------------------------------------------------------------------------
-// static const char* version = "$Id: $";
 static const char* argv0;
-static int verbose = 0;
 static int debug = 0;
-
-static void
-crash(const char* fmt, ...)
-{
-	va_list ap;
-	char buf[1000];
-	va_start(ap, fmt);
-	vsnprintf(buf, sizeof(buf), fmt, ap);
-	if (debug)
-		fprintf(stderr, "%s:%s%s%s\n", argv0, buf,
-			(errno) ? ": " : "",
-			(errno) ? strerror(errno):"" );
-	else
-		syslog(LOG_CRIT, "%s%s%s\n", buf,
-		       (errno) ? ": " : "",
-		       (errno) ? strerror(errno):"" );
-	exit(1);
-	va_end(ap);
-	return;
-}
 
 static void
 usage(void)
@@ -60,22 +37,11 @@ usage(void)
 	exit(2);
 }
 
-
-static int64_t
-now_ms() 
-{
-        struct timeval tv;
-        if (gettimeofday(&tv, NULL) < 0) crash("no working clock");
-
-        int64_t ms1 = tv.tv_sec;  ms1 *= 1000;
-        int64_t ms2 = tv.tv_usec; ms2 /= 1000;
-        return ms1 + ms2;
-}
-
-
 // -----------------------------------------------------------------------------
 // Return NULL if not valid, or a pointer to the end of the last field
-char* valid_nmea(char* line) {
+static char*
+valid_nmea(char* line)
+{
 	if (line[0] != '!') return NULL;
 	char* chk = strchr(line, '*');
 	if (!chk) return NULL;
@@ -107,11 +73,10 @@ int main(int argc, char* argv[]) {
 	argv0 = strrchr(argv[0], '/');
 	if (argv0) ++argv0; else argv0 = argv[0];
 
-	while ((ch = getopt(argc, argv, "b:dhv")) != -1){
+	while ((ch = getopt(argc, argv, "b:dh")) != -1){
 		switch (ch) {
 		case 'b': baudrate = atoi(optarg); break;
 		case 'd': ++debug; break;
-		case 'v': ++verbose; break;
 		case 'h': 
 		default:
 			usage();

@@ -23,7 +23,6 @@
 // -----------------------------------------------------------------------------
 // static const char* version = "$Id: $";
 static const char* argv0;
-static int verbose = 0;
 static int debug = 0;
 
 static void
@@ -62,10 +61,9 @@ int main(int argc, char* argv[]) {
 	argv0 = strrchr(argv[0], '/');
 	if (argv0) ++argv0; else argv0 = argv[0];
 
-	while ((ch = getopt(argc, argv, "dg:hv")) != -1){
+	while ((ch = getopt(argc, argv, "dg:h")) != -1){
 		switch (ch) {
 		case 'd': ++debug; break;
-		case 'v': ++verbose; break;
 		case 'g': alarm_s = 60*atoi(optarg); break;
 		case 'h': 
 		default:

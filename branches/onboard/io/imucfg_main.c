@@ -31,33 +31,11 @@
 #include <unistd.h>
 
 #include "mtcp.h"
+#include "log.h"
 
-// static const char* version = "$Id: $";
 static const char* argv0;
-static int verbose = 0;
 static int debug = 0;
 
-static void
-crash(const char* fmt, ...)
-{
-	va_list ap;
-	char buf[1000];
-	va_start(ap, fmt);
-	vsnprintf(buf, sizeof(buf), fmt, ap);
-	if (debug)
-		fprintf(stderr, "%s:%s%s%s\n", argv0, buf,
-			(errno) ? ": " : "",
-			(errno) ? strerror(errno):"" );
-	else
-		syslog(LOG_ERR, "%s%s%s\n", buf,
-		       (errno) ? ": " : "",
-		       (errno) ? strerror(errno):"" );
-	exit(1);
-	va_end(ap);
-	return;
-}
-
-static void fault() { crash("fault"); }
 
 static void
 usage(void)
@@ -156,7 +134,7 @@ msg_read(int fd, uint8_t* msg, size_t size)
 			continue;
 		}
 
-		if (debug>2) fprintf(stderr, "Preamble at %d\n", preamble-buf);
+		if (debug>2) fprintf(stderr, "Preamble at %d\n", (int)(preamble-buf));
 
 		if (preamble != buf) {
 			memmove(buf, preamble, preamble-buf);
@@ -231,12 +209,11 @@ int main(int argc, char* argv[]) {
 	argv0 = strrchr(argv[0], '/');
 	if (argv0) ++argv0; else argv0 = argv[0];
 
-	while ((ch = getopt(argc, argv, "c:b:dFhk:m:NRs:vx:y:z:")) != -1){
+	while ((ch = getopt(argc, argv, "c:b:dFhk:m:NRs:x:y:z:")) != -1){
 		switch (ch) {
 		case 'b': baudrate = atoi(optarg); break;
 		case 'c': scenario = atoi(optarg); break;
 		case 'd': ++debug; break;
-		case 'v': ++verbose; break;
 		case 'F': ++factoryreset; break;
 		case 'R': ++reset; break;
 		case 'k': skipf = atoi(optarg); break;
