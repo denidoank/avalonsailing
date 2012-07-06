@@ -4,10 +4,10 @@
 // Steffen Grundmann, May 2011
 
 // 2 median filters over the last 3 or 5 input values.
-#include "lib/filter/median_filter.h"
+#include "median_filter.h"
 
-#include "lib/filter/filter_interface.h"
-#include "lib/filter/median_n.h"
+#include "filter_interface.h"
+#include "median_n.h"
 
 #include <stdio.h>
 

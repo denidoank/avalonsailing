@@ -3,6 +3,6 @@
 // that can be found in the LICENSE file.
 // Steffen Grundmann, May 2011
 
-#include "lib/filter/filter_interface.h"
+#include "filter_interface.h"
 
 FilterInterface::~FilterInterface() {}

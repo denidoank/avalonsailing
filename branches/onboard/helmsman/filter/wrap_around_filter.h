@@ -8,7 +8,7 @@
 #ifndef LIB_FILTER_WRAP_AROUND_FILTER_H
 #define LIB_FILTER_WRAP_AROUND_FILTER_H
 
-#include "lib/filter/filter_interface.h"
+#include "filter_interface.h"
 
 class WrapAroundFilter : public FilterInterface {
  public:

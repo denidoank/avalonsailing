@@ -4,9 +4,9 @@
 // Steffen Grundmann, May 2011
 
 
-#include "lib/filter/low_pass_filter.h"
+#include "low_pass_filter.h"
 
-#include "common/check.h"
+#include "helmsman/lib/check.h"
 
 LowPass1Filter::LowPass1Filter(double time_constant_in_sampling_periods)
     : z_(0), warm_up_(time_constant_in_sampling_periods), valid_(false) {

@@ -2,7 +2,7 @@
 // Use of this source code is governed by the Apache License 2.0
 // that can be found in the LICENSE file.
 // Steffen Grundmann, May 2011
-#include "lib/filter/quick_sliding_average_filter.h"
+#include "quick_sliding_average_filter.h"
 
 #include "lib/testing/testing.h"
 

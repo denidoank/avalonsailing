@@ -3,7 +3,7 @@
 // that can be found in the LICENSE file.
 // Steffen Grundmann, May 2011
 
-#include "lib/filter/low_pass_filter.h"
+#include "low_pass_filter.h"
 
 #include "lib/testing/testing.h"
 

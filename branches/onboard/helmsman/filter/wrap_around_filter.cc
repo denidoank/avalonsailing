@@ -6,13 +6,13 @@
 // An alternative solution for the problem would be the transformation of the vector into the
 // cartesian space.
 
-#include "lib/filter/wrap_around_filter.h"
+#include "wrap_around_filter.h"
 
 #include <math.h>
 #include <stdio.h>
 
-#include "common/check.h"
-#include "common/normalize.h"
+#include "helmsman/lib/check.h"
+#include "helmsman/lib/normalize.h"
 
 
 WrapAroundFilter:: WrapAroundFilter(FilterInterface* filter)
