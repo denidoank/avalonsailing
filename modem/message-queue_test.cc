@@ -1,18 +1,15 @@
 // Copyright 2011 The Avalon Project Authors. All rights reserved.
 // Use of this source code is governed by the Apache License 2.0
 // that can be found in the LICENSE file.
-#include "lib/fm/fm.h"
 #include "lib/testing/testing.h"
 #include "lib/testing/pass_fail.h"
-#include "modem/message-queue.h"
+#include "message-queue.h"
 
 #define QUEUE_DIR     "/tmp/tmp-queue"
 #define TEST_MESSAGE1 "test message 1"
 #define TEST_MESSAGE2 "test message 2"
 
 int main(int argc, char *argv[]) {
-  FM::Init(argc, argv);
-
   // Empty queue.
   MessageQueue queue(QUEUE_DIR);
   queue.EmptyQueue();

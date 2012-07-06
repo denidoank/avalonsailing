@@ -4,10 +4,11 @@
 #ifndef MODEM_MODEM_H__
 #define MODEM_MODEM_H__
  
-#include "lib/util/serial.h"
+#include "serial.h"
 
 #include <list>
 #include <stdio.h>
+#include <stdint.h>
 #include <string>
 #include <time.h>
 
@@ -37,8 +38,6 @@ class Modem {
     string text;
   };
     
-  Modem();
-  ~Modem();
 
   // Connect to device over serial port
   bool Init(const char *devname);
@@ -48,8 +47,8 @@ class Modem {
   ResultCode GetModemSerialNumber(string* modem_sn);
   ResultCode GetNetworkRegistration(bool* registered);
   ResultCode GetSignalQuality(int* signal_strength);
-  // Retreive coarse geolocation, if available. Lat/lng are in decimal format.
-  ResultCode GetGeolocation(double* lat, double* lng, time_t* timestamp);
+  // Retrieve coarse geolocation, if available. Lat/lng are in degrees.
+  ResultCode GetGeolocation(double* lat_deg, double* lng_deg, int64_t* timestamp_ms);
 
   ResultCode ReceiveSMSMessages(list<SmsMessage>* messages);
   ResultCode DeleteSMSMessage(const SmsMessage& message);

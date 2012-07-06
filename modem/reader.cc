@@ -1,7 +1,8 @@
 // Copyright 2011 The Avalon Project Authors. All rights reserved.
 // Use of this source code is governed by the Apache License 2.0
 // that can be found in the LICENSE file.
-#include "lib/util/reader.h"
+
+#include "reader.h"
 
 #include <errno.h>
 #include <fcntl.h>
@@ -11,8 +12,7 @@
 #include <termios.h>
 #include <unistd.h>
 
-#include "lib/fm/log.h"
-#include "lib/util/stopwatch.h"
+#include "stopwatch.h"
 
 namespace {
 // Returns the baudrate that corresponds to speed (which can either be a
@@ -34,7 +34,6 @@ speed_t GetBaudrateEnum(int speed) {
     case 115200:
       return B115200;
   }
-  FM_LOG_WARN("Unsupported baudrate for tty: %d.\n", speed);
   // Unsupported speed.
   return 0;
 }

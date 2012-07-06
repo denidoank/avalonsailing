@@ -5,7 +5,7 @@
 //  SMS encoding/decoding functions, which are based on examples from:
 //  http://www.dreamfabric.com/sms/
 
-#include "modem/sms.h"
+#include "sms.h"
 
 #include <string.h>
 #include <time.h>
@@ -35,7 +35,7 @@ static unsigned char SwapDecimalNibble(const unsigned char x) {
 // [0]:h   [1]:e   [2]:l   [3]:l   [4]:o   [5]:h   [6]:e   [7]:l   [8]:l   [9]:o
 // 1101000 1100101 1101100 1101100 1101111 1101000 1100101 1101100 1101100 1101111
 //               |             |||           ||||| |               |||||||  ||||||
-// /-------------/   ///-------///     /////-///// \------------\  |||||||  \\\\\\
+// /-------------/   ///-------///     /////-///// \------------\  |||||||  \\\\\\ .
 // |                 |||               |||||                    |  |||||||   ||||||
 // input buffer position
 // 10000000 22111111 33322222 44443333 55555333 66666655 77777776 98888888 --999999
