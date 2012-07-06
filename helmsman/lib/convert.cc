@@ -5,7 +5,7 @@
 // Conversions between measurement units
 
 #include <math.h>
-#include "common/convert.h"
+#include "convert.h"
 
 // Angle
 double Deg2Rad(double degree) {

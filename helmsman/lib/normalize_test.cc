@@ -4,7 +4,7 @@
 // Author: grundmann@google.com (Steffen Grundmann)
 //
 // Unit test for common/normalize
-#include "common/normalize.h"
+#include "normalize.h"
 
 #include <math.h>
 #include "lib/testing/testing.h"

@@ -3,7 +3,7 @@
 // that can be found in the LICENSE file.
 //
 // Unit test for common/convert
-#include "common/convert.h"
+#include "convert.h"
 
 #include <math.h>
 

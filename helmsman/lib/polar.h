@@ -12,8 +12,8 @@
 #include <math.h>
 #include <stdio.h>
 
-#include "common/check.h"
-#include "common/convert.h"
+#include "check.h"
+#include "convert.h"
 
 class Polar {
  public:
