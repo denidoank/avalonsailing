@@ -15,35 +15,39 @@
 || Additional fixation for solar panels (each needs 2 bolts) ||  ||
 || One bolt in bow hatch is missing, would leak water || grundmann/2012-05-18  ||
 || Two bolts in starboard front hatch are missing, would leak water || grundmann/2012-05-18 ||
-|| Pump up carriage tyres || grundmann ||
-|| Charge accumulators || grundmann ||
+|| Pump up carriage tyres || grundmann/2012-06-15 ||
+|| Charge accumulators || grundmann/2012-06-15 (were charged) ||
 
 == Electric ==
 
 || *Item* || *Who/when done* ||
-|| Electric schema || (give up on this?) ||
+|| Remove items from watchdog box or make it functional ||  ||
 || Test maximum voltage and have a look with a scope at the supply voltage at full light, fully charged, drives accelerating and braking. || test done, slight push of boom gives extra 3V, need brake chopper on mains line, grundmann/2012-05-28 ||
 || Overvoltage discharge brake chopper 25W/50W peak. || 60W at 30.1V grundmann/2012-06-12 ||
 || Change or replace CPU box such that the processor gets cooling. Currently it reaches 65 degrees Celsius at the outside because the processor box and the cooling plate are separated by air. || bridged air gap with aluminium and heat conduction paste, grundmann/2012-05-28  || 
-|| Test bilge pump (better outside than in the lobby) ||  ||
+|| Test bilge pump (better outside than in the lobby) || Still open, but more *IMPORTANT* because we got fresh water in the boat. Just pour 2 bottles of water onto the pump. ||
 || Finally, remove mushroom switch (not seawater tight). || (after lake test) ||
 || Finally, mount new AIS antenna. (material purchased already) Test reception. || (after lake test) ||
+|| Mount thermometers || lvd ||
+|| Mount external USB-stick || lvd ||
+|| Fix all internal wiring against motion (could damage cables ||   ||
 
 
 == Software ==
 || *Item* || *Who/when done* ||
-|| Make helmsman less dependant on speed through water. Test in simulator. || grundmann/ ||
+|| Make helmsman less dependant on speed through water. Test in simulator. || grundmann/done and works. But the IMU speed is still worse than it could be. Checking alternative ways to calculate the speed from raw data. ||
 || Make compass info out of IMU data. || grundmann/compass code done 2012/03/08 ||
 || Make compass mix logic || grundmann/2012-05-12 ||
 || Set the drive current limits to reasonable values (drives are rated as 250 and 400W)  || lvd/2012-04-12 ||
-|| Fix sail drive zero position || lvd/ ||
-|| The rudder angle ranges need adjustment. The values of 90 and 100 degress are just rough estimates.  || lvd ||
+|| Fix sail drive zero position || lvd/done ||
+|| The rudder angle ranges need adjustment. The values of 90 and 100 degress are just rough estimates.  || lvd/done, but the boat does not go straight, but slightly right. ||
 || implement and test Drive recovery from temporary outages (power dips, overtemperature) || lvd/ ||
 || Include new drive start-up into start_avalon.sh. Submit this. || lvd/ ||
 || Update start_avalon.sh for compass_cat. || grundmann/2012-05-12 ||
 || Fix big drive delays (currently about 360ms or 650ms for the sail drive) Should be around 200ms. || lvd/Done ||
-|| Fix odd sail drive behaviour. Leave brake released. Brake 10s after the last reference value change. || lvd/ ||
+|| Fix odd sail drive behaviour. Leave brake released. Brake 10s after the last reference value change. || lvd/done ||
 || Make image and put controller into boat. || lvd&liam/ ||
+|| Make imucfg reset the IMU if it produces invalid messages for half an hour || lvd ||
 
 
 
@@ -52,6 +56,7 @@
 
 || *Item* || *Who/when done* ||
 || Drive tests, check response times with TestController || grundmann/2012-06-05 ||
-|| Logging tests. Check that we can get complete logs from all processes easily and reliably. || ||
+|| Logging tests. Check that we can get complete logs from all processes easily and reliably. || done helmsman.log For detail studies linebus log would be nice||
 || Wind sensor test. Check that wind sensor/ RS485 converter / driver / wind cat  work. Check that wind direction is calculated properly with fan. || grundmann/done, tested in reality ||
 || IMU magnetic output plus compass test. Check that the IMU box containing IMU and compass is producing reliable and correct bearing vectors. || grundmann/done, seems to work, test under extreme conditions to be done ||
+|| Need a 2nd GPS (reason reliability, 30% noise reduction) || lvd ||
