@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright 2011 The Avalon Project Authors. All rights reserved.
+# Copyright 2012 The Avalon Project Authors. All rights reserved.
 # Use of this source code is governed by the Apache License 2.0
 # that can be found in the LICENSE file.
 #
@@ -13,7 +13,7 @@
 if ! which linebusd; then
     echo "Running from source tree"
     AVALONROOT=$(dirname $0)
-    export PATH=$AVALONROOT/io:$AVALONROOT/io/rudderd2:$AVALONROOT/helmsman:$AVALONROOT/systools:$PATH
+    export PATH=$AVALONROOT/io:$AVALONROOT/helmsman:$PATH
 
     EBUS=/tmp/ebus
     LBUS=/tmp/lbus
@@ -26,7 +26,7 @@ else
 fi
 
 err=""
-for p in linebusd plug eposprobe ruddersts eposmon eposcom rudderctl sailctl drivests skewmon \
+for p in linebusd plug eposprobe eposmon eposcom rudderctl sailctl drivests skewmon \
 	imucfg imucat aiscat aisbuf compasscat windcat fcmon; do
     which $p >/dev/null 2>&1 || err="$err $p"
 done
@@ -75,7 +75,7 @@ fi
 #    -o  only take what comes from the bus and feed it to the program (i.e. dont send any messages to the bus)
 #    -n name  a name for debugging when you ask for stats with kill -USR1 $bus.pid, not (yet) relevant for -i plugs.
 #    -f instal a filter on prefix (not relevant for -i plugs).
-#    -p tell the linebusd this one is 'precious': if it exits, take down the bus
+#    -p tell the linebusd this one is 'precious': if it exits or hangs, take down the bus
 #
 #  programs like eposcom and sailctl that are connected to the bus with both stdin and stdout typically install their own filters
 #  on the linebus, so there's no need to specify them there.

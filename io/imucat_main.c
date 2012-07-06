@@ -36,6 +36,7 @@ usage(void)
 		"options:\n"
 		"\t-b baudrate         (default 115200)\n"
 		"\t-d debug            (don't syslog)\n"
+		"\t-g seconds          default 10, use 0 to disable:if no signal for this many seconds, exit.\n"
 		"\t-m output_mode      default 0x....\n"
 		"\t-s output_settings  default 0x....\n"
 		"Default mode and settings are defined in mtcp.h\n"
@@ -204,6 +205,11 @@ void ConvertSpeed(struct IMUProto* vars) {
 	vars->vel_y_m_s = cheating_factor * v_y;
 }
 
+
+static int alarm_s = 10;
+static void timeout() { crash("No valid imu signal for %d seconds.", alarm_s); }
+
+
 // -----------------------------------------------------------------------------
 
 int main(int argc, char* argv[]) {
@@ -217,11 +223,12 @@ int main(int argc, char* argv[]) {
 	argv0 = strrchr(argv[0], '/');
 	if (argv0) ++argv0; else argv0 = argv[0];
 
-	while ((ch = getopt(argc, argv, "b:dfhm:s:")) != -1){
+	while ((ch = getopt(argc, argv, "b:dfg:hm:s:")) != -1){
 		switch (ch) {
 		case 'b': baudrate = atoi(optarg); break;
 		case 'd': ++debug; break;
 		case 'f': ++forcetime; break;
+		case 'g': alarm_s = atoi(optarg); break;
 		case 'm':
 			mode = strtol(optarg, NULL, 0);
 			if (errno == ERANGE) crash("can't parse %s as a number\n", optarg);
@@ -243,13 +250,16 @@ int main(int argc, char* argv[]) {
 
 	if (signal(SIGBUS, fault) == SIG_ERR)  crash("signal(SIGBUS)");
 	if (signal(SIGSEGV, fault) == SIG_ERR)  crash("signal(SIGSEGV)");
+	if (signal(SIGALRM, timeout) == SIG_ERR)  crash("signal(SIGSALRM)");
 
 	if (settings & IMU_OS_FF_MASK) crash("Can't decode non ieee floats");;
 
-	if (!debug) openlog(argv0, LOG_PERROR, LOG_DAEMON);
+	openlog(argv0, debug?LOG_PERROR:0, LOG_DAEMON);
 
 	if(setvbuf(stdout, NULL, _IOLBF, 0))
 		syslog(LOG_WARNING, "Failed to make stdout line-buffered.");
+
+	if (alarm_s) alarm(2*alarm_s);
 
 	// Open serial port.
 	int port = -1;
@@ -322,7 +332,9 @@ int main(int argc, char* argv[]) {
 			if (debug) fprintf(stderr, "invalid checksum %0x, discarding %d bytes\n", chk, len);
 			continue;
 		}
+
 		garbage = 0;
+		if (alarm_s) alarm(alarm_s);
 
 		if (mid != IMU_MTDATA) {
 			if (debug) fprintf(stderr, "non MTData message, discarding %d bytes\n", len);

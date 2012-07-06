@@ -4,6 +4,8 @@
 //
 // Open serial port and decode NMEA messages with AIS messages inside them.
 //
+// Unlike the other *cat_main.c in this directory, no timeout guard because the AIS may be silent for days.
+//
 #include <errno.h>
 #include <fcntl.h>
 #include <stdarg.h>
@@ -32,7 +34,7 @@ usage(void)
 		"options:\n"
 		"\t-b baudrate         (default 38400)\n"
 		"\t-d debug            (don't syslog, -dd opens port as plain file)\n"
-		"will read NMEA sentence from stdin with no arguments.\n"
+		"will read NMEA sentences from stdin with no arguments.\n"
 		, argv0);
 	exit(2);
 }
