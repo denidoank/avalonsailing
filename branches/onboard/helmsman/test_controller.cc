@@ -3,22 +3,22 @@
 // that can be found in the LICENSE file.
 // Steffen Grundmann, November 2011
 
-#include "helmsman/test_controller.h"
+#include "test_controller.h"
 
 #include <stdio.h>
 #include <string.h>
 #include <sys/time.h>
 
-#include "common/array_size.h"
-#include "common/delta_angle.h"
-#include "common/now.h"
-#include "common/polar_diagram.h"
-#include "common/probe.h"
-#include "common/sign.h"
-#include "helmsman/boat.h"
-#include "helmsman/sampling_period.h"
-#include "helmsman/wind_strength.h"
-#include "helmsman/wind_sensor.h"
+#include "lib/array_size.h"
+#include "lib/delta_angle.h"
+#include "lib/now.h"
+#include "lib/polar_diagram.h"
+#include "lib/probe.h"
+#include "lib/sign.h"
+#include "boat.h"
+#include "sampling_period.h"
+#include "wind_strength.h"
+#include "wind_sensor.h"
 
 using std::string;
 

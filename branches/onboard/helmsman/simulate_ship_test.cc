@@ -7,15 +7,15 @@
 // within 40 s. The initial controller is tested.
 
 
-#include "helmsman/boat_model.h"
-#include "helmsman/ship_control.h"
+#include "boat_model.h"
+#include "ship_control.h"
 
 #include <math.h>
 #include <stdio.h>
-#include "common/convert.h"
-#include "common/delta_angle.h"
-#include "common/polar.h"
-#include "helmsman/sampling_period.h"
+#include "lib/convert.h"
+#include "lib/delta_angle.h"
+#include "lib/polar.h"
+#include "sampling_period.h"
 #include "lib/testing/testing.h"
 
 extern int logging_aoa;
@@ -43,11 +43,9 @@ void InitialControllerTest(double wind_direction_deg,
   printf("\nWind direction: %lg degree\n", wind_direction_deg);
   double t;
   for (t = 0; t < 40; t += kSamplingPeriod) {
-    model.Simulate(out.drives_reference,
-                   true_wind,
-                   &in);
+    model.Simulate(out.drives_reference, true_wind, &in);
     ShipControl::Run(in, &out);
-    // model.Print(t);
+    model.Print(t);
   }
   printf("\n");
   model.PrintHeader();

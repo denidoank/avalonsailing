@@ -5,9 +5,9 @@
 #include "imu.h"
 
 #include <stdio.h>
-#include "common/convert.h"
-#include "common/normalize.h"
-#include "helmsman/compass.h"
+#include "lib/convert.h"
+#include "lib/normalize.h"
+#include "compass.h"
 
 Imu::Imu() {
   Reset();

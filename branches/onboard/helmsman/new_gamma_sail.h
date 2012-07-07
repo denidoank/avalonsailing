@@ -5,8 +5,8 @@
 #ifndef HELMSMAN_NEW_GAMMA_SAIL_H
 #define HELMSMAN_NEW_GAMMA_SAIL_H
 
-#include "helmsman/maneuver_type.h"
-#include "helmsman/sail_controller.h"
+#include "maneuver_type.h"
+#include "sail_controller.h"
 
 // When the desired heading alpha_star or the wind changes
 // we might need to plan a maneuver consisting of fast

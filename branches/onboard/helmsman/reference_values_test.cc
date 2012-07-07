@@ -2,10 +2,10 @@
 // Use of this source code is governed by the Apache License 2.0
 // that can be found in the LICENSE file.
 // Steffen Grundmann, June 2011
-#include "helmsman/reference_values.h"
+#include "reference_values.h"
 
-#include "common/convert.h"
-#include "helmsman/sampling_period.h"
+#include "lib/convert.h"
+#include "sampling_period.h"
 #include "lib/testing/testing.h"
 
 TEST(RefeferenceValues, Tack) {

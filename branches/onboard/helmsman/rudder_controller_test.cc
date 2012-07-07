@@ -3,11 +3,11 @@
 // that can be found in the LICENSE file.
 // Steffen Grundmann, May 2011
 
-#include "helmsman/rudder_controller.h"
+#include "rudder_controller.h"
 
 #include <algorithm>
-#include "common/convert.h"
-#include "helmsman/controller_io.h"
+#include "lib/convert.h"
+#include "controller_io.h"
 #include "lib/testing/testing.h"
 
 

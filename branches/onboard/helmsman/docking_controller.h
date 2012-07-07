@@ -5,7 +5,7 @@
 #ifndef HELMSMAN_DOCKING_CONTROLLER_H
 #define HELMSMAN_DOCKING_CONTROLLER_H
 
-#include "helmsman/controller.h"
+#include "controller.h"
 
 class DockingController : public Controller {
  public:

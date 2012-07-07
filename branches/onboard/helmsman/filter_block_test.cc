@@ -3,18 +3,18 @@
 // that can be found in the LICENSE file.
 // Steffen Grundmann, June 2011
 
-#include "helmsman/filter_block.h"
+#include "filter_block.h"
 
 #include <math.h>
 
-#include "common/convert.h"
-#include "common/normalize.h"
-#include "common/polar.h"
-#include "common/unknown.h"
-#include "helmsman/apparent.h"
-#include "helmsman/boat.h"   // kWindSensorOffsetRad
-#include "helmsman/controller_io.h"
-#include "helmsman/sampling_period.h"
+#include "lib/convert.h"
+#include "lib/normalize.h"
+#include "lib/polar.h"
+#include "lib/unknown.h"
+#include "apparent.h"
+#include "boat.h"   // kWindSensorOffsetRad
+#include "controller_io.h"
+#include "sampling_period.h"
 #include "lib/testing/testing.h"
 
 const static double kCool = 12;

@@ -4,10 +4,10 @@
 // Steffen Grundmann, June 2011
 
 
-#include "helmsman/c_lift_to_rudder_angle.h"
+#include "c_lift_to_rudder_angle.h"
 
-#include "common/convert.h"
-#include "common/unknown.h"
+#include "lib/convert.h"
+#include "lib/unknown.h"
 #include "lib/testing/testing.h"
 
 

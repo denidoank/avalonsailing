@@ -8,14 +8,14 @@
 #define HELMSMAN_BOAT_MODEL_H
 
 
-#include "common/check.h"
-#include "common/convert.h"
-#include "common/polar.h"
-#include "common/sign.h"
+#include "lib/check.h"
+#include "lib/convert.h"
+#include "lib/polar.h"
+#include "lib/sign.h"
 
-#include "helmsman/apparent.h"
-#include "helmsman/boat.h" 
-#include "helmsman/controller_io.h"
+#include "apparent.h"
+#include "boat.h" 
+#include "controller_io.h"
 
 enum Location {
   kBrest,

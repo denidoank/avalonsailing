@@ -3,14 +3,14 @@
 // that can be found in the LICENSE file.
 // Steffen Grundmann, May 2011
 
-#include "helmsman/sail_controller.h"
+#include "sail_controller.h"
 
 #include <iostream>
 #include <math.h>
 
-#include "common/convert.h"
-#include "helmsman/sail_controller_const.h"
-#include "helmsman/sampling_period.h"  // kSamplingPeriod
+#include "lib/convert.h"
+#include "sail_controller_const.h"
+#include "sampling_period.h"  // kSamplingPeriod
 #include "lib/testing/testing.h"
 
 using namespace std;

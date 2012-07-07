@@ -2,9 +2,9 @@
 // Use of this source code is governed by the Apache License 2.0
 // that can be found in the LICENSE file.
 // Steffen Grundmann, June 2011
-#include "helmsman/apparent.h"
+#include "apparent.h"
 
-#include "common/normalize.h"
+#include "lib/normalize.h"
 
 void Apparent(double angle_true, double mag_true,
               double angle_boat, double mag_boat,

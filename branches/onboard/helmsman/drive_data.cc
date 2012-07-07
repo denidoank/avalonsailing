@@ -6,8 +6,8 @@
 #include "drive_data.h"
 
 #include <math.h>
-#include "common/check.h"
-#include "common/convert.h"
+#include "lib/check.h"
+#include "lib/convert.h"
 
 #include <stdio.h>
 #include <string.h>

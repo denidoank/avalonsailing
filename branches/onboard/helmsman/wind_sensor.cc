@@ -4,7 +4,7 @@
 // Steffen Grundmann, May 2011
 
 
-#include "helmsman/wind_sensor.h"
+#include "wind_sensor.h"
 
 #include <stdio.h>
 #include <string>

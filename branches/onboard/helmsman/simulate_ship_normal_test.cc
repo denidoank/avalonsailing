@@ -6,19 +6,21 @@
 // Test with runtime measurements.
 // ==============================
 
-#include "helmsman/boat_model.h"
-#include "helmsman/ship_control.h"
+#include "boat_model.h"
+#include "ship_control.h"
+#include "sampling_period.h"
 
 #include <math.h>
 #include <stdio.h>
 #include <stdint.h>
-#include "common/convert.h"
-#include "common/delta_angle.h"
-#include "common/polar.h"
-#include "common/now.h"
-#include "helmsman/sampling_period.h"
+
+#include "lib/convert.h"
+#include "lib/delta_angle.h"
+#include "lib/polar.h"
+#include "lib/now.h"
+
 #include "lib/testing/testing.h"
-#include "lib/util/stopwatch.h"
+#include "stopwatch.h"
 
 extern int debug;
 extern int logging_aoa;

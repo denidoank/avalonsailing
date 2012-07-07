@@ -6,22 +6,22 @@
 #define HELMSMAN_STATE_CONTROL_H
 
 
-#include "helmsman/controller_io.h"
-#include "helmsman/filter_block.h"
-#include "helmsman/wind_strength.h"
+#include "controller_io.h"
+#include "filter_block.h"
+#include "wind_strength.h"
 
 // Controllers for certain States
-#include "helmsman/controller.h"         // base class
-#include "helmsman/brake_controller.h"
-#include "helmsman/docking_controller.h"
-#include "helmsman/initial_controller.h"
-#include "helmsman/normal_controller.h"
-#include "helmsman/idle_controller.h"
-#include "helmsman/test_controller.h"
+#include "controller.h"         // base class
+#include "brake_controller.h"
+#include "docking_controller.h"
+#include "initial_controller.h"
+#include "normal_controller.h"
+#include "idle_controller.h"
+#include "test_controller.h"
 
 // Rudder and sail
-#include "helmsman/rudder_controller.h"
-#include "helmsman/sail_controller.h"
+#include "rudder_controller.h"
+#include "sail_controller.h"
 
 
 enum MetaState {

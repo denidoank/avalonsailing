@@ -5,7 +5,7 @@
 #ifndef HELMSMAN_STORM_CONTROLLER_CONST_H
 #define HELMSMAN_STORM_CONTROLLER_CONST_H
 
-#include "common/convert.h"
+#include "lib/convert.h"
 
 // The smallest angle of attack where the sail does not flutter.
 const double kSailStormAngleRad = Deg2Rad(8);

@@ -5,7 +5,7 @@
 #ifndef HELMSMAN_CONTROLLER_H
 #define HELMSMAN_CONTROLLER_H
 
-#include "helmsman/controller_io.h"
+#include "controller_io.h"
 
 
 class Controller {

@@ -16,8 +16,8 @@
 #ifndef HELMSMAN_INITIAL_CONTROLLER_H
 #define HELMSMAN_INITIAL_CONTROLLER_H
 
-#include "helmsman/controller.h"
-#include "helmsman/sail_controller.h"
+#include "controller.h"
+#include "sail_controller.h"
 
 class InitialController : public Controller {
  public:

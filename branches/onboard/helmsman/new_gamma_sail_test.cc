@@ -2,14 +2,14 @@
 // Use of this source code is governed by the Apache License 2.0
 // that can be found in the LICENSE file.
 // Steffen Grundmann, June 2011
-#include "helmsman/new_gamma_sail.h"
+#include "new_gamma_sail.h"
 
-#include "common/convert.h"
-#include "common/normalize.h"
-#include "common/polar_diagram.h"
+#include "lib/convert.h"
+#include "lib/normalize.h"
+#include "lib/polar_diagram.h"
 #include "lib/testing/testing.h"
-#include "helmsman/apparent.h"
-#include "helmsman/maneuver_type.h"
+#include "apparent.h"
+#include "maneuver_type.h"
 
 
 TEST(NewGammaSail, NewTack) {

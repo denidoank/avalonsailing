@@ -3,16 +3,16 @@
 // that can be found in the LICENSE file.
 // Steffen Grundmann, May 2011
 
-#include "helmsman/initial_controller.h"  
+#include "initial_controller.h"  
 
 #include <stdio.h>
 
-#include "common/delta_angle.h"
-#include "common/polar_diagram.h"
-#include "common/sign.h"
-#include "helmsman/sampling_period.h"  
-#include "helmsman/wind_strength.h"
-#include "helmsman/wind_sensor.h"
+#include "lib/delta_angle.h"
+#include "lib/polar_diagram.h"
+#include "lib/sign.h"
+#include "sampling_period.h"  
+#include "wind_strength.h"
+#include "wind_sensor.h"
 
 extern int debug; // global shared
 
@@ -86,7 +86,6 @@ void InitialController::Run(const ControllerInput& in,
         // Decide which way to go.
         sign_ = SignNotZero(angle_app);
         if (debug) fprintf(stderr, "SLEEP to TURTLE %d\n", sign_);
-        out->status.inits++;
       }
       break;
     case TURTLE:

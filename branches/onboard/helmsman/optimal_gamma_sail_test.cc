@@ -3,9 +3,9 @@
 // that can be found in the LICENSE file.
 // Steffen Grundmann, May 2011
 
-#include "helmsman/optimal_gamma_sail.h"
+#include "optimal_gamma_sail.h"
 
-#include "common/convert.h"
+#include "lib/convert.h"
 #include "lib/testing/testing.h"
 
 TEST(OptimalGammaSail, All) {

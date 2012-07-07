@@ -4,14 +4,14 @@
 // Steffen Grundmann, June 2011
 
 
-#include "helmsman/brake_controller.h"
+#include "brake_controller.h"
 
-#include "common/unknown.h"
+#include "lib/unknown.h"
 
-#include "common/convert.h"
-#include "common/polar.h"
-#include "helmsman/apparent.h"
-#include "helmsman/controller_io.h"
+#include "lib/convert.h"
+#include "lib/polar.h"
+#include "apparent.h"
+#include "controller_io.h"
 
 #include "lib/testing/testing.h"
 

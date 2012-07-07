@@ -14,11 +14,11 @@
 #ifndef HELMSMAN_NORMAL_CONTROLLER_H
 #define HELMSMAN_NORMAL_CONTROLLER_H
 
-#include "helmsman/controller.h"
-#include "helmsman/maneuver_type.h"
-#include "helmsman/rudder_controller.h"
-#include "helmsman/reference_values.h"
-#include "helmsman/sail_controller.h"
+#include "controller.h"
+#include "maneuver_type.h"
+#include "rudder_controller.h"
+#include "reference_values.h"
+#include "sail_controller.h"
 
 class NormalController : public Controller {
  public:

@@ -3,9 +3,9 @@
 // that can be found in the LICENSE file.
 // Steffen Grundmann, March 2012
 
-#include "helmsman/compass.h"
+#include "compass.h"
 
-#include "common/convert.h"
+#include "lib/convert.h"
 #include "lib/testing/testing.h"
 
 

@@ -2,12 +2,12 @@
 // Use of this source code is governed by the Apache License 2.0
 // that can be found in the LICENSE file.
 // Steffen Grundmann, June 2011
-#include "helmsman/new_gamma_sail.h"
+#include "new_gamma_sail.h"
 
-#include "common/delta_angle.h"
-#include "common/normalize.h"
-#include "common/polar.h"
-#include "common/sign.h"
+#include "lib/delta_angle.h"
+#include "lib/normalize.h"
+#include "lib/polar.h"
+#include "lib/sign.h"
 
 #include <math.h>
 #include <stdio.h>

@@ -2,16 +2,16 @@
 // Use of this source code is governed by the Apache License 2.0
 // that can be found in the LICENSE file.
 // Steffen Grundmann, June 2011
-#include "helmsman/rudder_controller.h"
+#include "rudder_controller.h"
 
 #include <math.h>
 #include <stdio.h>
-#include "common/convert.h"
-#include "common/normalize.h"
-#include "helmsman/boat.h"  // constants from simulation/boat.m
-#include "helmsman/c_lift_to_rudder_angle.h"  // rudder hydrodynamics
-#include "helmsman/sampling_period.h"
-#include "helmsman/rudder_controller_const.h"
+#include "lib/convert.h"
+#include "lib/normalize.h"
+#include "boat.h"  // constants from simulation/boat.m
+#include "c_lift_to_rudder_angle.h"  // rudder hydrodynamics
+#include "sampling_period.h"
+#include "rudder_controller_const.h"
 
 extern int debug;
 static int debug_controller = 0;
