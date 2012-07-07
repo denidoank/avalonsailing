@@ -11,7 +11,6 @@
 #include <termios.h>
 #include <unistd.h>
 
-#include "lib/fm/log.h"
 #include "lib/util/stopwatch.h"
 
 namespace {
@@ -34,7 +33,6 @@ speed_t GetBaudrateEnum(int speed) {
     case 115200:
       return B115200;
   }
-  FM_LOG_WARN("Unsupported baudrate for tty: %d.\n", speed);
   // Unsupported speed.
   return 0;
 }
