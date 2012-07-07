@@ -18,6 +18,6 @@ void crash(const char* fmt, ...);
 // Install with
 //	if (signal(SIGBUS, fault) == SIG_ERR)  crash("signal(SIGBUS)");
 //	if (signal(SIGSEGV, fault) == SIG_ERR)  crash("signal(SIGSEGV)");
-void fault();
+void fault(int);
 
 #endif // _IO_LOG_H

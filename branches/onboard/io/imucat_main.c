@@ -22,7 +22,7 @@
 
 #include "proto/imu.h"
 #include "mtcp.h"
-#include "log.h"
+#include "lib/log.h"
 
 static const char* argv0;
 static int debug = 0;

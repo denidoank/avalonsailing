@@ -15,8 +15,8 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-#include "log.h"
-#include "timer.h"
+#include "lib/log.h"
+#include "lib/timer.h"
 #include "actuator.h"
 
 // -----------------------------------------------------------------------------

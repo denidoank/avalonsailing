@@ -17,8 +17,8 @@
 
 #include "proto/rudder.h"
 
-#include "log.h"
-#include "timer.h"
+#include "lib/log.h"
+#include "lib/timer.h"
 #include "actuator.h"
 #include "eposclient.h"
 

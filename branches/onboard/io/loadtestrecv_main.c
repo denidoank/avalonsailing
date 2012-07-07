@@ -29,7 +29,7 @@ output is in microseconds
 #include <string.h>
 #include <unistd.h>
 
-#include "timer.h"
+#include "lib/timer.h"
 
 struct Source {
 	struct Source *next;
