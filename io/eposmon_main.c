@@ -14,7 +14,7 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-#include "log.h"
+#include "lib/log.h"
 #include "ebus.h"
 #include "actuator.h"
 #include "com.h"

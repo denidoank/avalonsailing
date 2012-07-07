@@ -18,8 +18,8 @@
 #include <unistd.h>
 
 #include "proto/imu.h"
-#include "log.h"
-#include "timer.h"
+#include "lib/log.h"
+#include "lib/timer.h"
 
 // -----------------------------------------------------------------------------
 // static const char* version = "$Id: $";

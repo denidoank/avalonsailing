@@ -17,8 +17,8 @@
 #include <unistd.h>
 
 #include "proto/rudder.h"
-#include "timer.h"
-#include "log.h"
+#include "lib/timer.h"
+#include "lib/log.h"
 #include "actuator.h"
 
 static const char* argv0;

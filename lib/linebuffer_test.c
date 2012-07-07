@@ -1,4 +1,4 @@
-#include "linebuffer.h"
+#include "lib/linebuffer.h"
 
 #include <assert.h>
 #include <errno.h>

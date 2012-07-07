@@ -26,7 +26,7 @@ void crash(const char* fmt, ...) {
 }
 
 
-void fault() { crash("fault"); }
+void fault(int i) { crash("fault"); }
 
 static int64_t now_ms() {
         struct timeval tv;

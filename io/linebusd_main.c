@@ -45,9 +45,9 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "linebuffer.h"
-#include "log.h"
-#include "timer.h"
+#include "lib/linebuffer.h"
+#include "lib/log.h"
+#include "lib/timer.h"
 
 // -----------------------------------------------------------------------------
 //   Together with getopt in main, this is our minimalistic UI

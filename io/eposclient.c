@@ -12,7 +12,7 @@
 #include <stdio.h>
 
 #include "ebus.h"
-#include "timer.h"
+#include "lib/timer.h"
 
 enum { INVALID, PENDING, VALID };
 

@@ -28,8 +28,8 @@
 
 #include "../proto/wind.h"
 
-#include "log.h"
-#include "timer.h"
+#include "lib/log.h"
+#include "lib/timer.h"
 
 #define DEFAULT_BIAS_DEG -120.0
 
