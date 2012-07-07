@@ -1,0 +1,16 @@
+#!/bin/sh
+# for experimental use, get the binaries directly from the source tree.
+if ! which plug; then
+    echo "Running from source tree"
+    AVALONROOT=$(dirname $0)
+    export PATH=$AVALONROOT/io::$PATH
+
+    LBUS=/tmp/lbus
+
+else
+
+    LBUS=/var/run/lbus
+
+fi
+
+(while true; do echo 'rudderctl: timestamp_ms:0 rudder_l_deg:0 rudder_r_deg:0 sail_deg:0'; sleep 1; done) | plug -i $LBUS
