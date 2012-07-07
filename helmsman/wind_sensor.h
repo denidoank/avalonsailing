@@ -9,9 +9,9 @@
 #include <stdio.h>
 #include <string>
 
-#include "common/check.h"
-#include "common/convert.h"
-#include "common/normalize.h"
+#include "lib/check.h"
+#include "lib/convert.h"
+#include "lib/normalize.h"
 #include "proto/wind.h"
 
 

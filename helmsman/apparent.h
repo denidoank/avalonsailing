@@ -5,9 +5,9 @@
 #ifndef HELMSMAN_APPARENT_H
 #define  HELMSMAN_APPARENT_H
 
-#include "helmsman/maneuver_type.h"
-#include "common/polar.h"
-#include "helmsman/sail_controller.h"
+#include "maneuver_type.h"
+#include "lib/polar.h"
+#include "sail_controller.h"
 
 // Calculate the apparent wind in boat frame
 // Units: All angles in radians, all magnitiudes in identical units.

@@ -9,6 +9,10 @@
 
 #include <syslog.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Log to syslog with per-priority tokenbucket rate limiting
 void slog(int priority, const char *message, ...);
 
@@ -19,5 +23,9 @@ void crash(const char* fmt, ...);
 //	if (signal(SIGBUS, fault) == SIG_ERR)  crash("signal(SIGBUS)");
 //	if (signal(SIGSEGV, fault) == SIG_ERR)  crash("signal(SIGSEGV)");
 void fault(int);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // _IO_LOG_H

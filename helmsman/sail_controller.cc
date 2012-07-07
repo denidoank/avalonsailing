@@ -4,18 +4,18 @@
 // Steffen Grundmann, May 2011
 
 
-#include "helmsman/sail_controller.h"
+#include "sail_controller.h"
 
 #include <math.h>
 #include <stdio.h>
 
-#include "common/check.h"
-#include "common/convert.h"
-#include "common/sign.h"
-#include "common/normalize.h"
+#include "lib/check.h"
+#include "lib/convert.h"
+#include "lib/sign.h"
+#include "lib/normalize.h"
 
-#include "helmsman/sail_controller_const.h"
-#include "helmsman/sampling_period.h"  // kSamplingPeriod
+#include "sail_controller_const.h"
+#include "sampling_period.h"  // kSamplingPeriod
 
 extern int debug;
 

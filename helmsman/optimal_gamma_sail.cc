@@ -3,20 +3,20 @@
 // that can be found in the LICENSE file.
 // Steffen Grundmann, May 2011
 
-#include "helmsman/optimal_gamma_sail.h"
+#include "optimal_gamma_sail.h"
 
 #include <algorithm>
 #include <math.h>
 
 #include <stdio.h>
 
-#include "common/check.h"
-#include "common/normalize.h"
-#include "helmsman/gamma_sail_tab_common.h"
-#include "helmsman/gamma_sail_tab_3.h"
-#include "helmsman/gamma_sail_tab_6.h"
-#include "helmsman/gamma_sail_tab_9.h"
-#include "helmsman/gamma_sail_tab_12.h"
+#include "lib/check.h"
+#include "lib/normalize.h"
+#include "gamma_sail_tab_common.h"
+#include "gamma_sail_tab_3.h"
+#include "gamma_sail_tab_6.h"
+#include "gamma_sail_tab_9.h"
+#include "gamma_sail_tab_12.h"
 
 using namespace std;
 

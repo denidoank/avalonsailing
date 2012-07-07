@@ -2,14 +2,14 @@
 // Use of this source code is governed by the Apache License 2.0
 // that can be found in the LICENSE file.
 // Steffen Grundmann, March 2012
-#include "helmsman/compass.h"
+#include "compass.h"
 
 #include <math.h>
 #include <stdio.h>
 
-#include "common/check.h"
-#include "common/convert.h"
-#include "common/normalize.h"
+#include "lib/check.h"
+#include "lib/convert.h"
+#include "lib/normalize.h"
 
 namespace {
 // magnetic bearing is true geographic bearing plus declination.

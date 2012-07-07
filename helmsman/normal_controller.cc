@@ -3,21 +3,21 @@
 // that can be found in the LICENSE file.
 // Steffen Grundmann, June 2011
 
-#include "helmsman/normal_controller.h"
+#include "normal_controller.h"
 
 #include <math.h>
 #include <stdint.h>
 //#include <sys/time.h>
 #include <time.h>
-#include "common/delta_angle.h"
-#include "common/normalize.h"
-#include "common/now.h"
-#include "common/limit_rate.h"
-#include "common/polar_diagram.h"
-#include "common/unknown.h"
-#include "helmsman/apparent.h"
-#include "helmsman/new_gamma_sail.h"
-#include "helmsman/sampling_period.h"
+#include "lib/delta_angle.h"
+#include "lib/normalize.h"
+#include "lib/now.h"
+#include "lib/limit_rate.h"
+#include "lib/polar_diagram.h"
+#include "lib/unknown.h"
+#include "apparent.h"
+#include "new_gamma_sail.h"
+#include "sampling_period.h"
 
 extern int debug;
 static const double kTackOvershootRad = 15 / 180.0 * M_PI;
@@ -70,23 +70,15 @@ void NormalController::Run(const ControllerInput& in,
   double phi_star;
   double omega_star;
   double gamma_sail_star;
-  // maneuver is set just once to kJibe or kTack, when the maneuver starts.
-  // TODO: Put out->status updates into this method.
-  ManeuverType maneuver =
-      ShapeReferenceValue(SymmetricRad(in.alpha_star_rad),
-                          SymmetricRad(filtered.alpha_true), filtered.mag_true,
-                          SymmetricRad(filtered.phi_z_boat), filtered.mag_boat,
-                          SymmetricRad(filtered.angle_app),  filtered.mag_app,
-                          in.drives.gamma_sail_rad,
-                          &phi_star,
-                          &omega_star,
-                          &gamma_sail_star);
-  if (maneuver == kTack) {
-    out->status.tacks++;
-  } else if (maneuver == kJibe) {
-    out->status.jibes++;
-  }
 
+  ShapeReferenceValue(SymmetricRad(in.alpha_star_rad),
+		      SymmetricRad(filtered.alpha_true), filtered.mag_true,
+		      SymmetricRad(filtered.phi_z_boat), filtered.mag_boat,
+		      SymmetricRad(filtered.angle_app),  filtered.mag_app,
+		      in.drives.gamma_sail_rad,
+		      &phi_star,
+		      &omega_star,
+		      &gamma_sail_star);
   if (debug) fprintf(stderr, "IntRef: %6.2lf %6.2lf\n", Rad2Deg(phi_star), Rad2Deg(omega_star));
 
   double gamma_rudder_star;

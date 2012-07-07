@@ -3,10 +3,10 @@
 // that can be found in the LICENSE file.
 // Steffen Grundmann, May 2011
 
-#include "helmsman/ship_control.h"
+#include "ship_control.h"
 
-#include "common/convert.h"
-#include "helmsman/controller_io.h"
+#include "lib/convert.h"
+#include "controller_io.h"
 #include "lib/testing/testing.h"
 
 void Expect(double sail_rad,
@@ -36,12 +36,12 @@ TEST(ShipControl, All) {
   ShipControl::Brake();
 
   ShipControl::Run(in, &out);
-  Expect(0, kRudderBrakeAngleRad, -kRudderBrakeAngleRad, out);
+  Expect(0, BrakeController::kRudderBrakeAngleRad, -BrakeController::kRudderBrakeAngleRad, out);
 
   ShipControl::Brake();
 
   ShipControl::Run(in, &out);
-  Expect(0, kRudderBrakeAngleRad, -kRudderBrakeAngleRad, out);
+  Expect(0, BrakeController::kRudderBrakeAngleRad, -BrakeController::kRudderBrakeAngleRad, out);
 
   ShipControl::Docking();
 

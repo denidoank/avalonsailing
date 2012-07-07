@@ -12,6 +12,9 @@
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 enum { TIMER_EVENTS = 64 };  // number of events to keep in timer ringbuffer
 
@@ -66,5 +69,10 @@ int timer_stats(struct Timer*t, struct TimerStats *s);
 		(s).pmin/1000, (s).pavg/1000, (s).pdev/1000, (s).pmax/1000, \
 		(s).rmin/1000, (s).ravg/1000, (s).rdev/1000, (s).rmax/1000
 
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // _IO_TIMER_H

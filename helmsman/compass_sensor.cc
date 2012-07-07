@@ -6,9 +6,9 @@
 #include <stdio.h>
 #include <string>
 
-#include "helmsman/compass_sensor.h"
+#include "compass_sensor.h"
 
-#include "common/convert.h"
+#include "lib/convert.h"
 #include "proto/compass.h"
 
 

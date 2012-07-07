@@ -1,6 +1,8 @@
 // Copyright 2012 The Avalon Project Authors. All rights reserved.
 // Use of this source code is governed by the Apache License 2.0
 // that can be found in the LICENSE file.
+#ifndef LIB_LINEBUFFER_H_
+#define LIB_LINEBUFFER_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -77,3 +79,5 @@ int lb_getline(char *buf, int size, struct LineBuffer* lb);
 #ifdef __cplusplus
 }
 #endif
+
+#endif // LIB_LINEBUFFER_H_

@@ -4,10 +4,10 @@
 // Steffen Grundmann, June 2011
 
 
-#include "helmsman/apparent.h"
+#include "apparent.h"
 
-#include "common/convert.h"
-#include "common/normalize.h"
+#include "lib/convert.h"
+#include "lib/normalize.h"
 
 #include "lib/testing/testing.h"
 

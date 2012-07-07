@@ -1,11 +1,5 @@
-DEPS+=common
-DEPS+=lib/filter
-DEPS+=lib/util
+DEPS+=helmsman/lib
+DEPS+=helmsman/filter
 DEPS+=lib/testing
-DEPS+=io
-TARGET_ARCH=-m32
-
-# Not on Mac: 
-LDFLAGS+=-static
-
+DEPS+=lib
 include ../mk/Makefile.inc

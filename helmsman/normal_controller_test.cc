@@ -4,14 +4,14 @@
 // Steffen Grundmann, June 2011
 
 
-#include "helmsman/normal_controller.h"
+#include "normal_controller.h"
 
-#include "common/convert.h"
-#include "common/polar.h"
-#include "helmsman/sampling_period.h"
-#include "helmsman/apparent.h"
-#include "helmsman/controller_io.h"
-#include "helmsman/rudder_controller_const.h"
+#include "lib/convert.h"
+#include "lib/polar.h"
+#include "sampling_period.h"
+#include "apparent.h"
+#include "controller_io.h"
+#include "rudder_controller_const.h"
 #include "lib/testing/testing.h"
 
 

@@ -2,18 +2,18 @@
 // Use of this source code is governed by the Apache License 2.0
 // that can be found in the LICENSE file.
 // Steffen Grundmann, May 2011
-#include "helmsman/brake_controller.h"
+#include "brake_controller.h"
 
-#include "common/unknown.h"  // kUnknown
-#include "common/convert.h"
-#include "common/limit_rate.h"
-#include "common/sign.h"
-#include "helmsman/sampling_period.h"
+#include "lib/unknown.h"  // kUnknown
+#include "lib/convert.h"
+#include "lib/limit_rate.h"
+#include "lib/sign.h"
+#include "sampling_period.h"
 
 
 extern int debug;
 
-BrakeController::~BrakeController() {}
+const double BrakeController::kRudderBrakeAngleRad = Deg2Rad(60);
 
 void BrakeController::Entry(const ControllerInput& in,
                             const FilteredMeasurements& filtered) {

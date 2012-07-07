@@ -18,9 +18,10 @@ int64_t now_us() {
                 exit(1);
         }
 
-        int64_t us1 = tv.tv_sec;  us1 *= 1000000;
-        int64_t us2 = tv.tv_usec;
-        return us1 + us2;
+        int64_t us = tv.tv_sec;
+	us *= 1000000;
+        us += tv.tv_usec;
+        return us;
 }
 
 // TODO handle restart 

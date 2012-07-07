@@ -13,13 +13,13 @@
 #ifndef HELMSMAN_FILTER_BLOCK_H
 #define HELMSMAN_FILTER_BLOCK_H
 
-#include "helmsman/controller_io.h"
-#include "helmsman/compass_mixer.h"
+#include "controller_io.h"
+#include "compass_mixer.h"
 
-#include "lib/filter/median_filter.h"
-#include "lib/filter/sliding_average_filter.h"
-#include "lib/filter/quick_sliding_average_filter.h"
-#include "lib/filter/wrap_around_filter.h"
+#include "filter/median_filter.h"
+#include "filter/sliding_average_filter.h"
+#include "filter/quick_sliding_average_filter.h"
+#include "filter/wrap_around_filter.h"
 
 
 bool ValidGPS(const ControllerInput& in);
@@ -28,7 +28,6 @@ class FilterBlock {
  public:
   FilterBlock();
   void Filter(const ControllerInput& in, FilteredMeasurements* fil);
-  void MakeSkipperInput(const FilteredMeasurements& fil, SkipperInput* to_skipper);
   bool ValidAppWind();
   bool ValidTrueWind();
   bool ValidSpeed();

@@ -2,9 +2,9 @@
 // Use of this source code is governed by the Apache License 2.0
 // that can be found in the LICENSE file.
 // Steffen Grundmann, June 2011
-#include "helmsman/wind_strength.h"
+#include "wind_strength.h"
 
-#include "common/check.h"
+#include "lib/check.h"
 // All limits preliminary and subject of discussion
 // and later optimization. (Histograms from some islands on the way?)
 //

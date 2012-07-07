@@ -22,18 +22,18 @@ struct HelmsmanCtlProto {
 
 struct HelmsmanStsProto {
 	int64_t timestamp_ms;
-	double lat_deg, lon_deg;   // filtered position
+	double lat_deg, lng_deg;   // filtered position
 	double wind_true_deg, wind_true_kn;   // filtered direction and speed of wind
 };
 
 #define INIT_HELMSMANSTSPROTO { 0, NAN, NAN, NAN, NAN }
 
 #define OFMT_HELMSMANSTSPROTO(x)					\
-	"helmsts: timestamp_ms:%lld lat_deg:%.7lf lon_deg:%.7lf wind_true_deg:%.2lf wind_true_kn:%.2lf\n", \
-		(x).timestamp_ms, (x).lat_deg, (x).lon_deg, (x).wind_true_deg, (x).wind_true_kn
+	"helmsts: timestamp_ms:%lld lat_deg:%.7lf lng_deg:%.7lf wind_true_deg:%.2lf wind_true_kn:%.2lf\n", \
+		(x).timestamp_ms, (x).lat_deg, (x).lng_deg, (x).wind_true_deg, (x).wind_true_kn
 
 #define IFMT_HELMSMANSTSPROTO(x, n)					\
-	"helmsts: timestamp_ms:%lld lat_deg:%lf lon_deg:%lf wind_true_deg:%lf wind_true_kn:%lf%n", \
-		&(x)->timestamp_ms, &(x)->lat_deg, &(x)->lon_deg, &(x)->wind_true_deg, &(x)->wind_true_kn, (n)
+	"helmsts: timestamp_ms:%lld lat_deg:%lf lng_deg:%lf wind_true_deg:%lf wind_true_kn:%lf%n", \
+		&(x)->timestamp_ms, &(x)->lat_deg, &(x)->lng_deg, &(x)->wind_true_deg, &(x)->wind_true_kn, (n)
 
 #endif  // PROTO_HELMSMAN_H

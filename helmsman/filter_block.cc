@@ -18,18 +18,18 @@
 //   2. The heel angle calculated from the acceleration vector.
 //
 
-#include "helmsman/filter_block.h"
+#include "filter_block.h"
 
 #include <stdio.h>
-#include "helmsman/apparent.h"
-#include "helmsman/boat.h"  // kWindSensorOffsetRad
-#include "helmsman/controller_io.h"
-#include "helmsman/sampling_period.h"
+#include "apparent.h"
+#include "boat.h"  // kWindSensorOffsetRad
+#include "controller_io.h"
+#include "sampling_period.h"
 
-#include "common/check.h"
-#include "common/normalize.h"
-#include "common/polar.h"
-#include "common/unknown.h"
+#include "lib/check.h"
+#include "lib/normalize.h"
+#include "lib/polar.h"
+#include "lib/unknown.h"
 
 
 int logging_aoa = 1;

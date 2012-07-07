@@ -9,18 +9,18 @@
 // The maneuvers are calculated with overshoot, but limited to the minimal
 // maneuver angle.
 
-#include "helmsman/reference_values.h"
+#include "reference_values.h"
 
 #include <algorithm>  // max
 
 #include <math.h>
 #include <stdio.h>
-#include "common/check.h"
-#include "common/convert.h"
-#include "common/delta_angle.h"
-#include "common/normalize.h"
-#include "helmsman/boat.h"  // constants from simulation/boat.m, kMaxOmegaSail
-#include "helmsman/sampling_period.h"
+#include "lib/check.h"
+#include "lib/convert.h"
+#include "lib/delta_angle.h"
+#include "lib/normalize.h"
+#include "boat.h"  // constants from simulation/boat.m, kMaxOmegaSail
+#include "sampling_period.h"
 
 extern int debug;
 

@@ -3,7 +3,7 @@
 // that can be found in the LICENSE file.
 // Steffen Grundmann, June 2011
 
-#include "helmsman/wind_strength.h"
+#include "wind_strength.h"
 
 #include "lib/testing/testing.h"
 

@@ -5,7 +5,7 @@
 #ifndef HELMSMAN_IDLE_CONTROLLER_H
 #define HELMSMAN_IDLE_CONTROLLER_H
 
-#include "helmsman/controller.h"
+#include "controller.h"
 
 class IdleController : public Controller {
  public:

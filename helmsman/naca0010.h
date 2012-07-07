@@ -15,7 +15,7 @@
 #define HELMSMAN_NACA0010_H_
 
 #include <math.h>
-#include "common/convert.h"
+#include "lib/convert.h"
 
 namespace naca0010 {
 

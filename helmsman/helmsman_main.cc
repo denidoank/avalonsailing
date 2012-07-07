@@ -2,9 +2,16 @@
 // Use of this source code is governed by the Apache License 2.0
 // that can be found in the LICENSE file.
 //
-// Main loop for helmsman: open client sockets to wind_sensor and imu, server
-// socket for helsman clients (e.g. the skipper and sysmon) and shovel
-// data between all open file descriptors and the main controller.
+// Main loop for helmsman.
+//
+// on stdin read imu, wind, compass, ruddersts and helmsmanctl messages
+// on stdout produce helmsmansts and rudderctl messages.
+//
+// When alpha_star in helmsmanctl is set to NAN, execute braking mode, otherwise
+// try to sail in the direction of alpha star.   When the helmsman notices 
+// a rudderctl message on the bus, it assumes someone else is doing the steering
+// and it will back off sending rudderctls' for 10 seconds, but it will keep
+// updating its own state and sending helmsmansts reports.
 //
 
 #include <errno.h>
@@ -16,132 +23,37 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/select.h>
-#include <sys/socket.h>
-#include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <syslog.h>
-#include <time.h>
-#include <unistd.h>
 
-#include "io/linebuffer.h"
+#include "lib/linebuffer.h"
+#include "lib/log.h"
+#include "lib/timer.h"
 
 #include "proto/rudder.h"
 #include "proto/wind.h"
 #include "proto/imu.h"
 #include "proto/helmsman.h"
-#include "proto/helmsman_status.h"
-#include "proto/remote.h"
-#include "skipper_input.h"
 
-#include "common/convert.h"
-#include "common/now.h"
-#include "common/unknown.h"
+#include "lib/convert.h"
+#include "lib/unknown.h"
 #include "sampling_period.h"
 #include "ship_control.h"
 
 extern int debug;
 
-// -----------------------------------------------------------------------------
 namespace {
 
-// -----------------------------------------------------------------------------
-//   Together with getopt in main, this is our minimalistic UI
-// -----------------------------------------------------------------------------
-
-//const char* version = "$Id: $";
 const char* argv0;
-int verbose = 0;
-
-void crash(const char* fmt, ...) {
-  va_list ap;
-  char buf[1000];
-  va_start(ap, fmt);
-  vsnprintf(buf, sizeof(buf), fmt, ap);
-  syslog(LOG_CRIT, "%s%s%s\n", buf,
-	 (errno) ? ": " : "",
-	 (errno) ? strerror(errno):"" );
-  exit(1);
-  va_end(ap);
-  return;
-}
-
-static void bus_fault(int i) { crash("bus fault"); }
-static void segv_fault(int i) { crash("segv fault"); }
 
 void usage(void) {
-  fprintf(stderr,
-    "usage: [plug /path/to/bus] %s [options]\n"
-    "options:\n"
-    "\t-d debug\n"
-    , argv0);
-  exit(2);
-}
-
-static void set_fd(fd_set* s, int* maxfd, FILE* f) {
-        int fd = fileno(f);
-        FD_SET(fd, s);
-        if (*maxfd < fd) *maxfd = fd;
-}
-
-static const int64_t kPeriodMicros = kSamplingPeriod * 1E6;
-
-void AdvanceCallTime(int64_t* next_call_micros) {
-  *next_call_micros += kPeriodMicros;
-  if (now_micros() > *next_call_micros) {
-    syslog(LOG_WARNING, "Irkss!! Too late by %lld micros\n", (now_micros() - *next_call_micros));
-    *next_call_micros = now_micros();
-  }
-}
-
-bool CalculateTimeOut(int64_t next_call_micros, struct timespec* timeout) {
-  int64_t now = now_micros();
-  int64_t until_call = next_call_micros > now ? next_call_micros - now : 0;
-  if (until_call > kPeriodMicros)
-    until_call = kPeriodMicros;
-  CHECK(kSamplingPeriod < 1.0);
-  timeout->tv_sec = 0;
-  timeout->tv_nsec = 1000 * (until_call % 1000000LL);
-  return until_call > 0;
-}
-
-void HandleRemoteControl(RemoteProto remote, int* control_mode) {
-  if (remote.command != *control_mode)
-    syslog(LOG_NOTICE, "Helmsman switched to control mode %d\n", remote.command);
-  switch (remote.command) {
-    case kNormalControlMode:
-    case kOverrideSkipperMode:
-      *control_mode = remote.command;
-      ShipControl::Normal();
-      break;
-    case kDockingControlMode:
-      *control_mode = remote.command;
-       ShipControl::Docking();
-      break;
-    case kBrakeControlMode:
-    case kPowerCycleMode:
-      *control_mode = remote.command;
-      ShipControl::Brake();
-      break;
-    case kIdleHelmsmanMode:
-      *control_mode = remote.command;
-      ShipControl::Idle();
-      break;
-  default:
-    syslog(LOG_WARNING, "Illegal remote control: %d", remote.command);
-  }
-}
-
-void HandleRemoteControlFailSafe(int64_t last_remote_message_millis, int* control_mode) {
-  // See the alive_timer_ in remote_control/mainwindow.cc .
-  const int64_t kRemoteControlTimeOutSeconds = 5;  // We get a message every 2 s and we are allowed to miss one.
-  if ((kIdleHelmsmanMode == *control_mode ||
-       kOverrideSkipperMode == *control_mode) &&
-      now_ms() > last_remote_message_millis + kRemoteControlTimeOutSeconds * 1000) {
-    *control_mode = kBrakeControlMode;
-    syslog(LOG_WARNING, "helsman main: remote control communication timeout, braking");
-    ShipControl::Brake();
-  }
+	fprintf(stderr,
+		"usage: [plug /path/to/bus] %s [options]\n"
+		"options:\n"
+		"\t-d debug\n"
+		, argv0);
+	exit(2);
 }
 
 } // namespace
@@ -151,159 +63,181 @@ void HandleRemoteControlFailSafe(int64_t last_remote_message_millis, int* contro
 // -----------------------------------------------------------------------------
 int main(int argc, char* argv[]) {
 
-  int ch;
-  argv0 = strrchr(argv[0], '/');
-  if (argv0) ++argv0; else argv0 = argv[0];
+	int ch;
+	argv0 = strrchr(argv[0], '/');
+	if (argv0) ++argv0; else argv0 = argv[0];
 
-  while ((ch = getopt(argc, argv, "dhv")) != -1){
-    switch (ch) {
-    case 'd': ++debug; break;
-    case 'v': ++verbose; break;
-    case 'h':
-    default:
-      usage();
-    }
-  }
+	while ((ch = getopt(argc, argv, "dh")) != -1){
+		switch (ch) {
+		case 'd': ++debug; break;
+		case 'h':
+		default:
+			usage();
+		}
+	}
 
-  argv += optind;
-  argc -= optind;
+	argv += optind;
+	argc -= optind;
 
-  if (argc != 0) usage();
+	if (argc != 0) usage();
 
-  openlog(argv0, debug?LOG_PERROR:0, LOG_LOCAL0);
-  if(!debug) setlogmask(LOG_UPTO(LOG_NOTICE));
+	openlog(argv0, debug?LOG_PERROR:0, LOG_LOCAL0);
+	if(!debug) setlogmask(LOG_UPTO(LOG_NOTICE));
 
-  if(setvbuf(stdout, NULL, _IOLBF, 0))
-    syslog(LOG_WARNING, "Failed to make stdout line-buffered.");
+	if(setvbuf(stdout, NULL, _IOLBF, 0))
+		syslog(LOG_WARNING, "Failed to make stdout line-buffered.");
 
-  if (signal(SIGBUS, bus_fault) == SIG_ERR)  crash("signal(SIGBUS)");
-  if (signal(SIGSEGV, segv_fault) == SIG_ERR)  crash("signal(SIGSEGV)");
-  if (signal(SIGPIPE, SIG_IGN) == SIG_ERR) crash("signal");
+	if (signal(SIGBUS, fault) == SIG_ERR)  crash("signal(SIGBUS)");
+	if (signal(SIGSEGV, fault) == SIG_ERR)  crash("signal(SIGSEGV)");
+	if (signal(SIGPIPE, SIG_IGN) == SIG_ERR) crash("signal");
 
-  syslog(LOG_NOTICE, "Helmsman started");
+	syslog(LOG_NOTICE, "Helmsman started");
 
-  ControllerInput ctrl_in;
-  ControllerOutput ctrl_out;  // in this scope because it keeps the statistics.
+	// name and filters for the linebusd.
+	printf("$name %s\n", argv0);
+	printf("$subscribe compass:\n");  // these must match the IFMT_.. prefixes
+	printf("$subscribe imu:\n");
+	printf("$subscribe wind:\n");
+	printf("$subscribe rudder\n");   // matches rudderctl and ruddersts
+	printf("$subscribe status_\n");  // matches status_{left,right,sail}
+	printf("$subscribe helmctl:\n");
 
-  struct WindProto wind_sensor  = INIT_WINDPROTO;
-  struct CompassProto compass  = INIT_COMPASSPROTO;
-  struct RudderProto sts = INIT_RUDDERPROTO;
-  struct IMUProto imu    = INIT_IMUPROTO;
-  struct HelmsmanCtlProto ctl = INIT_HELMSMANCTLPROTO;
-  struct RemoteProto remote = INIT_REMOTEPROTO;
-  ctrl_in.alpha_star_rad = Deg2Rad(225);  // Going SouthWest is a good guess (and breaks up a deadlock)
-  int control_mode = kNormalControlMode;
-  int64_t last_remote_message_millis = now_ms();
+	struct CompassProto	compass = INIT_COMPASSPROTO;
+	struct IMUProto 	imu	= INIT_IMUPROTO;
+	struct WindProto	wind    = INIT_WINDPROTO;
+	struct RudderProto	ruddsts = INIT_RUDDERPROTO;
+	struct HelmsmanCtlProto ctl	= INIT_HELMSMANCTLPROTO;
 
-  int loops = 0;
+	ControllerInput  ctrl_in;
 
-  // Run ship controller exactly once every 100ms
-  int64_t next_call_micros = now_micros() + kPeriodMicros;
-  struct timespec timeout;
-  CalculateTimeOut(next_call_micros, &timeout);
+	struct LineBuffer lbuf;
+	memset(&lbuf, 0, sizeof lbuf);
 
-  struct LineBuffer lbuf;
-  memset(&lbuf, 0, sizeof lbuf);
+	struct Timer report;   // started every printf(helsmansts)
+	struct Timer backoff;  // started everytime we see a rudderctl from someone else
 
-  for (;;) {
+	memset(&report, 0, sizeof report);
+	memset(&backoff, 0, sizeof backoff);
 
-    fd_set rfds;
-    int max_fd = -1;
-    FD_ZERO(&rfds);
-    set_fd(&rfds, &max_fd, stdin);
-    sigset_t empty_mask;
-    sigemptyset(&empty_mask);
-    int r = pselect(max_fd + 1, &rfds,  NULL, NULL, &timeout, &empty_mask);
-    if (r == -1 && errno != EINTR) crash("pselect");
+	const int64_t sampling_period_us = kSamplingPeriod * 1E6;     // .1 second * 1M us/s
+	const int64_t report_period_us =  kSkipperUpdatePeriod * 1E6;  // 10 seconds * 1M/us
+	const int64_t backoff_period_us = 10*1E6;  // 10 seconds
 
-    if (debug>2) syslog(LOG_DEBUG, "Woke up %d\n", r);
+	int64_t now = now_us();
+	int64_t next_run = now + sampling_period_us;
+        timer_tick(&report, now, 1);
 
-    if (FD_ISSET(fileno(stdin), &rfds)) {
-      r = lb_readfd(&lbuf, fileno(stdin));
-      if (r != 0 && r != EAGAIN) break;  // exit main loop if stdin no longer readable.
-    }
+	for (;;) {
 
-    char line[1024];
-    while(lb_getline(line, sizeof line, &lbuf) > 0) {
-      int nn = 0;
-      if (sscanf(line, IFMT_WINDPROTO(&wind_sensor, &nn)) > 0) {
-	ctrl_in.wind_sensor.Reset();
-	ctrl_in.wind_sensor.alpha_deg = SymmetricDeg(NormalizeDeg(wind_sensor.angle_deg));
-	ctrl_in.wind_sensor.mag_m_s = wind_sensor.speed_m_s;
-	ctrl_in.wind_sensor.valid = wind_sensor.valid;
-      } else if (sscanf(line, IFMT_IMUPROTO(&imu, &nn)) > 0) {
-	ctrl_in.imu.Reset();
-	ctrl_in.imu.FromProto(imu);
-      } else if (sscanf(line, IFMT_RUDDERPROTO_STS(&sts, &nn)) > 0) {
-	ctrl_in.drives.gamma_rudder_left_rad  = Deg2Rad(sts.rudder_l_deg);
-	ctrl_in.drives.gamma_rudder_right_rad = Deg2Rad(sts.rudder_r_deg);
-	ctrl_in.drives.gamma_sail_rad         = Deg2Rad(sts.sail_deg);
-	ctrl_in.drives.homed_rudder_left = !isnan(sts.rudder_l_deg);
-	ctrl_in.drives.homed_rudder_right = !isnan(sts.rudder_r_deg);
-	ctrl_in.drives.homed_sail = !isnan(sts.sail_deg);
-      } else if (sscanf(line, IFMT_STATUS_LEFT(&sts, &nn)) > 0) {
-	ctrl_in.drives.gamma_rudder_left_rad  = Deg2Rad(sts.rudder_l_deg);
-	ctrl_in.drives.homed_rudder_left = !isnan(sts.rudder_l_deg);
-      } else if (sscanf(line, IFMT_STATUS_RIGHT(&sts, &nn)) > 0) {
-	ctrl_in.drives.gamma_rudder_right_rad  = Deg2Rad(sts.rudder_r_deg);
-	ctrl_in.drives.homed_rudder_right = !isnan(sts.rudder_r_deg);
-      } else if (sscanf(line, IFMT_STATUS_SAIL(&sts, &nn)) > 0) {
-	ctrl_in.drives.gamma_sail_rad  = Deg2Rad(sts.sail_deg);
-	ctrl_in.drives.homed_sail = !isnan(sts.sail_deg);
-      } else if (sscanf(line, IFMT_COMPASSPROTO(&compass, &nn)) > 0) {
-	ctrl_in.compass_sensor.phi_z_rad  = Deg2Rad(compass.yaw_deg);
-      } else if (sscanf(line, IFMT_HELMSMANCTLPROTO(&ctl, &nn)) > 0) {
-	if (control_mode != kOverrideSkipperMode &&
-	    !isnan(ctl.alpha_star_deg))
-	  ctrl_in.alpha_star_rad = Deg2Rad(ctl.alpha_star_deg);
-      } else if (sscanf(line, IFMT_REMOTEPROTO(&remote, &nn)) > 0) {
-    HandleRemoteControl(remote, &control_mode);
-    last_remote_message_millis = now_ms();
-	if (control_mode == kOverrideSkipperMode)
-	  ctrl_in.alpha_star_rad = Deg2Rad(remote.alpha_star_deg);
-      } else {
-	// Any unexpected input (messages not sent to us, or debug output that
-	// accidentally was sent to stdout instead of stderr comes here.
-	syslog(LOG_DEBUG, "Unreadable input \n>>>%s<<<\n", line);
-      }
-    }
+		fd_set rfds;
+		FD_ZERO(&rfds);
+		FD_SET(fileno(stdin), &rfds);
 
-    HandleRemoteControlFailSafe(last_remote_message_millis, &control_mode);
+		sigset_t empty_mask;
+		sigemptyset(&empty_mask);
 
-    if (!CalculateTimeOut(next_call_micros, &timeout)) {
-      ctrl_out.Reset();
-      ShipControl::Run(ctrl_in, &ctrl_out);
-      AdvanceCallTime(&next_call_micros);
+		struct timespec timeout = { 0, 0 };
+		if (now < next_run)
+			timeout.tv_nsec =  (next_run - now) * 1000;
 
-      if (!ShipControl::Idling()) {
-        RudderProto ctl;
-        ctrl_out.drives_reference.ToProto(&ctl);
-        ctl.timestamp_ms = now_ms();
-        printf(OFMT_RUDDERPROTO_CTL(ctl));
-      }
-      if (loops % 20 == 0) {
-        SkipperInput to_skipper(
-            now_ms(),
-            ctrl_out.skipper_input.longitude_deg,
-            ctrl_out.skipper_input.latitude_deg,
-            ctrl_out.skipper_input.angle_true_deg,
-            ctrl_out.skipper_input.mag_true_kn
-        );
-        printf("%s", to_skipper.ToString().c_str());
-      }
-      if (loops % 20 == 5) {
-        HelmsmanStatusProto hsts = INIT_HELMSMAN_STATUSPROTO;
-        ctrl_out.status.ToProto(&hsts);
-        hsts.timestamp_ms = now_ms();
-        printf(OFMT_HELMSMAN_STATUSPROTO(hsts));
-      }
+		int r = pselect(fileno(stdin)+1, &rfds,  NULL, NULL, &timeout, &empty_mask);
+		if (r == -1 && errno != EINTR) crash("pselect");
 
-      ++loops;
-      loops %= 1000;
-    }
-  }  // for ever
+		if (FD_ISSET(fileno(stdin), &rfds)) {
+			r = lb_readfd(&lbuf, fileno(stdin));
+			if (r != 0 && r != EAGAIN) break;  // exit main loop if stdin no longer readable.
+		}
 
-  crash("Main loop exit");
+		char line[1024];
+		while(lb_getline(line, sizeof line, &lbuf) > 0) {
+			int nn = 0;
+			if (sscanf(line, IFMT_COMPASSPROTO(&compass, &nn)) > 0) {
 
-  return 0;
+				ctrl_in.compass_sensor.phi_z_rad = Deg2Rad(compass.yaw_deg);
+
+			} else if (sscanf(line, IFMT_IMUPROTO(&imu, &nn)) > 0) {
+
+				ctrl_in.imu.Reset();
+				ctrl_in.imu.FromProto(imu);
+
+			} else if (sscanf(line, IFMT_WINDPROTO(&wind, &nn)) > 0) {
+
+				ctrl_in.wind_sensor.Reset();
+				ctrl_in.wind_sensor.alpha_deg = SymmetricDeg(NormalizeDeg(wind.angle_deg));
+				ctrl_in.wind_sensor.mag_m_s   = wind.speed_m_s;
+				ctrl_in.wind_sensor.valid     = wind.valid;
+
+			} else if (sscanf(line, IFMT_RUDDERPROTO_STS(&ruddsts, &nn)) > 0) {
+
+				ctrl_in.drives.gamma_rudder_left_rad  = Deg2Rad(ruddsts.rudder_l_deg);
+				ctrl_in.drives.gamma_rudder_right_rad = Deg2Rad(ruddsts.rudder_r_deg);
+				ctrl_in.drives.gamma_sail_rad         = Deg2Rad(ruddsts.sail_deg);
+				ctrl_in.drives.homed_rudder_left      = !isnan(ruddsts.rudder_l_deg);
+				ctrl_in.drives.homed_rudder_right     = !isnan(ruddsts.rudder_r_deg);
+				ctrl_in.drives.homed_sail 	      = !isnan(ruddsts.sail_deg);
+
+			} else if (sscanf(line, IFMT_STATUS_LEFT(&ruddsts, &nn)) > 0) {
+
+				ctrl_in.drives.gamma_rudder_left_rad  = Deg2Rad(ruddsts.rudder_l_deg);
+				ctrl_in.drives.homed_rudder_left      = !isnan(ruddsts.rudder_l_deg);
+
+			} else if (sscanf(line, IFMT_STATUS_RIGHT(&ruddsts, &nn)) > 0) {
+
+				ctrl_in.drives.gamma_rudder_right_rad = Deg2Rad(ruddsts.rudder_r_deg);
+				ctrl_in.drives.homed_rudder_right     = !isnan(ruddsts.rudder_r_deg);
+
+			} else if (sscanf(line, IFMT_STATUS_SAIL(&ruddsts, &nn)) > 0) {
+
+				ctrl_in.drives.gamma_sail_rad         = Deg2Rad(ruddsts.sail_deg);
+				ctrl_in.drives.homed_sail             = !isnan(ruddsts.sail_deg);
+
+			} else if (sscanf(line, IFMT_HELMSMANCTLPROTO(&ctl, &nn)) > 0) {
+				if (isnan(ctl.alpha_star_deg))
+					ShipControl::Brake();
+				else {
+					ctrl_in.alpha_star_rad = Deg2Rad(ctl.alpha_star_deg);
+					ShipControl::Normal();
+				}
+			} else if (strncmp(line, "rudderctl:", 10) == 0) {
+				if(!timer_running(&backoff))
+					syslog(LOG_WARNING, "relinquishing control");
+				else 
+					timer_tick(&backoff, now, 0);
+				timer_tick(&backoff, now, 1);
+			}
+		}
+
+		now = now_us();
+
+		if (now < next_run) continue;
+
+		ControllerOutput ctrl_out;
+		ShipControl::Run(ctrl_in, &ctrl_out);
+
+		while(now >= next_run) next_run += sampling_period_us;
+
+		if (timer_running(&backoff) && timer_started(&backoff) + backoff_period_us < now) {
+			syslog(LOG_WARNING, "resuming control");
+			timer_tick(&backoff, now, 0);
+		}
+
+		if (!timer_running(&backoff)) {
+			RudderProto ctl;
+			ctrl_out.drives_reference.ToProto(&ctl);
+			ctl.timestamp_ms = now / 1000;
+			printf(OFMT_RUDDERPROTO_CTL(ctl));
+		}
+
+		if (now - timer_started(&report) > report_period_us) {
+			timer_tick(&report, now, 0);
+			timer_tick(&report, now, 1);
+			ctrl_out.skipper_input.timestamp_ms = now / 1000;
+			printf(OFMT_HELMSMANSTSPROTO(ctrl_out.skipper_input));
+		}
+
+	}  // for ever
+
+	crash("Main loop exit");
+
+	return 0;
 }

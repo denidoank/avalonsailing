@@ -6,15 +6,15 @@
 
 
 
-#include "common/array_size.h"
-#include "common/delta_angle.h"
-#include "common/normalize.h"
+#include "lib/array_size.h"
+#include "lib/delta_angle.h"
+#include "lib/normalize.h"
 #include "lib/testing/testing.h"
 
-#include "lib/filter/sliding_average_filter.h"
-#include "lib/filter/low_pass_filter.h"
-#include "lib/filter/median_filter.h"
-#include "lib/filter/wrap_around_filter.h"
+#include "filter/sliding_average_filter.h"
+#include "filter/low_pass_filter.h"
+#include "filter/median_filter.h"
+#include "filter/wrap_around_filter.h"
 
 extern int debug;
 

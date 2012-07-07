@@ -5,7 +5,7 @@
 #ifndef HELMSMAN_SAIL_CONTROLLER_CONST_H
 #define HELMSMAN_SAIL_CONTROLLER_CONST_H
 
-#include "common/convert.h"
+#include "lib/convert.h"
 
 // Constants for the mode hysteresis logic
 // 3m/s: 73.5, 6m/s 72.5, 9m/s: 72.5, 12m/s: 68.5 degrees

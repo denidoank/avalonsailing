@@ -7,6 +7,6 @@
 #define COMMON_SAMPLING_PERIOD_H_
 
 const static double kSamplingPeriod = 0.1;  // s
-const static double kSkipperUpdatePeriod = 60;  // s
+const static double kSkipperUpdatePeriod = 10;  // s
 
 #endif  // COMMON_SAMPLING_PERIOD_H_

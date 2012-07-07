@@ -2,10 +2,10 @@
 // Use of this source code is governed by the Apache License 2.0
 // that can be found in the LICENSE file.
 // Steffen Grundmann, June 2011
-#include "helmsman/maneuver_type.h"
+#include "maneuver_type.h"
 
-#include "common/delta_angle.h"
-#include "common/sign.h"
+#include "lib/delta_angle.h"
+#include "lib/sign.h"
 
 
 // old and new angle of heading relative to true wind

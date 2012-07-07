@@ -4,10 +4,10 @@
 // Steffen Grundmann, June 2011
 
 
-#include "helmsman/c_lift_to_rudder_angle.h"
-#include "helmsman/naca0010.h"
-#include "common/sign.h"
-#include "common/unknown.h"
+#include "c_lift_to_rudder_angle.h"
+#include "naca0010.h"
+#include "lib/sign.h"
+#include "lib/unknown.h"
 
 namespace naca0010 {
 

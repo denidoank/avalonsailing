@@ -2,7 +2,7 @@
 // Use of this source code is governed by the Apache License 2.0
 // that can be found in the LICENSE file.
 // Steffen Grundmann, April 2012
-#include "helmsman/imu.h"
+#include "imu.h"
 
 #include <string.h>
 #include "proto/imu.h"
@@ -49,12 +49,15 @@ ATEST(IMUData, All) {
       "gyr_x_rad_s:0.000 gyr_y_rad_s:0.000 gyr_z_rad_s:0.000 "
       "mag_x_au:22.786 mag_y_au:-0.000 mag_z_au:41.107 "
       "roll_deg:0.000 pitch_deg:0.000 yaw_deg:0.000 "
-      "lat_deg:48.238906 lng_deg:-4.769800 alt_m:0.000 "
+      "lat_deg:48.2389060 lng_deg:-4.7698000 alt_m:0.000 "
       "vel_x_m_s:-0.586 vel_y_m_s:0.000 vel_z_m_s:0.000\n";
   IMUProto imu_proto_out = INIT_IMUPROTO;
   imu.ToProto(&imu_proto_out);
   char buffer[1024];
   snprintf(buffer, sizeof(buffer), OFMT_IMUPROTO(imu_proto_out));
+  if (strcmp(line2, buffer)) {
+      fprintf(stderr, "expected/got:\n%s%s", line2, buffer);
+  }
   EXPECT_TRUE(strcmp(line2, buffer) == 0);
 }
 

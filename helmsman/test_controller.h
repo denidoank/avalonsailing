@@ -12,9 +12,9 @@
 #include <string>
 #include <vector>
 
-#include "common/probe.h"
-#include "helmsman/controller.h"
-#include "helmsman/sail_controller.h"
+#include "lib/probe.h"
+#include "controller.h"
+#include "sail_controller.h"
 
 using std::vector;
 using std::string;

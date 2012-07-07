@@ -6,11 +6,11 @@
 // A rough physical boat model.
 
 #include <string>
-#include "common/normalize.h"
-#include "common/sign.h"
-#include "helmsman/boat_model.h"
-#include "helmsman/compass.h"
-#include "helmsman/naca0010.h"
+#include "lib/normalize.h"
+#include "lib/sign.h"
+#include "boat_model.h"
+#include "compass.h"
+#include "naca0010.h"
 
 extern int debug;
 BoatModel::BoatModel(double sampling_period,

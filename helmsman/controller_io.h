@@ -5,18 +5,20 @@
 #ifndef HELMSMAN_CONTROLLER_IO_H
 #define HELMSMAN_CONTROLLER_IO_H
 
-#include "common/unknown.h"
-#include "common/now.h"
-#include "helmsman/imu.h"
-#include "helmsman/compass_sensor.h"
-#include "helmsman/drive_data.h"
-#include "helmsman/skipper_input.h"
-#include "helmsman/helmsman_status.h"
-#include "helmsman/wind_sensor.h"
+#include <string.h>
+
+#include "lib/unknown.h"
+#include "lib/now.h"
+#include "imu.h"
+#include "compass_sensor.h"
+#include "drive_data.h"
+#include "wind_sensor.h"
+
 #include "proto/compass.h"
 #include "proto/imu.h"
 #include "proto/rudder.h"
 #include "proto/wind.h"
+#include "proto/helmsman.h"
 
 
 // Input definition
@@ -51,39 +53,16 @@ struct ControllerInput {
 // Output definition
 struct ControllerOutput {
   void Reset() {
+    memset(&skipper_input, 0, sizeof skipper_input);
     drives_reference.Reset();
-    skipper_input.Reset();
   }
-  //bool operator!=(const ControllerOutput& r) {
-  //  return skipper_input != r.skipper_input ||
-  //         drives_reference != r.drives_reference;
-  //}
-  SkipperInput skipper_input;
+
+  HelmsmanStsProto skipper_input;
   DriveReferenceValuesRad drives_reference;
-  HelmsmanStatus status;
 };
 
 // elements (except lat long) in internal units (rad, m, s)
 struct FilteredMeasurements {
-  void Reset() {
-    phi_z_boat = 0;
-    mag_boat = 0;
-    omega_boat = 0;
-    alpha_true = 0;
-    mag_true = 0;
-    angle_app = 0;
-    mag_app = 0;
-    angle_aoa = 0;
-    mag_aoa = 0;
-    longitude_deg = 0;
-    latitude_deg = 0;
-    phi_x_rad = 0;
-    phi_y_rad = 0;
-    temperature_c = 0;
-    valid = false;
-    valid_app_wind = false;
-    valid_true_wind = false;
-  }
   // Applied filters (T1 roughly 1s) to some data.
   // true speed, global frame
   double phi_z_boat;
@@ -112,6 +91,8 @@ struct FilteredMeasurements {
                         // filled up and contain reliable data.
   bool valid_app_wind;  // apparent wind info is reliable and well filtered.
   bool valid_true_wind; // true wind info is reliable and well filtered.
+
+  void Reset() { memset(this, 0, sizeof *this);  }
 };
 
 #endif  // HELMSMAN_CONTROLLER_IO_H
