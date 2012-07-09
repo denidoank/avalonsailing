@@ -52,6 +52,7 @@ void usage(void) {
 		"usage: [plug /path/to/bus] %s [options]\n"
 		"options:\n"
 		"\t-d debug\n"
+		"\t-S safety mode: if no helmsmanctl for 10 seconds, switch to brake mode.\n"
 		, argv0);
 	exit(2);
 }
@@ -63,13 +64,16 @@ void usage(void) {
 // -----------------------------------------------------------------------------
 int main(int argc, char* argv[]) {
 
+	int safemode = 0;
+
 	int ch;
 	argv0 = strrchr(argv[0], '/');
 	if (argv0) ++argv0; else argv0 = argv[0];
 
-	while ((ch = getopt(argc, argv, "dh")) != -1){
+	while ((ch = getopt(argc, argv, "dhS")) != -1){
 		switch (ch) {
 		case 'd': ++debug; break;
+		case 'S': ++safemode; break;
 		case 'h':
 		default:
 			usage();
@@ -95,11 +99,11 @@ int main(int argc, char* argv[]) {
 
 	// name and filters for the linebusd.
 	printf("$name %s\n", argv0);
-	printf("$subscribe compass:\n");  // these must match the IFMT_.. prefixes
+	printf("$subscribe compass:\n");  // these must all match the OFMT_.. prefixes
 	printf("$subscribe imu:\n");
 	printf("$subscribe wind:\n");
-	printf("$subscribe rudder\n");   // matches rudderctl and ruddersts
-	printf("$subscribe status_\n");  // matches status_{left,right,sail}
+	printf("$subscribe rudder\n");   // matches rudder{ctl,sts}:
+	printf("$subscribe status_\n");  // matches status_{left,right,sail}:
 	printf("$subscribe helmctl:\n");
 
 	struct CompassProto	compass = INIT_COMPASSPROTO;
@@ -114,14 +118,17 @@ int main(int argc, char* argv[]) {
 	memset(&lbuf, 0, sizeof lbuf);
 
 	struct Timer report;   // started every printf(helsmansts)
+	struct Timer gotctl;   // started everytime we see a helmsmanctl
 	struct Timer backoff;  // started everytime we see a rudderctl from someone else
 
 	memset(&report, 0, sizeof report);
+	memset(&backoff, 0, sizeof gotctl);
 	memset(&backoff, 0, sizeof backoff);
 
 	const int64_t sampling_period_us = kSamplingPeriod * 1E6;     // .1 second * 1M us/s
 	const int64_t report_period_us =  kSkipperUpdatePeriod * 1E6;  // 10 seconds * 1M/us
 	const int64_t backoff_period_us = 10*1E6;  // 10 seconds
+	const int64_t safety_period_us = 10*1E6;  // 10 seconds
 
 	int64_t now = now_us();
 	int64_t next_run = now + sampling_period_us;
@@ -142,6 +149,8 @@ int main(int argc, char* argv[]) {
 
 		int r = pselect(fileno(stdin)+1, &rfds,  NULL, NULL, &timeout, &empty_mask);
 		if (r == -1 && errno != EINTR) crash("pselect");
+
+		now = now_us();
 
 		if (FD_ISSET(fileno(stdin), &rfds)) {
 			r = lb_readfd(&lbuf, fileno(stdin));
@@ -192,12 +201,11 @@ int main(int argc, char* argv[]) {
 				ctrl_in.drives.homed_sail             = !isnan(ruddsts.sail_deg);
 
 			} else if (sscanf(line, IFMT_HELMSMANCTLPROTO(&ctl, &nn)) > 0) {
-				if (isnan(ctl.alpha_star_deg))
-					ShipControl::Brake();
-				else {
-					ctrl_in.alpha_star_rad = Deg2Rad(ctl.alpha_star_deg);
-					ShipControl::Normal();
-				}
+
+				ctrl_in.alpha_star_rad = Deg2Rad(ctl.alpha_star_deg);
+				timer_tick(&gotctl, now, 0);
+				timer_tick(&gotctl, now, 1);
+
 			} else if (strncmp(line, "rudderctl:", 10) == 0) {
 				if(!timer_running(&backoff))
 					syslog(LOG_WARNING, "relinquishing control");
@@ -207,9 +215,19 @@ int main(int argc, char* argv[]) {
 			}
 		}
 
-		now = now_us();
-
 		if (now < next_run) continue;
+
+		if (safemode)
+			if(!timer_running(&gotctl) || timer_started(&gotctl) + safety_period_us < now) {
+				syslog(LOG_WARNING, "helmsmanctl: timeout, switching to BRAKE mode.");
+				ctrl_in.alpha_star_rad = NAN;
+
+			}
+
+		if (isnan(ctrl_in.alpha_star_rad))
+			ShipControl::Brake();
+		else
+			ShipControl::Normal();
 
 		ControllerOutput ctrl_out;
 		ShipControl::Run(ctrl_in, &ctrl_out);
