@@ -17,7 +17,6 @@ class MessageQueue {
 
   // Constructs a message queue using specified directory for storing messages.
   MessageQueue(const string base_dir);
-  ~MessageQueue();
 
   // Empty message queue. Remove all messages.
   void EmptyQueue();

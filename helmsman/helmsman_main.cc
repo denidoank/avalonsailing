@@ -122,13 +122,13 @@ int main(int argc, char* argv[]) {
 	struct Timer backoff;  // started everytime we see a rudderctl from someone else
 
 	memset(&report, 0, sizeof report);
-	memset(&backoff, 0, sizeof gotctl);
+	memset(&gotctl, 0, sizeof gotctl);
 	memset(&backoff, 0, sizeof backoff);
 
 	const int64_t sampling_period_us = kSamplingPeriod * 1E6;     // .1 second * 1M us/s
-	const int64_t report_period_us =  kSkipperUpdatePeriod * 1E6;  // 10 seconds * 1M/us
-	const int64_t backoff_period_us = 10*1E6;  // 10 seconds
-	const int64_t safety_period_us = 10*1E6;  // 10 seconds
+	const int64_t report_period_us   = kSkipperUpdatePeriod * 1E6;  // 10 seconds * 1M/us
+	const int64_t backoff_period_us  = 10*1E6;  // 10 seconds
+	const int64_t safety_period_us   = 10*1E6;  // 10 seconds
 
 	int64_t now = now_us();
 	int64_t next_run = now + sampling_period_us;
@@ -218,10 +218,9 @@ int main(int argc, char* argv[]) {
 		if (now < next_run) continue;
 
 		if (safemode)
-			if(!timer_running(&gotctl) || timer_started(&gotctl) + safety_period_us < now) {
+			if(timer_started(&gotctl) + safety_period_us < now) {
 				syslog(LOG_WARNING, "helmsmanctl: timeout, switching to BRAKE mode.");
 				ctrl_in.alpha_star_rad = NAN;
-
 			}
 
 		if (isnan(ctrl_in.alpha_star_rad))

@@ -10,6 +10,7 @@
 #include <stdarg.h>
 #include <syslog.h>
 #include <string.h>
+#include <signal.h>
 #include <sys/time.h>
 
 #include <string>

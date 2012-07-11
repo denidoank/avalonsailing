@@ -10,7 +10,7 @@
 ##
 
 # for experimental use, get the binaries directly from the source tree.
-if ! which linebusd; then
+if ! which linebusd > /dev/null 2>&1 ; then
     echo "Running from source tree"
     AVALONROOT=$(dirname $0)
     export PATH=$AVALONROOT/io:$AVALONROOT/helmsman:$PATH
@@ -82,8 +82,6 @@ fi
 #  the -- is needed in plug [options] $BUS -- command [command options] to explain to plug where to stop interpreting its options.
 #
 
-##    modemd  --queue=/var/run/modem --device=/dev/modem &
-
 for attempt in 1 2 3; do
 
     logger -s -p local2.Notice "Avalon subsystems starting up (attempt $attempt)"
@@ -93,12 +91,13 @@ for attempt in 1 2 3; do
 
     # input subsystems
 
-    plug -pi $LBUS -- `which imucat` /dev/imu
-    plug -pi $LBUS -- `which compasscat` /dev/compass
-    plug -pi $LBUS -- `which windcat` /dev/wind
-
+    plug -pi $LBUS -- `which imucat` /dev/imu &
+    plug -pi $LBUS -- `which compasscat` /dev/compass &
+    plug -pi $LBUS -- `which windcat` /dev/wind &
+    
+    # imutime dies if imu's timestamp is zero for too long.
     plug -po -n "imutime" -f "imu:" $LBUS -- `which imutime`
-    plug -i $LBUS -- `which fcmon` /dev/fuelcell
+    plug -i $LBUS -- `which fcmon` /dev/fuelcell &  # not precious
 
 
     # output subsystems
@@ -107,7 +106,7 @@ for attempt in 1 2 3; do
     linebusd $EBUS	# blocks until socket exists, then goes daemon
 
     for p in /dev/rudder_l /dev/rudder_r /dev/sail;  do
-	    plug -n "epos-$(basename $p)" $EBUS -- `which eposcom` -T $p &
+	    plug $EBUS -- `which eposcom` -T $p &
     done
 
     plug -p $EBUS -- `which rudderctl` -l -T &		# homing and positioning of left rudder
@@ -124,19 +123,15 @@ for attempt in 1 2 3; do
     
     plug -n "helmsman" $LBUS -- `which helmsman` 2>> /var/log/helmsman.log & 
 
-
-
-    # aiscat is not connected to the lbus
+    # aiscat is not connected to the lbus (TBD)
     #  (aiscat /dev/ais | aisbuf /var/run/ais.txt; logger -s -p local2.crit "aiscat exited.")&
-
-    # plug -o -n "statusd" $LBUS -- `which statusd` --queue=/var/run/modem --initial_timeout=180 --status_interval=86400 --remote_cmd_interval=5 &
 
     echo "Und immer eine Handbreit Wasser unter dem Kiel!"
     echo "May she always have a good passage, wherever she goes!"
     echo
 
     ## keep a plug with a dummy filter on the lbus and wait for it to exit
-    plug -n "watch" -f xxx $LBUS > /dev/null
+    plug -on "watch" -f xxx $LBUS > /dev/null
 
     imucfg -R /dev/imu || logger -s -p local2.Notice "Failed to reset IMU"
 

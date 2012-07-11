@@ -71,7 +71,6 @@ TestController::TestController(SailController* sail_controller)
     : sail_controller_(sail_controller),
       test_success_(true) {
   Reset();
-  debug = 1;  // TODO remove this later
 }
 
 void TestController::TestController::Reset() {
