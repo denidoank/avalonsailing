@@ -20,12 +20,14 @@ import (
 func Plug(path_to_bus string) (rch <-chan string, sch chan<- string) {
 	adr, err := net.ResolveUnixAddr("unix", path_to_bus)
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
+		return
 	}
 
 	sck, err := net.DialUnix("unix", nil, adr)
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
+		return
 	}
 
 	snd, rcv := make(chan string), make(chan string)

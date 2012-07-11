@@ -12,7 +12,7 @@ func Tail(path string, w io.WriteCloser) chan<- bool {
 	go func() {
 		tick := time.Tick(2*time.Second)
 		var now time.Time
-		var lastsize int64 = -1
+		var lastsize int64 // = -1
 
 	outer:
 		for {
@@ -35,9 +35,9 @@ func Tail(path string, w io.WriteCloser) chan<- bool {
 					continue outer
 				}
 //				log.Print(fi.Size())
-				if lastsize == -1 {
-					lastsize = fi.Size()
-				}
+//				if lastsize == -1 {
+//					lastsize = fi.Size()
+//				}
 				if lastsize > fi.Size() {
 					lastsize = 0
 				}
