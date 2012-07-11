@@ -22,23 +22,12 @@
 #define DEFAULT_DIR_PERMISSIONS (S_IFDIR | S_IRWXU)
 
 // SMS message spooler and receiver API.
-MessageQueue::MessageQueue(const string base_dir): base_dir_(base_dir) {
-  list<string> dirs;
-  string dir = base_dir;
-  do {  // Create a list of parent directories.
-    dirs.push_back(dir);
-    char dir_c_str[256];
-    strncpy(dir_c_str, dir.c_str(), sizeof(dir_c_str) - 1);
-    dir.assign(dirname(dir_c_str));
-  } while (dirs.back() == dir);
-  while (!dirs.empty()) {  // Create directories that do not exist.
-    mkdir(dirs.back().c_str(), DEFAULT_DIR_PERMISSIONS);
-    dirs.pop_back();
-  }
+MessageQueue::MessageQueue(const string base_dir) : base_dir_(base_dir) {
+  string cmd = "/bin/mkdir -p ";
+  cmd += base_dir;
+  system(cmd.c_str());
 }
 
-MessageQueue:: ~MessageQueue() {
-}
 
 void MessageQueue::EmptyQueue() {
   vector<MessageId> ids;
@@ -55,8 +44,7 @@ unsigned int MessageQueue::NumMessages() {
   return ids.size();
 }
 
-MessageQueue::MessageId MessageQueue::GetMessage(
-    const unsigned int index, string* message) {
+MessageQueue::MessageId MessageQueue::GetMessage(const unsigned int index, string* message) {
   message->clear();
   vector<MessageId> ids;
   MessageId id = kInvalidId;
@@ -177,8 +165,7 @@ void MessageQueue::GetAvailableIds(vector<MessageId>& ids) const {
   }
 }
 
-MessageQueue::MessageId MessageQueue::GetIdFromFilename(
-    const char* filename) {
+MessageQueue::MessageId MessageQueue::GetIdFromFilename(const char* filename) {
   MessageId id = kInvalidId;
   if (fnmatch("message.[0-9]*.txt", filename, FNM_CASEFOLD) == 0) {
     char* endptr;
@@ -192,7 +179,6 @@ MessageQueue::MessageId MessageQueue::GetIdFromFilename(
 
 string MessageQueue::GetFilenameFromId(const MessageId message_id) const {
   char filename[256];
-  snprintf(filename, sizeof(filename) - 1,
-           "%s/message.%u.txt", base_dir_.c_str(), message_id);
+  snprintf(filename, sizeof(filename) - 1, "%s/message.%u.txt", base_dir_.c_str(), message_id);
   return filename;
 }

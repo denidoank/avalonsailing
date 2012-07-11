@@ -186,11 +186,9 @@ Modem::ResultCode Modem::GetGeolocation(double* lat, double* lng, int64_t* times
 
 }
 
-Modem::ResultCode Modem::SendSMSMessage(const string phone_number,
-                                        const string message) {
+Modem::ResultCode Modem::SendSMSMessage(const string phone_number, const string message) {
   unsigned char pdu[MAX_SMS_PDU_LENGTH];
-  int pdu_length = EncodeSMS("", phone_number.c_str(), message.c_str(),
-                             message.length(), pdu, sizeof(pdu));
+  int pdu_length = EncodeSMS("", phone_number.c_str(), message.c_str(), message.length(), pdu, sizeof(pdu));
   if (pdu_length <= 0)
     return ERROR;
   // User data length equals with PDU length, except the SMSC.

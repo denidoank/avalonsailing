@@ -1,6 +1,6 @@
 #!/bin/sh
 # for experimental use, get the binaries directly from the source tree.
-if ! which plug; then
+if ! which plug > /dev/null 2>&1 ; then
     echo "Running from source tree"
     AVALONROOT=$(dirname $0)
     export PATH=$AVALONROOT/io::$PATH
