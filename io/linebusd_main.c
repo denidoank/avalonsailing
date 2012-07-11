@@ -292,6 +292,12 @@ handle_cmd(struct Client* client, char* line) {
 		return;
 	}
 
+	if (strcmp("xon", line) == 0) {
+		client->xoff = 0;
+		syslog(LOG_NOTICE, "Client %s (%d) set xon\n", client_name(client), client->fd);
+		return;
+	}
+
 	if (strcmp("precious", line) == 0) {
 		client->precious = 1;
 		syslog(LOG_NOTICE, "Client %s (%d) set precious\n", client_name(client), client->fd);

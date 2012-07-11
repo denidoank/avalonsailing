@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <libgen.h>
 #include <sys/time.h>
 #include <unistd.h>
 
@@ -85,6 +86,9 @@ int main(int argc, char* argv[]) {
 	 if (signal(SIGSEGV, fault) == SIG_ERR)  crash("signal(SIGSEGV)");
 	 if (signal(SIGUSR1, setflg) == SIG_ERR)  crash("signal(SIGUSR1)");
 
+	 printf("$xoff\n");  // prevent garbage from piling up before we're done probing.
+	 printf("$name epos-%s\n", basename(argv[0]));
+
 	 int fd = epos_open(argv[0]);
 	 if (fd < 0) crash("epos_open(%s)", argv[0]);
 
@@ -102,6 +106,8 @@ int main(int argc, char* argv[]) {
 		 printf("$subscribe 0x%x\n", nodeidmap[nodeid]);
 		 ++found;
 	 }
+
+	 printf("$xon\n");  // prevent garbage from piling up before we're done probing.
 
 	 if(!found)
 		 crash("No epos devices found");
