@@ -23,11 +23,18 @@ var (
 
 func PlugServer(ws *websocket.Conn) {
 	r, s := Plug(*lbus)
+	if r == nil || s == nil {
+		ws.Close()
+		return
+	}
+	log.Print("plugged into ", *lbus)
 	rr := SamplePlug(r, 2)
 	go func() {
 		for l := range rr {
 			fmt.Fprint(ws, line2json(l))
 		}
+		log.Print("plug pulled from ", *lbus)
+		ws.Close()
 	}()
 
 	b := bufio.NewReader(ws)
@@ -38,6 +45,7 @@ func PlugServer(ws *websocket.Conn) {
 		}
 		s <- line
 	}
+	log.Print("websocket closed ", *lbus)
 	close(s)
 }
 
@@ -50,7 +58,8 @@ func TailServer(ws *websocket.Conn) {
 
 func main() {
 	flag.Parse()
-	http.Handle("/", http.FileServer(http.Dir(".")))
+	http.Handle("/", http.RedirectHandler("/s/control.html", 301))
+	http.Handle("/s/", http.StripPrefix("/s/", http.FileServer(http.Dir("./s/"))))
 	http.Handle("/lbus", websocket.Handler(PlugServer))
 	http.Handle("/syslog", websocket.Handler(TailServer))
 	if err := http.ListenAndServe(*port, nil); err != nil {
