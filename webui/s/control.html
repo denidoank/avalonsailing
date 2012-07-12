@@ -8,6 +8,7 @@
 <a href="plan.html" target="plan">Plan</a>
 <a href="log.html" target="log">Log</a>
 
+<span id='helmsts' style="background:yellow;" ></span>
 
 <div id="widget" style="position: relative;  left:100;" >
 <img id="boat"   width="208" height="495" style="position: absolute; left: 0; top: 0;" src="boat.png"/>
@@ -21,6 +22,7 @@
 
 <img id="sns_wind"   width="20" height="100" style="position: absolute; left: 80; top: 200;" src="dashed.png"/>
 <img id="sns_compass"  width="240" height="240" style="position: absolute; left: 440; top: 50;" src="rose.png"/>
+<img id="ctl_alphastar"  width="20" height="140" style="position: absolute; left: 550; top: 160;" src="needle.png"/>
 <img id="sns_imuyaw"  width="240" height="240" style="position: absolute; left: 440; top: 350;" src="rose.png"/>
 
 
@@ -69,7 +71,7 @@ function get_lasthelmctl() {
 
 function set_lasthelmctl(x) {
     lastmsg['helmctl'] = x
-//    handlers['helmctl'](x)
+    handlers['helmctl'](x)
 }
 
 function fmt_helmctl(x) {
@@ -88,6 +90,7 @@ function start() {
     e('ctl_rudd_l') .style['-webkit-transform-origin'] ='top'
     e('ctl_rudd_r') .style['-webkit-transform-origin'] ='top'
     e('sns_wind')   .style['-webkit-transform-origin'] ='top'
+    e('ctl_alphastar')   .style['-webkit-transform-origin'] ='top'
 
     var nan = Number.NaN
 
@@ -108,6 +111,8 @@ function start() {
     ws.onerror = function(err) { document.body.style.background = 'red' }
 }
 
+var cmp_angle_deg
+
 var handlers = {
     'ruddersts': function(msg) {
 	rot('sts_rudd_l', msg.rudder_l_deg)
@@ -123,8 +128,10 @@ var handlers = {
     'status_right': function(msg) { rot('sts_rudd_r', msg.angle_deg) },
     'status_sail':  function(msg) { rot('sts_sail', msg.angle_deg) },
     'wind': 	    function(msg) { rot('sns_wind', msg.angle_deg) },
-    'compass': 	    function(msg) { rot('sns_compass', -msg.yaw_deg) },
+    'compass': 	    function(msg) { rot('sns_compass', -msg.yaw_deg); cmp_angle_deg = msg.yaw_deg },// and update helmctl too
     'imu':	    function(msg) { rot('sns_imuyaw',  -msg.yaw_deg) },
+    'helmsts':      function(msg) { e('helmsts').innerHTML = JSON.stringify(msg, null, 2) },
+    'helmctl':      function(msg) { rot('ctl_alphastar', 180+msg.alpha_star_deg - cmp_angle_deg )},  // WRONG
 }
 
 var keys = {
