@@ -103,7 +103,7 @@ func SamplePlug(in <-chan string, hz float64) <-chan string {
 			pfx := line[:findpfx(line)]
 			tb, ok := m[pfx]
 			if !ok {
-				tb = &TokenBucket{2, hz, 2, zero}
+				tb = &TokenBucket{2, hz, 1, zero}
 				m[pfx] = tb
 			}
 			if tb.Allow(time.Now()) {

@@ -35,50 +35,6 @@ var sns_wind, sns_compass, sns_imuyaw
 
 var ws
 
-var lastmsg = {}
-
-function get_lastctl() {
-    var x = lastmsg['rudderctl']
-    if (x != null) return x
-    return { 'timestamp_ms':0, 'rudder_l_deg':0, 'rudder_r_deg':0, 'sail_deg':0, }
-}
-
-function set_lastctl(x) {
-    lastmsg['rudderctl'] = x
-    handlers['rudderctl'](x)
-}
-
-
-function rnan(x) {
-    if (Number.isNaN(x))  return "nan"
-    return x
-}
-
-function znan(x) {
-    if (Number.isNaN(x))  return 0
-    return x
-}
-
-function fmt_rudderctl(x) {
-    return "rudderctl: timestamp_ms:" + x.timestamp_ms + " rudder_l_deg:" + rnan(x.rudder_l_deg) + " rudder_r_deg:" + rnan(x.rudder_r_deg) + " sail_deg:" + rnan(x.sail_deg) + "\n"
-}
-
-function get_lasthelmctl() {
-    var x = lastmsg['helmctl']
-    if (x != null) return x
-    return { 'timestamp_ms':0, 'alpha_star_deg':0 }
-}
-
-function set_lasthelmctl(x) {
-    lastmsg['helmctl'] = x
-    handlers['helmctl'](x)
-}
-
-function fmt_helmctl(x) {
-    return "helmctl: timestamp_ms:" + x.timestamp_ms + " alpha_star_deg:" + rnan(x.alpha_star_deg) + "\n"
-}
-
-
 function e(id) { return document.getElementById(id) }
 function rot(id, angle) { e(id).style['-webkit-transform'] ='rotate(' + angle + 'deg)' }
 
@@ -90,7 +46,7 @@ function start() {
     e('ctl_rudd_l') .style['-webkit-transform-origin'] ='top'
     e('ctl_rudd_r') .style['-webkit-transform-origin'] ='top'
     e('sns_wind')   .style['-webkit-transform-origin'] ='top'
-    e('ctl_alphastar')   .style['-webkit-transform-origin'] ='top'
+    e('ctl_alphastar').style['-webkit-transform-origin'] ='top'
 
     var nan = Number.NaN
 
@@ -111,7 +67,31 @@ function start() {
     ws.onerror = function(err) { document.body.style.background = 'red' }
 }
 
-var cmp_angle_deg
+function rnan(x) {
+    if (Number.isNaN(x))  return "nan"
+    return x
+}
+
+function znan(x) {
+    if (Number.isNaN(x))  return 0
+    return x
+}
+
+var lastmsg = {
+    'rudderctl': { 'timestamp_ms':0, 'rudder_l_deg':0, 'rudder_r_deg':0, 'sail_deg':0, },
+    'helmctl':   { 'timestamp_ms':0, 'alpha_star_deg':0, },
+    'compass':   { 'yaw_deg':0, },
+}
+
+
+function fmt_rudderctl(x) {
+    return "rudderctl: timestamp_ms:" + x.timestamp_ms + " rudder_l_deg:" + rnan(x.rudder_l_deg) + " rudder_r_deg:" + rnan(x.rudder_r_deg) + " sail_deg:" + rnan(x.sail_deg) + "\n"
+}
+
+function fmt_helmctl(x) {
+    return "helmctl: timestamp_ms:" + x.timestamp_ms + " alpha_star_deg:" + rnan(x.alpha_star_deg) + "\n"
+}
+
 
 var handlers = {
     'ruddersts': function(msg) {
@@ -128,10 +108,10 @@ var handlers = {
     'status_right': function(msg) { rot('sts_rudd_r', msg.angle_deg) },
     'status_sail':  function(msg) { rot('sts_sail', msg.angle_deg) },
     'wind': 	    function(msg) { rot('sns_wind', msg.angle_deg) },
-    'compass': 	    function(msg) { rot('sns_compass', -msg.yaw_deg); cmp_angle_deg = msg.yaw_deg },// and update helmctl too
+    'compass': 	    function(msg) { rot('sns_compass', -msg.yaw_deg); rot('ctl_alphastar', 180+lastmsg['helmctl'].alpha_star_deg - msg.yaw_deg) },
     'imu':	    function(msg) { rot('sns_imuyaw',  -msg.yaw_deg) },
     'helmsts':      function(msg) { e('helmsts').innerHTML = JSON.stringify(msg, null, 2) },
-    'helmctl':      function(msg) { rot('ctl_alphastar', 180+msg.alpha_star_deg - cmp_angle_deg )},  // WRONG
+    'helmctl':      function(msg) { rot('ctl_alphastar', 180+msg.alpha_star_deg - lastmsg['compass'].yaw_deg) },
 }
 
 var keys = {
@@ -195,21 +175,24 @@ var hkeys = {
 function handlekey() {
     f = keys[event.keyCode]
     if (f != null) {
-	msg = get_lastctl()
+	msg = lastmsg['rudderctl']
 	msg = f(msg)
-	set_lastctl(msg)
-	ws.send(fmt_rudderctl(msg)) // TODO: do in a repeat loop
+	lastmsg['rudderctl'] = msg
+	ws.send(fmt_rudderctl(msg))
+	handlers['rudderctl'](msg)
 	return true
     }
 
     f = hkeys[event.keyCode]
     if (f != null) {
-	msg = get_lasthelmctl()
+	msg = lastmsg['helmctl']
 	msg = f(msg)
-	set_lasthelmctl(msg)
+	lastmsg['helmctl'] = msg
 	ws.send(fmt_helmctl(msg)) // TODO: do in a repeat loop
+	handlers['helmctl'](msg)
+	return true
     }
 }
 
 </script>
-</body> </html>
+</body></html>
