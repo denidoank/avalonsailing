@@ -3,7 +3,7 @@
 <title>Control</title>
 </head>
 
-<body onload="start()" onkeydown="handlekey()">
+<body onload="start()" onkeydown="handlekey()" style="background:gray";>
 <a href="control.html" target="control" style="background:gray;">Control</a>
 <a href="plan.html" target="plan">Plan</a>
 <a href="log.html" target="log">Log</a>
@@ -20,10 +20,12 @@
 <img id="ctl_rudd_r" width="8" height="80"   style="position: absolute; left: 140; top: 490;" src="needle.png"/>
 
 <img id="sns_wind"   width="20" height="100" style="position: absolute; left: 80; top: 200;" src="dashed.png"/>
-<img id="sns_compass"  width="240" height="240"style="position: absolute; left: 440; top: 50;" src="rose.png"/>
-<img id="sns_imuyaw"  width="240" height="240"style="position: absolute; left: 440; top: 350;" src="rose.png"/>
-</div>
+<img id="sns_compass"  width="240" height="240" style="position: absolute; left: 440; top: 50;" src="rose.png"/>
+<img id="sns_imuyaw"  width="240" height="240" style="position: absolute; left: 440; top: 350;" src="rose.png"/>
 
+
+    <div style="position: absolute; left: 0; top: 600;" >ASD: rudder  HJKL: sail IOP: helmsman</div>
+</div>
 <script>
 var sts_sail, sts_rudd_l, sts_rudd_r
 var ctl_sail, ctl_rudd_l, ctl_rudd_r
@@ -44,9 +46,36 @@ function set_lastctl(x) {
     handlers['rudderctl'](x)
 }
 
-function fmt_rudderctl(x) {
-    return "rudderctl: timestamp_ms:" + x.timestamp_ms + " rudder_l_deg:" + x.rudder_l_deg + " rudder_r_deg:" + x.rudder_r_deg + " sail_deg:" + x.sail_deg + "\n"
+
+function rnan(x) {
+    if (Number.isNaN(x))  return "nan"
+    return x
 }
+
+function znan(x) {
+    if (Number.isNaN(x))  return 0
+    return x
+}
+
+function fmt_rudderctl(x) {
+    return "rudderctl: timestamp_ms:" + x.timestamp_ms + " rudder_l_deg:" + rnan(x.rudder_l_deg) + " rudder_r_deg:" + rnan(x.rudder_r_deg) + " sail_deg:" + rnan(x.sail_deg) + "\n"
+}
+
+function get_lasthelmctl() {
+    var x = lastmsg['helmctl']
+    if (x != null) return x
+    return { 'timestamp_ms':0, 'alpha_star_deg':0 }
+}
+
+function set_lasthelmctl(x) {
+    lastmsg['helmctl'] = x
+//    handlers['helmctl'](x)
+}
+
+function fmt_helmctl(x) {
+    return "helmctl: timestamp_ms:" + x.timestamp_ms + " alpha_star_deg:" + rnan(x.alpha_star_deg) + "\n"
+}
+
 
 function e(id) { return document.getElementById(id) }
 function rot(id, angle) { e(id).style['-webkit-transform'] ='rotate(' + angle + 'deg)' }
@@ -58,7 +87,7 @@ function start() {
     e('ctl_sail')   .style['-webkit-transform-origin'] ='top'
     e('ctl_rudd_l') .style['-webkit-transform-origin'] ='top'
     e('ctl_rudd_r') .style['-webkit-transform-origin'] ='top'
-    e('sns_wind') .style['-webkit-transform-origin'] ='top'
+    e('sns_wind')   .style['-webkit-transform-origin'] ='top'
 
     var nan = Number.NaN
 
@@ -66,7 +95,6 @@ function start() {
     ws.onmessage = function (evt) {
 	var msg = eval('('+evt.data+')')
 	if (msg == null) return
-	alert(JSON.stringify(msg, undefined, 2))
         for (x in msg) {
 	    f = handlers[x]
             if (f != null) f(msg[x])
@@ -75,6 +103,7 @@ function start() {
 
     };
 
+    ws.onopen  = function(err) { document.body.style.background = 'white' }
     ws.onclose = function(err) { document.body.style.background = 'darkgrey' }
     ws.onerror = function(err) { document.body.style.background = 'red' }
 }
@@ -138,21 +167,41 @@ var keys = {
 	msg.sail_deg -= 20
 	return msg
     },
-
-
 }
 
+// IOP
+var hkeys = {
+    73: function(msg) {  // 'I'
+	msg.alpha_star_deg = znan(msg.alpha_star_deg) + 5
+	return msg
+    },
+    79: function(msg) {  // 'O'
+	msg.alpha_star_deg = Number.NaN
+	return msg
+    },
+    80: function(msg) {  // 'P'
+	msg.alpha_star_deg = znan(msg.alpha_star_deg) - 5
+	return msg
+    },
+}
 
 function handlekey() {
-
     f = keys[event.keyCode]
     if (f != null) {
 	msg = get_lastctl()
 	msg = f(msg)
 	set_lastctl(msg)
-	ws.send(fmt_rudderctl(msg)) 
+	ws.send(fmt_rudderctl(msg)) // TODO: do in a repeat loop
+	return true
     }
-    return true
+
+    f = hkeys[event.keyCode]
+    if (f != null) {
+	msg = get_lasthelmctl()
+	msg = f(msg)
+	set_lasthelmctl(msg)
+	ws.send(fmt_helmctl(msg)) // TODO: do in a repeat loop
+    }
 }
 
 </script>
