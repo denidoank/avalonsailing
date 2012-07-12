@@ -16,6 +16,7 @@ import (
 )
 
 var (
+	webroot = flag.String("webroot", "./s", "path to dir with static webpages")
 	lbus = flag.String("lbus", "/tmp/lbus", "path to lbus socket")
 	slog = flag.String("log", "/var/log/messages", "path to syslog output")
 	port = flag.String("http", ":1969", "port to serve http on")
@@ -59,7 +60,7 @@ func TailServer(ws *websocket.Conn) {
 func main() {
 	flag.Parse()
 	http.Handle("/", http.RedirectHandler("/s/control.html", 301))
-	http.Handle("/s/", http.StripPrefix("/s/", http.FileServer(http.Dir("./s/"))))
+	http.Handle("/s/", http.StripPrefix("/s/", http.FileServer(http.Dir(*webroot))))
 	http.Handle("/lbus", websocket.Handler(PlugServer))
 	http.Handle("/syslog", websocket.Handler(TailServer))
 	if err := http.ListenAndServe(*port, nil); err != nil {
