@@ -10,12 +10,11 @@
 #include "lib/testing/testing.h"
 #include "lib/util/stopwatch.h"
 
-#include "low_pass_filter.h"
-#include "median_filter.h"
 #include "polar_filter.h"
-#include "quick_sliding_average_filter.h"
 #include "sliding_average_filter.h"
 #include "wrap_around_filter.h"
+#include "median_filter.h"
+#include "low_pass_filter.h"
 
 typedef long long int64;
 
@@ -24,98 +23,118 @@ int64 Now() {
   return StopWatch::GetTimestampMicros();
 }
 
-ATEST(WrapAroundFilter, SlidingValidDCGainSetOutput) {
-  WrapAroundFilter f(new SlidingAverageFilter(5));
-  f.SetOutput(2);
+ATEST(PolarFilter, SlidingValidDCGainSetOutput) {
+  PolarFilter f(new SlidingAverageFilter(5), new SlidingAverageFilter(5));
+  f.SetOutput(Polar(2, 1));
   for (int i = 0; i < 20; ++i) {
-    double out = f.Filter(2);
-    EXPECT_FLOAT_EQ(2, out);
+    Polar out(0, 0);
+    f.Filter(Polar(2, 1), &out);
+    EXPECT_FLOAT_EQ(2, out.AngleRad());
     EXPECT_TRUE(f.ValidOutput());
   }
 }
 
-ATEST(WrapAroundFilter, SlidingValidDCGain) {
-  WrapAroundFilter f(new SlidingAverageFilter(5));
+ATEST(PolarFilter, SlidingValidDCGain) {
+  PolarFilter f(new SlidingAverageFilter(5), new SlidingAverageFilter(5));
   for (int i = 0; i < 20; ++i) {
-    double out = f.Filter(2);
+    Polar out(0, 0);
+    f.Filter(Polar(2, 1), &out);
     if (i >= 4) {
       EXPECT_TRUE(f.ValidOutput());
-      EXPECT_FLOAT_EQ(2, out);
+      EXPECT_FLOAT_EQ(2, out.AngleRad());
     } else {
       EXPECT_FALSE(f.ValidOutput());
     }
   }
 }
 
-ATEST(WrapAroundFilter, SlidingFiftyPercent) {
-  WrapAroundFilter f(new SlidingAverageFilter(10));
+ATEST(PolarFilter, SlidingFiftyPercent) {
+  SlidingAverageFilter fx(10);
+  SlidingAverageFilter fy(10);
+  PolarFilter f(&fx, &fy);
   for (int i = 0; i < 20; ++i) {
-    double out = f.Filter(1);
+    Polar out(2.222, 77);
+    printf("before anglemag: %6.4lf %6.4lf\n", out.AngleRad(), out.Mag());
+    f.Filter(Polar(1.7, 1), &out);
+    printf("after  anglemag: %6.4lf %6.4lf\n", out.AngleRad(), out.Mag());
+    if (i == 1)
+      EXPECT_FLOAT_EQ(0.2, out.Mag());
+    if (i == 3)
+      EXPECT_FLOAT_EQ(0.4, out.Mag());
     if (i == 4)
-      EXPECT_FLOAT_EQ(1 * 0.5, out);
+      EXPECT_FLOAT_EQ(0.5, out.Mag());
+    if (i == 7)
+      EXPECT_FLOAT_EQ(0.8, out.Mag());
+    EXPECT_FLOAT_EQ(1.7, out.AngleRad());
   }
 }
 
-ATEST(WrapAroundFilter, SlidingZigZag) {
-  WrapAroundFilter f(new SlidingAverageFilter(10));
-  f.SetOutput(2);
+ATEST(PolarFilter, SlidingZigZag) {
+  PolarFilter f(new SlidingAverageFilter(10), new SlidingAverageFilter(10));
+  f.SetOutput(Polar(2, 1));
   for (int i = 0; i < 20; ++i) {
-    double out = f.Filter(i % 3 - 1 + 2);
-    EXPECT_LT(1.85, out);
-    EXPECT_GT(2.15, out);
+    Polar out(0, 0);
+    f.Filter(Polar(i % 3 - 1 + 2, 1), &out);
+    EXPECT_LT(1.85, out.AngleRad());
+    EXPECT_GT(2.15, out.AngleRad());
   }
 }
 
 
-ATEST(WrapAroundFilter, Median5ValidDCGainSetOutput) {
-  WrapAroundFilter f(new Median5Filter());
-  f.SetOutput(2);
+ATEST(PolarFilter, Median5ValidDCGainSetOutput) {
+  PolarFilter f(new Median5Filter(), new Median5Filter());
+  f.SetOutput(Polar(2, 1));
   for (int i = 0; i < 20; ++i) {
-    double out = f.Filter(2);
-    EXPECT_FLOAT_EQ(2, out);
+    Polar out(0, 0);
+    f.Filter(Polar(i % 3 - 1 + 2, 1), &out);
+    EXPECT_IN_INTERVAL(1.95, out.AngleRad(), 2.05);  // because of the median the mix is not linear.
     EXPECT_TRUE(f.ValidOutput());
   }
 }
 
-ATEST(WrapAroundFilter, Median5ValidDCGain) {
-  WrapAroundFilter f(new Median5Filter());
+ATEST(PolarFilter, Median5ValidDCGain) {
+  PolarFilter f(new Median5Filter(), new Median5Filter());
   for (int i = 0; i < 20; ++i) {
-    double out = f.Filter(2);
+    Polar out(0, 0);
+    f.Filter(Polar(2, 1), &out);
     if (i >= 4) {
       EXPECT_TRUE(f.ValidOutput());
-      EXPECT_FLOAT_EQ(2, out);
+      EXPECT_FLOAT_EQ(2, out.AngleRad());
     } else {
       EXPECT_FALSE(f.ValidOutput());
     }
   }
 }
 
-ATEST(WrapAroundFilter, Median3) {
-  WrapAroundFilter f(new Median3Filter());
+ATEST(PolarFilter, Median3) {
+  PolarFilter f(new Median3Filter(), new Median3Filter());
   for (int i = 0; i < 20; ++i) {
-    double out = f.Filter(1);
+    Polar out(0, 0);
+    f.Filter(Polar(1, 1), &out);
     if (i >= 2) {
       EXPECT_TRUE(f.ValidOutput());
-      EXPECT_EQ(1, out);
+      EXPECT_EQ(1, out.AngleRad());
     } else {
       EXPECT_FALSE(f.ValidOutput());
     }
   }
 }
 
-ATEST(WrapAroundFilter, Median3ZigZag) {
-  WrapAroundFilter f(new Median3Filter());
-  f.SetOutput(2);
+ATEST(PolarFilter, Median3ZigZag) {
+  PolarFilter f(new Median3Filter(), new Median3Filter());
+  f.SetOutput(Polar(2, 1));
   for (int i = 0; i < 20; ++i) {
-    double out = f.Filter(i % 3 - 1 + 2);
-    EXPECT_EQ(2, out);
+    Polar out(0, 0);
+    f.Filter(Polar(i % 3 - 1 + 2, 1), &out);
+    EXPECT_IN_INTERVAL(1.95, out.AngleRad(), 2.05);  // because of the median the mix is not linear.
   }
 }
 
-ATEST(WrapAroundFilter, LowPass1FilterZigZagValid) {
-  WrapAroundFilter f(new LowPass1Filter(10));
+ATEST(PolarFilter, LowPass1FilterZigZagValid) {
+  PolarFilter f(new LowPass1Filter(10), new LowPass1Filter(10));
   for (int i = 0; i < 20; ++i) {
-    f.Filter(i % 3 - 1 + 2);
+    Polar out(0, 0);
+    f.Filter(Polar(i % 3 - 1 + 2, 1), &out);
     if (i >= 9) {
       EXPECT_TRUE(f.ValidOutput());
     } else {
@@ -125,34 +144,43 @@ ATEST(WrapAroundFilter, LowPass1FilterZigZagValid) {
 }
 
 
-ATEST(WrapAroundFilter, LowPass1FilterZigZag) {
-  WrapAroundFilter f(new LowPass1Filter(10));
-  f.SetOutput(2);
+ATEST(PolarFilter, LowPass1FilterZigZag) {
+  PolarFilter f(new LowPass1Filter(10), new LowPass1Filter(10));
+  f.SetOutput(Polar(2, 1));
   for (int i = 0; i < 20; ++i) {
-    double out = f.Filter(i % 3 - 1 + 2);
-    EXPECT_LT(1.85, out);
-    EXPECT_GT(2.15, out);
+    Polar out(0, 0);
+    f.Filter(Polar(i % 3 - 1 + 2, 1), &out);
+    EXPECT_LT(1.85, out.AngleRad());
+    EXPECT_GT(2.15, out.AngleRad());
     EXPECT_TRUE(f.ValidOutput());
   }
 }
 
-ATEST(WrapAroundFilter, AllFilterRamp) {
-  WrapAroundFilter f1(new SlidingAverageFilter(10));
-  WrapAroundFilter f2(new LowPass1Filter(10));
-  WrapAroundFilter f3(new Median3Filter());
-  WrapAroundFilter f4(new Median5Filter());
+ATEST(PolarFilter, AllFilterRamp) {
+  PolarFilter f1(new SlidingAverageFilter(10), new SlidingAverageFilter(10));
+  PolarFilter f2(new LowPass1Filter(10), new LowPass1Filter(10));
+  PolarFilter f3(new Median3Filter(), new Median3Filter());
+  PolarFilter f4(new Median5Filter(), new Median5Filter());
   double prev1;
   double prev2;
   double prev3;
   double prev4;
-  double increment = 2 * M_PI / 5;
+  double increment = 2 * M_PI / 20;  // 10 samples form a semicircle.
   for (int cnt = 0; cnt < 50; ++cnt) {
     double in = NormalizeRad(cnt * increment);
-    double out1 = f1.Filter(in);
-    double out2 = f2.Filter(in);
-    double out3 = f3.Filter(in);
-    double out4 = f4.Filter(in);
-    printf("%6.4lf %6.4lf %6.4lf %6.4lf\n", out1, out2, out3, out4);
+    Polar in_polar(in, 1);
+    Polar out1(0, 0);
+    Polar out2(0, 0);
+    Polar out3(0, 0);
+    Polar out4(0, 0);
+    f1.Filter(in_polar, &out1);
+    f2.Filter(in_polar, &out2);
+    f3.Filter(in_polar, &out3);
+    f4.Filter(in_polar, &out4);
+    printf("alpha %6.4lf %6.4lf %6.4lf %6.4lf ",
+           out1.AngleRad(), out2.AngleRad(), out3.AngleRad(), out4.AngleRad());
+    printf("mag %6.4lf %6.4lf %6.4lf %6.4lf\n",
+           out1.Mag(), out2.Mag(), out3.Mag(), out4.Mag());
     if (cnt == 1) {
       EXPECT_FALSE(f1.ValidOutput());
       EXPECT_FALSE(f2.ValidOutput());
@@ -164,43 +192,58 @@ ATEST(WrapAroundFilter, AllFilterRamp) {
       EXPECT_TRUE(f2.ValidOutput());
       EXPECT_TRUE(f3.ValidOutput());
       EXPECT_TRUE(f4.ValidOutput());
+      // Due to the semicircle position the result is small.
+      // LowPass1Filter has the slowest response, its output amplitude is smallest.
+      EXPECT_IN_INTERVAL(0.3, out1.Mag(), 1);
+      EXPECT_IN_INTERVAL(0.2, out2.Mag(), 1);
+      EXPECT_IN_INTERVAL(0.3, out3.Mag(), 1);
+      EXPECT_IN_INTERVAL(0.3, out4.Mag(), 1);
     }
 
-    EXPECT_IN_INTERVAL(0, out1, 2 * M_PI);
-    EXPECT_IN_INTERVAL(0, out2, 2 * M_PI);
-    EXPECT_IN_INTERVAL(0, out3, 2 * M_PI);
-    EXPECT_IN_INTERVAL(0, out4, 2 * M_PI);
+    EXPECT_IN_INTERVAL(-M_PI, out1.AngleRad(), M_PI);
+    EXPECT_IN_INTERVAL(-M_PI, out2.AngleRad(), M_PI);
+    EXPECT_IN_INTERVAL(-M_PI, out3.AngleRad(), M_PI);
+    EXPECT_IN_INTERVAL(-M_PI, out4.AngleRad(), M_PI);
     // In steady state, the output follows the input with the same gradient.
     if (cnt > 200) {
-      EXPECT_FLOAT_EQ(increment, DeltaOldNewRad(prev1, out1));
-      EXPECT_FLOAT_EQ(increment, DeltaOldNewRad(prev2, out2));
-      EXPECT_FLOAT_EQ(increment, DeltaOldNewRad(prev3, out3));
-      EXPECT_FLOAT_EQ(increment, DeltaOldNewRad(prev4, out4));
+      EXPECT_FLOAT_EQ(increment, DeltaOldNewRad(prev1, out1.AngleRad()));
+      EXPECT_FLOAT_EQ(increment, DeltaOldNewRad(prev2, out2.AngleRad()));
+      EXPECT_FLOAT_EQ(increment, DeltaOldNewRad(prev3, out3.AngleRad()));
+      EXPECT_FLOAT_EQ(increment, DeltaOldNewRad(prev4, out4.AngleRad()));
     }
-    prev1 = out1;
-    prev2 = out2;
-    prev3 = out3;
-    prev4 = out4;
+    prev1 = out1.AngleRad();
+    prev2 = out2.AngleRad();
+    prev3 = out3.AngleRad();
+    prev4 = out4.AngleRad();
   }
 }
 
-ATEST(WrapAroundFilter, AllFilterRampNegative) {
-  WrapAroundFilter f1(new SlidingAverageFilter(10));
-  WrapAroundFilter f2(new LowPass1Filter(10));
-  WrapAroundFilter f3(new Median3Filter());
-  WrapAroundFilter f4(new Median5Filter());
+ATEST(PolarFilter, AllFilterRampNegative) {
+  PolarFilter f1(new SlidingAverageFilter(10), new SlidingAverageFilter(10));
+  PolarFilter f2(new LowPass1Filter(10), new LowPass1Filter(10));
+  PolarFilter f3(new Median3Filter(), new Median3Filter());
+  PolarFilter f4(new Median5Filter(), new Median5Filter());
   double prev1;
   double prev2;
   double prev3;
   double prev4;
-  double increment = -2 * M_PI / 5;
+  // Bigger distance to aliasing effects, less rotational speed.
+  double increment = -2 * M_PI / 50;
   for (int cnt = 0; cnt < 50; ++cnt) {
     double in = NormalizeRad(cnt * increment);
-    double out1 = f1.Filter(in);
-    double out2 = f2.Filter(in);
-    double out3 = f3.Filter(in);
-    double out4 = f4.Filter(in);
-    printf("%6.4lf %6.4lf %6.4lf %6.4lf\n", out1, out2, out3, out4);
+    Polar in_polar(in, 1);
+    Polar out1(0, 0);
+    Polar out2(0, 0);
+    Polar out3(0, 0);
+    Polar out4(0, 0);
+    f1.Filter(in_polar, &out1);
+    f2.Filter(in_polar, &out2);
+    f3.Filter(in_polar, &out3);
+    f4.Filter(in_polar, &out4);
+    printf("alpha %6.4lf %6.4lf %6.4lf %6.4lf ",
+           out1.AngleRad(), out2.AngleRad(), out3.AngleRad(), out4.AngleRad());
+    printf("mag %6.4lf %6.4lf %6.4lf %6.4lf\n",
+           out1.Mag(), out2.Mag(), out3.Mag(), out4.Mag());
     if (cnt == 1) {
       EXPECT_FALSE(f1.ValidOutput());
       EXPECT_FALSE(f2.ValidOutput());
@@ -212,72 +255,53 @@ ATEST(WrapAroundFilter, AllFilterRampNegative) {
       EXPECT_TRUE(f2.ValidOutput());
       EXPECT_TRUE(f3.ValidOutput());
       EXPECT_TRUE(f4.ValidOutput());
+      // Due to the semicircle position the result is small.
+      // LowPass1Filter has the slowest response, its output amplitude is smallest.
+      EXPECT_IN_INTERVAL(0.5, out1.Mag(), 1);
+      EXPECT_IN_INTERVAL(0.5, out2.Mag(), 1);
+      EXPECT_IN_INTERVAL(0.5, out3.Mag(), 1);
+      EXPECT_IN_INTERVAL(0.5, out4.Mag(), 1);
     }
 
-    EXPECT_IN_INTERVAL(0, out1, 2 * M_PI);
-    EXPECT_IN_INTERVAL(0, out2, 2 * M_PI);
-    EXPECT_IN_INTERVAL(0, out3, 2 * M_PI);
-    EXPECT_IN_INTERVAL(0, out4, 2 * M_PI);
+    EXPECT_IN_INTERVAL(-M_PI, out1.AngleRad(), M_PI);
+    EXPECT_IN_INTERVAL(-M_PI, out2.AngleRad(), M_PI);
+    EXPECT_IN_INTERVAL(-M_PI, out3.AngleRad(), M_PI);
+    EXPECT_IN_INTERVAL(-M_PI, out4.AngleRad(), M_PI);
     // In steady state, the output follows the input with the same gradient.
     if (cnt > 200) {
-      EXPECT_FLOAT_EQ(increment, DeltaOldNewRad(prev1, out1));
-      EXPECT_FLOAT_EQ(increment, DeltaOldNewRad(prev2, out2));
-      EXPECT_FLOAT_EQ(increment, DeltaOldNewRad(prev3, out3));
-      EXPECT_FLOAT_EQ(increment, DeltaOldNewRad(prev4, out4));
+      EXPECT_FLOAT_EQ(increment, DeltaOldNewRad(prev1, out1.AngleRad()));
+      EXPECT_FLOAT_EQ(increment, DeltaOldNewRad(prev2, out2.AngleRad()));
+      EXPECT_FLOAT_EQ(increment, DeltaOldNewRad(prev3, out3.AngleRad()));
+      EXPECT_FLOAT_EQ(increment, DeltaOldNewRad(prev4, out4.AngleRad()));
     }
-    prev1 = out1;
-    prev2 = out2;
-    prev3 = out3;
-    prev4 = out4;
+    prev1 = out1.AngleRad();
+    prev2 = out2.AngleRad();
+    prev3 = out3.AngleRad();
+    prev4 = out4.AngleRad();
   }
 }
 
-ATEST(WrapAroundFilter, AllFilterRampElegant) {
-  WrapAroundFilter f1(new SlidingAverageFilter(10));
-  WrapAroundFilter f2(new LowPass1Filter(10));
-  WrapAroundFilter f3(new Median3Filter());
-  WrapAroundFilter f4(new Median5Filter());
-  WrapAroundFilter* filter[4] = {&f1, &f2, &f3, &f4};
-  double prev;
-  double increment = 1;
-  for  (int n = 0; n < ARRAY_SIZE(filter); ++n) {
-    prev = 0;
-    for (int cnt = 0; cnt < 5000; ++cnt) {
-      double in = NormalizeRad(cnt * increment);
-      double out = filter[n]->Filter(in);
-      //printf("%6.4lf %6.4lf %6.4lf %6.4lf\n", out1, out2, out3, out4);
 
-      EXPECT_IN_INTERVAL(0, out, 2 * M_PI);
-
-      if (cnt < 2)  // Median3
-        EXPECT_FALSE(filter[n]->ValidOutput());
-      if (cnt > 10)
-        EXPECT_TRUE(filter[n]->ValidOutput());
-      // In steady state, the output follows the input with the same gradient.
-      if (cnt > 200) {
-        EXPECT_FLOAT_EQ(increment, DeltaOldNewRad(prev, out));
-      }
-      prev = out;
-    }
-  }
-}
-
-ATEST(WrapAroundFilter, AllFilterRampShiftBack) {
-  WrapAroundFilter f1(new SlidingAverageFilter(10));
-  WrapAroundFilter f2(new LowPass1Filter(10));
-  WrapAroundFilter f3(new Median3Filter());
-  WrapAroundFilter f4(new Median5Filter());
-  WrapAroundFilter* filter[4] = {&f1, &f2, &f3, &f4};
+ATEST(PolarFilter, AllFilterRampShiftBack) {
+  PolarFilter f1(new SlidingAverageFilter(10), new SlidingAverageFilter(10));
+  PolarFilter f2(new LowPass1Filter(6), new LowPass1Filter(6));
+  PolarFilter f3(new Median3Filter(), new Median3Filter());
+  PolarFilter f4(new Median5Filter(), new Median5Filter());
+  PolarFilter* filter[4] = {&f1, &f2, &f3, &f4};
   double prev;
   double increment = 0.84359643;
   for  (int n = 0; n < ARRAY_SIZE(filter); ++n) {
     prev = 0;
     for (int cnt = 0; cnt < 5000; ++cnt) {
-      double in = NormalizeRad(cnt * increment);
-      double out = filter[n]->Filter(in);
-      //printf("%6.4lf %6.4lf %6.4lf %6.4lf\n", out1, out2, out3, out4);
+      Polar in(NormalizeRad(cnt * increment), 1);
+      Polar out(0, 0);
+      filter[n]->Filter(in, &out);
+      printf("%d alpha %6.4lf ",
+             n, out.AngleRad());
+      printf("mag %6.4lf\n",
+             out.Mag());
 
-      EXPECT_IN_INTERVAL(0, out, 2 * M_PI);
+      EXPECT_IN_INTERVAL(-M_PI, out.AngleRad(), M_PI);
 
       if (cnt < 2)  // Median3
         EXPECT_FALSE(filter[n]->ValidOutput());
@@ -285,70 +309,16 @@ ATEST(WrapAroundFilter, AllFilterRampShiftBack) {
         EXPECT_TRUE(filter[n]->ValidOutput());
       // In steady state, the output follows the input with the same gradient.
       if (cnt > 200) {
-        EXPECT_FLOAT_EQ(increment, DeltaOldNewRad(prev, out));
+        // Nonlinear median 3 filter has biggest deviations from the expected increment:
+        if (n == 3)
+          EXPECT_IN_INTERVAL(0.0, DeltaOldNewRad(prev, out.AngleRad()), 1.9);
+        else
+          EXPECT_IN_INTERVAL(0.7, DeltaOldNewRad(prev, out.AngleRad()), 0.95);
       }
-      prev = out;
+      prev = out.AngleRad();
     }
   }
 }
-
-ATEST(WrapAroundFilter, AllFilterRampShiftBackNegative) {
-  WrapAroundFilter f1(new SlidingAverageFilter(10));
-  WrapAroundFilter f2(new LowPass1Filter(10));
-  WrapAroundFilter f3(new Median3Filter());
-  WrapAroundFilter f4(new Median5Filter());
-  WrapAroundFilter* filter[4] = {&f1, &f2, &f3, &f4};
-  double prev;
-  double increment = -0.84359643;
-  for  (int n = 0; n < ARRAY_SIZE(filter); ++n) {
-    prev = 0;
-    for (int cnt = 0; cnt < 5000; ++cnt) {
-      double in = NormalizeRad(cnt * increment);
-      double out = filter[n]->Filter(in);
-
-      EXPECT_IN_INTERVAL(0, out, 2 * M_PI);
-
-      if (cnt < 2)  // Median3
-        EXPECT_FALSE(filter[n]->ValidOutput());
-      if (cnt > 10)
-        EXPECT_TRUE(filter[n]->ValidOutput());
-
-      //printf("%4d %6.4lf %6.4lf\n", cnt, in, out);
-
-      // In steady state, the output follows the input with the same gradient.
-      if (cnt > 200) {
-        EXPECT_FLOAT_EQ(increment, DeltaOldNewRad(prev, out));
-      }
-      prev = out;
-    }
-  }
-}
-
-ATEST(WrapAroundFilter, QuickSlidingMean1) {
-  WrapAroundFilter f6(new QuickSlidingAverageFilter(1000));
-  double prev6;
-  double increment = 0;
-  const int rounds = 2000;
-  for (int cnt = 0; cnt < rounds; ++cnt) {
-    double in = 2;
-    double out6 = f6.Filter(in);
-    printf("%6.4lf\n", out6);
-
-    EXPECT_IN_INTERVAL(0, out6, 2 * M_PI);
-
-    // In steady state, the output follows the input with the same gradient.
-    if (cnt > 1000) {
-      EXPECT_FLOAT_EQ(increment, DeltaOldNewRad(prev6, out6));
-    }
-    if (cnt < 499)
-      EXPECT_FALSE(f6.ValidOutput());
-    if (cnt >= 499)
-      EXPECT_TRUE(f6.ValidOutput());
-
-    prev6 = out6;
-  }
-}
-
 
 struct AlphaMag {
   double alpha;
@@ -2159,25 +2129,23 @@ static const AlphaMag example[] = {
 };
 
 
-ATEST(WrapAroundFilter, QuickSlidingMean2) {
-  // WrapAroundFilter f6(new SlidingAverageFilter(1000)); // was QuickSlidingAverageFilter
-  WrapAroundFilter f6(new LowPass1Filter(1000)); // was QuickSlidingAverageFilter
-  double prev6;
-  double increment = 0;
-  const int rounds = 2000;
+ATEST(PolarFilter, LP1) {
+  PolarFilter f6(new LowPass1Filter(600),
+                 new LowPass1Filter(1000));
+  double prev;
+  const int rounds = 1800;
   for (int cnt = 0; cnt < rounds; ++cnt) {
-    double in = example[cnt].alpha;
-    double out6 = f6.Filter(in);
-    printf("%6.4lf\n", out6);
+    // printf("example input %d %6.4lf %6.4lf\n", cnt, example[cnt].alpha, example[cnt].mag);
+    Polar in(example[cnt].alpha, example[cnt].mag);
+    Polar out(0, 0);
+    f6.Filter(in, &out);
+    printf("%6.4lf %6.4lf\n", out.AngleRad(), out.Mag());
 
-    EXPECT_IN_INTERVAL(0, out6, 2 * M_PI);
-
-    // In steady state, the output follows the input with the same gradient.
     if (cnt > 1000) {
-      EXPECT_IN_INTERVAL(-0.1, DeltaOldNewRad(prev6, out6), 0.1);
+        EXPECT_IN_INTERVAL(-0.1, DeltaOldNewRad(prev, out.AngleRad()), 0.1);
     }
     if (f6.ValidOutput()) {
-        //EXPECT_IN_INTERVAL(1.5, out6, 2.5);
+      EXPECT_IN_INTERVAL(1.8, out.AngleRad(), 2.2);
     }
 
     if (cnt < 999)
@@ -2185,108 +2153,36 @@ ATEST(WrapAroundFilter, QuickSlidingMean2) {
     if (cnt >= 999)
       EXPECT_TRUE(f6.ValidOutput());
 
-    prev6 = out6;
+    prev = out.AngleRad();
   }
 }
 
-// All these filters except the PolarFilter have a constant runtime in the range of 320ns (Desktop).
-// The Polar filter filters in 2 dimensions and calls 3 trigonometric functions.
-// It runs in about 630ns.
-ATEST(WrapAroundFilter, AllFilterTiming) {
-  WrapAroundFilter f1(new SlidingAverageFilter(10));
-  WrapAroundFilter f2(new LowPass1Filter(10));
-  WrapAroundFilter f3(new Median3Filter());
-  WrapAroundFilter f4(new Median5Filter());
-  WrapAroundFilter f5(new SlidingAverageFilter(100));
-  WrapAroundFilter f6(new QuickSlidingAverageFilter(100));
-  PolarFilter f7(new LowPass1Filter(10), new LowPass1Filter(10));
-  double prev1;
-  double prev2;
-  double prev3;
-  double prev4;
-  double prev5;
-  double prev6;
-  double prev7;
-  double increment = 1;
-  int64 micros1 = 0;
-  int64 micros2 = 0;
-  int64 micros3 = 0;
-  int64 micros4 = 0;
-  int64 micros5 = 0;
-  int64 micros6 = 0;
-  int64 micros7 = 0;
-  const int rounds = 5000;
+ATEST(PolarFilter, SA1) {
+  PolarFilter f6(new SlidingAverageFilter(1000),
+                 new SlidingAverageFilter(1000));
+  double prev;
+  const int rounds = 1800;
   for (int cnt = 0; cnt < rounds; ++cnt) {
-    double in = NormalizeRad(cnt * increment);
-    int64 n0 = Now();
-    double out1 = f1.Filter(in);
-    int64 n1 = Now();
-    double out2 = f2.Filter(in);
-    int64 n2 = Now();
-    double out3 = f3.Filter(in);
-    int64 n3 = Now();
-    double out4 = f4.Filter(in);
-    int64 n4 = Now();
-    double out5 = f5.Filter(in);
-    int64 n5 = Now();
-    double out6 = f6.Filter(in);
-    int64 n6 = Now();
-    Polar out7(0, 0);
-    f7.Filter(Polar(in, 1), &out7);
-    int64 n7 = Now();
-    micros1 += n1 - n0;
-    micros2 += n2 - n1;
-    micros3 += n3 - n2;
-    micros4 += n4 - n3;
-    micros5 += n5 - n4;
-    micros6 += n6 - n5;
-    micros7 += n7 - n6;
-    //printf("%6.4lf %6.4lf %6.4lf %6.4lf %6.4lf\n", out1, out2, out3, out4, out5);
+    // printf("example input %d %6.4lf %6.4lf\n", cnt, example[cnt].alpha, example[cnt].mag);
+    Polar in(example[cnt].alpha, example[cnt].mag);
+    Polar out(0, 0);
+    f6.Filter(in, &out);
+    printf("%6.4lf %6.4lf\n", out.AngleRad(), out.Mag());
 
-    EXPECT_IN_INTERVAL(0, out1, 2 * M_PI);
-    EXPECT_IN_INTERVAL(0, out2, 2 * M_PI);
-    EXPECT_IN_INTERVAL(0, out3, 2 * M_PI);
-    EXPECT_IN_INTERVAL(0, out4, 2 * M_PI);
-    EXPECT_IN_INTERVAL(0, out5, 2 * M_PI);
-    EXPECT_IN_INTERVAL(0, out6, 2 * M_PI);
-    EXPECT_IN_INTERVAL(-M_PI, out7.AngleRad(), M_PI);
-
-    // In steady state, the output follows the input with the same gradient.
-    if (cnt > 200) {
-      EXPECT_FLOAT_EQ(increment, DeltaOldNewRad(prev1, out1));
-      EXPECT_FLOAT_EQ(increment, DeltaOldNewRad(prev2, out2));
-      EXPECT_FLOAT_EQ(increment, DeltaOldNewRad(prev3, out3));
-      EXPECT_FLOAT_EQ(increment, DeltaOldNewRad(prev4, out4));
-      EXPECT_FLOAT_EQ(increment, DeltaOldNewRad(prev5, out5));
-      EXPECT_FLOAT_EQ(increment, DeltaOldNewRad(prev6, out6));
-      EXPECT_FLOAT_EQ(increment, DeltaOldNewRad(prev7, out7.AngleRad()));
+    if (cnt > 1000) {
+        EXPECT_IN_INTERVAL(-0.1, DeltaOldNewRad(prev, out.AngleRad()), 0.1);
     }
-    if (cnt < 99)
-      EXPECT_FALSE(f5.ValidOutput());
-    if (cnt >= 99)
-      EXPECT_TRUE(f5.ValidOutput());
-    if (cnt < 49)
+    if (f6.ValidOutput()) {
+      EXPECT_IN_INTERVAL(1.8, out.AngleRad(), 2.2);
+    }
+
+    if (cnt < 999)
       EXPECT_FALSE(f6.ValidOutput());
-    if (cnt >= 49)
+    if (cnt >= 999)
       EXPECT_TRUE(f6.ValidOutput());
 
-    prev1 = out1;
-    prev2 = out2;
-    prev3 = out3;
-    prev4 = out4;
-    prev5 = out5;
-    prev6 = out6;
-    prev7 = out7.AngleRad();
+    prev = out.AngleRad();
   }
-  printf("\nRuntimes/microseconds\n=================\n");
-  printf("SlidingAverageFilter:    %6.4lf micros\n", micros1 / static_cast<double>(rounds));
-  printf("LowPass1Filter:          %6.4lf micros\n", micros2 / static_cast<double>(rounds));
-  printf("Median3Filter:           %6.4lf micros\n", micros3 / static_cast<double>(rounds));
-  printf("Median5Filter:           %6.4lf micros\n", micros4 / static_cast<double>(rounds));
-  printf("SlidingAverageFilter100: %6.4lf micros\n", micros5 / static_cast<double>(rounds));
-  printf("QuickSlidingAverageFilter100: %6.4lf micros\n", micros6 / static_cast<double>(rounds));
-  printf("PolarFilter (2 filters): %6.4lf micros\n", micros7 / static_cast<double>(rounds));
-  printf("\n");
 }
 
 int main(int argc, char* argv[]) {

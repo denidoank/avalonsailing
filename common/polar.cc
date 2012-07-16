@@ -54,6 +54,14 @@ bool Polar::operator!=(const Polar& b) const {
   return alpha_ != b.alpha_ || mag_ != b.mag_;
 }
 
+const Polar& Polar::operator=(const Polar& r) {
+    alpha_ = r.alpha_;
+    mag_ = r.mag_;
+    x_ = r.x_;
+    y_ = r.y_;
+    cartesian_ = r.cartesian_;
+}
+
 void Polar::Print(const char* name) const {
   printf("%s: %6.2g at %6.2f deg\n", name, mag_, Rad2Deg(alpha_));
 }

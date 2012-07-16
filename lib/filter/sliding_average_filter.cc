@@ -53,4 +53,3 @@ bool SlidingAverageFilter::ValidOutput() {
 SlidingAverageFilter::~SlidingAverageFilter() {
   delete[] z_;
 }
-
