@@ -60,6 +60,7 @@ const Polar& Polar::operator=(const Polar& r) {
     x_ = r.x_;
     y_ = r.y_;
     cartesian_ = r.cartesian_;
+    return this;
 }
 
 void Polar::Print(const char* name) const {

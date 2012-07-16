@@ -71,8 +71,9 @@ FilterBlock::FilterBlock()
     phi_z_wrap_(&phi_z_filter_),
     angle_app_filter_(len_4s),
     angle_app_wrap_(&angle_app_filter_),
-    alpha_true_filter_(len_100s),
-    alpha_true_wrap_(&alpha_true_filter_),
+    alpha_true_filter_x_(len_100s),
+    alpha_true_filter_y_(len_100s),
+    alpha_true_polar_(&alpha_true_filter_x_, &alpha_true_filter_y_),
     angle_aoa_filter_(len_30s),
     angle_aoa_wrap_(&angle_aoa_filter_),
     gamma_sail_filter_(len_0_6s),
@@ -209,29 +210,33 @@ void FilterBlock::Filter(const ControllerInput& in,
     if (mag_app == 0)
       angle_app = 0;
 
+    Polar alpha_true_out(0, 0);
     if (!imu_fault_) {
       Polar wind_true(0, 0);
       TruePolar(Polar(angle_app,  mag_app),
                 Polar(fil->phi_z_boat, fil->mag_boat),
                 fil->phi_z_boat,
                 &wind_true);
-      fil->alpha_true = SymmetricRad(alpha_true_wrap_.Filter(NormalizeRad(wind_true.AngleRad())));
-      fil->mag_true = mag_true_filter_.Filter(wind_true.Mag());
+      alpha_true_polar_.Filter(wind_true, &alpha_true_out);
       if (debug)
         fprintf(stderr, "trueInOut alpha mag: %lg, %lg, filtered: %lg, %lg\n",
-                wind_true.AngleRad(), wind_true.Mag(), fil->alpha_true, fil->mag_true);
+                wind_true.AngleRad(), wind_true.Mag(),
+                alpha_true_out.AngleRad(), alpha_true_out.Mag());
       // The validity of the true wind takes some time and is flagged separately with
       // valid_true_wind.
     } else {
       if (debug)
         fprintf(stderr, "Imu failed -> Approximate true wind.\n");
-      fil->alpha_true = SymmetricRad(alpha_true_wrap_.Filter(NormalizeRad(angle_app + fil->phi_z_boat)));
-      fil->mag_true = mag_true_filter_.Filter(mag_app);
+      Polar wind_true(angle_app + fil->phi_z_boat, mag_app);
+      alpha_true_polar_.Filter(wind_true, &alpha_true_out);
       if (debug)
         fprintf(stderr, "Approximated trueInOut alpha mag: %lg, %lg, filtered: %lg, %lg\n",
-                NormalizeRad(angle_app + fil->phi_z_boat), mag_app, fil->alpha_true, fil->mag_true);
-
+                NormalizeRad(angle_app + fil->phi_z_boat), mag_app,
+                alpha_true_out.AngleRad(), alpha_true_out.Mag());
     }
+    fil->alpha_true = alpha_true_out.AngleRad();
+    fil->mag_true = alpha_true_out.Mag();
+
     fil->angle_app = SymmetricRad(angle_app_wrap_.Filter(angle_app));
     fil->mag_app =  mag_app_filter_.Filter(mag_app);
     valid_app_wind_ = angle_app_wrap_.ValidOutput() && mag_app_filter_.ValidOutput();
@@ -267,7 +272,7 @@ bool FilterBlock::ValidAppWind() {
 }
 
 bool FilterBlock::ValidTrueWind() {
-  return alpha_true_wrap_.ValidOutput() && mag_true_filter_.ValidOutput() && !imu_fault_ && valid_app_wind_;
+  return alpha_true_polar_.ValidOutput() && !imu_fault_ && valid_app_wind_;  // TODO remove !imu_fault condition
 }
 
 bool FilterBlock::ValidSpeed() {
