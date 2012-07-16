@@ -42,7 +42,7 @@ void InitialControllerTest(double wind_direction_deg,
   ShipControl::Normal();
   printf("\nWind direction: %lg degree\n", wind_direction_deg);
   double t;
-  for (t = 0; t < 40; t += kSamplingPeriod) {
+  for (t = 0; t < 50; t += kSamplingPeriod) {
     model.Simulate(out.drives_reference, true_wind, &in);
     ShipControl::Run(in, &out);
     model.Print(t);
