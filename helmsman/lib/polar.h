@@ -21,6 +21,7 @@ class Polar {
   Polar operator+(const Polar& b) const;
   Polar operator-(const Polar& b) const;
   bool operator!=(const Polar& b) const;
+  const Polar& operator=(const Polar& r);
   void Print(const char* name) const;
   double AngleRad() const;
   double Mag() const;
