@@ -8,7 +8,7 @@
 // Besides that a valid_app_wind flag in provided in the filtered_ output indicating that
 // the apparent wind is valid.
 // The true wind vector is very noisy and is stabilized with a slow (100s)
-// sliding average filter and its own valid_true_wind flag.
+// sliding average filter. The filter has its own valid_true_wind flag.
 
 #ifndef HELMSMAN_FILTER_BLOCK_H
 #define HELMSMAN_FILTER_BLOCK_H
@@ -17,6 +17,7 @@
 #include "compass_mixer.h"
 
 #include "filter/median_filter.h"
+#include "filter/polar_filter.h"
 #include "filter/sliding_average_filter.h"
 #include "filter/quick_sliding_average_filter.h"
 #include "filter/wrap_around_filter.h"
@@ -61,8 +62,11 @@ class FilterBlock {
   WrapAroundFilter phi_z_wrap_;  // phi_z wraps around from 360 to 0 degree.
   SlidingAverageFilter angle_app_filter_;
   WrapAroundFilter angle_app_wrap_;
-  QuickSlidingAverageFilter alpha_true_filter_;
-  WrapAroundFilter alpha_true_wrap_;
+
+  SlidingAverageFilter alpha_true_filter_x_;
+  SlidingAverageFilter alpha_true_filter_y_;
+  PolarFilter alpha_true_polar_;
+
   QuickSlidingAverageFilter angle_aoa_filter_;
   WrapAroundFilter angle_aoa_wrap_;
   SlidingAverageFilter gamma_sail_filter_;
