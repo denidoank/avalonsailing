@@ -74,8 +74,9 @@ FilterBlock::FilterBlock()
     alpha_true_filter_x_(len_100s),
     alpha_true_filter_y_(len_100s),
     alpha_true_polar_(&alpha_true_filter_x_, &alpha_true_filter_y_),
-    angle_aoa_filter_(len_30s),
-    angle_aoa_wrap_(&angle_aoa_filter_),
+    angle_aoa_filter_x_(len_30s),
+    angle_aoa_filter_y_(len_30s),
+    angle_aoa_polar_(&angle_aoa_filter_x_, &angle_aoa_filter_y_),
     gamma_sail_filter_(len_0_6s),
     gamma_sail_wrap_(&gamma_sail_filter_) {}
 
@@ -183,9 +184,11 @@ void FilterBlock::Filter(const ControllerInput& in,
   if (in.wind_sensor.valid) {
     alpha_wind_rad = NormalizeRad(Deg2Rad(in.wind_sensor.alpha_deg));
     mag_wind_m_s = in.wind_sensor.mag_m_s;
-
-    fil->angle_aoa = SymmetricRad(angle_aoa_wrap_.Filter(SymmetricRad(alpha_wind_rad + kWindSensorOffsetRad)));
-    fil->mag_aoa = mag_aoa_filter_.Filter(mag_wind_m_s);
+    Polar aoa_out(0, 0);
+    Polar aoa(alpha_wind_rad + kWindSensorOffsetRad, mag_wind_m_s);
+    angle_aoa_polar_.Filter(aoa, &aoa_out);
+    fil->angle_aoa = aoa_out.AngleRad();
+    fil->mag_aoa = aoa_out.Mag();
     // For AOA optimization
     if (logging_aoa && !(counter_ % 20)) {
       fprintf(stderr, "aoa: %lg deg %lg m/s cspeed %lg m/s\n",
