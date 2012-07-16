@@ -18,7 +18,6 @@
 #include "common/now.h"
 #include "helmsman/sampling_period.h"
 #include "lib/testing/testing.h"
-#include "lib/util/stopwatch.h"
 
 extern int debug;
 extern int logging_aoa;
