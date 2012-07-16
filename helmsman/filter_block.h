@@ -68,8 +68,10 @@ class FilterBlock {
   SlidingAverageFilter alpha_true_filter_y_;
   PolarFilter alpha_true_polar_;
 
-  QuickSlidingAverageFilter angle_aoa_filter_;
-  WrapAroundFilter angle_aoa_wrap_;
+  SlidingAverageFilter angle_aoa_filter_x_;
+  SlidingAverageFilter angle_aoa_filter_y_;
+  PolarFilter angle_aoa_polar_;
+
   SlidingAverageFilter gamma_sail_filter_;
   WrapAroundFilter gamma_sail_wrap_;
 
