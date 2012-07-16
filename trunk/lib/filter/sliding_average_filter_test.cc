@@ -49,6 +49,7 @@ TEST(SlidingAverageFilter, ZigZag) {
 }
 
 int main(int argc, char* argv[]) {
+  SlidingAverageFilter_ValidDCGainSetOutput();
   SlidingAverageFilter_ValidDCGain();
   SlidingAverageFilter_FiftyPercent();
   SlidingAverageFilter_ZigZag();
