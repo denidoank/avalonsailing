@@ -235,8 +235,8 @@ ManeuverType NormalController::ShapeReferenceValue(double alpha_star,
       // leading to the sail swinging over the boat symmetry axis. This will be
       // suppressed.
       const double kCloseHauledLimit = Deg2Rad(4);
-      bool close_hauled_positive = DeltaOldNewRad(alpha_true, phi_z_boat) > Deg2Rad(120);
-      bool close_hauled_negative = DeltaOldNewRad(alpha_true, phi_z_boat) < Deg2Rad(-120);
+      bool close_hauled_positive = DeltaOldNewRad(alpha_true, phi_z_boat) > Deg2Rad(105);
+      bool close_hauled_negative = DeltaOldNewRad(alpha_true, phi_z_boat) < Deg2Rad(-105);
       if (close_hauled_positive) {
         if (debug) fprintf(stderr, "CHP %lf ", *gamma_sail_star);
         *gamma_sail_star = std::max(*gamma_sail_star, kCloseHauledLimit);
