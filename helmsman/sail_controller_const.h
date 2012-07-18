@@ -21,9 +21,13 @@ const double kSwitchBackDelay = 20;              // seconds, Do not switch back 
 
 const double kHalfHysteresisSign = Deg2Rad(25);  // for the sign logic
 
-// The maximum wind speed for the spinakker mode
-const double kSpinakkerLimit = 15;      // in m/s; The mast would be overloaded.
-const double kAngleReductionLimit = 22; // in m/s
+// The maximum wind speed for the spinakker mode.
+// The spinakker mode is used when we are running
+// (wind from behind). If the wind is too strong the
+// bow gets pushed down too much and the mast could
+// be overloaded.
+const double kSpinakkerLimit = 10;      // in m/s;
+const double kAngleReductionLimit = 14; // in m/s
 
 
 #endif  // HELMSMAN_SAIL_CONTROLLER_CONST_H
