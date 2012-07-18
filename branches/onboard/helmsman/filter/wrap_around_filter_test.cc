@@ -2163,7 +2163,6 @@ ATEST(WrapAroundFilter, QuickSlidingMean2) {
   // WrapAroundFilter f6(new SlidingAverageFilter(1000)); // was QuickSlidingAverageFilter
   WrapAroundFilter f6(new LowPass1Filter(1000)); // was QuickSlidingAverageFilter
   double prev6;
-  double increment = 0;
   const int rounds = 2000;
   for (int cnt = 0; cnt < rounds; ++cnt) {
     double in = example[cnt].alpha;
