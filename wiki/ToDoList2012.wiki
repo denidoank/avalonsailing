@@ -26,7 +26,7 @@
 || Test maximum voltage and have a look with a scope at the supply voltage at full light, fully charged, drives accelerating and braking. || test done, slight push of boom gives extra 3V, need brake chopper on mains line, grundmann/2012-05-28 ||
 || Overvoltage discharge brake chopper 25W/50W peak. || 60W at 30.1V grundmann/2012-06-12 ||
 || Change or replace CPU box such that the processor gets cooling. Currently it reaches 65 degrees Celsius at the outside because the processor box and the cooling plate are separated by air. || bridged air gap with aluminium and heat conduction paste, grundmann/2012-05-28  || 
-|| Test bilge pump (better outside than in the lobby) || Still open, but more *IMPORTANT* because we got fresh water in the boat. Just pour 2 bottles of water onto the pump. ||
+|| Test bilge pump (better outside than in the lobby) ||  runs but does not pump, TODO: check polarity (2012-7-17) ||
 || Finally, remove mushroom switch (not seawater tight). || (after lake test) ||
 || Finally, mount new AIS antenna. (material purchased already) Test reception. || (after lake test) ||
 || Mount thermometers || lvd ||
@@ -42,14 +42,13 @@
 || Set the drive current limits to reasonable values (drives are rated as 250 and 400W)  || lvd/2012-04-12 ||
 || Fix sail drive zero position || lvd/done ||
 || The rudder angle ranges need adjustment. The values of 90 and 100 degress are just rough estimates.  || lvd/done, but the boat does not go straight, but slightly right. ||
-|| implement and test Drive recovery from temporary outages (power dips, overtemperature) || lvd/ ||
-|| Include new drive start-up into start_avalon.sh. Submit this. || lvd/ ||
+|| implement and test Drive recovery from temporary outages (power dips, overtemperature) || lvd/ (should work out of the box, only needs testing) ||
 || Update start_avalon.sh for compass_cat. || grundmann/2012-05-12 ||
 || Fix big drive delays (currently about 360ms or 650ms for the sail drive) Should be around 200ms. || lvd/Done ||
 || Fix odd sail drive behaviour. Leave brake released. Brake 10s after the last reference value change. || lvd/done ||
-|| Make image and put controller into boat. || lvd&liam/ ||
-|| Make imucfg reset the IMU if it produces invalid messages for half an hour || lvd ||
-|| Check system power management options. Currently the computer gets rather hot when not loaded. ||  ||
+|| Make imucfg reset the IMU if it produces invalid messages for half an hour || lvd/Done ||
+|| Check system power management options. Currently the computer gets rather hot when not loaded. || appears to be fixed with the cooling fin + heat paste arrangement ||
+|| Make clean image with startup script || lvd/ ||
 
 
 
@@ -57,7 +56,7 @@
 
 || *Item* || *Who/when done* ||
 || Drive tests, check response times with TestController || grundmann/2012-06-05 ||
-|| Logging tests. Check that we can get complete logs from all processes easily and reliably. || done helmsman.log For detail studies linebus log would be nice||
+|| Logging tests. Check that we can get complete logs from all processes easily and reliably. || done ||
 || Wind sensor test. Check that wind sensor/ RS485 converter / driver / wind cat  work. Check that wind direction is calculated properly with fan. || grundmann/done, tested in reality ||
 || IMU magnetic output plus compass test. Check that the IMU box containing IMU and compass is producing reliable and correct bearing vectors. || grundmann/done, seems to work, test under extreme conditions to be done ||
 || Need a 2nd GPS (reason reliability, 30% noise reduction) || lvd ||
