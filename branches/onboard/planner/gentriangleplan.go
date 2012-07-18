@@ -76,7 +76,7 @@ func main() {
 
 	lat2, lng2, azi2 := wgs84.Forward(rad(lat), rad(lng), rad(yaw), *dist)
 	lat3, lng3, _ := wgs84.Forward(lat2, lng2, azi2+turn, *dist)
-	fmt.Printf("%.7f,%.7f\n", lat, lng)
-	fmt.Printf("%.7f,%.7f\n", deg(lat2), deg(lng2))
-	fmt.Printf("%.7f,%.7f\n", deg(lat3), deg(lng3))
+	fmt.Printf("%.7f %.7f\n", lat, lng)
+	fmt.Printf("%.7f %.7f\n", deg(lat2), deg(lng2))
+	fmt.Printf("%.7f %.7f\n", deg(lat3), deg(lng3))
 }
