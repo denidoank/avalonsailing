@@ -58,11 +58,6 @@ SailMode SailModeLogic::BestStabilizedMode(double apparent_absolute, double wind
   return mode_;
 }
 
-void SailModeLogic::LockInWingMode() {// ever called?
-   fprintf(stderr, "SailModeLogic::LOCKED in WING mode. ************************************\n");
-  mode_ = WING_LOCKED;
-}
-
 void SailModeLogic::UnlockMode() {
   mode_ = WING;
 }
@@ -174,10 +169,6 @@ double SailController::BestGammaSailForReverseMotion(double alpha_wind_rad,
       M_PI / 2;      // reversed SPINNAKER mode, broad reach
 
   return SymmetricRad(-sign * gamma_sail_rad);
-}
-
-void SailController::LockInWingMode() {
-  logic_.LockInWingMode();
 }
 
 void SailController::UnlockMode() {

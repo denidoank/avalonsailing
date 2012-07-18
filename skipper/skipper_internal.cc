@@ -10,7 +10,6 @@
 #include "common/delta_angle.h"
 #include "common/polar_diagram.h"
 #include "helmsman/normal_controller.h"
-#include "lib/fm/log.h"
 #include "skipper/planner.h"
 
 extern int debug;

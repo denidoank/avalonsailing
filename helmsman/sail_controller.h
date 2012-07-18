@@ -18,7 +18,6 @@ class SailModeLogic {
   // Side effect: sets mode_
   SailMode BestMode(double alpha_apparent_wind_rad, double wind_strength_m_s);
   SailMode BestStabilizedMode(double alpha_apparent_wind_rad, double wind_strength_m_s);
-  void LockInWingMode();
   void UnlockMode();
   void Reset();
   const char* ModeString();
