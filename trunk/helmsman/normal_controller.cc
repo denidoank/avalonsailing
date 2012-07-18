@@ -13,6 +13,7 @@
 #include "common/normalize.h"
 #include "common/now.h"
 #include "common/limit_rate.h"
+#include "common/sign.h"
 #include "common/polar_diagram.h"
 #include "common/unknown.h"
 #include "helmsman/apparent.h"
@@ -46,7 +47,9 @@ void NormalController::Entry(const ControllerInput& in,
   // Make sure we get the right idea of the direction change when we come
   // from another state.
   old_phi_z_star_ = SymmetricRad(filtered.phi_z_boat);
-  sail_controller_->BestGammaSail(filtered.angle_app, filtered.mag_app);
+  double gamma_sail =
+      sail_controller_->BestGammaSail(filtered.angle_app, filtered.mag_app);
+  sail_controller_->SetAlphaSign(SignNotZero(gamma_sail));
   ref_.SetReferenceValues(old_phi_z_star_, in.drives.gamma_sail_rad);
   give_up_counter_ = 0;
   start_time_ms_ = now_ms();
@@ -188,6 +191,8 @@ ManeuverType NormalController::ShapeReferenceValue(double alpha_star,
                                                    double* omega_z_star,
                                                    double* gamma_sail_star) {
   ManeuverType maneuver_type = kChange;
+  double phi_z_offset = 0;  // used when sailing close hauled.
+  double new_sailable = 0;
   if (debug) fprintf(stderr, "app %6.2lf true %6.2lf old_sail %6.2lf\n", angle_app, alpha_true, old_gamma_sail);
 
   // 3 cases:
@@ -202,7 +207,7 @@ ManeuverType NormalController::ShapeReferenceValue(double alpha_star,
     if (debug) fprintf(stderr, "* %6.2lf %6.2lf %6.2lf\n", alpha_star, alpha_star, *phi_z_star);
   } else {
     // Stay in sailable zone
-    double new_sailable = BestSailableHeading(alpha_star, alpha_true);
+    new_sailable = BestSailableHeading(alpha_star, alpha_true);
     if (debug) fprintf(stderr, "new sailable: %6.2lf\n", new_sailable);
     if (IsGoodForManeuver(old_phi_z_star_, new_sailable, alpha_true) &&
         IsJump(old_phi_z_star_, new_sailable)) {
@@ -221,6 +226,7 @@ ManeuverType NormalController::ShapeReferenceValue(double alpha_star,
                    kTackOvershootRad,
                    &new_gamma_sail,
                    &delta_gamma_sail);
+      sail_controller_->SetAlphaSign(SignNotZero(new_gamma_sail));
 
       ref_.SetReferenceValues(old_phi_z_star_, old_gamma_sail);
       ref_.NewPlan(new_sailable, delta_gamma_sail, mag_boat);
@@ -237,32 +243,21 @@ ManeuverType NormalController::ShapeReferenceValue(double alpha_star,
       *omega_z_star = 0;
       // The apparent wind data are filtered to suppress noise in
       // the sail drive reference value.
+      //*gamma_sail_star =
+      //      sail_controller_->BestStabilizedGammaSail(angle_app, mag_app);
       *gamma_sail_star =
-            sail_controller_->BestStabilizedGammaSail(angle_app, mag_app);
-      // When sailing close hauled (hard to the wind) we observed sail angle oscillations
-      // leading to the sail swinging over the boat symmetry axis. This will be
-      // suppressed.
-      const double kCloseHauledLimit = Deg2Rad(4);
-      bool close_hauled_positive = DeltaOldNewRad(alpha_true, phi_z_boat) > Deg2Rad(105);
-      bool close_hauled_negative = DeltaOldNewRad(alpha_true, phi_z_boat) < Deg2Rad(-105);
-      if (close_hauled_positive) {
-        if (debug) fprintf(stderr, "CHP %lf ", *gamma_sail_star);
-        *gamma_sail_star = std::max(*gamma_sail_star, kCloseHauledLimit);
-        if (debug) fprintf(stderr, "to %lf\n", *gamma_sail_star);
-      }
-      if (close_hauled_negative) {
-        if (debug) fprintf(stderr, "CHN %lf ", *gamma_sail_star);
-        *gamma_sail_star = std::min(*gamma_sail_star, -kCloseHauledLimit);
-        if (debug) fprintf(stderr, "to %lf\n", *gamma_sail_star);
-      }
-      // TODO sail drive lazyness
+            sail_controller_->StableGammaSail(alpha_true, mag_true,
+                                              angle_app, mag_app,
+                                              phi_z_boat,
+                                              &phi_z_offset);
 
-      //if (debug) fprintf(stderr, "S %6.2lf %6.2lf %6.2lf\n", angle_app, mag_app, *gamma_sail_star);
+      // TODO sail drive lazyness
     }
-    if (debug) fprintf(stderr, "* %6.2lf %6.2lf %6.2lf\n", alpha_star, new_sailable, *phi_z_star);
   }
 
   old_phi_z_star_ = *phi_z_star;
+  *phi_z_star += phi_z_offset;  // so the offset is a temporary thing
+  if (debug) fprintf(stderr, "* %6.2lf %6.2lf %6.2lf\n", alpha_star, new_sailable, *phi_z_star);
   return maneuver_type;
 }
 

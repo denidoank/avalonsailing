@@ -17,9 +17,11 @@ const double kDragMax = Deg2Rad(93);             // 93 degree because of slightl
 // skipper update period.
 // According to the IEEE-RAM submission report, the wind information 
 // varies by +-5 degrees even when filtered over 90s.
-const double kSwitchBackDelay = 20;              // seconds, Do not switch back for 20s! 
 
-const double kHalfHysteresisSign = Deg2Rad(25);  // for the sign logic
+// Wait before switching to spinakker mode.
+const double kSpinakkerSwitchDelay = 20;         // seconds
+
+const double kTackHysteresis = Deg2Rad(35);      // for the tack side logic
 
 // The maximum wind speed for the spinakker mode.
 // The spinakker mode is used when we are running
