@@ -38,6 +38,9 @@ double TargetCircleCascade::ToDeg(double x, double y) {
   // If that happens, we increase the radius of all circles until one is
   // big enough to cover our current position. This leads
   // us back on track.
+  // TODO: in the first iteration store max(distance/circle radius).
+  // This is the needed expansion_factor. Thus we get just 2 iterations
+  // through the chain.
   const double expansion_factor = 1.1;
   for (double expand = 1.0; expand < 50; expand *= expansion_factor) {
     for (int i = 0; i < (int)chain_.size(); ++i) {
@@ -51,6 +54,9 @@ double TargetCircleCascade::ToDeg(double x, double y) {
       }
     }
   }
+  // Can never get here.
+  CHECK(0);
+  return 0;
 }
 
 void TargetCircleCascade::Add(const TargetCircle t) {
