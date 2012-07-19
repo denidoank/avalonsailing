@@ -64,7 +64,7 @@ TEST(SailController, Basic) {
                   controller.BestStabilizedGammaSail( alpha_wind, 5));
 
   alpha_wind = kSwitchpoint - 1.1 * kHalfHysteresis;  // in SPINAKER region now
-  int delay = static_cast<int>(kSwitchBackDelay / kSamplingPeriod + 0.5);
+  int delay = static_cast<int>(kSpinakkerSwitchDelay / kSamplingPeriod + 0.5);
   for(int i = 0; i < delay; ++i)
     EXPECT_FLOAT_EQ(alpha_wind - M_PI + aoa_optimal,
                     controller.BestStabilizedGammaSail( alpha_wind, 5));

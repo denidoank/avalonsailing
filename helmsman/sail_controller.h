@@ -7,7 +7,6 @@
 
 enum SailMode {
   WING,        // for sailing at the wind
-  WING_LOCKED, // as WING, but we don't switch to SPINNAKER
   SPINNAKER    // optimal for broad reach
 };
 
@@ -44,10 +43,15 @@ class SailController {
   // frequent switching.
   double BestStabilizedGammaSail(double alpha_wind_rad,
                                  double mag_wind);
+  // set Tack, i.e. which side the wind is coming from.
+  void SetAlphaSign(int sign);
+  double StableGammaSail(double alpha_true, double mag_true,
+                         double alpha_app, double mag_app,
+                         double phi_z,
+                         double* phi_z_offset);
 
   void SetOptimalAngleOfAttack(double optimal_angle_of_attack_rad);
   double GetOptimalAngleOfAttack();
-  void LockInWingMode();
   void UnlockMode();
   void Reset();
 
@@ -66,6 +70,10 @@ class SailController {
   // But we might get into a
   // situation if the apparent wind is around zero and we would have
   // to turn the sail back and forth between -90 and +90.
+
+  int alpha_sign_;  // positive when sailing on starboard tack.
 };
+
+
 
 #endif  // HELMSMAN_SAIL_CONTROLLER_H
