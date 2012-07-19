@@ -64,6 +64,7 @@ class NormalController : public Controller {
   bool OutputChanges(const DriveReferenceValuesRad& out,
                      double gamma_rudder_star,
                      double gamma_sail_star);
+  double FilterOffset(double offset);
 
   double NowSeconds();                   
 
