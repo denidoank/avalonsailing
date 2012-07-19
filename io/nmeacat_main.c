@@ -11,6 +11,7 @@
 // Other unofficial and free sources:
 // NMEA protocol: http://www.serialmon.com/protocols/nmea0183.html
 // GPS NMEA messages: http://www.gpsinformation.org/dale/nmea.htm
+// http://geoffg.net/EM408.html
 //
 // Currently supported:
 // EM-408 GPS in default factory setup
@@ -39,7 +40,7 @@
 #include <unistd.h>
 
 #include "proto/compass.h"
-// #include "proto/gps.h"
+#include "proto/gps.h"
 #include "proto/wind.h"
 
 #include "lib/log.h"
@@ -110,61 +111,109 @@ valid_nmea(char* line)
 	snprintf(chkstr, sizeof chkstr, "%02X", x);
 	if (chk[1] != chkstr[0]) return 0;
 	if (chk[2] != chkstr[1]) return 0;
-
+#if 1
 	if (chk[3] != '\r' && chk[3] != '\n') return NULL;
 	if (chk[4] != '\n' && chk[4] != 0) return NULL;
-
+#endif
 	return chk;
 }
 
 // $WIMWV,179,R,8.0,N,A
 static int
-parse_wimvx(char* sentence, struct WindProto* wp)
+parse_wimvx(char* sentence, struct WindProto* p)
 {
 	char rel = 0;
 	char units = 0;
 	char valid = 0;
  	double speed = NAN;
-	int n = sscanf(sentence, "WIMWV,%lf,%c,%lf,%c,%c,", &wp->angle_deg, &rel, &speed, &units, &valid);
+	int n = sscanf(sentence, "WIMWV,%lf,%c,%lf,%c,%c,", &p->angle_deg, &rel, &speed, &units, &valid);
 	if (n != 5) {
-		wp->angle_deg = NAN;
+		p->angle_deg = NAN;
 		speed = NAN;
 		n = sscanf(sentence, "WIMWV,,%c,,%c,%c,", &rel, &units, &valid);
 		if (n != 3) return 0;
 	}
 
-	wp->relative = rel == 'R';
+	p->relative = rel == 'R';
 	switch(units) {
-	case 'K': wp->speed_m_s = speed * (1000.0/3600.0); break;// 1 km/h == 1000m / 3600s
-	case 'M': wp->speed_m_s = speed; break;
-	case 'N': wp->speed_m_s = speed * (1852.0/3600.0); break; // 1 knot == 1852m / 3600s
+	case 'K': p->speed_m_s = speed * (1000.0/3600.0); break;// 1 km/h == 1000m / 3600s
+	case 'M': p->speed_m_s = speed; break;
+	case 'N': p->speed_m_s = speed * (1852.0/3600.0); break; // 1 knot == 1852m / 3600s
 	default: return 0;
 	}
 
-	wp->valid = valid == 'A';
+	p->valid = valid == 'A';
 
 	return 1;
 }
 
 // $WIXDR, C,35.2,C,2, U,28.3,N,0, U,28.6,V,1, U,3.520,V,2 *7F
 static int
-parse_wixdr(char* sentence, struct WixdrProto* wp) {
+parse_wixdr(char* sentence, struct WixdrProto* p) {
 	char dumc;
 	int dumd;
 	int n = sscanf(sentence, "WIXDR,%c,%lf,%c,%d,%c,%lf,%c,%d,%c,%lf,%c,%d,%c,%lf,%c,%d,", 
-		       &dumc, &wp->temp_c, &dumc, &dumd,
-		       &dumc, &wp->vheat_v, &dumc, &dumd,
-		       &dumc, &wp->vsupply_v, &dumc, &dumd,
-		       &dumc, &wp->vref_v, &dumc, &dumd);
+		       &dumc, &p->temp_c, &dumc, &dumd,
+		       &dumc, &p->vheat_v, &dumc, &dumd,
+		       &dumc, &p->vsupply_v, &dumc, &dumd,
+		       &dumc, &p->vref_v, &dumc, &dumd);
 	return n == 16;
 }
 
 static int
-parse_compass(char* sentence, struct CompassProto* cp)
+parse_compass(char* sentence, struct CompassProto* p)
 {
-	int n = sscanf(sentence, "C%lfP%lfR%lfT%lf", &cp->yaw_deg, &cp->pitch_deg, &cp->roll_deg, &cp->temp_c);
+	int n = sscanf(sentence, "C%lfP%lfR%lfT%lf", &p->yaw_deg, &p->pitch_deg, &p->roll_deg, &p->temp_c);
 	return n == 4;
 }
+
+// $GPRMC,043356.000,A,3158.7599,S,11552.8689,E,0.24,54.42,101008,,*20
+// UTC  Time  161229.487 hhmmss.sss
+// Status  A  A=data valid or V=data not valid 
+// Latitude   3723.2475 ddmm.mmmm
+// N/S Indicator   N N=north or S=south
+// Longitude  12158.3416 dddmm.mmmm
+// E/W Indicator W  E=east or W=west
+// Speed Over Ground  0.13  knots
+// Course Over Ground  309.62  degrees True
+// Date   120598  ddmmyy
+// Magnetic Variation degrees E=east or W=west
+static int
+parse_gprmc(char* sentence, struct GPSProto *p)
+{
+	double time_dc = NAN;
+	char status = 0;
+	double lat_dc = NAN;
+	char N = 0;
+	double lng_dc = NAN;
+	char E = 0;
+	double sog_k = NAN;
+	double cog_deg = NAN;
+	int64_t date_dc = 0;
+	int n = sscanf(sentence, "GPRMC,%lf,%c,%lf,%c,%lf,%c,%lf,%lf,%lld,",
+		       &time_dc, &status, &lat_dc, &N, &lng_dc, &E, &sog_k, &cog_deg, &date_dc);
+	if (n != 9 || status != 'A') return 0;
+	
+	struct tm t;
+	t.tm_hour = time_dc / 10000;  time_dc -= 10000 * t.tm_hour;
+	t.tm_min  = time_dc / 100;    time_dc -= 100 * t.tm_min;
+	t.tm_sec  = time_dc;    time_dc -=  t.tm_sec;
+	int64_t ms = time_dc * 1000LL;
+	t.tm_mday = date_dc / 10000; date_dc %= 10000;
+	t.tm_mon = date_dc / 100; date_dc %= 100;  t.tm_mon--;
+	t.tm_year = 100 + date_dc;
+	p->timestamp_ms = timegm(&t) * 1000LL + ms;
+
+	p->lat_deg = trunc(lat_dc / 100.0);  lat_dc -= 100*p->lat_deg;  p->lat_deg += lat_dc / 60.0;
+	if (N == 'S') p->lat_deg *= -1;
+
+	p->lng_deg = trunc(lng_dc / 100.0);  lng_dc -= 100*p->lng_deg;  p->lng_deg += lng_dc / 60.0;
+	if (E == 'W') p->lng_deg *= -1;
+	p->speed_m_s = sog_k * (1852.0/3600.0);
+	p->cog_deg = cog_deg;
+	return 1;
+}
+
 
 static struct aivdm_context_t ais_contexts[AIVDM_CHANNELS];
 
@@ -275,7 +324,7 @@ int main(int argc, char* argv[]) {
 	argv += optind;
 	argc -= optind;
 
-	if (argc != 1) usage();
+	if (argc > 1) usage();
 	
 	if (signal(SIGBUS, fault) == SIG_ERR)  crash("signal(SIGBUS)");
 	if (signal(SIGSEGV, fault) == SIG_ERR)  crash("signal(SIGSEGV)");
@@ -330,6 +379,16 @@ int main(int argc, char* argv[]) {
 
 		if (strncmp(start, "!AIVDM", 6) == 0) {
 			parse_ais(start, end);
+			continue;
+		}
+
+		if (strncmp(start, "$GPRMC", 6) == 0) {
+			struct GPSProto vars = INIT_GPSPROTO;
+			if (!parse_gprmc(start+1, &vars)) {
+				if (debug) fprintf(stderr, "Invalid WIMWV sentence: '%s'\n", line);
+				continue;
+			}
+			printf(OFMT_GPSPROTO(vars));
 			continue;
 		}
 
