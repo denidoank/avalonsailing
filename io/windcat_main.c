@@ -241,7 +241,7 @@ int main(int argc, char* argv[]) {
 			continue;
 		}
 
-		if (debug) fprintf(stderr, "Ignoring NMEA sentence: '%s'\n", line);  // TODO remove or improve voltage logging
+		if (debug) fprintf(stderr, "Ignoring NMEA sentence: '%s'\n", line);
 	}
 
 	crash("Terminating.");
