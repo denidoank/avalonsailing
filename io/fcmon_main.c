@@ -20,9 +20,9 @@
 #include "proto/fuelcell.h"
 
 #include "log.h"
+#include "timer.h"
 
 static const char* argv0;
-static int verbose = 0;
 static int debug = 0;
 
 static void
@@ -35,17 +35,6 @@ usage(void)
 		"\t-p period           (60s)\n"
 		, argv0);
 	exit(2);
-}
-
-static int64_t
-now_ms() 
-{
-        struct timeval tv;
-        if (gettimeofday(&tv, NULL) < 0) crash("no working clock");
-
-        int64_t ms1 = tv.tv_sec;  ms1 *= 1000;
-        int64_t ms2 = tv.tv_usec; ms2 /= 1000;
-        return ms1 + ms2;
 }
 
 static int
