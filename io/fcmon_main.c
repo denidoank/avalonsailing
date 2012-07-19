@@ -46,7 +46,7 @@ fc_status(FILE *fc)
 
 	struct FuelcellProto fc_status = INIT_FUELCELLPROTO;
 
-	//?????????????fc_status.timestamp_ms = now_ms();
+	fc_status.timestamp_ms = now_us()/1000;
 
 	while (1) {
 		pfd.fd = fileno(fc);
