@@ -209,11 +209,11 @@ double SailController::StableGammaSail(double alpha_true, double mag_true,
 
 
   if (alpha_sign_ < 0 && a > kTackHysteresis) {
-    CHECK_EQ(1, alpha_sign_); // TODO convert into warning after tests.
+    //CHECK_EQ(1, alpha_sign_); // TODO convert into warning after tests.
   }
 
   if (alpha_sign_ > 0 && a < -kTackHysteresis) {
-    CHECK_EQ(-1, alpha_sign_); // TODO convert into warning after tests.
+    //CHECK_EQ(-1, alpha_sign_); // TODO convert into warning after tests.
   }
 
   // The sign of gamma_sail is always identical with alpha_sign_!

@@ -53,6 +53,9 @@ class NormalController : public Controller {
                                    double* phi_z_star,
                                    double* omega_z_star,
                                    double* gamma_sail_star);
+  // public for test only.
+  double FilterOffset(double offset);
+
  private:
   // Near for bearings.
   bool Near(double a, double b);
@@ -64,7 +67,6 @@ class NormalController : public Controller {
   bool OutputChanges(const DriveReferenceValuesRad& out,
                      double gamma_rudder_star,
                      double gamma_sail_star);
-  double FilterOffset(double offset);
 
   double NowSeconds();                   
 
