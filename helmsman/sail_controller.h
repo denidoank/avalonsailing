@@ -45,6 +45,10 @@ class SailController {
                                  double mag_wind);
   // set Tack, i.e. which side the wind is coming from.
   void SetAlphaSign(int sign);
+  // phi_z_offset gives feedback from the sail controller
+  // to the normal controller, if the apparent wind turns into
+  // the forbidden zone around the eye of the wind. This may
+  // happen because the true wind direction is filtered slowly.
   double StableGammaSail(double alpha_true, double mag_true,
                          double alpha_app, double mag_app,
                          double phi_z,
@@ -54,6 +58,7 @@ class SailController {
   double GetOptimalAngleOfAttack();
   void UnlockMode();
   void Reset();
+  double FilterOffset(double offset);
 
  private:
   // Optimal angle of attack, reduced at high wind strength.
