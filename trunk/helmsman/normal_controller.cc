@@ -31,7 +31,8 @@ NormalController::NormalController(RudderController* rudder_controller,
      old_phi_z_star_(0),
      give_up_counter_(0),
      start_time_ms_(now_ms()),
-     trap2_(999) {
+     trap2_(999),
+     prev_offset_(0) {
   if (debug) fprintf(stderr, "NormalController::Entry time  %lld s\n",
                      start_time_ms_ / 1000);
   if (debug) fprintf(stderr, "NormalController::rate limit  %lf rad/s, %lf deg/s\n",
@@ -243,8 +244,6 @@ ManeuverType NormalController::ShapeReferenceValue(double alpha_star,
       *omega_z_star = 0;
       // The apparent wind data are filtered to suppress noise in
       // the sail drive reference value.
-      //*gamma_sail_star =
-      //      sail_controller_->BestStabilizedGammaSail(angle_app, mag_app);
       *gamma_sail_star =
             sail_controller_->StableGammaSail(alpha_true, mag_true,
                                               angle_app, mag_app,
@@ -259,6 +258,27 @@ ManeuverType NormalController::ShapeReferenceValue(double alpha_star,
   *phi_z_star += phi_z_offset;  // so the offset is a temporary thing
   if (debug) fprintf(stderr, "* %6.2lf %6.2lf %6.2lf\n", alpha_star, new_sailable, *phi_z_star);
   return maneuver_type;
+}
+
+double NormalController::FilterOffset(double offset) {
+  const double decay = Deg2Rad(1) * kSamplingPeriod;
+  if (Sign(offset) != 0 && Sign(offset) != Sign(prev_offset_)) {
+    prev_offset_ = offset;
+    return offset;
+  }
+  if (offset > 0 || prev_offset_ > 0) {
+    if (prev_offset_ > 0)
+      prev_offset_ -= decay;
+    if (offset > prev_offset_)
+      prev_offset_ = offset;
+  }
+  if (offset < 0 || prev_offset_ < 0) {
+    if (prev_offset_ < 0)
+      prev_offset_ += decay;
+    if (offset < prev_offset_)
+      prev_offset_ = offset;
+  }
+  return prev_offset_;
 }
 
 bool NormalController::TackingOrJibing() {
