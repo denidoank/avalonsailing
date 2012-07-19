@@ -255,13 +255,13 @@ ManeuverType NormalController::ShapeReferenceValue(double alpha_star,
   }
 
   old_phi_z_star_ = *phi_z_star;
-  *phi_z_star += phi_z_offset;  // so the offset is a temporary thing
+  *phi_z_star += FilterOffset(phi_z_offset);  // so the offset is a temporary thing
   if (debug) fprintf(stderr, "* %6.2lf %6.2lf %6.2lf\n", alpha_star, new_sailable, *phi_z_star);
   return maneuver_type;
 }
 
 double NormalController::FilterOffset(double offset) {
-  const double decay = Deg2Rad(1) * kSamplingPeriod;
+  const double decay = Deg2Rad(0.1) * kSamplingPeriod;
   if (Sign(offset) != 0 && Sign(offset) != Sign(prev_offset_)) {
     prev_offset_ = offset;
     return offset;
