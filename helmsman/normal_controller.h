@@ -64,6 +64,7 @@ class NormalController : public Controller {
   bool OutputChanges(const DriveReferenceValuesRad& out,
                      double gamma_rudder_star,
                      double gamma_sail_star);
+  double FilterOffset(double offset);
 
   double NowSeconds();                   
 
@@ -76,6 +77,7 @@ class NormalController : public Controller {
   int give_up_counter_;    // delays fallback to the InitialController
   int64_t start_time_ms_;
   int trap2_;  // paranoid protection against incomplete compilation errors.
+  double prev_offset_;
 };
 
 #endif  // HELMSMAN_NORMAL_CONTROLLER_H
