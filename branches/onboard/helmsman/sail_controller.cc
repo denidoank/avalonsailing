@@ -224,15 +224,13 @@ double SailController::StableGammaSail(double alpha_true, double mag_true,
   if (alpha_app > kCloseHauledLimit) {
     if (debug) fprintf(stderr, "StableSail:: Too close, fall off right\n");
     *phi_z_offset = alpha_app - kCloseHauledLimit;
-    a -= *phi_z_offset;
-    if (debug) fprintf(stderr, "new phi_z_offset: %lf", *phi_z_offset);
   }
   if (alpha_app < -kCloseHauledLimit) {
     if (debug) fprintf(stderr, "StableSail:: Too close, fall off left\n");
     *phi_z_offset = alpha_app + kCloseHauledLimit;
-    a -= *phi_z_offset;
-    if (debug) fprintf(stderr, "new phi_z_offset: %lf", *phi_z_offset);
   }
+  a -= *phi_z_offset;
+  if (debug) fprintf(stderr, "new phi_z_offset: %lf", *phi_z_offset);
 
   // Sailing physics is symmetric
   a = fabs(a);
