@@ -9,9 +9,12 @@
 #include <math.h>
 #include <stdio.h>
 
+#include <algorithm>
+
 #include "lib/check.h"
 #include "lib/convert.h"
 #include "lib/sign.h"
+#include "lib/delta_angle.h"
 #include "lib/normalize.h"
 
 #include "sail_controller_const.h"
@@ -31,10 +34,7 @@ SailMode SailModeLogic::BestMode(double apparent_absolute, double wind_strength_
 }
 
 SailMode SailModeLogic::BestStabilizedMode(double apparent_absolute, double wind_strength_m_s) {
-  const int delay = static_cast<int>(kSwitchBackDelay / kSamplingPeriod + 0.5);
-  if (mode_ == WING_LOCKED) {
-    return WING_LOCKED;
-  }
+  const int delay = static_cast<int>(kSpinakkerSwitchDelay / kSamplingPeriod + 0.5);
   if (wind_strength_m_s > kSpinakkerLimit) {
     return WING;
   }
@@ -58,9 +58,6 @@ SailMode SailModeLogic::BestStabilizedMode(double apparent_absolute, double wind
   return mode_;
 }
 
-void SailModeLogic::UnlockMode() {
-  mode_ = WING;
-}
 
 void SailModeLogic::Reset() {
   mode_ = WING;
@@ -70,7 +67,6 @@ void SailModeLogic::Reset() {
 namespace {
 const char kWing[] = "WING";
 const char kSpinnaker[] = "SPINNAKER";
-const char kWingLocked[] = "WING_LOCKED";
 }  // namespace
 
 const char* SailModeLogic::ModeString() {
@@ -78,7 +74,6 @@ const char* SailModeLogic::ModeString() {
     fprintf(stderr, "delay_counter_: %d\n", delay_counter_);
   if (mode_ == WING) return kWing;
   if (mode_ == SPINNAKER) return kSpinnaker;
-  if (mode_ == WING_LOCKED) return kWingLocked;
   CHECK(0);
   return NULL;
 }
@@ -91,7 +86,8 @@ const char* SailModeLogic::ModeString() {
 static const double kAOADefaultRad = M_PI / 5;  // Deg2Rad(36.0);
 SailController::SailController()
     : optimal_angle_of_attack_rad_(kAOADefaultRad),
-      sign_(1) {
+      sign_(1),
+      alpha_sign_(1) {
   CHECK_LT(0.1, optimal_angle_of_attack_rad_);
 }
 
@@ -171,10 +167,6 @@ double SailController::BestGammaSailForReverseMotion(double alpha_wind_rad,
   return SymmetricRad(-sign * gamma_sail_rad);
 }
 
-void SailController::UnlockMode() {
-  logic_.UnlockMode();
-}
-
 void SailController::HandleSign(double* alpha_wind_rad, int* sign ) {
   *sign = SignNotZero(*alpha_wind_rad);
   *alpha_wind_rad *= *sign;
@@ -185,3 +177,93 @@ void SailController::Reset() {
   optimal_angle_of_attack_rad_ = kAOADefaultRad;
   sign_ = 1;
 }
+
+// No automatic switch of the tack (sail position, Luv side).
+void SailController::SetAlphaSign(int sign) {
+  alpha_sign_ = sign;
+}
+
+double SailController::StableGammaSail(double alpha_true, double mag_true,
+                                       double alpha_app, double mag_app,
+                                       double phi_z,
+                                       double* phi_z_offset) {
+  /* points of sail
+     alpha = phi_z - alpha_true_wind
+
+
+                                      |  true wind
+                                      |
+                                      |
+                                      V
+ (close hauled starboard) a=+135deg       a=-135deg (close hauled, portside tack)
+
+     (broad reach starb.) a=+90 deg       a=-90deg (broad reach, portside tack)
+
+                                     a=0 (running)
+  */
+
+  // which tack are we on, with a lot of robustness for a stable sail position when running.
+
+  double a = DeltaOldNewRad(alpha_true, phi_z);
+  if (debug) fprintf(stderr, "a: %lf\n", a);
+
+
+  if (alpha_sign_ < 0 && a > kTackHysteresis) {
+    CHECK_EQ(1, alpha_sign_); // TODO convert into warning after tests.
+  }
+
+  if (alpha_sign_ > 0 && a < -kTackHysteresis) {
+    CHECK_EQ(-1, alpha_sign_); // TODO convert into warning after tests.
+  }
+
+  // The sign of gamma_sail is always identical with alpha_sign_!
+
+  // Push the boat (phi_z) out of the wind if the quickly filtered apparent
+  // wind is too adverse.
+  const double kCloseHauledLimit = Deg2Rad(140);
+  if (alpha_app > kCloseHauledLimit) {
+    if (debug) fprintf(stderr, "StableSail:: Too close, fall off right\n");
+    *phi_z_offset = alpha_app - kCloseHauledLimit;
+    a -= *phi_z_offset;
+    if (debug) fprintf(stderr, "new phi_z_offset: %lf", *phi_z_offset);
+  }
+  if (alpha_app < -kCloseHauledLimit) {
+    if (debug) fprintf(stderr, "StableSail:: Too close, fall off left\n");
+    *phi_z_offset = alpha_app + kCloseHauledLimit;
+    a -= *phi_z_offset;
+    if (debug) fprintf(stderr, "new phi_z_offset: %lf", *phi_z_offset);
+  }
+
+  // Sailing physics is symmetric
+  a = fabs(a);
+
+  double gamma_sail_rad;
+  // The optimal sail mode is strictly speaking dependant on the apparent wind.
+  // The differences are small, so we use the more stable true wind angle.
+  if (SPINNAKER == logic_.BestStabilizedMode(a, std::max(mag_app, mag_true))) {
+    gamma_sail_rad = kDragMax - a / 2;
+    if (debug) fprintf(stderr, "spi: %lf", gamma_sail_rad);
+  } else {
+    gamma_sail_rad = M_PI - a - AngleOfAttack(mag_true);
+    if (debug) fprintf(stderr, "wng: %lf", gamma_sail_rad);
+    // When sailing close hauled (hard to the wind) we observed sail angle oscillations
+    // leading to the sail swinging over the boat symmetry axis. This will be
+    // suppressed.
+    const double kCloseHauledLimit = Deg2Rad(6);
+    if (gamma_sail_rad < kCloseHauledLimit)
+      gamma_sail_rad = kCloseHauledLimit;
+  }
+  if (debug) {
+      fprintf(stderr, "StableSail:: sign %d %lf\n",
+                       alpha_sign_, gamma_sail_rad);
+      fprintf(stderr, "StableSail:: out: %lf\n",
+                     SymmetricRad(alpha_sign_ * gamma_sail_rad));
+  }
+
+  return SymmetricRad(alpha_sign_ * gamma_sail_rad);
+
+}
+
+
+
+
