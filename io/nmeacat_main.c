@@ -202,7 +202,7 @@ parse_gprmc(char* sentence, struct GPSProto *p)
 	t.tm_mday = date_dc / 10000; date_dc %= 10000;
 	t.tm_mon = date_dc / 100; date_dc %= 100;  t.tm_mon--;
 	t.tm_year = 100 + date_dc;
-	p->timestamp_ms = timegm(&t) * 1000LL + ms;
+	p->gps_timestamp_ms = timegm(&t) * 1000LL + ms;
 
 	p->lat_deg = trunc(lat_dc / 100.0);  lat_dc -= 100*p->lat_deg;  p->lat_deg += lat_dc / 60.0;
 	if (N == 'S') p->lat_deg *= -1;
@@ -388,6 +388,7 @@ int main(int argc, char* argv[]) {
 				if (debug) fprintf(stderr, "Invalid WIMWV sentence: '%s'\n", line);
 				continue;
 			}
+			vars.timestamp_ms = now;
 			printf(OFMT_GPSPROTO(vars));
 			continue;
 		}

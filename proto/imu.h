@@ -6,6 +6,7 @@
 
 struct IMUProto {
 	int64_t timestamp_ms;
+	int64_t gps_timestamp_ms;
 	double temp_c;
 	double acc_x_m_s2;
 	double acc_y_m_s2;
@@ -28,18 +29,18 @@ struct IMUProto {
 };
 
 #define INIT_IMUPROTO \
-	{0,NAN, NAN,NAN,NAN, NAN,NAN,NAN, NAN,NAN,NAN, NAN,NAN,NAN, NAN,NAN,NAN, NAN,NAN,NAN}
+	{0,0,NAN, NAN,NAN,NAN, NAN,NAN,NAN, NAN,NAN,NAN, NAN,NAN,NAN, NAN,NAN,NAN, NAN,NAN,NAN}
 
 // For use in printf and friends.
-#define OFMT_IMUPROTO(x)					 \
-	"imu: timestamp_ms:%lld temp_c:%.3lf "			 \
-	"acc_x_m_s2:%.3lf acc_y_m_s2:%.3lf acc_z_m_s2:%.3lf "	 \
-	"gyr_x_rad_s:%.3lf gyr_y_rad_s:%.3lf gyr_z_rad_s:%.3lf " \
-	"mag_x_au:%.3lf mag_y_au:%.3lf mag_z_au:%.3lf "		 \
-	"roll_deg:%.3lf pitch_deg:%.3lf yaw_deg:%.3lf "		 \
-	"lat_deg:%.7lf lng_deg:%.7lf alt_m:%.3lf "		 \
-	"vel_x_m_s:%.3lf vel_y_m_s:%.3lf vel_z_m_s:%.3lf\n",	 \
-		(x).timestamp_ms, (x).temp_c,			 \
+#define OFMT_IMUPROTO(x)						\
+	"imu: timestamp_ms:%lld gps_timestamp_ms:%lld temp_c:%.3lf "	\
+	"acc_x_m_s2:%.3lf acc_y_m_s2:%.3lf acc_z_m_s2:%.3lf "		\
+	"gyr_x_rad_s:%.3lf gyr_y_rad_s:%.3lf gyr_z_rad_s:%.3lf "	\
+	"mag_x_au:%.3lf mag_y_au:%.3lf mag_z_au:%.3lf "			\
+	"roll_deg:%.3lf pitch_deg:%.3lf yaw_deg:%.3lf "			\
+	"lat_deg:%.7lf lng_deg:%.7lf alt_m:%.3lf "			\
+	"vel_x_m_s:%.3lf vel_y_m_s:%.3lf vel_z_m_s:%.3lf\n",		\
+		(x).timestamp_ms, (x).gps_timestamp_ms, (x).temp_c,	\
 		(x).acc_x_m_s2, (x).acc_y_m_s2, (x).acc_z_m_s2,		\
 		(x).gyr_x_rad_s, (x).gyr_y_rad_s, (x).gyr_z_rad_s,	\
 		(x).mag_x_au, (x).mag_y_au, (x).mag_z_au,		\
@@ -47,15 +48,15 @@ struct IMUProto {
 		(x).lat_deg, (x).lng_deg, (x).alt_m,			\
 		(x).vel_x_m_s, (x).vel_y_m_s, (x).vel_z_m_s
 
-#define IFMT_IMUPROTO(x, n)				 \
-	"imu: timestamp_ms:%lld temp_c:%lf "		 \
-	"acc_x_m_s2:%lf acc_y_m_s2:%lf acc_z_m_s2:%lf "		\
-	"gyr_x_rad_s:%lf gyr_y_rad_s:%lf gyr_z_rad_s:%lf "	\
-	"mag_x_au:%lf mag_y_au:%lf mag_z_au:%lf "		\
-	"roll_deg:%lf pitch_deg:%lf yaw_deg:%lf "		\
-	"lat_deg:%lf lng_deg:%lf alt_m:%lf "			\
-	"vel_x_m_s:%lf vel_y_m_s:%lf vel_z_m_s:%lf%n",		\
-		&(x)->timestamp_ms, &(x)->temp_c,			\
+#define IFMT_IMUPROTO(x, n)						\
+	"imu: timestamp_ms:%lld gps_timestamp_ms:%lld temp_c:%lf "	\
+	"acc_x_m_s2:%lf acc_y_m_s2:%lf acc_z_m_s2:%lf "			\
+	"gyr_x_rad_s:%lf gyr_y_rad_s:%lf gyr_z_rad_s:%lf "		\
+	"mag_x_au:%lf mag_y_au:%lf mag_z_au:%lf "			\
+	"roll_deg:%lf pitch_deg:%lf yaw_deg:%lf "			\
+	"lat_deg:%lf lng_deg:%lf alt_m:%lf "				\
+	"vel_x_m_s:%lf vel_y_m_s:%lf vel_z_m_s:%lf%n",			\
+		&(x)->timestamp_ms, &(x)->gps_timestamp_ms, &(x)->temp_c, \
 		&(x)->acc_x_m_s2, &(x)->acc_y_m_s2, &(x)->acc_z_m_s2,	\
 		&(x)->gyr_x_rad_s, &(x)->gyr_y_rad_s, &(x)->gyr_z_rad_s, \
 		&(x)->mag_x_au, &(x)->mag_y_au, &(x)->mag_z_au,		\
