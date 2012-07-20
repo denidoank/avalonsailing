@@ -27,7 +27,7 @@ fi
 
 err=""
 for p in linebusd plug eposprobe eposmon eposcom rudderctl sailctl drivests skewmon \
-	imucfg imucat aiscat aisbuf compasscat windcat fcmon; do
+	imucfg imucat aisbuf nmeacat fcmon; do
     which $p >/dev/null 2>&1 || err="$err $p"
 done
 
@@ -40,6 +40,7 @@ fi
 
 # the ports you get depend on the order the imu and the 8-port are detected
 # TODO don't use the imu, or fall back to the windsensor or the compass
+# TODO modem -> ttyS0, gps on ttyUSB6/7
 if imucfg /dev/ttyUSB0; then
 
     let i=0
@@ -82,7 +83,7 @@ fi
 #  the -- is needed in plug [options] $BUS -- command [command options] to explain to plug where to stop interpreting its options.
 #
 
-for attempt in 1 2 3; do
+for attempt in 1 ; do
 
     logger -s -p local2.Notice "Avalon subsystems starting up (attempt $attempt)"
 
@@ -92,13 +93,14 @@ for attempt in 1 2 3; do
     # input subsystems
 
     plug -pi $LBUS -- `which imucat` /dev/imu &
-    plug -pi $LBUS -- `which compasscat` /dev/compass &
-    plug -pi $LBUS -- `which windcat` /dev/wind &
+    plug -pi $LBUS -- `which nmeacat` -b 19200 /dev/compass &
+    plug -pi $LBUS -- `which nmeacat` -b 4800  /dev/wind &
+    #plug -pi $LBUS -- `which nmeacat` -b 4800  /dev/gps &
+    #plug -i $LBUS -- `which nmeacat` -b 38400 -g 0 /dev/ais &   # no guard time
     
-    # imutime dies if imu's timestamp is zero for too long.
+    # imutime dies if imu's timestamp is zero for too long, taking down the bus
     plug -po -n "imutime" -f "imu:" $LBUS -- `which imutime`
     plug -i $LBUS -- `which fcmon` /dev/fuelcell &  # not precious
-
 
     # output subsystems
 
@@ -120,11 +122,8 @@ for attempt in 1 2 3; do
     #   plug -f rudderctl: forward rudderctl: messages to ebus
     plug -po -n "drivests" $EBUS | drivests -n 100 | plug -pn "rudderctlfwd" -f "rudderctl:" $LBUS | plug -pi $EBUS &
 
-    
-    plug -n "helmsman" $LBUS -- `which helmsman` 2>> /var/log/helmsman.log & 
-
-    # aiscat is not connected to the lbus (TBD)
-    #  (aiscat /dev/ais | aisbuf /var/run/ais.txt; logger -s -p local2.crit "aiscat exited.")&
+    # start by hand for now
+    #plug -n "helmsman" $LBUS -- `which helmsman` 2>> /var/log/helmsman.log & 
 
     echo "Und immer eine Handbreit Wasser unter dem Kiel!"
     echo "May she always have a good passage, wherever she goes!"
