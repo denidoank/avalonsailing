@@ -21,15 +21,17 @@ the linebus:
 
 input related:
 
-	aiscat      decode NMEA sentences with AIS messages
-	aisbuf      read output from aiscat and maintain a text file with the last entry per vessel.
 
-	compasscat  decode NMEA sentences from the Oceanserver OS500 digital compass
-	windcat	    decode NMEA sentences from the DEIF Ultrasonic wind measuring system WSS
+	aisbuf      read ais: output from nmeacat and maintain a text file with the last entry per vessel.
+		    note: this will not like messages other than ais:... so be sure to use plug -f ais:
+
+	nmeacat      decode NMEA sentences with AIS messages, NMEA sentences from the Oceanserver OS500 digital compass
+		     NMEA sentences from the DEIF Ultrasonic wind measuring system WSS and NMEA sentences from the EM-408
+		     GPS unit.  (replaces former aiscat/windcat/compasscat)
 
 	imucat	    decode "mtcp" messages from the Xsens IMU
 	imucfg      connect to the Xsens IMU and configure it for correct operation with imucat
-	imutime	    read output from imucat and adjust the system time to the GPS time
+	imutime	    read output from imucat / nmeacat and adjust the system time to the GPS time
 
 	fcmon	    probe and decode status messages from the Efoy Pro Fuel Cell.
 
