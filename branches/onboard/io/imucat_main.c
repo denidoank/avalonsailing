@@ -23,6 +23,7 @@
 #include "proto/imu.h"
 #include "mtcp.h"
 #include "lib/log.h"
+#include "lib/timer.h"
 
 static const char* argv0;
 static int debug = 0;
@@ -176,7 +177,7 @@ imu_decode_variables(uint8_t* b, int len, uint16_t mode, uint32_t settings,
 			int64_t ns = (b[0]<<24) + (b[1]<<16) + (b[2]<<8) + b[3];
 			time_s *= 1000;
 			ns /= 1E6;
-			vars->timestamp_ms = time_s + ns;
+			vars->gps_timestamp_ms = time_s + ns;
 		}
 		b += 12;
 	}
@@ -305,6 +306,8 @@ int main(int argc, char* argv[]) {
 		if (garbage++ > 500)
 			crash("Read only garbage from imu");
 
+		int64_t now = now_ms();
+
 		if (fgetc(imu) != 0xfa) continue;
 		if (fgetc(imu) != 0xff) continue;
 		uint8_t chk = 0xff;
@@ -343,6 +346,8 @@ int main(int argc, char* argv[]) {
 
 		struct IMUProto vars = INIT_IMUPROTO;
 		memset(&vars, 0, sizeof vars);
+		vars.timestamp_ms = now;  // time we got this packet
+
 		uint8_t status = 0;
 		if (imu_decode_variables(buf, len, mode, settings, &vars, &status) != 0) {
 			if (debug) fprintf(stderr, "Could not decode MTData, discarding %d bytes\n", len);
@@ -358,7 +363,7 @@ int main(int argc, char* argv[]) {
 
 			if (!(status & (IMU_STS_XKF|IMU_STS_GPS))) {
 				vars.lat_deg = vars.lng_deg = vars.alt_m = NAN;
-				vars.timestamp_ms = 0;  // the time is derived from the GPS signal and goes away with that signal.
+				vars.gps_timestamp_ms = 0;  // the time is derived from the GPS signal and goes away with that signal.
 			}
 		}
 
