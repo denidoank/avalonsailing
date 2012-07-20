@@ -2,6 +2,8 @@
 // print fields listed on the commandline in format src:fld
 // if multiple sources are listed, for each source line all 
 // last values of the other sources are printed
+// for every line with a timestamp_ms field, a field 'timestamp_s' is 
+// synthesized with the time in seconds since the first log entry.
 package main
 
 import (
@@ -14,6 +16,8 @@ import (
 	"strconv"
 	"strings"
 )
+
+var firsttimestamp_ms float64 = math.NaN()
 
 func parseLbusLine(line string,  vals map[string]map[string]float64) string {
 	srcval := strings.SplitN(line, ":", 2)
@@ -47,6 +51,14 @@ func parseLbusLine(line string,  vals map[string]map[string]float64) string {
 		}
 
 		m[kv[0]] = v
+
+		if kv[0] == "timestamp_ms" {
+			if math.IsNaN(firsttimestamp_ms) {
+				firsttimestamp_ms = v
+			}
+
+			m["timestamp_s"] = (v - firsttimestamp_ms) * 0.001
+		}
 	}
 	return srcval[0]
 }
