@@ -221,11 +221,11 @@ double SailController::StableGammaSail(double alpha_true, double mag_true,
   // Push the boat (phi_z) out of the wind if the quickly filtered apparent
   // wind is too adverse.
   const double kCloseHauledLimit = Deg2Rad(140);
-  if (alpha_app > kCloseHauledLimit) {
+  if (alpha_sign_ == -1 && alpha_app > kCloseHauledLimit) {
     if (debug) fprintf(stderr, "StableSail:: Too close, fall off right\n");
     *phi_z_offset = alpha_app - kCloseHauledLimit;
   }
-  if (alpha_app < -kCloseHauledLimit) {
+  if (alpha_sign_ == 1 && alpha_app < -kCloseHauledLimit) {
     if (debug) fprintf(stderr, "StableSail:: Too close, fall off left\n");
     *phi_z_offset = alpha_app + kCloseHauledLimit;
   }
