@@ -83,7 +83,7 @@ const char* SailModeLogic::ModeString() {
 // optimization, 20 - 40 degrees. One must not forget that this
 // is the boom angle. The sail towards the mast top is twisted
 // and has a lesser angle of attack.
-static const double kAOADefaultRad = M_PI / 5;  // Deg2Rad(36.0);
+static const double kAOADefaultRad = M_PI / 4;  // Deg2Rad(45);
 SailController::SailController()
     : optimal_angle_of_attack_rad_(kAOADefaultRad),
       sign_(1),
@@ -221,11 +221,11 @@ double SailController::StableGammaSail(double alpha_true, double mag_true,
   // Push the boat (phi_z) out of the wind if the quickly filtered apparent
   // wind is too adverse.
   const double kCloseHauledLimit = Deg2Rad(140);
-  if (alpha_app > kCloseHauledLimit) {
+  if (alpha_sign_ == -1 && alpha_app > kCloseHauledLimit) {
     if (debug) fprintf(stderr, "StableSail:: Too close, fall off right\n");
     *phi_z_offset = alpha_app - kCloseHauledLimit;
   }
-  if (alpha_app < -kCloseHauledLimit) {
+  if (alpha_sign_ == 1 && alpha_app < -kCloseHauledLimit) {
     if (debug) fprintf(stderr, "StableSail:: Too close, fall off left\n");
     *phi_z_offset = alpha_app + kCloseHauledLimit;
   }
