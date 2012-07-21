@@ -25,13 +25,13 @@ func TestOne(t *testing.T) {
 
 	s, faz, baz := inv_geodesic(lat1, lon1, lat2, lon2)
 
-	if e := math.Abs(s - dist); e > tol*dist {
+	if e := math.Abs(s - dist); !(e < tol*dist) {
 		t.Errorf("bad dist %g, %g", s, dist)
 	}
-	if e := math.Abs(faz - azi1); e > tol {
+	if e := math.Abs(faz - azi1); !(e < tol) {
 		t.Errorf("bad azi1 %g %g", faz, azi1)
 	}
-	if e := math.Abs(baz - azi2); e > tol {
+	if e := math.Abs(baz - azi2); !(e < tol) {
 		t.Errorf("bad azi2 %g %g", baz, azi2)
 	}
 }
@@ -41,58 +41,70 @@ func TestTwo(t *testing.T) {
 	dist := 1100896.2093
 	lat2, lon2, azi2 := Forward(lat1, lon1, azi1, dist)
 	s, faz, baz := Inverse(lat1, lon1, lat2, lon2)
-	if e := math.Abs(s - dist); e > tol*dist {
+	if e := math.Abs(s - dist); !(e < tol*dist) {
 		t.Errorf("bad dist %g, %g", s, dist)
 	}
-	if e := math.Abs(faz - azi1); e > tol {
+	if e := math.Abs(faz - azi1); !(e < tol) {
 		t.Errorf("bad azi1 %g %g", faz, azi1)
 	}
-	if e := math.Abs(baz - azi2); e > tol {
+	if e := math.Abs(baz - azi2); !(e < tol) {
 		t.Errorf("bad azi2 %g %g", baz, azi2)
 	}
 
 }
 
 var (
-	lats = [...]float64{0, 30, 45, 60, 90 - 1E9}
-	lons = [...]float64{0, 15, 45, 60, 90 - 1E9}
+//	lats = [...]float64{0, 30, 45, 60, 90 - 1E-9}
+//	lons = [...]float64{0, 15, 45, 60, 90 - 1E-9}
 
-//	lats = [...]float64{ 33., 42.  } 
-//	lons = [...]float64{ -91.5, -86.25 } 
+	lats = [...]float64{ 33., 42.  } 
+	lons = [...]float64{ -91.5, -86.25 } 
 )
 
-func TestThree(t *testing.T) {
+func TestForward(t *testing.T) {
 	for _, lat1 := range lats {
 		for _, lon1 := range lons {
 			for _, lat2 := range lats {
 				for _, lon2 := range lons {
 					rs, rfaz, rbaz := inv_geodesic(rad(lat1), rad(lon1), rad(lat2), rad(lon2))
 
-					// compare our inverse
+					// compare to forward
+					flat2, flon2, fazi2 := Forward(rad(lat1), rad(lon1), rfaz, rs)
+					if e := math.Abs(flat2 - rad(lat2)); !(e < tol) {
+						t.Errorf("(%g,%g) -> (%g,%g) bad flat2 %g %g", lat1, lon1, lat2, lon2, lat2, deg(flat2))
+					}
+					if e := math.Abs(flon2 - rad(lon2)); !(e < tol) {
+						t.Errorf("(%g,%g) -> (%g,%g) bad flon2 %g %g", lat1, lon1, lat2, lon2, lon2, deg(flon2))
+					}
+					if e := math.Abs(fazi2 - rbaz); !(e < tol) {
+						t.Errorf("(%g,%g) -> (%g,%g) bad fazi2 %g %g", lat1, lon1, lat2, lon2, deg(rbaz), deg(fazi2))
+					}
+
+				}
+			}
+		}
+	}
+}
+
+func TestInverse(t *testing.T) {
+	for _, lat1 := range lats {
+		for _, lon1 := range lons {
+			for _, lat2 := range lats {
+				for _, lon2 := range lons {
+					rs, rfaz, rbaz := inv_geodesic(rad(lat1), rad(lon1), rad(lat2), rad(lon2))
+
 					s, faz, baz := Inverse(rad(lat1), rad(lon1), rad(lat2), rad(lon2))
-					if e := math.Abs(rs - s); e > 1E-5 {
+
+					if e := math.Abs(rs - s); !(e < 1E-5) {
 						t.Errorf("(%g,%g) -> (%g,%g) bad dist %g, %g", lat1, lon1, lat2, lon2, rs, s)
-					} else if s > tol {
-						if e := math.Abs(rfaz - faz); e > tol {
+					} else if !(s < tol) {
+						if e := math.Abs(rfaz - faz); !(e < tol) {
 							t.Errorf("(%g,%g) -> (%g,%g) bad faz %g %g", lat1, lon1, lat2, lon2, deg(rfaz), deg(faz))
 						}
-						if e := math.Abs(rbaz - baz); e > tol {
+						if e := math.Abs(rbaz - baz); !(e < tol) {
 							t.Errorf("(%g,%g) -> (%g,%g) bad baz %g %g", lat1, lon1, lat2, lon2, deg(rbaz), deg(baz))
 						}
 					}
-
-					// compare to forward
-					flat2, flon2, fazi2 := Forward(rad(lat1), rad(lon1), faz, s)
-					if e := math.Abs(flat2 - rad(lat2)); e > tol {
-						t.Errorf("(%g,%g) -> (%g,%g) bad flat2 %g %g", lat1, lon1, lat2, lon2, lat2, deg(flat2))
-					}
-					if e := math.Abs(flon2 - rad(lon2)); e > tol {
-						t.Errorf("(%g,%g) -> (%g,%g) bad flon2 %g %g", lat1, lon1, lat2, lon2, lon2, deg(flon2))
-					}
-					if e := math.Abs(fazi2 - baz); e > tol {
-						t.Errorf("(%g,%g) -> (%g,%g) bad fazi2 %g %g", lat1, lon1, lat2, lon2, deg(baz), deg(fazi2))
-					}
-
 				}
 			}
 		}

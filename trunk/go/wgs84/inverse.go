@@ -14,48 +14,51 @@
 
 package wgs84
 
-import "math"
+import (
+	"math"
+)
 
 // Given two points (lat1, lon1) and (lat2, lon2), compute a geodesic
 // between them, and return the distance in meters and the azimuths in
-// both points.  All angles are in radians.
+// both points.  All angles are in radians.  Azimuths are clockwise from the north.
+// Positive latitudes are North, positive Longitudes are East.
 func Inverse(lat1, lon1, lat2, lon2 float64) (s12, azi1, azi2 float64) {
-	lon1 = angNormalize(lon1)
-	lon12 := angNormalize(angNormalize(lon2) - lon1)
+	lon12 := angNormalize(lon2 - lon1)
+	lon12 = angRound(lon12)
 	// Make longitude difference positive.
-
-	lonsign := math.Signbit(lon12)
-	if lonsign {
+	lonsign := !math.Signbit(lon12)
+	if !lonsign {
 		lon12 = -lon12
 	}
 	if lon12 == math.Pi {
-		lonsign = false
+		lonsign = true
 	}
-	lon12 = angRound(lon12)
+
 	// If really close to the equator, treat as on equator.
 	lat1 = angRound(lat1)
 	lat2 = angRound(lat2)
 
 	// Swap points so that point with higher (abs) latitude is point 1
 	swapp := math.Abs(lat1) >= math.Abs(lat2)
-	if swapp {
+	if !swapp {
 		lonsign = !lonsign
 		lat1, lat2 = lat2, lat1
 	}
 
 	// Make lat1 <= 0
 	latsign := math.Signbit(lat1)
-	if latsign {
+	if !latsign {
 		lat1 = -lat1
 		lat2 = -lat2
 	}
+
 	// Now we have
 	//
 	//     0 <= lon12 <= 180
 	//     -90 <= lat1 <= 0
 	//     lat1 <= lat2 <= -lat1
 	//
-	// longsign, swapp, latsign register the transformation to bring the
+	// lonsign, swapp, latsign register the transformation to bring the
 	// coordinates to this canonical form.  In all cases, false means no change was
 	// made.  We make these transformations so that there are few cases to
 	// check, e.g., on verifying quadrants in atan2.  In addition, this
@@ -88,7 +91,6 @@ func Inverse(lat1, lon1, lat2, lon2 float64) (s12, azi1, azi2 float64) {
 	// bet1 exactly.  An example where is is necessary is the inverse problem
 	// 48.522876735459 0 -48.52287673545898293 179.599720456223079643
 	// which failed with Visual Studio 10 (Release and Debug)
-
 	if cbet1 < -sbet1 {
 		if cbet2 == cbet1 {
 			if sbet2 < 0 {
@@ -164,7 +166,7 @@ func Inverse(lat1, lon1, lat2, lon2 float64) (s12, azi1, azi2 float64) {
 		// meridian and geodesic is neither meridional or equatorial.
 
 		// Figure a starting point for Newton's method
-		sig12, salp1, calp1, salp2, calp2 = inverseStart(sbet1, cbet1, sbet2, cbet2, lam12, C1a[:], C2a[:])
+		sig12, salp1, calp1, salp2, calp2 = inverseStart(sbet1, cbet1, sbet2, cbet2, lam12, salp2, calp2, C1a[:], C2a[:])
 
 		if sig12 >= 0 {
 
@@ -185,6 +187,7 @@ func Inverse(lat1, lon1, lat2, lon2 float64) (s12, azi1, azi2 float64) {
 				v -= lam12
 
 				if !(math.Abs(v) > _tiny) || !(trip < 1) {
+
 					if !(math.Abs(v) <= max(_tol1, ov)) {
 						numit = _maxit
 					}
@@ -195,16 +198,10 @@ func Inverse(lat1, lon1, lat2, lon2 float64) (s12, azi1, azi2 float64) {
 
 				sdalp1, cdalp1 := math.Sincos(dalp1)
 				nsalp1 := salp1*cdalp1 + calp1*sdalp1
-				calp1 := calp1*cdalp1 - salp1*sdalp1
-				salp1 := max(0, nsalp1)
+				calp1 = calp1*cdalp1 - salp1*sdalp1
+				salp1 = max(0, nsalp1)
 				salp1, calp1 = sinCosNorm(salp1, calp1)
 
-				// In some regimes we don't get quadratic convergence because slope
-				// -> 0.  So use convergence conditions based on epsilon instead of
-				// sqrt(epsilon).  The first criterion is a test on abs(v) against
-				// 100 * epsilon.  The second takes credit for an anticipated
-				// reduction in abs(v) by v/ov (due to the latest update in alp1) and
-				// checks this against epsilon.
 				if !(math.Abs(v) >= _tol1 && v*v >= ov*_tol0) {
 					trip++
 				}
@@ -226,7 +223,7 @@ func Inverse(lat1, lon1, lat2, lon2 float64) (s12, azi1, azi2 float64) {
 	s12 = 0 + s12x // Convert -0 to 0
 
 	// Convert calp, salp to azimuth accounting for lonsign, swapp, latsign.
-	if swapp {
+	if !swapp {
 		salp1, salp2 = salp2, salp1
 		calp1, calp2 = calp2, calp1
 	}
@@ -241,7 +238,7 @@ func Inverse(lat1, lon1, lat2, lon2 float64) (s12, azi1, azi2 float64) {
 
 	// minus signs give range [-180, 180). 0- converts -0 to +0.
 	azi1 = 0 - math.Atan2(-salp1, calp1)
-	azi2 = 0 - math.Atan2(salp2, -calp2) // reversed sign so it points backwards
+	azi2 = 0 - math.Atan2(salp2, -calp2) // make it point backwards
 
 	return
 }
@@ -283,9 +280,10 @@ func lengths(eps, sig12, ssig1, csig1, ssig2, csig2, cbet1, cbet2 float64, C1a, 
 // Return a starting point for Newton's method in salp1 and calp1 (function
 // value is -1).  If Newton's method doesn't need to be used, return also
 // salp2 and calp2 and function value is sig12.
-func inverseStart(sbet1, cbet1, sbet2, cbet2, lam12 float64, C1a, C2a []float64) (sig12, salp1, calp1, salp2, calp2 float64) {
+func inverseStart(sbet1, cbet1, sbet2, cbet2, lam12, _salp2, _calp2 float64, C1a, C2a []float64) (sig12, salp1, calp1, salp2, calp2 float64) {
 
 	sig12 = -1.
+	salp2, calp2 = _salp2, _calp2
 	// bet12 = bet2 - bet1 in [0, pi); bet12a = bet2 + bet1 in (-pi, 0]
 	sbet12 := sbet2*cbet1 - cbet2*sbet1
 	cbet12 := cbet2*cbet1 + sbet2*sbet1
@@ -364,7 +362,6 @@ func inverseStart(sbet1, cbet1, sbet2, cbet2, lam12 float64, C1a, C2a []float64)
 				salp1 = math.Sqrt(1 - calp1*calp1)
 			}
 		} else {
-
 			k := astroid(x, y)
 
 			omg12a := lamscale
@@ -386,8 +383,6 @@ func inverseStart(sbet1, cbet1, sbet2, cbet2, lam12 float64, C1a, C2a []float64)
 	salp1, calp1 = sinCosNorm(salp1, calp1)
 	return
 }
-
-//  v, salp2, calp2, sig12, ssig1, csig1, ssig2, csig2, eps, omg12, dv := Lambda12(sbet1, cbet1, sbet2, cbet2, salp1, calp1,  trip < 1, C1a, C2a, C3a)
 
 func lambda12(sbet1, cbet1, sbet2, cbet2, salp1, calp1 float64, diffp bool, C1a, C2a, C3a []float64) (lam12, salp2, calp2, sig12, ssig1, csig1, ssig2, csig2, eps, domg12, dlam12 float64) {
 
@@ -431,6 +426,7 @@ func lambda12(sbet1, cbet1, sbet2, cbet2, salp1, calp1 float64, diffp bool, C1a,
 			zz = (sbet1 - sbet2) * (sbet1 + sbet2)
 		}
 		calp2 = math.Sqrt((calp1*cbet1)*(calp1*cbet1)+zz) / cbet2
+
 	} else {
 		calp2 = math.Abs(calp1)
 	}
@@ -446,7 +442,6 @@ func lambda12(sbet1, cbet1, sbet2, cbet2, salp1, calp1 float64, diffp bool, C1a,
 
 	// sig12 = sig2 - sig1, limit to [0, pi]
 	sig12 = math.Atan2(max(csig1*ssig2-ssig1*csig2, 0), csig1*csig2+ssig1*ssig2)
-
 	// omg12 = omg2 - omg1, limit to [0, pi]
 	omg12 = math.Atan2(max(comg1*somg2-somg1*comg2, 0), comg1*comg2+somg1*somg2)
 	var B312, h0 float64
@@ -457,7 +452,6 @@ func lambda12(sbet1, cbet1, sbet2, cbet2, salp1, calp1 float64, diffp bool, C1a,
 	h0 = -_f * a3f(eps)
 	domg12 = salp0 * h0 * (sig12 + B312)
 	lam12 = omg12 + domg12
-
 	if diffp {
 		if calp2 == 0 {
 			dlam12 = -2 * math.Sqrt(1-_e2*cbet1*cbet1) / sbet1

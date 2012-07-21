@@ -19,6 +19,8 @@ import "math"
 // Compute the Point (lat2, lon2) obtained by following the geodesic
 // line from (lat1,lon2) in the direction azi1 over a distance of s12
 // [meters] and the arriving azimuth azi2.  All angles are in radians.
+// Azimuths are clockwise from the North.  Positive latitudes are North,
+// positive longitudes are East.
 func Forward(lat1, lon1, azi1, s12 float64) (lat2, lon2, azi2 float64) {
 	return NewGeodesicLine(lat1, lon1, azi1).Position(s12)
 }
@@ -40,6 +42,8 @@ type GeodesicLine struct {
 
 // Construct an object representing a geodesic line
 // through (lat1, lon1) at azimuth azi1.  All angles are in radians.
+// Azimuths are clockwise from the North.  Positive latitudes are North,
+// positive longitudes are East.
 func NewGeodesicLine(lat1, lon1, azi1 float64) *GeodesicLine {
 
 	g := new(GeodesicLine)
@@ -85,6 +89,8 @@ func NewGeodesicLine(lat1, lon1, azi1 float64) *GeodesicLine {
 // Compute the Point (lat2,lon2) obtained by following the geodesic
 // line from it's basepoint over a distance of s12 [meters] and the
 // arriving azimuth azi2.  All angles are in radians.
+// Azimuths are clockwise from the North.  Positive latitudes are North,
+// positive longitudes are East.
 func (g *GeodesicLine) Position(s12 float64) (lat2, lon2, azi2 float64) {
 
 	// Note: omitted calls to angRound that were in the C++ original
