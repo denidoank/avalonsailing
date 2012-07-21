@@ -76,7 +76,6 @@ class FilterBlock {
   SlidingAverageFilter gamma_sail_filter_;
   WrapAroundFilter gamma_sail_wrap_;
 
-  CompassMixer compass_mixer_;
   int counter_;  // for logging downsampling
 };
 

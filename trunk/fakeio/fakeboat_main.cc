@@ -231,8 +231,8 @@ int main(int argc, char* argv[]) {
       compass.timestamp_ms = now_ms();
       printf(OFMT_COMPASSPROTO(compass));
     }
-    // The GPS with 5Hz ???
-    if (rounds % 2 == 1) {
+    // The GPS sends with 1Hz.
+    if (rounds % 10 == 1) {
       gps.timestamp_ms = now_ms();
       printf(OFMT_GPSPROTO(gps));
     }
