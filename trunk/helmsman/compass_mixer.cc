@@ -56,12 +56,12 @@ double CompassMixer::Mix(double alpha1_rad, double weight1,
   *consensus = sqrt(x * x + y * y) / sum_of_weights;
 
   if (sum_of_weights < 0.5 || *consensus < 0.5) {
-    fprintf(stderr, "Compassmixer no consensus(%6.4lf) or light weigth (%6.4lf): KFL %lg (%6.4lf), IMU %6.4lf (%6.4lf), CMP %6.4lf (%6.4lf)\n",
+    fprintf(stderr, "Mixer no consensus(%6.4lf) or light weigth (%6.4lf): KFL %lg (%6.4lf), IMU %6.4lf (%6.4lf), CMP %6.4lf (%6.4lf)\n",
             *consensus, sum_of_weights, alpha1_rad, weight1, alpha2_rad, weight2, alpha3_rad, weight3);
     *consensus = std::min(sum_of_weights, *consensus);
   } else {
     if (debug)
-      fprintf(stderr, "Compassmixer consensus is %6.4lf: KFL %6.4lf (%6.4lf), IMU %6.4lf (%6.4lf), CMP %6.4lf (%6.4lf) -> %6.4lf\n",
+      fprintf(stderr, "Mixer consensus is %6.4lf: KFL %6.4lf (%6.4lf), IMU %6.4lf (%6.4lf), CMP %6.4lf (%6.4lf) -> %6.4lf\n",
             *consensus, input_[0], weight1, input_[1], weight2, input_[2], weight3, NormalizeRad(result));
   }
   return NormalizeRad(result);

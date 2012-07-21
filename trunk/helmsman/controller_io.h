@@ -7,6 +7,7 @@
 
 #include "common/unknown.h"
 #include "common/now.h"
+#include "helmsman/gps.h"
 #include "helmsman/imu.h"
 #include "helmsman/compass_sensor.h"
 #include "helmsman/drive_data.h"
@@ -30,15 +31,18 @@ struct ControllerInput {
     drives.Reset();
     compass_sensor.Reset();
     alpha_star_rad = kUnknown;  // natural
+    gps.Reset();
   }
   void ToProto(WindProto* wind_sensor_proto,
                RudderProto* status,
                IMUProto* imu_proto,
-               CompassProto* compass_proto) {
+               CompassProto* compass_proto,
+               GPSProto* gps_proto) {
     imu.ToProto(imu_proto);
     wind_sensor.ToProto(wind_sensor_proto);
     drives.ToProto(status, now_ms());
     compass_sensor.ToProto(compass_proto);
+    gps.ToProto(gps_proto);
   }
 
   Imu imu;
@@ -46,6 +50,7 @@ struct ControllerInput {
   DriveActualValuesRad drives;  // Actual positions and Ready flags
   CompassSensor compass_sensor; // Compass device bearing
   double alpha_star_rad;        // from Skipper
+  Gps gps;                      // separate GPS besides IMU
 };
 
 // Output definition
