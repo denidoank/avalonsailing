@@ -207,7 +207,6 @@ void FilterBlock::Filter(const ControllerInput& in,
               in.gps.speed_m_s,
               in.gps.latitude_deg, in.gps.longitude_deg,
               in.gps.cog_rad);
-    }
   }
 
   if (!imu_fault_) {
