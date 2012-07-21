@@ -26,6 +26,7 @@
 
 #include "io/linebuffer.h"
 
+#include "proto/gps.h"
 #include "proto/rudder.h"
 #include "proto/wind.h"
 #include "proto/imu.h"
@@ -191,6 +192,7 @@ int main(int argc, char* argv[]) {
   struct IMUProto imu    = INIT_IMUPROTO;
   struct HelmsmanCtlProto ctl = INIT_HELMSMANCTLPROTO;
   struct RemoteProto remote = INIT_REMOTEPROTO;
+  struct GPSProto gps = INIT_GPSPROTO;
   ctrl_in.alpha_star_rad = Deg2Rad(225);  // Going SouthWest is a good guess (and breaks up a deadlock)
   int control_mode = kNormalControlMode;
   int64_t last_remote_message_millis = now_ms();
@@ -252,6 +254,11 @@ int main(int argc, char* argv[]) {
 	ctrl_in.drives.homed_sail = !isnan(sts.sail_deg);
       } else if (sscanf(line, IFMT_COMPASSPROTO(&compass, &nn)) > 0) {
 	ctrl_in.compass_sensor.phi_z_rad  = Deg2Rad(compass.yaw_deg);
+      } else if (sscanf(line, IFMT_GPSPROTO(&gps, &nn)) > 0) {
+        ctrl_in.gps.latitude_deg = Deg2Rad(gps.lat_deg);
+        ctrl_in.gps.longitude_deg = Deg2Rad(gps.lng_deg);
+        ctrl_in.gps.speed_m_s = Deg2Rad(gps.speed_m_s);
+	    ctrl_in.gps.cog_rad = Deg2Rad(gps.cog_deg);
       } else if (sscanf(line, IFMT_HELMSMANCTLPROTO(&ctl, &nn)) > 0) {
 	if (control_mode != kOverrideSkipperMode &&
 	    !isnan(ctl.alpha_star_deg))

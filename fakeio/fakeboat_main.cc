@@ -183,6 +183,7 @@ int main(int argc, char* argv[]) {
     struct RudderProto status_drives  = INIT_RUDDERPROTO;    // out
     struct WindProto wind_sensor = INIT_WINDPROTO;           // out
     struct CompassProto compass = INIT_COMPASSPROTO;         // out
+    struct GPSProto gps = INIT_GPSPROTO;                     // out
 
     struct IMUProto    imu = {                               // out
       last, 28.5,
@@ -199,7 +200,7 @@ int main(int argc, char* argv[]) {
     // wind, drive and IMU sensors and X-cats.
     controller_input.ToProto(&wind_sensor,
                              &status_drives,
-                             &imu, &compass);
+                             &imu, &compass, &gps);
 
     // The wind sensor measures for a second, then sends that averaged value.
     if (rounds % 10 == 0) {
@@ -229,6 +230,11 @@ int main(int argc, char* argv[]) {
     if (rounds % 4 == 0) {
       compass.timestamp_ms = now_ms();
       printf(OFMT_COMPASSPROTO(compass));
+    }
+    // The GPS with 5Hz ???
+    if (rounds % 2 == 1) {
+      gps.timestamp_ms = now_ms();
+      printf(OFMT_GPSPROTO(gps));
     }
     ++rounds;
   }

@@ -39,7 +39,8 @@ class FilterBlock {
 
   bool valid_app_wind_;  // The filtered output data for the apparent wind are invalid initially. This is a temporary state.
   bool imu_fault_;       // No speed, no orientation.
-  bool gps_fault_;       // time and position are missing
+  bool imu_gps_fault_;   // time and position are missing
+  bool gps_fault_;       // fault of secondary GPS
 
   static const int len_0_6s;   // 0.6s
   static const int len_1s;     // 1s

@@ -152,6 +152,7 @@ void BoatModel::Simulate(const DriveReferenceValuesRad& drives_reference,
   in->imu.Reset();
   in->wind_sensor.Reset();
   in->compass_sensor.Reset();
+  in->gps.Reset();
 
   // alpha_star remains
 
@@ -237,6 +238,11 @@ void BoatModel::Simulate(const DriveReferenceValuesRad& drives_reference,
   in->imu.temperature_c = 28;
 
   UpdateMagnetic(phi_z_, in);
+
+  in->gps.longitude_deg = east_deg_;
+  in->gps.latitude_deg = north_deg_;
+  in->gps.cog_rad = phi_z_ + 0.03;  // 1.5 degree drift
+  in->gps.speed_m_s = v_x_;  // assume precise output here.
 
   // fprintf(stderr, "model: latlon:%lg/%lg phi_z:%lg vx: %lg om: %lg\n", north_deg_, east_deg_, phi_z_, v_x_, omega_);
   // deb_string = in->imu.ToString();

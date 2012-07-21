@@ -43,10 +43,16 @@ const double kSpeedFilterPeriod = 60.0;
 
 extern int debug;
 
-bool ValidGPS(const ControllerInput& in) {
+bool ValidIMUGPS(const ControllerInput& in) {
   return !isnan(in.imu.position.longitude_deg) && !isnan(in.imu.position.latitude_deg) &&
          !(in.imu.position.longitude_deg == 0 && in.imu.position.latitude_deg == 0);
 }
+
+bool ValidGPS(const ControllerInput& in) {
+  return !isnan(in.gps.longitude_deg) && !isnan(in.gps.latitude_deg) &&
+         !(in.gps.longitude_deg == 0 && in.gps.latitude_deg == 0) && in.gps.valid;
+}
+
 
 const int FilterBlock::len_0_6s = 0.6   / kSamplingPeriod + 0.5;
 const int FilterBlock::len_1s   = 1.0   / kSamplingPeriod + 0.5;
@@ -58,6 +64,7 @@ const int FilterBlock::len_100s = 100.0 / kSamplingPeriod + 0.5;  // 100s, N.B. 
 FilterBlock::FilterBlock()
   : valid_app_wind_(false),
     imu_fault_(false),
+    imu_gps_fault_(false),
     gps_fault_(false),
 
     om_z_filter_(kOmegaZFilterPeriod / kSamplingPeriod),
@@ -116,9 +123,14 @@ void FilterBlock::Filter(const ControllerInput& in,
   imu_fault_ = isnan(in.imu.attitude.phi_z_rad) || isnan(in.imu.velocity.x_m_s);
   if (imu_fault_)
     fprintf(stderr, "IMU fault\n");
+  imu_gps_fault_ = !ValidIMUGPS(in);
+  if (imu_gps_fault_)
+    fprintf(stderr, "IMU GPS fault\n");
+
   gps_fault_ = !ValidGPS(in);
   if (gps_fault_)
-    fprintf(stderr, "GPS fault\n");
+    fprintf(stderr, "Secondary GPS fault\n");
+
 
   // yaw (== bearing) from 2 independant sources: IMU Kalman filter, raw IMU magnetic sensor and
   // independant compass.
@@ -139,27 +151,68 @@ void FilterBlock::Filter(const ControllerInput& in,
     fprintf(stderr, "No compass consensus, %lf\n", consensus);
   }
 
+
+  double imu_lat = 0;
+  double imu_lon = 0;
+  double gps_lat = 0;
+  double gps_lon = 0;
+
   // NaNs irreversibly poison filters, so we have to prevent that.
   // With the GPS data we are not that picky about temporary faults.
   // TODO: If GPS is missing for 10 minutes, then we should log this and
   // the Skipper should get an info that this is the last known position, not the current one.
+  if (!imu_gps_fault_) {
+    ASSIGN_NOT_NAN(imu_lat, in.imu.position.longitude_deg);  // GPS-Data
+    ASSIGN_NOT_NAN(imu_lat,  in.imu.position.latitude_deg);
+  }
   if (!gps_fault_) {
-    ASSIGN_NOT_NAN(fil->longitude_deg, in.imu.position.longitude_deg);  // GPS-Data
-    ASSIGN_NOT_NAN(fil->latitude_deg,  in.imu.position.latitude_deg);
+    ASSIGN_NOT_NAN(gps_lat, in.gps.longitude_deg);
+    ASSIGN_NOT_NAN(gps_lon, in.gps.latitude_deg);
   }
 
-  // If everything else fails we optimistically assume that we are making some speed forward.
-  fil->mag_boat = 1;
-  if (!imu_fault_) {
-    ASSIGN_NOT_NAN(fil->phi_x_rad, in.imu.attitude.phi_x_rad);      // roll angle, heel;
-    ASSIGN_NOT_NAN(fil->phi_y_rad, in.imu.attitude.phi_y_rad);      // pitch, nick angle;
-    fil->mag_boat = CensorSpeed(speed_filter_.Filter(in.imu.velocity.x_m_s));
-    if (debug) {
-      fprintf(stderr, "raw boat speed*0.8 %6.3lf filtered %6.3lf m/s, lat_lon %.7lf %.7lf phi_z %6.3lf\n",
+  // The position values are not overwritten if but sensors fail.
+  // TODO Mark them as stale after 15 minutes.
+  if (imu_lat != 0 || gps_lat !=0) {
+    // Due to the small relative errors of latitude and longitude the consensus is
+    // less expressive for the position.
+    fil->latitude_deg = compass_mixer_.Mix(imu_lat, imu_gps_fault_ ? 0 : 0.3,
+                                           gps_lat, gps_fault_ ? 0 : 0.7,
+                                           0, 0,
+                                           &consensus);
+  }
+  if (imu_lon != 0 || gps_lon != 0) {
+    fil->longitude_deg = compass_mixer_.Mix(imu_lon, imu_gps_fault_ ? 0 : 0.3,
+                                            gps_lon, gps_fault_ ? 0 : 0.7,
+                                            0, 0,
+                                            &consensus);
+  }
+
+  // For the time beeing we take the average speed of IMU and GPS.
+  double weigth_imu = imu_fault_ ? 0 : 0.5;
+  double weigth_gps = gps_fault_ ? 0 : 0.5;
+  if (weigth_imu + weigth_gps == 0) {
+    // If everything else fails we optimistically assume that we are making some speed forward.
+    fil->mag_boat = 1;
+  } else {
+    fil->mag_boat = CensorSpeed(speed_filter_.Filter(
+      (weigth_imu * in.imu.velocity.x_m_s + weigth_gps * in.gps.speed_m_s) /
+      (weigth_imu + weigth_gps)));
+  }
+  if (debug) {
+      fprintf(stderr, "raw boat speed*0.8 %6.3lf filtered %6.3lf m/s, lat_lon %.7lf %.7lf phi_z %6.3lf ",
               in.imu.velocity.x_m_s, fil->mag_boat,
               in.imu.position.latitude_deg, in.imu.position.longitude_deg,
               in.imu.attitude.phi_z_rad);
+      fprintf(stderr, "gps data speed %6.3lf m/s, lat_lon %.7lf %.7lf cog %6.3lf\n",
+              in.gps.speed_m_s,
+              in.gps.latitude_deg, in.gps.longitude_deg,
+              in.gps.cog_rad);
     }
+  }
+
+  if (!imu_fault_) {
+    ASSIGN_NOT_NAN(fil->phi_x_rad, in.imu.attitude.phi_x_rad);      // roll angle, heel;
+    ASSIGN_NOT_NAN(fil->phi_y_rad, in.imu.attitude.phi_y_rad);      // pitch, nick angle;
   }
 
   double om_z = 0;
