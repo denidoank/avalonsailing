@@ -11,12 +11,23 @@ package wgs84
 import (
 	"math"
 	"testing"
+	"fmt"
 )
 
 const tol = 5E-10
 
 func rad(deg float64) float64 { return deg * (math.Pi / 180.0) }
 func deg(rad float64) float64 { return rad * (180.0 / math.Pi) }
+
+func TestZero(t *testing.T) {
+	lat1, lon1, azi1 := rad(33.), rad(-91.5), rad(23.361326677)
+	l := NewGeodesicLine(lat1, lon1, azi1)
+	for i := 1; i <= 10; i++ {
+		lat2, lon2, azi2 := l.Position(float64(i)*1000000) 
+		fmt.Printf("%2d  %+17.12f %+17.12f %+17.12f\n", i, deg(lat2), deg(lon2), deg(azi2))
+	}
+}
+
 
 func TestOne(t *testing.T) {
 	lat1, lon1, azi1 := rad(33.), rad(-91.5), rad(23.361326677)
@@ -29,10 +40,10 @@ func TestOne(t *testing.T) {
 		t.Errorf("bad dist %g, %g", s, dist)
 	}
 	if e := math.Abs(faz - azi1); !(e < tol) {
-		t.Errorf("bad azi1 %g %g", faz, azi1)
+		t.Errorf("bad azi1 %g %g", deg(faz), deg(azi1))
 	}
 	if e := math.Abs(baz - azi2); !(e < tol) {
-		t.Errorf("bad azi2 %g %g", baz, azi2)
+		t.Errorf("bad azi2 %g %g", deg(baz), deg(azi2))
 	}
 }
 
@@ -45,10 +56,10 @@ func TestTwo(t *testing.T) {
 		t.Errorf("bad dist %g, %g", s, dist)
 	}
 	if e := math.Abs(faz - azi1); !(e < tol) {
-		t.Errorf("bad azi1 %g %g", faz, azi1)
+		t.Errorf("bad azi1 %g %g", deg(faz), deg(azi1))
 	}
 	if e := math.Abs(baz - azi2); !(e < tol) {
-		t.Errorf("bad azi2 %g %g", baz, azi2)
+		t.Errorf("bad azi2 %g %g", deg(baz), deg(azi2))
 	}
 
 }
@@ -66,6 +77,9 @@ func TestForward(t *testing.T) {
 		for _, lon1 := range lons {
 			for _, lat2 := range lats {
 				for _, lon2 := range lons {
+					if lat1 == lat2 && lon1 == lon2 {
+						continue
+					}
 					rs, rfaz, rbaz := inv_geodesic(rad(lat1), rad(lon1), rad(lat2), rad(lon2))
 
 					// compare to forward
@@ -91,6 +105,9 @@ func TestInverse(t *testing.T) {
 		for _, lon1 := range lons {
 			for _, lat2 := range lats {
 				for _, lon2 := range lons {
+					if lat1 == lat2 && lon1 == lon2 {
+						continue
+					}
 					rs, rfaz, rbaz := inv_geodesic(rad(lat1), rad(lon1), rad(lat2), rad(lon2))
 
 					s, faz, baz := Inverse(rad(lat1), rad(lon1), rad(lat2), rad(lon2))
