@@ -138,10 +138,10 @@ void FilterBlock::Filter(const ControllerInput& in,
   // is reduced to 0.225 in total. Effectively the IMU serves as a hot back-up.
   // The raw magnetic sensor IMU output is a rather noisy and often incorrect.
   double consensus = 0;
-  double compass_phi_z = compass_mixer_.Mix(in.imu.attitude.phi_z_rad, imu_fault_ ? 0 : 0.15,
-                                            in.imu.compass.phi_z_rad, in.imu.compass.valid ? 0.075 : 0,
-                                            in.compass_sensor.phi_z_rad, 1,  // invalid if outdated TODO
-                                            &consensus);
+  double compass_phi_z = CompassMixer::Mix(in.imu.attitude.phi_z_rad, imu_fault_ ? 0 : 0.15,
+                                          in.imu.compass.phi_z_rad, in.imu.compass.valid ? 0.075 : 0,
+                                          in.compass_sensor.phi_z_rad, 1,  // invalid if outdated TODO
+                                          &consensus);
   if (consensus >= 0.5) {
     fil->phi_z_boat = phi_z_wrap_.Filter(compass_phi_z);
     if (debug) {
@@ -162,41 +162,43 @@ void FilterBlock::Filter(const ControllerInput& in,
   // TODO: If GPS is missing for 10 minutes, then we should log this and
   // the Skipper should get an info that this is the last known position, not the current one.
   if (!imu_gps_fault_) {
-    ASSIGN_NOT_NAN(imu_lat, in.imu.position.longitude_deg);  // GPS-Data
-    ASSIGN_NOT_NAN(imu_lat,  in.imu.position.latitude_deg);
+    ASSIGN_NOT_NAN(imu_lat, in.imu.position.latitude_deg);  // GPS-Data
+    ASSIGN_NOT_NAN(imu_lon,  in.imu.position.longitude_deg);
   }
   if (!gps_fault_) {
-    ASSIGN_NOT_NAN(gps_lat, in.gps.longitude_deg);
-    ASSIGN_NOT_NAN(gps_lon, in.gps.latitude_deg);
+    ASSIGN_NOT_NAN(gps_lat, in.gps.latitude_deg);
+    ASSIGN_NOT_NAN(gps_lon, in.gps.longitude_deg);
   }
 
   // The position values are not overwritten if but sensors fail.
   // TODO Mark them as stale after 15 minutes.
-  if (imu_lat != 0 || gps_lat !=0) {
+  if (imu_lat != 0 || gps_lat != 0) {
     // Due to the small relative errors of latitude and longitude the consensus is
     // less expressive for the position.
-    fil->latitude_deg = compass_mixer_.Mix(imu_lat, imu_gps_fault_ ? 0 : 0.3,
-                                           gps_lat, gps_fault_ ? 0 : 0.7,
-                                           0, 0,
-                                           &consensus);
+      fprintf(stderr,"%lf %lf \n", imu_lat, gps_lat);
+    fil->latitude_deg = CompassMixer::Mix(imu_lat, imu_gps_fault_ ? 0 : 0.3,
+                                          0, 0,
+                                          gps_lat, gps_fault_ ? 0 : 0.7,
+                                          &consensus, false);
   }
   if (imu_lon != 0 || gps_lon != 0) {
-    fil->longitude_deg = compass_mixer_.Mix(imu_lon, imu_gps_fault_ ? 0 : 0.3,
-                                            gps_lon, gps_fault_ ? 0 : 0.7,
-                                            0, 0,
-                                            &consensus);
+      fprintf(stderr,"lon %lf %lf \n", imu_lon, gps_lon);
+    fil->longitude_deg = CompassMixer::Mix(imu_lon, imu_gps_fault_ ? 0 : 0.3,
+                                           0, 0,
+                                           gps_lon, gps_fault_ ? 0 : 0.7,
+                                           &consensus, false);
   }
 
   // For the time beeing we take the average speed of IMU and GPS.
   double weigth_imu = imu_fault_ ? 0 : 0.5;
   double weigth_gps = gps_fault_ ? 0 : 0.5;
-  if (weigth_imu + weigth_gps == 0) {
+  if (weigth_imu + weigth_gps > 0) {
     // If everything else fails we optimistically assume that we are making some speed forward.
     fil->mag_boat = 1;
   } else {
-    fil->mag_boat = CensorSpeed(speed_filter_.Filter(
-      (weigth_imu * in.imu.velocity.x_m_s + weigth_gps * in.gps.speed_m_s) /
-      (weigth_imu + weigth_gps)));
+    double sum = weigth_imu > 0 ? weigth_imu * in.imu.velocity.x_m_s : 0;
+    sum += weigth_gps > 0 ? weigth_gps * in.gps.speed_m_s : 0;
+    fil->mag_boat = CensorSpeed(speed_filter_.Filter(sum / (weigth_imu + weigth_gps)));
   }
   if (debug) {
       fprintf(stderr, "raw boat speed*0.8 %6.3lf filtered %6.3lf m/s, lat_lon %.7lf %.7lf phi_z %6.3lf ",
