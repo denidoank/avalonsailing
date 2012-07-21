@@ -100,12 +100,18 @@ func angNormalize(rad float64) float64 {
 func angRound(x float64) float64 {
 	// Use this to avoid having to deal with near singular
 	// cases when x is non-zero but tiny (e.g., 1.0e-200).
-	s := math.Signbit(x)
-	xx := max(math.Abs(x), _xthresh)
-	if s {
-		return -xx
+	x *= (180.0 / math.Pi) // original worked on degrees
+	var z float64 = 0.0625
+	y := math.Abs(x)
+	if y < z {
+		y = z - y
+		y = z - y
 	}
-	return xx
+	y *= (math.Pi / 180.0)
+	if x < -0 {
+		return -y
+	}
+	return y
 }
 
 func sinCosNorm(s, c float64) (sn, cn float64) { r := math.Hypot(s, c); return s / r, c / r }
