@@ -11,23 +11,12 @@ package wgs84
 import (
 	"math"
 	"testing"
-	"fmt"
 )
 
 const tol = 5E-10
 
 func rad(deg float64) float64 { return deg * (math.Pi / 180.0) }
 func deg(rad float64) float64 { return rad * (180.0 / math.Pi) }
-
-func TestZero(t *testing.T) {
-	lat1, lon1, azi1 := rad(33.), rad(-91.5), rad(23.361326677)
-	l := NewGeodesicLine(lat1, lon1, azi1)
-	for i := 1; i <= 10; i++ {
-		lat2, lon2, azi2 := l.Position(float64(i)*1000000) 
-		fmt.Printf("%2d  %+17.12f %+17.12f %+17.12f\n", i, deg(lat2), deg(lon2), deg(azi2))
-	}
-}
-
 
 func TestOne(t *testing.T) {
 	lat1, lon1, azi1 := rad(33.), rad(-91.5), rad(23.361326677)
@@ -65,34 +54,30 @@ func TestTwo(t *testing.T) {
 }
 
 var (
-//	lats = [...]float64{0, 30, 45, 60, 90 - 1E-9}
-//	lons = [...]float64{0, 15, 45, 60, 90 - 1E-9}
-
-	lats = [...]float64{ 33., 42.  } 
-	lons = [...]float64{ -91.5, -86.25 } 
+	lats = [...]float64{0, 30, 45, 60, 89,  33., 42.  } 
+	lons = [...]float64{0, 15, 45, 60, -91.5, -86.25 } 
 )
 
 func TestForward(t *testing.T) {
 	for _, lat1 := range lats {
 		for _, lon1 := range lons {
-			for _, lat2 := range lats {
-				for _, lon2 := range lons {
-					if lat1 == lat2 && lon1 == lon2 {
-						continue
-					}
-					rs, rfaz, rbaz := inv_geodesic(rad(lat1), rad(lon1), rad(lat2), rad(lon2))
+			for _, azi1 := range lons {
+			for s := 1000.; s < 10001; s += 1000 {
+					lat2, lon2, azi2 := Forward(rad(lat1), rad(lon1), rad(azi1), s)
+					rs, razi1, razi2 := inv_geodesic(rad(lat1), rad(lon1), lat2, lon2)
 
-					// compare to forward
-					flat2, flon2, fazi2 := Forward(rad(lat1), rad(lon1), rfaz, rs)
-					if e := math.Abs(flat2 - rad(lat2)); !(e < tol) {
-						t.Errorf("(%g,%g) -> (%g,%g) bad flat2 %g %g", lat1, lon1, lat2, lon2, lat2, deg(flat2))
+					if e := math.Abs(rs - s) / s; !(e < 1E-5) {
+						t.Errorf("(%g,%g) -> (%g,%g) bad dist %g, %g", lat1, lon1, lat2, lon2, rs, s)
+					} else if !(s < tol) {
+						if e := math.Abs(rad(azi1) - razi1); !(e < tol) {
+							t.Errorf("(%g,%g) -> (%g,%g) bad faz %g %g", lat1, lon1, lat2, lon2, azi1, deg(razi1))
+						}
+						if e := math.Abs(azi2 - razi2); !(e < tol) {
+							t.Errorf("(%g,%g) -> (%g,%g) bad baz %g %g", lat1, lon1, lat2, lon2, deg(azi2), deg(razi2))
+						}
 					}
-					if e := math.Abs(flon2 - rad(lon2)); !(e < tol) {
-						t.Errorf("(%g,%g) -> (%g,%g) bad flon2 %g %g", lat1, lon1, lat2, lon2, lon2, deg(flon2))
-					}
-					if e := math.Abs(fazi2 - rbaz); !(e < tol) {
-						t.Errorf("(%g,%g) -> (%g,%g) bad fazi2 %g %g", lat1, lon1, lat2, lon2, deg(rbaz), deg(fazi2))
-					}
+
+
 
 				}
 			}
@@ -108,11 +93,11 @@ func TestInverse(t *testing.T) {
 					if lat1 == lat2 && lon1 == lon2 {
 						continue
 					}
+
+					s,  faz, baz := Inverse(rad(lat1), rad(lon1), rad(lat2), rad(lon2))
 					rs, rfaz, rbaz := inv_geodesic(rad(lat1), rad(lon1), rad(lat2), rad(lon2))
 
-					s, faz, baz := Inverse(rad(lat1), rad(lon1), rad(lat2), rad(lon2))
-
-					if e := math.Abs(rs - s); !(e < 1E-5) {
+					if e := math.Abs(rs - s) / s; !(e < 1E-5) {
 						t.Errorf("(%g,%g) -> (%g,%g) bad dist %g, %g", lat1, lon1, lat2, lon2, rs, s)
 					} else if !(s < tol) {
 						if e := math.Abs(rfaz - faz); !(e < tol) {
