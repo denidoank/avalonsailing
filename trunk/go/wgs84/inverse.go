@@ -18,20 +18,24 @@ import (
 	"math"
 )
 
+func sg(x bool) float64 {
+	if x { return 1 }
+	return -1
+}
+
 // Given two points (lat1, lon1) and (lat2, lon2), compute a geodesic
 // between them, and return the distance in meters and the azimuths in
 // both points.  All angles are in radians.  Azimuths are clockwise from the north.
 // Positive latitudes are North, positive Longitudes are East.
+// Unlike the C++ original, azi2 points in the incoming direction.
 func Inverse(lat1, lon1, lat2, lon2 float64) (s12, azi1, azi2 float64) {
 	lon12 := angNormalize(lon2 - lon1)
 	lon12 = angRound(lon12)
 	// Make longitude difference positive.
-	lonsign := !math.Signbit(lon12)
-	if !lonsign {
-		lon12 = -lon12
-	}
+	lonsign := sg(lon12 >= 0)
+	lon12 *= lonsign
 	if lon12 == math.Pi {
-		lonsign = true
+		lonsign = 1
 	}
 
 	// If really close to the equator, treat as on equator.
@@ -39,18 +43,16 @@ func Inverse(lat1, lon1, lat2, lon2 float64) (s12, azi1, azi2 float64) {
 	lat2 = angRound(lat2)
 
 	// Swap points so that point with higher (abs) latitude is point 1
-	swapp := math.Abs(lat1) >= math.Abs(lat2)
-	if !swapp {
-		lonsign = !lonsign
+	swapp := sg(math.Abs(lat1) >= math.Abs(lat2))
+	if swapp < 0 {
+		lonsign *= -1
 		lat1, lat2 = lat2, lat1
 	}
 
 	// Make lat1 <= 0
-	latsign := math.Signbit(lat1)
-	if !latsign {
-		lat1 = -lat1
-		lat2 = -lat2
-	}
+	latsign := sg(lat1 < 0)
+	lat1 *= latsign
+	lat2 *= latsign
 
 	// Now we have
 	//
@@ -183,11 +185,12 @@ func Inverse(lat1, lon1, lat2, lon2 float64) (s12, azi1, azi2 float64) {
 			numit := 0
 			for trip := 0; numit < _maxit; numit++ {
 				var v, dv float64
-				v, salp2, calp2, sig12, ssig1, csig1, ssig2, csig2, eps, omg12, dv = lambda12(sbet1, cbet1, sbet2, cbet2, salp1, calp1, trip < 1, C1a[:], C2a[:], C3a[:])
+
+				v, salp2, calp2, sig12, ssig1, csig1, ssig2, csig2, eps, omg12, dv = 
+					lambda12(sbet1, cbet1, sbet2, cbet2, salp1, calp1, trip < 1, C1a[:], C2a[:], C3a[:])
 				v -= lam12
 
 				if !(math.Abs(v) > _tiny) || !(trip < 1) {
-
 					if !(math.Abs(v) <= max(_tol1, ov)) {
 						numit = _maxit
 					}
@@ -223,18 +226,13 @@ func Inverse(lat1, lon1, lat2, lon2 float64) (s12, azi1, azi2 float64) {
 	s12 = 0 + s12x // Convert -0 to 0
 
 	// Convert calp, salp to azimuth accounting for lonsign, swapp, latsign.
-	if !swapp {
+	if swapp < 0 {
 		salp1, salp2 = salp2, salp1
 		calp1, calp2 = calp2, calp1
 	}
 
-	if swapp != lonsign {
-		salp1, salp2 = -salp1, -salp2
-	}
-
-	if swapp != latsign {
-		calp1, calp2 = -calp1, -calp2
-	}
+	salp1 *= swapp * lonsign; calp1 *= swapp * latsign;
+	salp2 *= swapp * lonsign; calp2 *= swapp * latsign;
 
 	// minus signs give range [-180, 180). 0- converts -0 to +0.
 	azi1 = 0 - math.Atan2(-salp1, calp1)

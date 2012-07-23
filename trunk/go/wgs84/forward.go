@@ -20,7 +20,8 @@ import "math"
 // line from (lat1,lon2) in the direction azi1 over a distance of s12
 // [meters] and the arriving azimuth azi2.  All angles are in radians.
 // Azimuths are clockwise from the North.  Positive latitudes are North,
-// positive longitudes are East.
+// positive longitudes are East. Unlike the C++ original, azi2 points
+// in the incoming direction.
 func Forward(lat1, lon1, azi1, s12 float64) (lat2, lon2, azi2 float64) {
 	return NewGeodesicLine(lat1, lon1, azi1).Position(s12)
 }
@@ -90,7 +91,8 @@ func NewGeodesicLine(lat1, lon1, azi1 float64) *GeodesicLine {
 // line from it's basepoint over a distance of s12 [meters] and the
 // arriving azimuth azi2.  All angles are in radians.
 // Azimuths are clockwise from the North.  Positive latitudes are North,
-// positive longitudes are East.
+// positive longitudes are East.  Unlike the C++ original, azi2 points in
+// the incoming direction.
 func (g *GeodesicLine) Position(s12 float64) (lat2, lon2, azi2 float64) {
 
 	// Note: omitted calls to angRound that were in the C++ original

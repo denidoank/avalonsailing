@@ -215,8 +215,8 @@ func c3f(eps float64, c []float64) {
 }
 
 var (
-	_tiny    = math.Sqrt(math.SmallestNonzeroFloat64)
-	_tol0    = math.Nextafter(0, 1)
+	_tiny    = math.Sqrt((1<<52)*math.SmallestNonzeroFloat64) // sqrt(smallest normalized number)
+	_tol0    = 1.0 / (1<<52)  // epsilon for a 52 bit mantissa
 	_tol1    = 200 * _tol0
 	_tol2    = math.Sqrt(_tol0)
 	_xthresh = 1000 * _tol2
