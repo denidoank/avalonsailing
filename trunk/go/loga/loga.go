@@ -8,16 +8,26 @@ package main
 
 import (
 	"bufio"
+	"flag"
 	"fmt"
 	"io"
-	"math"
 	"log"
+	"math"
 	"os"
 	"strconv"
 	"strings"
+
+        "code.google.com/p/avalonsailing/trunk/go/wgs84"
 )
 
-var firsttimestamp_ms float64 = math.NaN()
+var (
+	firsttimestamp_ms float64 = math.NaN()
+	firstlat_deg float64 = math.NaN()
+	firstlng_deg float64 = math.NaN()
+
+	trigg = flag.String("t", "", "if non empty, only print output after reading a line from this source")
+
+)
 
 func parseLbusLine(line string,  vals map[string]map[string]float64) string {
 	srcval := strings.SplitN(line, ":", 2)
@@ -63,12 +73,15 @@ func parseLbusLine(line string,  vals map[string]map[string]float64) string {
 	return srcval[0]
 }
 
-
+func rad(deg float64) float64 { return deg * (math.Pi / 180.0) }
 
 func main() {
+
+	flag.Parse()
+
 	srcs := make(map[string]bool)
 	var flds [][]string
-	for _, f := range os.Args[1:] {
+	for _, f := range flag.Args() {
 		srcfld := strings.SplitN(f, ":", 2)
 		if len(srcfld) != 2 {
 			log.Fatal("can't parse ", f, " as src:fld")
@@ -97,7 +110,29 @@ func main() {
 		if !srcs[src] {
 			continue
 		}
+
+		if *trigg != "" && src != *trigg {
+			continue
+		}
+
+		vv := vals[src]
 		
+		if lat, ok := vv["lat_deg"]; ok {
+			lng := vv["lng_deg"]
+			if math.IsNaN(firstlat_deg) {
+
+
+				firstlat_deg = lat
+				firstlng_deg = lng
+
+
+			}
+			d12, azi, _ := wgs84.Inverse(rad(firstlat_deg), rad(firstlng_deg), rad(lat), rad(lng))
+			s, c := math.Sincos(azi)
+			vals[src]["posy_m"] = d12 * c
+			vals[src]["posx_m"] = d12 * s
+		}
+
 		for _, f := range flds {
 			v := math.NaN()
 			r := vals[f[0]]
