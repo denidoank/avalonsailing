@@ -40,7 +40,7 @@ void ShipControl::Transition(Controller* new_state, const ControllerInput& in) {
 }
 
 void ShipControl::StateMachine(const ControllerInput& in) {
-  if (debug && 0)
+  if (debug && false)
     fprintf(stderr, "Entering Statemachine with %s\n", controller_->Name());
 
   switch (meta_state_) {
@@ -113,13 +113,12 @@ void ShipControl::StateMachine(const ControllerInput& in) {
     }
   }
 
-  if (debug && 0)
+  if (debug && false)
     fprintf(stderr, "ShipControl::StateMachine stationary in state %s\n", controller_->Name());
 }
 
 // This needs to run with the sampling period of 100ms.
 void ShipControl::Run(const ControllerInput& in, ControllerOutput* out) {
-  ControllerOutput prev_out = *out;
 
   // Get wind speed and all other actual measurement values.
   // Figure out apparent and true wind.

@@ -35,7 +35,8 @@ BoatModel::BoatModel(double sampling_period,
       east_deg_(0),
       x_(0),
       y_(0),
-      apparent_(0, 0) {
+      apparent_(0, 0),
+      gps_out_count_(1) {
   SetStartPoint(start_location);
 }
 
@@ -239,10 +240,21 @@ void BoatModel::Simulate(const DriveReferenceValuesRad& drives_reference,
 
   UpdateMagnetic(phi_z_, in);
 
+  // The GPS has no bearing information so it produces always postive
+  // speed magnitudes.
   in->gps.longitude_deg = east_deg_;
   in->gps.latitude_deg = north_deg_;
-  in->gps.cog_rad = phi_z_ + 0.03;  // 1.5 degree drift
-  in->gps.speed_m_s = v_x_;  // assume precise output here.
+  if (v_x_ < 0) {
+    in->gps.cog_rad = NormalizeRad(phi_z_ + 0.03 + M_PI);  // 1.5 degree drift
+    in->gps.speed_m_s = -v_x_;  // assume precise output here.
+  } else {
+    in->gps.cog_rad = phi_z_ + 0.03;  // 1.5 degree drift
+    in->gps.speed_m_s = v_x_;  // assume precise output here.
+  }
+  static int gps_out_count_ = 1;
+  ++gps_out_count_;
+  gps_out_count_ = gps_out_count_ % 2222;
+  in->gps.valid = gps_out_count_ > 100 ? 1 : 0;         // startup delay and intermittent failures (5%
 
   // fprintf(stderr, "model: latlon:%lg/%lg phi_z:%lg vx: %lg om: %lg\n", north_deg_, east_deg_, phi_z_, v_x_, omega_);
   // deb_string = in->imu.ToString();
