@@ -181,23 +181,24 @@ void FilterBlock::Filter(const ControllerInput& in,
     // Due to the small relative errors of latitude and longitude the consensus is
     // less expressive for the position.
     // fprintf(stderr,"lat mix %lf %lf \n", imu_lat, gps_lat);
-    fil->latitude_deg = CompassMixer::Mix(imu_lat, imu_gps_fault_ ? 0 : 0.6,
+    fil->latitude_deg = CompassMixer::Mix(imu_lat, imu_gps_fault_ ? 0 : 0.51,
                                           0, 0,
-                                          gps_lat, gps_fault_ ? 0 : 1.4,
+                                          gps_lat, gps_fault_ ? 0 : 1,
                                           &consensus, false);  // No range check, we work with degrees here.
   }
   if (imu_lon != 0 || gps_lon != 0) {
     // fprintf(stderr,"lon mix %lf %lf \n", imu_lon, gps_lon);
-    fil->longitude_deg = CompassMixer::Mix(imu_lon, imu_gps_fault_ ? 0 : 0.6,
+    fil->longitude_deg = CompassMixer::Mix(imu_lon, imu_gps_fault_ ? 0 : 0.51,
                                            0, 0,
-                                           gps_lon, gps_fault_ ? 0 : 1.4,
+                                           gps_lon, gps_fault_ ? 0 : 1,
                                            &consensus, false);
   }
 
   // Speed
   // The GPS has no orientation (bearing) information so all speeds are
   // speed magnitudes. But we may drift backwards.
-  if (fabs(DeltaOldNewRad(gps_cog_rad, fil->phi_z_boat)) > M_PI / 4) {
+  if (!gps_fault_ &&
+      fabs(DeltaOldNewRad(gps_cog_rad, fil->phi_z_boat)) > M_PI / 4) {
     gps_cog_rad = NormalizeRad(gps_cog_rad - M_PI);
     gps_speed_m_s = -gps_speed_m_s;
     fprintf(stderr, "GPS neg. speed %lf\n", gps_speed_m_s);

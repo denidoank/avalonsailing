@@ -80,6 +80,7 @@ class NormalController : public Controller {
   int64_t start_time_ms_;
   int trap2_;  // paranoid protection against incomplete compilation errors.
   double prev_offset_;
+  double fallen_off_;
 };
 
 #endif  // HELMSMAN_NORMAL_CONTROLLER_H
