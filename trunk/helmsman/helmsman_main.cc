@@ -255,9 +255,9 @@ int main(int argc, char* argv[]) {
       } else if (sscanf(line, IFMT_COMPASSPROTO(&compass, &nn)) > 0) {
 	ctrl_in.compass_sensor.phi_z_rad  = Deg2Rad(compass.yaw_deg);
       } else if (sscanf(line, IFMT_GPSPROTO(&gps, &nn)) > 0) {
-        ctrl_in.gps.latitude_deg = Deg2Rad(gps.lat_deg);
-        ctrl_in.gps.longitude_deg = Deg2Rad(gps.lng_deg);
-        ctrl_in.gps.speed_m_s = Deg2Rad(gps.speed_m_s);
+        ctrl_in.gps.latitude_deg = gps.lat_deg;
+        ctrl_in.gps.longitude_deg = gps.lng_deg;
+        ctrl_in.gps.speed_m_s = gps.speed_m_s;
 	    ctrl_in.gps.cog_rad = Deg2Rad(gps.cog_deg);
       } else if (sscanf(line, IFMT_HELMSMANCTLPROTO(&ctl, &nn)) > 0) {
 	if (control_mode != kOverrideSkipperMode &&

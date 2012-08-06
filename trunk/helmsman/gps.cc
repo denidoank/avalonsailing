@@ -41,7 +41,7 @@ void Gps::FromProto(const GPSProto& gps_proto) {
   latitude_deg  = gps_proto.lat_deg;
   longitude_deg = gps_proto.lng_deg;
 
-  // x-Speed is COG speed.
+  // x-Speed is COG speed and always positive.
   speed_m_s = gps_proto.speed_m_s;
   cog_rad = NormalizeRad(Deg2Rad(gps_proto.cog_deg));
   valid = true;

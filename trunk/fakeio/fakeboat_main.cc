@@ -201,7 +201,6 @@ int main(int argc, char* argv[]) {
     controller_input.ToProto(&wind_sensor,
                              &status_drives,
                              &imu, &compass, &gps);
-
     // The wind sensor measures for a second, then sends that averaged value.
     if (rounds % 10 == 0) {
       prev_wind_sensor.timestamp_ms = now_ms();

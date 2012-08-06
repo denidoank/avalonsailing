@@ -27,6 +27,7 @@
 #include "helmsman/sampling_period.h"
 
 #include "common/check.h"
+#include "common/delta_angle.h"
 #include "common/normalize.h"
 #include "common/polar.h"
 #include "common/unknown.h"
@@ -50,7 +51,7 @@ bool ValidIMUGPS(const ControllerInput& in) {
 
 bool ValidGPS(const ControllerInput& in) {
   return !isnan(in.gps.longitude_deg) && !isnan(in.gps.latitude_deg) &&
-         !(in.gps.longitude_deg == 0 && in.gps.latitude_deg == 0) && in.gps.valid;
+         !(in.gps.longitude_deg == 0 && in.gps.latitude_deg == 0);
 }
 
 
@@ -139,9 +140,9 @@ void FilterBlock::Filter(const ControllerInput& in,
   // The raw magnetic sensor IMU output is a rather noisy and often incorrect.
   double consensus = 0;
   double compass_phi_z = CompassMixer::Mix(in.imu.attitude.phi_z_rad, imu_fault_ ? 0 : 0.15,
-                                          in.imu.compass.phi_z_rad, in.imu.compass.valid ? 0.075 : 0,
-                                          in.compass_sensor.phi_z_rad, 1,  // invalid if outdated TODO
-                                          &consensus);
+                                           in.imu.compass.phi_z_rad, in.imu.compass.valid ? 0.075 : 0,
+                                           in.compass_sensor.phi_z_rad, 1,  // invalid if outdated TODO
+                                           &consensus);
   if (consensus >= 0.5) {
     fil->phi_z_boat = phi_z_wrap_.Filter(compass_phi_z);
     if (debug) {
@@ -151,11 +152,13 @@ void FilterBlock::Filter(const ControllerInput& in,
     fprintf(stderr, "No compass consensus, %lf\n", consensus);
   }
 
-
+  // Position
   double imu_lat = 0;
   double imu_lon = 0;
   double gps_lat = 0;
   double gps_lon = 0;
+  double gps_cog_rad = 0;
+  double gps_speed_m_s = 0;
 
   // NaNs irreversibly poison filters, so we have to prevent that.
   // With the GPS data we are not that picky about temporary faults.
@@ -163,11 +166,13 @@ void FilterBlock::Filter(const ControllerInput& in,
   // the Skipper should get an info that this is the last known position, not the current one.
   if (!imu_gps_fault_) {
     ASSIGN_NOT_NAN(imu_lat, in.imu.position.latitude_deg);  // GPS-Data
-    ASSIGN_NOT_NAN(imu_lon,  in.imu.position.longitude_deg);
+    ASSIGN_NOT_NAN(imu_lon, in.imu.position.longitude_deg);
   }
   if (!gps_fault_) {
     ASSIGN_NOT_NAN(gps_lat, in.gps.latitude_deg);
     ASSIGN_NOT_NAN(gps_lon, in.gps.longitude_deg);
+    ASSIGN_NOT_NAN(gps_cog_rad, in.gps.cog_rad);
+    ASSIGN_NOT_NAN(gps_speed_m_s, in.gps.speed_m_s);
   }
 
   // The position values are not overwritten if but sensors fail.
@@ -175,40 +180,50 @@ void FilterBlock::Filter(const ControllerInput& in,
   if (imu_lat != 0 || gps_lat != 0) {
     // Due to the small relative errors of latitude and longitude the consensus is
     // less expressive for the position.
-      fprintf(stderr,"%lf %lf \n", imu_lat, gps_lat);
-    fil->latitude_deg = CompassMixer::Mix(imu_lat, imu_gps_fault_ ? 0 : 0.3,
+    // fprintf(stderr,"lat mix %lf %lf \n", imu_lat, gps_lat);
+    fil->latitude_deg = CompassMixer::Mix(imu_lat, imu_gps_fault_ ? 0 : 0.6,
                                           0, 0,
-                                          gps_lat, gps_fault_ ? 0 : 0.7,
-                                          &consensus, false);
+                                          gps_lat, gps_fault_ ? 0 : 1.4,
+                                          &consensus, false);  // No range check, we work with degrees here.
   }
   if (imu_lon != 0 || gps_lon != 0) {
-      fprintf(stderr,"lon %lf %lf \n", imu_lon, gps_lon);
-    fil->longitude_deg = CompassMixer::Mix(imu_lon, imu_gps_fault_ ? 0 : 0.3,
+    // fprintf(stderr,"lon mix %lf %lf \n", imu_lon, gps_lon);
+    fil->longitude_deg = CompassMixer::Mix(imu_lon, imu_gps_fault_ ? 0 : 0.6,
                                            0, 0,
-                                           gps_lon, gps_fault_ ? 0 : 0.7,
+                                           gps_lon, gps_fault_ ? 0 : 1.4,
                                            &consensus, false);
   }
 
+  // Speed
+  // The GPS has no orientation (bearing) information so all speeds are
+  // speed magnitudes. But we may drift backwards.
+  if (fabs(DeltaOldNewRad(gps_cog_rad, fil->phi_z_boat)) > M_PI / 4) {
+    gps_cog_rad = NormalizeRad(gps_cog_rad - M_PI);
+    gps_speed_m_s = -gps_speed_m_s;
+    fprintf(stderr, "GPS neg. speed %lf\n", gps_speed_m_s);
+  }
+
+
   // For the time beeing we take the average speed of IMU and GPS.
-  double weigth_imu = imu_fault_ ? 0 : 0.5;
-  double weigth_gps = gps_fault_ ? 0 : 0.5;
-  if (weigth_imu + weigth_gps > 0) {
+  double weight_imu = imu_fault_ ? 0 : 0.5;
+  double weight_gps = gps_fault_ ? 0 : 0.5;
+  if (weight_imu == 0 && weight_gps == 0) {
     // If everything else fails we optimistically assume that we are making some speed forward.
     fil->mag_boat = 1;
   } else {
-    double sum = weigth_imu > 0 ? weigth_imu * in.imu.velocity.x_m_s : 0;
-    sum += weigth_gps > 0 ? weigth_gps * in.gps.speed_m_s : 0;
-    fil->mag_boat = CensorSpeed(speed_filter_.Filter(sum / (weigth_imu + weigth_gps)));
+    double sum = weight_imu * in.imu.velocity.x_m_s;
+    sum += weight_gps * gps_speed_m_s;
+    fil->mag_boat = CensorSpeed(speed_filter_.Filter(sum / (weight_imu + weight_gps)));
   }
   if (debug) {
-      fprintf(stderr, "raw boat speed*0.8 %6.3lf filtered %6.3lf m/s, lat_lon %.7lf %.7lf phi_z %6.3lf ",
+      fprintf(stderr, "raw boat speed*0.8 %6.3lf filtered %6.3lf m/s, lat_lon %.7lf %.7lf phi_z %6.3lf \n",
               in.imu.velocity.x_m_s, fil->mag_boat,
               in.imu.position.latitude_deg, in.imu.position.longitude_deg,
               in.imu.attitude.phi_z_rad);
       fprintf(stderr, "gps data speed %6.3lf m/s, lat_lon %.7lf %.7lf cog %6.3lf\n",
-              in.gps.speed_m_s,
+              gps_speed_m_s,
               in.gps.latitude_deg, in.gps.longitude_deg,
-              in.gps.cog_rad);
+              SymmetricRad(gps_cog_rad));
   }
 
   if (!imu_fault_) {

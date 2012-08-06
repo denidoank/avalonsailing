@@ -59,10 +59,7 @@ struct ControllerOutput {
     drives_reference.Reset();
     skipper_input.Reset();
   }
-  //bool operator!=(const ControllerOutput& r) {
-  //  return skipper_input != r.skipper_input ||
-  //         drives_reference != r.drives_reference;
-  //}
+
   SkipperInput skipper_input;
   DriveReferenceValuesRad drives_reference;
   HelmsmanStatus status;
