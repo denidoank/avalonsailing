@@ -520,7 +520,7 @@ aivdm_decode(const char *buf, size_t buflen,
 					ais->type6.dac1fid28.waycount	= UBITS(144, 5);
 					{
 						enum { ARRAY_BASE=149, ELEMENT_SIZE=55 };
-						for (i = 0; i < ais->type6.dac1fid28.waycount; u++) {
+						for (i = 0; i < ais->type6.dac1fid28.waycount; i++) {
 							int a = ARRAY_BASE + (ELEMENT_SIZE*i);
 							ais->type6.dac1fid28.waypoints[i].lon = SBITS(a+0, 28);
 							ais->type6.dac1fid28.waypoints[i].lat = SBITS(a+28,27);
