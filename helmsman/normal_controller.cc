@@ -7,7 +7,6 @@
 
 #include <math.h>
 #include <stdint.h>
-//#include <sys/time.h>
 #include <time.h>
 #include "common/delta_angle.h"
 #include "common/normalize.h"
@@ -21,7 +20,9 @@
 #include "helmsman/sampling_period.h"
 
 extern int debug;
-static const double kTackOvershootRad = 15 / 180.0 * M_PI;
+// Do not exaggerate here. A big value here means that the sail turns rather fast
+// and might actually brake the motion.
+static const double kTackOvershootRad = 12 / 180.0 * M_PI;
 
 NormalController::NormalController(RudderController* rudder_controller,
                                    SailController* sail_controller)
@@ -32,7 +33,8 @@ NormalController::NormalController(RudderController* rudder_controller,
      give_up_counter_(0),
      start_time_ms_(now_ms()),
      trap2_(999),
-     prev_offset_(0) {
+     prev_offset_(0),
+     fallen_off_(0) {
   if (debug) fprintf(stderr, "NormalController::Entry time  %lld s\n",
                      start_time_ms_ / 1000);
   if (debug) fprintf(stderr, "NormalController::rate limit  %lf rad/s, %lf deg/s\n",
@@ -139,7 +141,7 @@ bool NormalController::Near(double a, double b) {
   return b - tolerance <= a && a <= b + tolerance;
 }
 
-// The current bearing is near the TackZone (close reach) or near the Jibe Zone (broad reach)
+// The current bearing is near the TackZone (close hauled) or near the Jibe Zone (broad reach)
 // and we will have to do a maneuver.
 bool NormalController::IsGoodForManeuver(double old_direction, double new_direction, double angle_true) {
   double old_relative = SymmetricRad(old_direction - angle_true);
@@ -155,23 +157,25 @@ bool NormalController::IsGoodForManeuver(double old_direction, double new_direct
 }
 
 // Every tack or jibe uses the same angle, i.e. we have standardized jibes and tacks.
-double LimitToMinimalManeuver(double old, double new_bearing, double alpha_true, double maneuver_type) {
+double LimitToMinimalManeuver(double old_bearing, double new_bearing,
+                              double alpha_true, double maneuver_type,
+                              double fallen_off_magnitude) {
   if (maneuver_type == kChange)
     return new_bearing;
-  double old_to_wind = DeltaOldNewRad(old, alpha_true);
+  double old_to_wind = DeltaOldNewRad(old_bearing, alpha_true);
   if (maneuver_type == kTack) {
-    double tack_angle = 2 * TackZoneRad() + kTackOvershootRad;
+    double tack_angle = 2 * TackZoneRad() + kTackOvershootRad + fallen_off_magnitude;
     if (old_to_wind < 0)
-      return SymmetricRad(old + tack_angle);
+      return SymmetricRad(old_bearing + tack_angle);
     else
-      return SymmetricRad(old - tack_angle);
+      return SymmetricRad(old_bearing - tack_angle);
   }
   if (maneuver_type == kJibe) {
     double jibe_angle = 2 * (M_PI - JibeZoneRad());
     if (old_to_wind < 0)
-      return SymmetricRad(old - jibe_angle);
+      return SymmetricRad(old_bearing - jibe_angle);
     else
-      return SymmetricRad(old + jibe_angle);
+      return SymmetricRad(old_bearing + jibe_angle);
   }
   CHECK(0);  // Define behaviour for new maneuver type!
   return new_bearing;
@@ -216,7 +220,9 @@ ManeuverType NormalController::ShapeReferenceValue(double alpha_star,
                                        new_sailable,
                                        alpha_true);
       // Limit new_sailable to the other side of the maneuver zone.
-      new_sailable = LimitToMinimalManeuver(old_phi_z_star_, new_sailable, alpha_true, maneuver_type);
+      new_sailable = LimitToMinimalManeuver(old_phi_z_star_, new_sailable,
+                                            alpha_true, maneuver_type,
+                                            fabs(fallen_off_));
       if (debug) fprintf(stderr, "Start %s maneuver, from  %lf to %lf degrees\n",
                          ManeuverToString(maneuver_type), Rad2Deg(old_phi_z_star_), Rad2Deg(new_sailable));
       double new_gamma_sail;
@@ -254,7 +260,8 @@ ManeuverType NormalController::ShapeReferenceValue(double alpha_star,
   }
 
   old_phi_z_star_ = *phi_z_star;
-  *phi_z_star += FilterOffset(phi_z_offset);  // so the offset is a temporary thing
+  fallen_off_ = FilterOffset(phi_z_offset);
+  *phi_z_star += fallen_off_;  // so the offset is a temporary thing
   if (debug) fprintf(stderr, "* %6.2lf %6.2lf %6.2lf\n", alpha_star, new_sailable, *phi_z_star);
   return maneuver_type;
 }
