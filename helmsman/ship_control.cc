@@ -30,6 +30,9 @@ Controller* ShipControl::controller_ = &ShipControl::test_controller_;  // for d
 FilteredMeasurements ShipControl::filtered_;
 FilterBlock* ShipControl::filter_block_ = new FilterBlock;
 
+double ShipControl::gamma_sail_star_rad_ = 0;
+
+
 // All methods are static.
 void ShipControl::Transition(Controller* new_state, const ControllerInput& in) {
   if (debug)
@@ -122,7 +125,7 @@ void ShipControl::Run(const ControllerInput& in, ControllerOutput* out) {
 
   // Get wind speed and all other actual measurement values.
   // Figure out apparent and true wind.
-  filter_block_->Filter(in, &filtered_);
+  filter_block_->Filter(in, gamma_sail_star_rad_, &filtered_);
 
   // Input for the Skipper
   if (filter_block_->ValidTrueWind()) {
@@ -141,6 +144,7 @@ void ShipControl::Run(const ControllerInput& in, ControllerOutput* out) {
   StateMachine(in);
   // Call specialized controller
   controller_->Run(in, filtered_, out);
+  gamma_sail_star_rad_ = out->drives_reference.gamma_sail_star_rad;
 }
 
 // Needed for tests only

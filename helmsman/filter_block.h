@@ -28,7 +28,9 @@ bool ValidGPS(const ControllerInput& in);
 class FilterBlock {
  public:
   FilterBlock();
-  void Filter(const ControllerInput& in, FilteredMeasurements* fil);
+  void Filter(const ControllerInput& in,
+              double gamma_sail_star_rad,
+              FilteredMeasurements* fil);
   void MakeSkipperInput(const FilteredMeasurements& fil, SkipperInput* to_skipper);
   bool ValidAppWind();
   bool ValidTrueWind();
@@ -77,6 +79,7 @@ class FilterBlock {
   WrapAroundFilter gamma_sail_wrap_;
 
   int counter_;  // for logging downsampling
+  double gamma_sail_model_;
 };
 
 

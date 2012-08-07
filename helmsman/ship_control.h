@@ -33,7 +33,6 @@ enum MetaState {
 
 class ShipControl {
  public:
-  // Returns true if the ControllerOutput changed.
   static void Run(const ControllerInput& in, ControllerOutput* out);
 
   static void Brake()    { meta_state_ = kBraking; }
@@ -66,8 +65,7 @@ class ShipControl {
   static NormalController normal_controller_;
   static IdleController idle_controller_;
   static TestController test_controller_;
-  static bool OutputChanges(const DriveReferenceValuesRad& prev_out, const DriveReferenceValuesRad& out);
-
+  static double gamma_sail_star_rad_;
 };
 
 #endif  // HELMSMAN_SHIP_CONTROL_H

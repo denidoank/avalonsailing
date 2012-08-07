@@ -22,12 +22,13 @@
 
 #include <stdio.h>
 #include "helmsman/apparent.h"
-#include "helmsman/boat.h"  // kWindSensorOffsetRad
+#include "helmsman/boat.h"  // kWindSensorOffsetRad, kOmegaMaxSail
 #include "helmsman/controller_io.h"
 #include "helmsman/sampling_period.h"
 
 #include "common/check.h"
 #include "common/delta_angle.h"
+#include "common/limit_rate.h"
 #include "common/normalize.h"
 #include "common/polar.h"
 #include "common/unknown.h"
@@ -86,7 +87,8 @@ FilterBlock::FilterBlock()
     angle_aoa_filter_y_(len_30s),
     angle_aoa_polar_(&angle_aoa_filter_x_, &angle_aoa_filter_y_),
     gamma_sail_filter_(len_0_6s),
-    gamma_sail_wrap_(&gamma_sail_filter_) {}
+    gamma_sail_wrap_(&gamma_sail_filter_),
+    gamma_sail_model_(0) {}
 
 
 // Clip magnitude at the maximum possible boat speed.
@@ -118,6 +120,7 @@ double FilterBlock::CensorSpeed(double speed_in) {
 // TODO: if a filter input becomes invalid, it invalidates the filter state.
 // The filter needs a reset and some time to recover.
 void FilterBlock::Filter(const ControllerInput& in,
+                         double gamma_sail_star_rad,
                          FilteredMeasurements* fil) {
   fil->Reset();
   // TODO: signal mixer (IMU + compass) comes here. It overwrites IMU data.
@@ -271,8 +274,10 @@ void FilterBlock::Filter(const ControllerInput& in,
   if (in.drives.homed_sail && in.wind_sensor.valid) {
     // Delay the sail angle similar to the wind angle sensor signal
     // such that both signal paths have the same average delay.
-    //fprintf(stderr, "gamma sail: %lg rad\n", in.drives.gamma_sail_rad);
-    double gamma_sail = gamma_sail_wrap_.Filter(in.drives.gamma_sail_rad);
+    // Take the reference value of the sail angle because the sail drive status
+    // has big and unpredictable delays.
+    LimitRateWrapRad(gamma_sail_star_rad, kOmegaMaxSail * kSamplingPeriod, &gamma_sail_model_);
+    double gamma_sail = SymmetricRad(gamma_sail_wrap_.Filter(gamma_sail_model_));
 
     // The wind sensor is telling where the wind is coming *from*, but we work
     // with motion vectors pointing where the wind is going *to*, thatswhy we have M_PI here.
