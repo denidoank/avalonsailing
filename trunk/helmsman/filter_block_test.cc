@@ -82,7 +82,7 @@ TEST(FilterBlock, All) {
   EXPECT_FALSE(b.ValidSpeed());
   EXPECT_FALSE(ValidGPS(in));
 
-  b.Filter(in, &filtered);
+  b.Filter(in, 0, &filtered);
   calls_until_valid += !filtered.valid;
   calls_until_wind_valid += !b.ValidTrueWind();
   calls_until_speed_valid += !b.ValidSpeed();
@@ -115,7 +115,7 @@ TEST(FilterBlock, All) {
   in.drives.homed_rudder_left = true;
   in.drives.homed_rudder_right = true;
   for (int i = 0; i < 2.0 / kSamplingPeriod; ++i) {
-    b.Filter(in, &filtered);
+    b.Filter(in, 0, &filtered);
     calls_until_valid += !filtered.valid;
     calls_until_wind_valid += !b.ValidTrueWind();
     calls_until_speed_valid += !b.ValidSpeed();
@@ -144,7 +144,7 @@ TEST(FilterBlock, All) {
   in.wind_sensor.valid = true;
 
   for (int i = 0; i < 2.0 / kSamplingPeriod; ++i) {
-    b.Filter(in, &filtered);
+    b.Filter(in, 0, &filtered);
     calls_until_valid += !filtered.valid;
     calls_until_wind_valid += !b.ValidTrueWind();
     calls_until_speed_valid += !b.ValidSpeed();
@@ -158,7 +158,7 @@ TEST(FilterBlock, All) {
   EXPECT_FALSE(b.ValidSpeed());
 
   in.wind_sensor.valid = false;
-  b.Filter(in, &filtered);
+  b.Filter(in, 0, &filtered);
   calls_until_valid += !filtered.valid;
   calls_until_wind_valid += !b.ValidTrueWind();
   calls_until_speed_valid += !b.ValidSpeed();
@@ -166,7 +166,7 @@ TEST(FilterBlock, All) {
   EXPECT_FALSE(filtered.valid);
 
   in.wind_sensor.valid = true;
-  b.Filter(in, &filtered);
+  b.Filter(in, 0, &filtered);
   calls_until_valid += !filtered.valid;
   calls_until_wind_valid += !b.ValidTrueWind();
   calls_until_speed_valid += !b.ValidSpeed();
@@ -186,7 +186,7 @@ TEST(FilterBlock, All) {
   // the sampling period, but eventually after > 100s second, the filters should
   // be filled and even the slow true wind filter has to be valid.
   for (int i = 0; i < 200 / kSamplingPeriod; ++i) {
-    b.Filter(in, &filtered);
+    b.Filter(in, gamma_sail, &filtered);
     calls_until_valid += !filtered.valid;
     calls_until_wind_valid += !b.ValidTrueWind();
     calls_until_speed_valid += !b.ValidSpeed();
@@ -211,7 +211,7 @@ TEST(FilterBlock, All) {
   // EXPECT_FLOAT_EQ(2, filtered.mag_true);
 
   for (int i = 0; i < 2.0 / kSamplingPeriod; ++i) {
-    b.Filter(in, &filtered);
+    b.Filter(in, gamma_sail, &filtered);
     // printf("%6.4lf\n", filtered.mag_app);
     calls_until_valid += !filtered.valid;
     calls_until_wind_valid += !b.ValidTrueWind();
@@ -242,7 +242,7 @@ TEST(FilterBlock, All) {
 
   // With sail angle information we can calculate the true wind.
   in.drives.homed_sail = true;
-  b.Filter(in, &filtered);
+  b.Filter(in, gamma_sail, &filtered);
   EXPECT_FLOAT_EQ(0, filtered.angle_app);
   EXPECT_FLOAT_EQ(1.0, filtered.mag_app);
   EXPECT_LT(fabs(SymmetricRad(M_PI - kWindSensorOffsetRad - filtered.angle_aoa)), 0.000001);
@@ -250,7 +250,7 @@ TEST(FilterBlock, All) {
   EXPECT_EQ(true, b.ValidTrueWind());  // Must fail now!!
   // slow filter for true wind
   for (int i = 0; i < 2000; ++i) {
-    b.Filter(in, &filtered);
+    b.Filter(in, gamma_sail, &filtered);
     //printf("true alpha: %6.4lf mag:%6.4lf\n",
     //       filtered.alpha_true, filtered.mag_true);
   }
@@ -264,7 +264,7 @@ TEST(FilterBlock, All) {
   // the boats x-axis, sqrt(2) * 2m/s magnitude.
   SetEnv(wind_true, boat, gamma_sail, &in);
   for (int i = 0; i < 120 / kSamplingPeriod; ++i) {
-    b.Filter(in, &filtered);
+    b.Filter(in, gamma_sail, &filtered);
   }
   EXPECT_FLOAT_EQ(2, filtered.mag_boat);
 
@@ -275,7 +275,7 @@ TEST(FilterBlock, All) {
   SetEnv(wind_true, boat, gamma_sail, &in);
   printf("From East wind\n");
   for (int i = 0; i < 10 / kSamplingPeriod; ++i) {
-    b.Filter(in, &filtered);
+    b.Filter(in, gamma_sail, &filtered);
     printf("app: %6.4lf %6.4lf true: %6.4lf\n",
            filtered.mag_app, filtered.angle_app, filtered.mag_true);
   }
@@ -283,7 +283,7 @@ TEST(FilterBlock, All) {
   EXPECT_FLOAT_EQ(2.0 * sqrt(2), filtered.mag_app);
   // 1000 ticks for the 100s average period + 5 ticks for the median-of-5 filter
   for (int i = 0; i < 110 / kSamplingPeriod; ++i)
-    b.Filter(in, &filtered);
+    b.Filter(in, gamma_sail, &filtered);
   // true wind and aoa are slowly filtered, so we have to wait a bit.
   EXPECT_FLOAT_EQ(M_PI / 4 - kWindSensorOffsetRad - gamma_sail,
                   filtered.angle_aoa);
@@ -296,7 +296,7 @@ TEST(FilterBlock, All) {
   SetEnv(wind_true, boat, gamma_sail, &in);
   // Apparent wind filter has 4s.
   for (int i = 0; i < 45; ++i) {
-    b.Filter(in, &filtered);
+    b.Filter(in, gamma_sail, &filtered);
   }
   // no effect on true and apparent wind ...
   EXPECT_IN_INTERVAL(-M_PI / 2 - 0.001, filtered.alpha_true, -M_PI / 2 + 0.001);
@@ -305,7 +305,7 @@ TEST(FilterBlock, All) {
   EXPECT_FLOAT_EQ(2.0 * sqrt(2), filtered.mag_app);
   // but on the wind sensor direction.
   for (int i = 0; i < 110 / kSamplingPeriod; ++i)
-    b.Filter(in, &filtered);
+    b.Filter(in, gamma_sail, &filtered);
   EXPECT_FLOAT_EQ(M_PI / 4  - kWindSensorOffsetRad - gamma_sail,
                   filtered.angle_aoa);
   EXPECT_FLOAT_EQ(2.0 * sqrt(2), filtered.mag_aoa);
