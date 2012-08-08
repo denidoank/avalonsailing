@@ -13,6 +13,7 @@
 #ifndef HELMSMAN_REFERENCE_VALUES_H
 #define HELMSMAN_REFERENCE_VALUES_H
 
+
 class ReferenceValues {
  public:
   ReferenceValues();
@@ -41,14 +42,26 @@ void GetReferenceValues(double* phi_z_star,
 // is feasible with the current rudder forces (speed dependant).
 // phi_z_1: The new final reference value for the boats heading
 // delta_gamma_sail: The difference of the new sail angle to the current one.
-// speed_m_s: The boat speed through the water.
+// The speed_m_s (the boat speed through the water) is not used anymore because
+// that information is not available. Instead we assume a low speed, necessarily
+// overestimate the tack duration and abort the tack once we turned far enough.
 void NewPlan(double phi_z_1,
-             double delta_gamma_sail,  // gamma sail angles are not normalized
-             double speed_m_s);
+             double delta_gamma_sail);  // gamma sail angles are not normalized
 
 // returns true if there is a running transition. The transition is followed by
 // a brief stabilization period.
 bool RunningPlan();
+
+// Target Reached and Abort give an opportunity to abort a tack
+// that is about to overshoot. Because we do not have a good speed
+// measurement this might happen.
+// Returns true if went further than the target.
+bool TargetReached(double phi_z);
+
+// Stabilize switches forward to the stabilization phase.
+// A direct abort is not good because the apparent wind measurement
+// hasn't settled yet.
+void Stabilize();
 
  private:
   int tick_;

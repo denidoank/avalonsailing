@@ -34,7 +34,8 @@ NormalController::NormalController(RudderController* rudder_controller,
      start_time_ms_(now_ms()),
      trap2_(999),
      prev_offset_(0),
-     fallen_off_(0) {
+     fallen_off_(0),
+     maneuver_type_(kChange) {
   if (debug) fprintf(stderr, "NormalController::Entry time  %lld s\n",
                      start_time_ms_ / 1000);
   if (debug) fprintf(stderr, "NormalController::rate limit  %lf rad/s, %lf deg/s\n",
@@ -194,7 +195,6 @@ ManeuverType NormalController::ShapeReferenceValue(double alpha_star,
                                                    double* phi_z_star,
                                                    double* omega_z_star,
                                                    double* gamma_sail_star) {
-  ManeuverType maneuver_type = kChange;
   double phi_z_offset = 0;  // used when sailing close hauled.
   double new_sailable = 0;
   if (debug) fprintf(stderr, "app %6.2lf true %6.2lf old_sail %6.2lf\n", angle_app, alpha_true, old_gamma_sail);
@@ -205,9 +205,17 @@ ManeuverType NormalController::ShapeReferenceValue(double alpha_star,
   //     we start a new plan
   // else we restrict alpha* to the sailable range and rate limit it to [-4deg/s, 4deg/s]
   if (ref_.RunningPlan()) {
+    // Abort plan if we are far enough.
+    if (maneuver_type_ == kTack && ref_.TargetReached(phi_z_boat)) {
+      if (debug) fprintf(stderr, "Abort tack\n");
+      ref_.Stabilize();
+    }
     // The plan includes a stabilization period of a second at the end
     // with constant reference values.
     ref_.GetReferenceValues(phi_z_star, omega_z_star, gamma_sail_star);
+    if (maneuver_type_ == kTack) {
+      *omega_z_star *= 4;  // So we will always overshoot and abort tacks.
+    }
     if (debug) fprintf(stderr, "* %6.2lf %6.2lf %6.2lf\n", alpha_star, alpha_star, *phi_z_star);
   } else {
     // Stay in sailable zone
@@ -216,26 +224,26 @@ ManeuverType NormalController::ShapeReferenceValue(double alpha_star,
     if (IsGoodForManeuver(old_phi_z_star_, new_sailable, alpha_true) &&
         IsJump(old_phi_z_star_, new_sailable)) {
       // We need a new plan ...
-      maneuver_type = FindManeuverType(old_phi_z_star_,
-                                       new_sailable,
-                                       alpha_true);
+      maneuver_type_ = FindManeuverType(old_phi_z_star_,
+                                        new_sailable,
+                                        alpha_true);
       // Limit new_sailable to the other side of the maneuver zone.
       new_sailable = LimitToMinimalManeuver(old_phi_z_star_, new_sailable,
-                                            alpha_true, maneuver_type,
+                                            alpha_true, maneuver_type_,
                                             fabs(fallen_off_));
       if (debug) fprintf(stderr, "Start %s maneuver, from  %lf to %lf degrees\n",
-                         ManeuverToString(maneuver_type), Rad2Deg(old_phi_z_star_), Rad2Deg(new_sailable));
+                         ManeuverToString(maneuver_type_), Rad2Deg(old_phi_z_star_), Rad2Deg(new_sailable));
       double new_gamma_sail;
       double delta_gamma_sail;
       NewGammaSail(old_gamma_sail,
-                   maneuver_type,
+                   maneuver_type_,
                    kTackOvershootRad,
                    &new_gamma_sail,
                    &delta_gamma_sail);
       sail_controller_->SetAlphaSign(SignNotZero(new_gamma_sail));
 
       ref_.SetReferenceValues(old_phi_z_star_, old_gamma_sail);
-      ref_.NewPlan(new_sailable, delta_gamma_sail, mag_boat);
+      ref_.NewPlan(new_sailable, delta_gamma_sail);
       ref_.GetReferenceValues(phi_z_star, omega_z_star, gamma_sail_star);
     } else {
       // Normal case, minor changes of the desired heading.
@@ -263,7 +271,7 @@ ManeuverType NormalController::ShapeReferenceValue(double alpha_star,
   fallen_off_ = FilterOffset(phi_z_offset);
   *phi_z_star += fallen_off_;  // so the offset is a temporary thing
   if (debug) fprintf(stderr, "* %6.2lf %6.2lf %6.2lf\n", alpha_star, new_sailable, *phi_z_star);
-  return maneuver_type;
+  return maneuver_type_;
 }
 
 double NormalController::FilterOffset(double offset) {

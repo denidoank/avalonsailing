@@ -81,6 +81,7 @@ class NormalController : public Controller {
   int trap2_;  // paranoid protection against incomplete compilation errors.
   double prev_offset_;
   double fallen_off_;
+  ManeuverType maneuver_type_;
 };
 
 #endif  // HELMSMAN_NORMAL_CONTROLLER_H

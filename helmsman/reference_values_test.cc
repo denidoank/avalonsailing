@@ -24,7 +24,8 @@ TEST(RefeferenceValues, Tack) {
   EXPECT_EQ(0, omega_star);
   EXPECT_FLOAT_EQ(Deg2Rad(-15), gamma_sail_star);
 
-  ref.NewPlan(Deg2Rad(-50), Deg2Rad(15 - -15), 2);
+  // NewPlan internally assumes a speed of 0.3 m/s.
+  ref.NewPlan(Deg2Rad(-50), Deg2Rad(15 - -15));
   printf("+50 to -50 degrees plan\n");
   printf("t, phi_z, omega*, gamma_sail\n");
   double t = 0;
@@ -49,7 +50,7 @@ TEST(RefeferenceValues, Tack) {
   EXPECT_EQ(0, omega_star);
   EXPECT_FLOAT_EQ(Deg2Rad(15), gamma_sail_star);
 
-  ref.NewPlan(Deg2Rad(50), Deg2Rad(-15 - 15), 2);
+  ref.NewPlan(Deg2Rad(50), Deg2Rad(-15 - 15));
   printf("-50 to +50 degrees plan\n");
   printf("t, phi_z, omega*, gamma_sail\n");
   int i = 0;
@@ -72,7 +73,7 @@ TEST(RefeferenceValues, Tack) {
   EXPECT_EQ(0, omega_star);
   EXPECT_FLOAT_EQ(Deg2Rad(-15), gamma_sail_star);
 
-  ref.NewPlan(Deg2Rad(-150), Deg2Rad(-150 - 50), 2);
+  ref.NewPlan(Deg2Rad(-150), Deg2Rad(-150 - 50));
   printf("+50 to -150 degrees plan\n");
   printf("t, phi_z, omega*, gamma_sail\n");
   i = 0;
@@ -94,7 +95,7 @@ TEST(RefeferenceValues, Tack) {
   EXPECT_FLOAT_EQ(Deg2Rad(145), gamma_sail_star);
 
   ref.SetReferenceValues(Deg2Rad(180), Deg2Rad(-90));
-  ref.NewPlan(Deg2Rad(-180), Deg2Rad(0), 2);
+  ref.NewPlan(Deg2Rad(-180), Deg2Rad(0));
   printf("+180 to -180 degrees plan\n");
   printf("t, phi_z, omega*, gamma_sail\n");
   i = 0;
@@ -111,7 +112,7 @@ TEST(RefeferenceValues, Tack) {
   EXPECT_EQ(0, omega_star);
 
   ref.SetReferenceValues(Deg2Rad(180), Deg2Rad(-90));
-  ref.NewPlan(Deg2Rad(-181), Deg2Rad(0), 2);
+  ref.NewPlan(Deg2Rad(-181), Deg2Rad(0));
   printf("+180 to -181 degrees plan\n");
   printf("t, phi_z, omega*, gamma_sail\n");
   i = 0;
