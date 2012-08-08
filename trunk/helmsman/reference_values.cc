@@ -66,8 +66,9 @@ void ReferenceValues::SetReferenceValues(double phi_z_star,
 // Make a feasible plan that allows to turn the sail during the turn and
 // is feasible with the current rudder forces (speed dependant).
 void ReferenceValues::NewPlan(double phi_z_1,
-                              double delta_gamma_sail,  // gamma sail angles are not normalized
-                              double speed) {
+                              double delta_gamma_sail) { // gamma sail angles are not normalized
+  const double speed = 0.3;  // The speed through the water is not available reliably.
+                             // We assume a low speed and abort the tack.
   phi_z_1 = SymmetricRad(phi_z_1);
   phi_z_final_ = phi_z_1;
   gamma_sail_final_ = gamma_sail_ + delta_gamma_sail;  // intentionally no normalization here, because the sails way may be longer than 180 degrees
@@ -144,3 +145,23 @@ void ReferenceValues::GetReferenceValues(double* phi_z_star, double* omega_z_sta
   *omega_z_star = omega_;
   *gamma_sail_star = SymmetricRad(gamma_sail_);
 }
+
+bool ReferenceValues::TargetReached(double phi_z) {
+  if (tick_ >= all_ticks_)
+    return false;  // So TargetReached is true only once.
+  if (acc_ > 0)
+    return DeltaOldNewRad(phi_z_final_, phi_z) > 0;
+  else
+    return DeltaOldNewRad(phi_z_final_, phi_z) < 0;
+}
+
+// Stabilize switches forward to the stabilization phase.
+void ReferenceValues::Stabilize() {
+  phi_z_ = phi_z_final_;  // This eliminates accumulated errors in the frequent floating point additions.
+  gamma_sail_ = SymmetricRad(gamma_sail_final_);
+  omega_ = 0;
+  omega_sail_increment_ = 0;
+  tick_ = all_ticks_;
+}
+
+

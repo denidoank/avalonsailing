@@ -205,7 +205,7 @@ double SailController::StableGammaSail(double alpha_true, double mag_true,
   // which tack are we on, with a lot of robustness for a stable sail position when running.
 
   double a = DeltaOldNewRad(alpha_true, phi_z);
-  if (debug) fprintf(stderr, "a: %lf\n", a);
+  if (debug) fprintf(stderr, "sca: %lf\n", a);
 
 
   if (alpha_sign_ < 0 && a > kTackHysteresis) {
