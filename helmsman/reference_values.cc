@@ -147,7 +147,7 @@ void ReferenceValues::GetReferenceValues(double* phi_z_star, double* omega_z_sta
 }
 
 bool ReferenceValues::TargetReached(double phi_z) {
-  if (tick_ >= all_ticks_)
+  if (tick_ >= all_ticks_ - 1)
     return false;  // So TargetReached is true only once.
   if (acc_ > 0)
     return DeltaOldNewRad(phi_z_final_, phi_z) > 0;
@@ -157,11 +157,12 @@ bool ReferenceValues::TargetReached(double phi_z) {
 
 // Stabilize switches forward to the stabilization phase.
 void ReferenceValues::Stabilize() {
+  // jump forward to the stabilization phase
+  tick_ = all_ticks_ - 1;
   phi_z_ = phi_z_final_;  // This eliminates accumulated errors in the frequent floating point additions.
   gamma_sail_ = SymmetricRad(gamma_sail_final_);
   omega_ = 0;
   omega_sail_increment_ = 0;
-  tick_ = all_ticks_;
 }
 
 

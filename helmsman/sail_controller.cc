@@ -221,13 +221,18 @@ double SailController::StableGammaSail(double alpha_true, double mag_true,
   // Push the boat (phi_z) out of the wind if the quickly filtered apparent
   // wind is too adverse.
   const double kCloseHauledLimit = Deg2Rad(140);
-  if (alpha_sign_ == -1 && alpha_app > kCloseHauledLimit) {
+  const double kCloseHauledLimitExtreme = Deg2Rad(150);
+  bool too_close = alpha_app > kCloseHauledLimit || alpha_app < -kCloseHauledLimit;
+  bool much_too_close = alpha_app > kCloseHauledLimitExtreme || alpha_app < -kCloseHauledLimitExtreme;
+  double brute_factor = much_too_close ? 1.5 : 1;
+
+  if (alpha_sign_ == -1 && too_close) {
     if (debug) fprintf(stderr, "StableSail:: Too close, fall off right\n");
-    *phi_z_offset = alpha_app - kCloseHauledLimit;
+    *phi_z_offset = brute_factor * (alpha_app - kCloseHauledLimit);
   }
-  if (alpha_sign_ == 1 && alpha_app < -kCloseHauledLimit) {
+  if (alpha_sign_ == 1 && too_close) {
     if (debug) fprintf(stderr, "StableSail:: Too close, fall off left\n");
-    *phi_z_offset = alpha_app + kCloseHauledLimit;
+    *phi_z_offset = brute_factor * (alpha_app + kCloseHauledLimit);
   }
   a -= *phi_z_offset;
   if (debug) fprintf(stderr, "new phi_z_offset: %lf", *phi_z_offset);
@@ -240,10 +245,10 @@ double SailController::StableGammaSail(double alpha_true, double mag_true,
   // The differences are small, so we use the more stable true wind angle.
   if (SPINNAKER == logic_.BestStabilizedMode(a, std::max(mag_app, mag_true))) {
     gamma_sail_rad = kDragMax - a / 2;
-    if (debug) fprintf(stderr, "spi: %lf", gamma_sail_rad);
+    if (debug) fprintf(stderr, " spi: %lf", gamma_sail_rad);
   } else {
     gamma_sail_rad = M_PI - a - AngleOfAttack(mag_true);
-    if (debug) fprintf(stderr, "wng: %lf", gamma_sail_rad);
+    if (debug) fprintf(stderr, " wng: %lf", gamma_sail_rad);
     // When sailing close hauled (hard to the wind) we observed sail angle oscillations
     // leading to the sail swinging over the boat symmetry axis. This will be
     // suppressed.
@@ -252,10 +257,10 @@ double SailController::StableGammaSail(double alpha_true, double mag_true,
       gamma_sail_rad = kCloseHauledLimit;
   }
   if (debug) {
-      fprintf(stderr, "StableSail:: sign %d %lf\n",
-                       alpha_sign_, gamma_sail_rad);
-      fprintf(stderr, "StableSail:: out: %lf\n",
-                     SymmetricRad(alpha_sign_ * gamma_sail_rad));
+    fprintf(stderr, "StableSail:: sign %d %lf\n",
+            alpha_sign_, gamma_sail_rad);
+    fprintf(stderr, "StableSail:: out: %lf\n",
+            SymmetricRad(alpha_sign_ * gamma_sail_rad));
   }
 
   return SymmetricRad(alpha_sign_ * gamma_sail_rad);
