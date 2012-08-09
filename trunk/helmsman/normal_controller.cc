@@ -219,7 +219,7 @@ ManeuverType NormalController::ShapeReferenceValue(double alpha_star,
     if (debug) fprintf(stderr, "* %6.2lf %6.2lf %6.2lf\n", alpha_star, alpha_star, *phi_z_star);
   } else {
     // Stay in sailable zone
-    new_sailable = BestSailableHeading(alpha_star, alpha_true);
+    new_sailable = BestStableSailableHeading(alpha_star, alpha_true, old_phi_z_star_);
     if (debug) fprintf(stderr, "new sailable: %6.2lf\n", new_sailable);
     if (IsGoodForManeuver(old_phi_z_star_, new_sailable, alpha_true) &&
         IsJump(old_phi_z_star_, new_sailable)) {

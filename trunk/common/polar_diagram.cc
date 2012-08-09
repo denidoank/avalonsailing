@@ -121,6 +121,39 @@ double BestSailableHeading(double alpha_star, double alpha_true) {
   return SymmetricRad(alpha_star_limited);
 }
 
+// with hysteresis
+double BestStableSailableHeading(double alpha_star, double alpha_true, double previous_output) {
+  // Stay in sailable zone
+  double tack_zone_min = Reverse(alpha_true) - TackZoneRad();
+  double tack_zone_max = Reverse(alpha_true) + TackZoneRad();
+  // A small instable zone around the dead run shall be avoided. There are certain dangers here,
+  // (death roll), but if they actually are important for Avalon is unclear.
+  static const double jibe_zone = M_PI - JibeZoneRad();
+  CHECK(jibe_zone > 0);
+  double jibe_zone_min = alpha_true - jibe_zone;
+  double jibe_zone_max = alpha_true + jibe_zone;
+  double alpha_star_limited = alpha_star;
+
+  // This keeps a small part of the previous output.
+  double hysteresis = DeltaOldNewRad(previous_output, alpha_star) * 0.3;
+
+  // Modify if in the non-sailable range.
+  if (DeltaOldNewRad(tack_zone_min, alpha_star) > 0 &&
+      DeltaOldNewRad(tack_zone_max, alpha_star) < 0) {
+    alpha_star_limited = NearerRad(alpha_star - hysteresis, tack_zone_min, tack_zone_max);
+  }
+  if (DeltaOldNewRad(jibe_zone_min, alpha_star) > 0 &&
+      DeltaOldNewRad(jibe_zone_max, alpha_star) < 0) {
+    alpha_star_limited = NearerRad(alpha_star - hysteresis, jibe_zone_min, jibe_zone_max);
+  }
+  return SymmetricRad(alpha_star_limited);
+}
+
+
+
+
+
+
 double BestSailableHeadingDeg(double alpha_star_deg, double alpha_true_deg){
   return Rad2Deg(BestSailableHeading(Deg2Rad(alpha_star_deg),
                                      Deg2Rad(alpha_true_deg)));
