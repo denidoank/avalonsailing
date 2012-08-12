@@ -26,6 +26,10 @@ struct LineBuffer {
 	int discard; // if true, writestr and writefd should skip until the next eol.
 };
 
+// reset the linebuffer, discarding all buffered data, by resetting head and eol.
+// Does not clear the discard flag.
+void lb_clear(struct LineBuffer* lb);
+
 // Pending returns true iff there is at least one complete line in the buffer.
 int lb_pending(struct LineBuffer* lb);
 

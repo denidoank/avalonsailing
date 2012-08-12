@@ -11,6 +11,8 @@
 
 int lb_pending(struct LineBuffer* lb) { return lb->eol > 0; }
 
+void lb_clear(struct LineBuffer* lb) { lb->head = 0; lb->eol = 0; }
+
 // like write(2), but to buf[0:size] instead of fd
 static int write_buf(char *buf, int size, char *src, int len) {
 	if(len > size) len = size;
