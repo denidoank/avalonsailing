@@ -11,9 +11,11 @@
 struct SkipperInput {
   SkipperInput();
   SkipperInput(const char* line);
-  SkipperInput(int64_t timestamp_ms, double longitude_deg, double latitude_deg,
+  SkipperInput(int64_t timestamp_ms, double latitude_deg, double longitude_deg,
                double angle_true_deg, double mag_true_kn);
   void Reset();
+  bool Valid();
+
   // Returns the number of read characters, 0 if line was in no valid format. 
   int FromString(const char* line);
   std::string ToString() const;
@@ -23,8 +25,8 @@ struct SkipperInput {
   int64_t timestamp_ms;
   // GPS data in degrees
   // Both values are nan initially.
-  double longitude_deg;
   double latitude_deg;
+  double longitude_deg;
 
   // true wind, global frame
   // Both values are nan initially.

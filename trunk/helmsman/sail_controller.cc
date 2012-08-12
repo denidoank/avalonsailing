@@ -226,16 +226,26 @@ double SailController::StableGammaSail(double alpha_true, double mag_true,
   bool much_too_close = alpha_app > kCloseHauledLimitExtreme || alpha_app < -kCloseHauledLimitExtreme;
   double brute_factor = much_too_close ? 1.5 : 1;
 
+  double fall_off = 0;
   if (alpha_sign_ == -1 && too_close) {
     if (debug) fprintf(stderr, "StableSail:: Too close, fall off right\n");
-    *phi_z_offset = brute_factor * (alpha_app - kCloseHauledLimit);
+    fall_off = alpha_app - kCloseHauledLimit;
   }
   if (alpha_sign_ == 1 && too_close) {
     if (debug) fprintf(stderr, "StableSail:: Too close, fall off left\n");
-    *phi_z_offset = brute_factor * (alpha_app + kCloseHauledLimit);
+    fall_off = alpha_app + kCloseHauledLimit;
   }
-  a -= *phi_z_offset;
-  if (debug) fprintf(stderr, "new phi_z_offset: %lf", *phi_z_offset);
+  fall_off *= brute_factor;
+  // If we get pushed away too much, we cannot make the next tack.
+  const double fall_off_limit = 0.3;  // 15 degrees maximal
+  if (fall_off > fall_off_limit)
+    fall_off = fall_off_limit;
+  if (fall_off < -fall_off_limit)
+    fall_off = -fall_off_limit;
+
+  a -= fall_off;
+  if (debug) fprintf(stderr, "new phi_z_offset: %lf", fall_off);
+  *phi_z_offset = fall_off;
 
   // Sailing physics is symmetric
   a = fabs(a);
@@ -245,10 +255,10 @@ double SailController::StableGammaSail(double alpha_true, double mag_true,
   // The differences are small, so we use the more stable true wind angle.
   if (SPINNAKER == logic_.BestStabilizedMode(a, std::max(mag_app, mag_true))) {
     gamma_sail_rad = kDragMax - a / 2;
-    if (debug) fprintf(stderr, " spi: %lf", gamma_sail_rad);
+    if (debug) fprintf(stderr, " spi: %lf\n", gamma_sail_rad);
   } else {
     gamma_sail_rad = M_PI - a - AngleOfAttack(mag_true);
-    if (debug) fprintf(stderr, " wng: %lf", gamma_sail_rad);
+    if (debug) fprintf(stderr, " wng: %lf\n", gamma_sail_rad);
     // When sailing close hauled (hard to the wind) we observed sail angle oscillations
     // leading to the sail swinging over the boat symmetry axis. This will be
     // suppressed.

@@ -17,7 +17,7 @@ extern int debug;
 double CompassMixer::Mix(double alpha1_rad, double weight1,
                          double alpha2_rad, double weight2,
                          double alpha3_rad, double weight3,
-                         double* consensus, bool check_range) {
+                         double* consensus) {
   double input_[3];
   double weight_[3];
   input_[0] = alpha1_rad;
@@ -33,9 +33,7 @@ double CompassMixer::Mix(double alpha1_rad, double weight1,
       input_[n] = 0;
       weight_[n] = 0;
     }
-    if (check_range) {
-      CHECK_IN_INTERVAL(-M_PI, input_[n], 2 * M_PI);
-    }
+    CHECK_IN_INTERVAL(-M_PI, input_[n], 2 * M_PI);
     input_[n] = NormalizeRad(input_[n]);
   }
 

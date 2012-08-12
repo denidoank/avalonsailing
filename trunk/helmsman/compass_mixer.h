@@ -16,11 +16,10 @@ class CompassMixer {
   // 0 means "ignore this", 1 means "rock solid reliable measurement"
   // A vector interface would be good for the mixer, but awkward for the caller.
   // Returns consensus < 0.5 if no good input data are available or no consens can be found.
-  // check_range limits the values to angles in radians.
   static double Mix(double alpha1_rad, double weight1,
                     double alpha2_rad, double weight2,
                     double alpha3_rad, double weight3,
-                    double* consensus, bool check_range = true);
+                    double* consensus);
 };
 
 #endif   // HELMSMAN_COMPASS_MIXER_H
