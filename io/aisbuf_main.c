@@ -22,6 +22,7 @@
 #include <sys/time.h>
 #include <unistd.h>
 
+#include "lib/linebuffer.h"
 #include "lib/log.h"
 
 static const char* argv0;
@@ -45,10 +46,7 @@ static struct AISMsg {
 	int64_t timestamp_ms;
 	int mmsi;
 	int msgtype;
-	char line[1024];
-        int head;
-        int discard;
-        int tail;
+  	char line[1024];
 } *msgs = NULL;
 
 
@@ -65,38 +63,6 @@ samemsg(struct AISMsg *a, struct AISMsg *b)
 		}
 	}
 	return 0;
-}
-
-
-// Reads from fd into the message, returns 0 if there is a \n terminated
-// line, EAGAIN if there is an incomplete line, or errno from read(2)
-// otherwise.  if the buffer overflows before EOL sets the discard flag which will
-// cause the current line to be discarded until an EOL is found.
-// the line will be 0-terminated.
-static int
-msg_read(int fd, struct AISMsg* lb)
-{
-        int n = read(fd, lb->line+lb->head, sizeof(lb->line) - lb->head - 1);
-        switch (n) {
-        case 0:
-                return EOF;
-        case -1:
-                return errno;
-        }
-
-        lb->line[lb->head+n] = 0;
-        char* eol = strchr(lb->line+lb->head, '\n');
-        if (eol) {
-                lb->head = 0;
-                if (!lb->discard) return 0;  // lb->line starts with a complete line
-                lb->discard = 0;
-        }
-        
-        // no EOL || discard
-        lb->head += n;
-        if (lb->head == sizeof(lb->line) - 1) lb->discard = 1;
-        if (lb->discard) lb->head = 0;
-        return EAGAIN;
 }
 
 int main(int argc, char* argv[]) {
@@ -135,6 +101,8 @@ int main(int argc, char* argv[]) {
 
 	int badcnt = 0;
 	int msgcnt = 0;
+	struct LineBuffer line;
+	memset(&line, 0, sizeof line);
 	struct AISMsg* msg = malloc(sizeof *msg);
 	memset(msg, 0, sizeof *msg);
 	for(;;) {
@@ -149,34 +117,40 @@ int main(int argc, char* argv[]) {
                 if (r == -1 && errno != EINTR) crash("pselect");
 
 		if (r == 1) {
-			r = msg_read(fileno(stdin), msg);
+			r = lb_readfd(&line, fileno(stdin));
 			if (r == EOF) break;
 			if (r == EAGAIN) continue;
 			if (r != 0) crash("reading stdin");
-			if (sscanf(msg->line, "ais: timestamp_ms:%lld mmsi:%d msgtype:%d ", &msg->timestamp_ms, &msg->mmsi, &msg->msgtype) < 3) {
-				if (badcnt++ > 100) crash("Nothing but garbage on stdin: %s", msg->line);
-				if (debug) fprintf(stderr, "Could not parse stdin:%s", msg->line);
-				continue;
-			}
 
-			badcnt = 0;
-			msgcnt++;
-			msg->link = msgs;
-			msgs = msg;
+			while(lb_getline(msg->line, sizeof msg->line, &line)) {
 
-			msg = malloc(sizeof *msg);
-			memset(msg, 0, sizeof *msg);
+				int n = sscanf(msg->line, "ais: timestamp_ms:%lld mmsi:%d msgtype:%d ",
+					       &msg->timestamp_ms, &msg->mmsi, &msg->msgtype);
+				if (n < 3) {
+					if (badcnt++ > 100) crash("Nothing but garbage on stdin: %s", msg->line);
+					if (debug) fprintf(stderr, "Could not parse stdin:%s", msg->line);
+					continue;
+				}
 
-			// delete older versions
-			struct AISMsg** pp = &msgs->link;
-			while (*pp) {
-				struct AISMsg* curr = *pp;
-				if (samemsg(curr, msgs)) {
-					*pp = curr->link;
-					free(curr);
-					msgcnt--;
-				} else {
-					pp = &(*pp)->link;
+				badcnt = 0;
+				msgcnt++;
+				msg->link = msgs;
+				msgs = msg;
+
+				msg = malloc(sizeof *msg);
+				memset(msg, 0, sizeof *msg);
+
+				// delete older versions
+				struct AISMsg** pp = &msgs->link;
+				while (*pp) {
+					struct AISMsg* curr = *pp;
+					if (samemsg(curr, msgs)) {
+						*pp = curr->link;
+						free(curr);
+						msgcnt--;
+					} else {
+						pp = &(*pp)->link;
+					}
 				}
 			}
 		}
@@ -211,6 +185,7 @@ int main(int argc, char* argv[]) {
 					break;
 				if ((*pp)->timestamp_ms + 1000*garbage_s < msgs->timestamp_ms)
 					break;
+				// cheat: read linebuf without clearing
 				fputs((*pp)->line, tmp);
 			}
 			
