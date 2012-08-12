@@ -31,7 +31,10 @@ double Planner::last_turn_time_ = 0;
 // sail criss-cross.
 
 void Planner::Init(const LatLon& lat_lon) {
-  if (sukku.In(lat_lon)) {
+  if (ufenau.In(lat_lon)) {
+    fprintf(stderr, "Ufenau plan\n");
+    plan_.Build(ufenau_plan);
+  } else if (sukku.In(lat_lon)) {
     fprintf(stderr, "sukku plan\n");
     plan_.Build(sukku_plan);
   } else if (kilchberg.In(lat_lon)) {
@@ -83,7 +86,7 @@ double Planner::ToDeg(double lat_deg, double lon_deg) {
     fprintf(stderr, "Hurray! Target Reached!\n");
     if (NowSeconds() > last_turn_time_ + 120) { // TODO: Increase this time after lake tests!
       last_turn_time_ = NowSeconds();
-      alpha_star_ = NormalizeDeg(alpha_star_ - 90);
+      alpha_star_ = NormalizeDeg(alpha_star_ - 72);
       fprintf(stderr, "Turn left to %lf.", alpha_star_);
     }
   } else {

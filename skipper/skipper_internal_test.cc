@@ -184,6 +184,49 @@ TEST(SkipperInternal, SukkulentenhausPlan) {
   CloseKML();
 }
 
+TEST(SkipperInternal, UfenauPlan) {
+  fprintf(stderr, "Running test: UfenauPlan\n");
+  OpenKML("Ufenau");
+  double end_time = 0;
+  SkipperInput in;
+  std::vector<skipper::AisInfo> ais;
+  double alpha_star;
+
+  in.angle_true_deg = 320;  // so we cannot sail soutth directly
+  in.mag_true_kn = 10;
+  double x0 = 47.3557;
+  double y0 = 8.5368;       // Mythenquai, Shore
+  double v = 2 / to_cartesian_meters;
+  in.latitude_deg = x0;
+  in.longitude_deg = y0;
+  SkipperInternal::Init(in);
+  end_time = 0;
+
+  printf("t/s, x0, y0, alpha_star\n");
+  double time_step = 60;
+  for (double t = 0; t < 15000; t += time_step) {
+    in.latitude_deg = x0;
+    in.longitude_deg = y0;
+    SkipperInternal::Run(in, ais, &alpha_star);
+    if (SkipperInternal::TargetReached(LatLon(x0, y0))) {
+      EXPECT_TRUE(ufenau_target.In(x0, y0));
+      if (end_time == 0)
+        end_time = t;
+    }
+
+    // Simulate the motion
+    double phi_rad = Deg2Rad(alpha_star);
+    x0 += v * cos(phi_rad) * time_step;
+    y0 += v * sin(phi_rad) * time_step / cos(Deg2Rad(x0));
+    printf("%8.6lf %8.6lf %8.6lf %6.4lf\n", t, x0, y0, alpha_star);
+    DotKML(x0, y0);
+  }
+  printf("end time: %8.6lf days.\n", end_time / kDays);
+  EXPECT_GT(1 * kDays, end_time);
+  CloseKML();
+}
+
+
 
 TEST(SkipperInternal, ThalwilOpposingWind) {
   fprintf(stderr, "Running test: ThalwilOpposingWind\n");
@@ -397,6 +440,7 @@ TEST(SkipperInternal, StormyAtlantic) {
 }
 
 int main(int argc, char* argv[]) {
+  SkipperInternal_UfenauPlan();
   SkipperInternal_Thalwil();
   SkipperInternal_SukkulentenhausPlan();
   SkipperInternal_ThalwilOpposingWind();

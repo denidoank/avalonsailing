@@ -114,7 +114,8 @@ int main(int argc, char* argv[]) {
                   -M_PI / 2,        // gamma_sail_ / rad, e.g. -90 degrees here
                   0.03,             // initial rudder angles, left and right,
                   -0.03);           // can be used to cause initial rotation.
-  model.SetLatLon(48.23900, -4.7698);
+  // model.SetLatLon(48.23900, -4.7698);  // Brest, France
+  model.SetLatLon(47.3482, 8.5434);  // Lake Zurich, middle of the lake between Chinagarden and Mythenquai.
 
   while (!feof(stdin)) {
     if (ferror(stdin)) clearerr(stdin);

@@ -260,9 +260,9 @@ int main(int argc, char* argv[]) {
         ctrl_in.gps.speed_m_s = gps.speed_m_s;
 	    ctrl_in.gps.cog_rad = Deg2Rad(gps.cog_deg);
       } else if (sscanf(line, IFMT_HELMSMANCTLPROTO(&ctl, &nn)) > 0) {
-	if (control_mode != kOverrideSkipperMode &&
-	    !isnan(ctl.alpha_star_deg))
-	  ctrl_in.alpha_star_rad = Deg2Rad(ctl.alpha_star_deg);
+	    if (control_mode != kOverrideSkipperMode &&
+	        !isnan(ctl.alpha_star_deg))
+	      ctrl_in.alpha_star_rad = Deg2Rad(ctl.alpha_star_deg);
       } else if (sscanf(line, IFMT_REMOTEPROTO(&remote, &nn)) > 0) {
     HandleRemoteControl(remote, &control_mode);
     last_remote_message_millis = now_ms();
@@ -288,15 +288,19 @@ int main(int argc, char* argv[]) {
         ctl.timestamp_ms = now_ms();
         printf(OFMT_RUDDERPROTO_CTL(ctl));
       }
-      if (loops % 20 == 0) {
+      // One minute should be enough to execute the last direction change.
+      if (loops % static_cast<int>(60.0 / kSamplingPeriod) == 0) {
         SkipperInput to_skipper(
             now_ms(),
-            ctrl_out.skipper_input.longitude_deg,
             ctrl_out.skipper_input.latitude_deg,
+            ctrl_out.skipper_input.longitude_deg,
             ctrl_out.skipper_input.angle_true_deg,
             ctrl_out.skipper_input.mag_true_kn
         );
-        printf("%s", to_skipper.ToString().c_str());
+        fprintf(stderr, "Checking lat lon %lf %lf \n",ctrl_out.skipper_input.latitude_deg,  ctrl_out.skipper_input.longitude_deg);
+        if (to_skipper.Valid()) {
+          printf("%s", to_skipper.ToString().c_str());
+        }
       }
       if (loops % 20 == 5) {
         HelmsmanStatusProto hsts = INIT_HELMSMAN_STATUSPROTO;

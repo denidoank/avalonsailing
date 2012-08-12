@@ -96,9 +96,11 @@ void InitialController::Run(const ControllerInput& in,
         // put the rudder at a big angle such that the boat turns.
         if (debug) fprintf(stderr, "phase TURTLE\n");
         // For weak winds we need a bearing around a dead run +- 90degrees, to
-        // get enough speed in every situation.
-        // For stronger winds we have enough momentum pushing back.
-        const double run_sector = filtered.mag_app > 5 ? Deg2Rad(120) : Deg2Rad(90);
+        // get enough speed in every situation. Angles up to 120 degrees would
+        // work most of the time for stronger winds, but there are initial states
+        // (app. wind -103.98deg, v = -0.63m/s) where the boat gets caught in the
+        // KOGGE state.
+        const double run_sector = Deg2Rad(85);  // Definitively downwind.
         // Turn into a sailable direction if necessary.
         if (fabs(angle_app) > run_sector) {
           gamma_rudder = kReverseMotionRudderAngle * sign_;
