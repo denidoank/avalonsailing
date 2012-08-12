@@ -17,7 +17,7 @@
 || Two bolts in starboard front hatch are missing, would leak water || grundmann/2012-05-18 ||
 || Pump up carriage tyres || grundmann/2012-06-15 ||
 || Charge accumulators || grundmann/2012-06-15 (were charged) ||
-|| Make  2 4cm thick pads for boat trailer (that prevent rudder damage) ||  ||
+|| Make  2 4cm thick pads for boat trailer (that prevent rudder damage) || grundmann/2012-08-08 ||
 
 == Electric ==
 
