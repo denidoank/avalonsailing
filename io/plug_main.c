@@ -19,25 +19,11 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+#include "lib/log.h"
+
 static const char* argv0;
 static int debug;
 static int verbose;
-
-static void
-crash(const char* fmt, ...)
-{
-        va_list ap;
-        char buf[1000];
-        va_start(ap, fmt);
-        vsnprintf(buf, sizeof(buf), fmt, ap);
-        fprintf(stderr, "%s:%s%s%s\n", argv0, buf,
-                (errno) ? ": " : "",
-                (errno) ? strerror(errno):"" );
-        exit(1);
-        va_end(ap);
-        return;
-}
-
 
 static void
 usage(void)
