@@ -134,15 +134,14 @@ bool NormalController::Near(double a, double b) {
 // The current bearing is near the TackZone (close reach) or near the Jibe Zone (broad reach)
 // and we will have to do a maneuver.
 bool NormalController::IsGoodForManeuver(double old_direction, double new_direction, double angle_true) {
-  //const double JibeZoneWidth = M_PI - JibeZoneRad();
   double old_relative = SymmetricRad(old_direction - angle_true);
   double new_relative = SymmetricRad(new_direction - angle_true);
   // Critical angles to the wind vector. Because the PolarDiagram follows the
   // "wind blows from" convention, we have to turn the tack zone and jibe zone angles.
-  double tack_zone = M_PI-TackZoneRad();
-  double jibe_zone = M_PI-JibeZoneRad();
+  double tack_zone = M_PI - TackZoneRad();
+  double jibe_zone = M_PI - JibeZoneRad();
   if (new_relative < 0)
-    return Near(old_relative, jibe_zone) || Near(old_relative, tack_zone);
+    return Near(old_relative,  jibe_zone) || Near(old_relative,  tack_zone);
   else
     return Near(old_relative, -jibe_zone) || Near(old_relative, -tack_zone);
 }

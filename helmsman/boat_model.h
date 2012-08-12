@@ -93,5 +93,8 @@ class BoatModel {
   double y_;
   
   Polar apparent_;  // apparent wind in the boat frame
+
+  int gps_out_count_;
+
 };
 #endif  // HELMSMAN_BOAT_MODEL_H
