@@ -31,6 +31,7 @@
 #include "lib/log.h"
 #include "lib/timer.h"
 
+#include "proto/gps.h"
 #include "proto/rudder.h"
 #include "proto/wind.h"
 #include "proto/imu.h"
@@ -107,6 +108,7 @@ int main(int argc, char* argv[]) {
 	printf("$subscribe helmctl:\n");
 
 	struct CompassProto	compass = INIT_COMPASSPROTO;
+	struct GPSProto 	gps 	= INIT_GPSPROTO;
 	struct IMUProto 	imu	= INIT_IMUPROTO;
 	struct WindProto	wind    = INIT_WINDPROTO;
 	struct RudderProto	ruddsts = INIT_RUDDERPROTO;
@@ -126,7 +128,7 @@ int main(int argc, char* argv[]) {
 	memset(&backoff, 0, sizeof backoff);
 
 	const int64_t sampling_period_us = kSamplingPeriod * 1E6;     // .1 second * 1M us/s
-	const int64_t report_period_us   = kSkipperUpdatePeriod * 1E6;  // 10 seconds * 1M/us
+	const int64_t report_period_us   = kSkipperUpdatePeriod * 1E6;  // 10 seconds * 1M us/s
 	const int64_t backoff_period_us  = 10*1E6;  // 10 seconds
 	const int64_t safety_period_us   = 10*1E6;  // 10 seconds
 
@@ -176,6 +178,13 @@ int main(int argc, char* argv[]) {
 				ctrl_in.wind_sensor.mag_m_s   = wind.speed_m_s;
 				ctrl_in.wind_sensor.valid     = wind.valid;
 
+			} else if (sscanf(line, IFMT_GPSPROTO(&gps, &nn)) > 0) {
+
+				ctrl_in.gps.latitude_deg  = gps.lat_deg;
+				ctrl_in.gps.longitude_deg = gps.lng_deg;
+				ctrl_in.gps.speed_m_s 	  = gps.speed_m_s;
+				ctrl_in.gps.cog_rad 	  = Deg2Rad(gps.cog_deg);
+				
 			} else if (sscanf(line, IFMT_RUDDERPROTO_STS(&ruddsts, &nn)) > 0) {
 
 				ctrl_in.drives.gamma_rudder_left_rad  = Deg2Rad(ruddsts.rudder_l_deg);
