@@ -2,8 +2,9 @@ DEPS+=common
 DEPS+=lib/util
 DEPS+=helmsman
 DEPS+=vskipper
+DEPS+=io
 
-TARGET_ARCH=-m32
+# TARGET_ARCH=-m32
 
 # but not on Mac:
 LDFLAGS+=-static
