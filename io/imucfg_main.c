@@ -52,6 +52,7 @@ usage(void)
 		"\t-x, -y, -z  lever arm\n"
 		"\t-F       issue factory reset and exit (do not set anything)\n"
 		"\t-R       use plain reset to get back to measurement mode (default GoToMeasurement)\n"
+		"\t-S       get GPS status and exit (do not set or reset anything)\n"
 		, argv0);
 	exit(2);
 }
@@ -75,6 +76,7 @@ static const uint8_t kMsgGotoConfig[]      = MKMESSAGE(IMU_GOTOCONFIG);
 static const uint8_t kMsgGotoMeasurement[] = MKMESSAGE(IMU_GOTOMEASUREMENT);
 static const uint8_t kMsgFactoryReset[]    = MKMESSAGE(IMU_RESTOREFACTORYDEF);
 static const uint8_t kMsgReset[]           = MKMESSAGE(IMU_RESET);
+static const uint8_t kMsgReqGPSStatus[]	   = MKMESSAGE(IMU_REQGPSSTATUS);
 
 static uint32_t encode_float(float val) { return *(uint32_t*)&val; }
 
@@ -197,6 +199,7 @@ int main(int argc, char* argv[]) {
 	int ch;
 	int baudrate = 115200;
 	int factoryreset = 0;
+	int querygps = 0;
 	int reset = 0;
 	int skipf = 19;
 	int scenario = IMU_XKFSCENARIO_AEROSPACE_NOBARO; 
@@ -209,13 +212,14 @@ int main(int argc, char* argv[]) {
 	argv0 = strrchr(argv[0], '/');
 	if (argv0) ++argv0; else argv0 = argv[0];
 
-	while ((ch = getopt(argc, argv, "c:b:dFhk:m:NRs:x:y:z:")) != -1){
+	while ((ch = getopt(argc, argv, "c:b:dhk:m:s:x:y:z:FNRS")) != -1){
 		switch (ch) {
 		case 'b': baudrate = atoi(optarg); break;
 		case 'c': scenario = atoi(optarg); break;
 		case 'd': ++debug; break;
 		case 'F': ++factoryreset; break;
 		case 'R': ++reset; break;
+		case 'S': ++querygps; break;
 		case 'k': skipf = atoi(optarg); break;
 		case 'x': lev_x = atof(optarg); break;
 		case 'y': lev_y = atof(optarg); break;
@@ -294,6 +298,35 @@ int main(int argc, char* argv[]) {
 	if (factoryreset) {
 		r = msg_xchg(port, kMsgFactoryReset, sizeof kMsgFactoryReset, msg, sizeof msg);
 		if (r <= 0) crash("Unable to issue factory reset.");
+		return 0;
+	}
+
+	if (querygps) {
+		r = msg_xchg(port, kMsgReqGPSStatus, sizeof kMsgReqGPSStatus, msg, sizeof msg);
+		if (r <= 0) crash("Unable to query gps status.");
+		if (msg[0] != IMU_GPSSTATUS) printf("unexpected mid: 0x%x\n", msg[0]);
+		printf("Found %d satellites in range\n", msg[1]);
+		unsigned char *p = msg + 1;
+		for (r = 0; r < msg[1]; ++r) {
+			printf("chan %2d satellite %2d status 0x%x signal strenght %d quality %d (", p[1], p[2], p[3], p[5], p[4]);
+			switch(p[4]) {
+			case 0: printf("idle"); break;
+			case 1: case 2: printf("searching"); break;
+			case 3: printf("unusable"); break;
+			case 4: printf("code locked"); break;
+			case 5: case 6: printf("carrier locked"); break;
+			case 7: printf("receiving"); break;
+			default: printf("???"); break;
+			}
+			puts(")");
+			if (p[3] & 0x1) puts("\tSV is used for navigation");
+			if (p[3] & 0x2) puts("\tDifferential correction data is available for this SV");
+			if (p[3] & 0x4) puts("\tOrbit information is available for this SV (ephemeris or Almanach");
+			if (p[3] & 0x8) puts("\tOrbit information is Ephemeris");
+			if (p[3] & 0x10) puts("\tSV is unhealthy / shall not be used");
+
+			p += 5;
+		}
 		return 0;
 	}
 
