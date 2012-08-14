@@ -193,7 +193,7 @@ void ConvertSpeed(struct IMUProto* vars) {
 	if (isnan(vars->vel_x_m_s) || isnan(vars->vel_y_m_s) || isnan(vars->yaw_deg))
 		return;
 
-	double phi_z = M_PI / 180 * vars->yaw_deg;
+	double phi_z = vars->yaw_deg * (M_PI / 180.0);
 	double s = sin(phi_z);
 	double c = cos(phi_z);
 
