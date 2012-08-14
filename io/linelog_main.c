@@ -114,7 +114,7 @@ int main(int argc, char* argv[]) {
 
 			while(next_ms <= now) next_ms += 1000*sample_s;
 
-			if (lc++ % log_size == 0) {
+			if (++lc % log_size == 0) {
 				close(of);
 
 				int d;
