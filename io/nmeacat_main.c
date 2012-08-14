@@ -192,25 +192,37 @@ parse_gprmc(char* sentence, struct GPSProto *p)
 	int64_t date_dc = 0;
 	int n = sscanf(sentence, "GPRMC,%lf,%c,%lf,%c,%lf,%c,%lf,%lf,%lld,",
 		       &time_dc, &status, &lat_dc, &N, &lng_dc, &E, &sog_k, &cog_deg, &date_dc);
-	if (n != 9 || status != 'A') return 0;
+	if (n != 9) {
+		sog_k = NAN;
+		cog_deg = NAN;
+	 	n = sscanf(sentence, "GPRMC,%lf,%c,%lf,%c,%lf,%c,,,%lld,",
+		       &time_dc, &status, &lat_dc, &N, &lng_dc, &E, &date_dc);
+		if (n != 7) return 0;
+	}
+
+	if (status != 'A' && status != 'V') return 0;
+
+	if (status == 'A') {
 	
-	struct tm t;
-	t.tm_hour = time_dc / 10000;  time_dc -= 10000 * t.tm_hour;
-	t.tm_min  = time_dc / 100;    time_dc -= 100 * t.tm_min;
-	t.tm_sec  = time_dc;    time_dc -=  t.tm_sec;
-	int64_t ms = time_dc * 1000LL;
-	t.tm_mday = date_dc / 10000; date_dc %= 10000;
-	t.tm_mon = date_dc / 100; date_dc %= 100;  t.tm_mon--;
-	t.tm_year = 100 + date_dc;
-	p->gps_timestamp_ms = timegm(&t) * 1000LL + ms;
+		struct tm t;
+		t.tm_hour = time_dc / 10000;  time_dc -= 10000 * t.tm_hour;
+		t.tm_min  = time_dc / 100;    time_dc -= 100 * t.tm_min;
+		t.tm_sec  = time_dc;    time_dc -=  t.tm_sec;
+		int64_t ms = time_dc * 1000LL;
+		t.tm_mday = date_dc / 10000; date_dc %= 10000;
+		t.tm_mon = date_dc / 100; date_dc %= 100;  t.tm_mon--;
+		t.tm_year = 100 + date_dc;
+		p->gps_timestamp_ms = timegm(&t) * 1000LL + ms;
+	
+		p->lat_deg = trunc(lat_dc / 100.0);  lat_dc -= 100*p->lat_deg;  p->lat_deg += lat_dc / 60.0;
+		if (N == 'S') p->lat_deg *= -1;
 
-	p->lat_deg = trunc(lat_dc / 100.0);  lat_dc -= 100*p->lat_deg;  p->lat_deg += lat_dc / 60.0;
-	if (N == 'S') p->lat_deg *= -1;
+		p->lng_deg = trunc(lng_dc / 100.0);  lng_dc -= 100*p->lng_deg;  p->lng_deg += lng_dc / 60.0;
+		if (E == 'W') p->lng_deg *= -1;
+		p->speed_m_s = sog_k * (1852.0/3600.0);
+		p->cog_deg = cog_deg;
 
-	p->lng_deg = trunc(lng_dc / 100.0);  lng_dc -= 100*p->lng_deg;  p->lng_deg += lng_dc / 60.0;
-	if (E == 'W') p->lng_deg *= -1;
-	p->speed_m_s = sog_k * (1852.0/3600.0);
-	p->cog_deg = cog_deg;
+	}
 	return 1;
 }
 
@@ -385,7 +397,7 @@ int main(int argc, char* argv[]) {
 		if (strncmp(start, "$GPRMC", 6) == 0) {
 			struct GPSProto vars = INIT_GPSPROTO;
 			if (!parse_gprmc(start+1, &vars)) {
-				if (debug) fprintf(stderr, "Invalid WIMWV sentence: '%s'\n", line);
+				if (debug) fprintf(stderr, "Invalid GPRMC sentence: '%s'\n", line);
 				continue;
 			}
 			vars.timestamp_ms = now;
@@ -412,7 +424,7 @@ int main(int argc, char* argv[]) {
 		if (strncmp(start, "$WIXDR", 6) == 0) {
 			struct WixdrProto vars = INIT_WIXDRPROTO;
 			if (!parse_wixdr(start+1, &vars)) {
-				if (debug) fprintf(stderr, "Invalid WIMWV sentence: '%s'\n", line);
+				if (debug) fprintf(stderr, "Invalid WIXDR sentence: '%s'\n", line);
 				continue;
 			}		
 			vars.timestamp_ms = now;
@@ -420,7 +432,7 @@ int main(int argc, char* argv[]) {
 			continue;
 		}
 
-		if (strncmp(start, "$C", 2) == 0) {
+		if (strncmp(start, "$C,", 3) == 0) {
 			struct CompassProto vars = INIT_COMPASSPROTO;
 			if (!parse_compass(start+1, &vars)) {
 				if (debug) fprintf(stderr, "Invalid C sentence: '%s'\n", line);
