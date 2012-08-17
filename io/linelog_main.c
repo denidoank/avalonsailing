@@ -97,7 +97,7 @@ int main(int argc, char* argv[]) {
 		if (r == EAGAIN) continue;
 
 		char line[1024];
-		while(lb_getline(line, sizeof line, &lb)) {
+		while(lb_getline(line, sizeof line, &lb) > 0) {
 
 			int64_t now;
 			char dum[25];

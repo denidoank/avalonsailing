@@ -272,12 +272,7 @@ int main(int argc, char* argv[]) {
 		struct termios t;
 		if (tcgetattr(port, &t) < 0) crash("tcgetattr(%s)", argv[0]);
 		cfmakeraw(&t);
-
-		t.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
-		t.c_oflag &= ~OPOST;
-		t.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
-		t.c_cflag &= ~(CSIZE | PARENB);
-		t.c_cflag |= CLOCAL|CREAD|CS8;
+		t.c_cflag |= CLOCAL|CREAD;
 
 		switch (baudrate) {
 		case 0: break;
