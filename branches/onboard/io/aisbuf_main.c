@@ -122,7 +122,7 @@ int main(int argc, char* argv[]) {
 			if (r == EAGAIN) continue;
 			if (r != 0) crash("reading stdin");
 
-			while(lb_getline(msg->line, sizeof msg->line, &line)) {
+			while(lb_getline(msg->line, sizeof msg->line, &line) > 0) {
 
 				int n = sscanf(msg->line, "ais: timestamp_ms:%lld mmsi:%d msgtype:%d ",
 					       &msg->timestamp_ms, &msg->mmsi, &msg->msgtype);
