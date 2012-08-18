@@ -189,10 +189,10 @@ main(int argc, char* argv[])
 
 		// write 1 line 
 		while(lb_pending(&lbout) && state == IDLE) {
-			syslog(LOG_DEBUG, "writing line");
-			int eol = lbout.eol;  // hack; distinguish between EAGAIN this line/more lines; put in linebuffer api
+			syslog(LOG_DEBUG, "writing line %s", lbout.line);
+			int eol = lbout.head - lbout.eol;  // hack; distinguish between EAGAIN this line/more lines; put in linebuffer api
 			int r = lb_writefd(port, &lbout);
-			if (r == EAGAIN && lbout.eol == eol) continue;
+			if (r == EAGAIN && (lbout.head - lbout.eol == eol)) continue;
 			if (r == 0 || r == EAGAIN) break;
 			crash("writing to modem");		
 		}
@@ -215,7 +215,7 @@ main(int argc, char* argv[])
                 int r = pselect((port>fifo?port:fifo)+1, &rfds,  NULL, NULL, &timeout, &empty_mask);
                 if (r == -1 && errno != EINTR) crash("pselect");
 
-		syslog(LOG_DEBUG, "woke up %d", r);
+//		syslog(LOG_DEBUG, "woke up %d", r);
 
                 now = now_us();
 
@@ -234,26 +234,26 @@ main(int argc, char* argv[])
                 char line[1024];
 		// handle modem lines
                 while(lb_getline(line, sizeof line, &lbin) > 0) {
-			slog(LOG_DEBUG, "modem: %s", line);
+			syslog(LOG_DEBUG, "modem (%d): %s", state, line);
 			if (state == PDU) {
 				// handle this first
 			}
 
 			if(line[0] == '\n') continue;  // ignore empty lines
 			if(startswith("OK", line)) {
-				if (state == IDLE) slog(LOG_DEBUG, "spurious OK");
+				if (state == IDLE) syslog(LOG_DEBUG, "spurious OK");
 				state = IDLE; 
 				continue;
 			}
 			if(startswith("ERROR", line)) {
-				if (state == IDLE) slog(LOG_DEBUG, "spurious ERROR");
+				if (state == IDLE) syslog(LOG_DEBUG, "spurious ERROR");
 				state = IDLE;
-				//slog(LOG_INFO, "command %s failed", lastcmd);
-				slog(LOG_INFO, "command failed");
+				//syslog(LOG_INFO, "command %s failed", lastcmd);
+				syslog(LOG_INFO, "command failed");
 				continue;
 			}
 			if(startswith("AT", line)) {
-				if (state != IDLE) slog(LOG_DEBUG, "premature next command %s", line);
+				if (state != IDLE) syslog(LOG_DEBUG, "premature next command %s", line);
 				// memcpy to lastcmd
 				state = OTHERCMD;
 
@@ -265,13 +265,13 @@ main(int argc, char* argv[])
 			}
 
 			if(startswith("-MSGEO:", line)) {
-				if (state != OTHERCMD) slog(LOG_DEBUG, "unexpected geo report");
+				if (state != OTHERCMD) syslog(LOG_DEBUG, "unexpected geo report");
 				syslog(LOG_NOTICE, "Geo report: %s", line + 7);
 				continue;
 			}
 
 			if(startswith("+CSQ:", line)) {
-				if (state != OTHERCMD) slog(LOG_DEBUG, "unexpected quality report");
+				if (state != OTHERCMD) syslog(LOG_DEBUG, "unexpected quality report");
 				syslog(LOG_NOTICE, "Signal quality report: %s", line + 5);
 				continue;
 			}
@@ -296,7 +296,7 @@ main(int argc, char* argv[])
 
 		// handle fifo lines
                 while(lb_getline(line, sizeof line, &lbfifo) > 0) {
-			slog(LOG_DEBUG, "fifo: %s", line);
+			syslog(LOG_DEBUG, "fifo: %s", line);
 
 		}
 
