@@ -78,18 +78,17 @@ usage(void)
         exit(2);
 }
 
-// set CANONical mode: modem commands and responses are line oriented.
 static void
 setserial(int port, int baudrate, char* dev)
 {
         struct termios t;
         if (tcgetattr(port, &t) < 0) crash("tcgetattr(%s)", dev);
+	cfmakeraw(&t);
 
-	t.c_iflag |= IXON | IXOFF;                /* 2-way flow control */
-	t.c_lflag |= ICANON | ISIG | ECHO | ECHOE | ECHOK| ECHOKE;
-	t.c_oflag |= OPOST;
-        t.c_cflag &= ~(CSIZE | PARENB);  
-        t.c_cflag |= CRTSCTS | CREAD | CS8 | HUPCL;
+	t.c_lflag |= ICANON;
+	t.c_iflag |= IGNCR;   // ignore \r on input
+	t.c_oflag = OPOST | ONLCR;   // map \n to \r\n on output
+        t.c_cflag |= CRTSCTS | CREAD;
 
         switch (baudrate) {
         case 0: break;
@@ -102,8 +101,19 @@ setserial(int port, int baudrate, char* dev)
         default: crash("Unsupported baudrate: %d", baudrate);
         }
 
-        tcflush(port, TCIFLUSH);
+        tcflush(port, TCIOFLUSH);
         if (tcsetattr(port, TCSANOW, &t) < 0) crash("tcsetattr(%s)", dev);
+}
+
+// Set the mode before execing login.
+static void
+setserial_final(int port, char* dev)
+{
+	struct termios t;
+	if (tcgetattr(port, &t) < 0) crash("tcgetattr(%s)", dev);
+
+
+	if (tcsetattr(port, TCSANOW, &t) < 0) crash("tcsetattr(%s)", dev);
 }
 
 int
@@ -134,7 +144,7 @@ main(int argc, char* argv[])
         if (signal(SIGBUS, fault) == SIG_ERR)  crash("signal(SIGBUS)");
         if (signal(SIGSEGV, fault) == SIG_ERR)  crash("signal(SIGSEGV)");
 
-        openlog(argv0, 0, LOG_UUCP);
+        openlog(argv0, debug?LOG_PERROR:0, LOG_UUCP);
 
 	// create and open fifo
 	if (access(path_to_fifo, F_OK) != 0 && mkfifo(path_to_fifo, 0777) != 0)
@@ -143,7 +153,7 @@ main(int argc, char* argv[])
 	if (fifo < 0) crash("open(%s)", path_to_fifo);
 
 	// open port
-	int port = open(argv[0], O_RDWR);
+	int port = open(argv[0], O_RDWR|O_NONBLOCK);
 	if (port < 0) crash("open(%s)", argv[0]);
 	setserial(port, baudrate, argv[0]);
 
@@ -154,25 +164,28 @@ main(int argc, char* argv[])
 	memset(&lbin, 0, sizeof lbin);
 	memset(&lbfifo, 0, sizeof lbfifo);
 
-	// initialize modem
-	lb_putline(&lbout, "ATZ0\r\n");      // reset
-	lb_putline(&lbout, "AT+CGMI\r\n");   // query manufacturer
-	lb_putline(&lbout, "AT+CGMM\r\n");   // query model
-	lb_putline(&lbout, "AT+CGSN\r\n");   // query serial number
-	lb_putline(&lbout, "AT+CREG=1\r\n"); // enable network registration unsolicited result code
-
-	for(;;) {
-		int r = lb_writefd_all(port, &lbout);
-		if (r == 0) break;
-		if (r == EAGAIN) continue;
-		crash("writing init strings");		
-	}
+	// initialize modem (putline adds \n, OPOST|ONLCR turns that into \r\n
+//	lb_putline(&lbout, "ATZ0E0");      // reset
+	lb_putline(&lbout, "AT+CGMI");   // query manufacturer
+#if 0
+	lb_putline(&lbout, "AT+CGMM");   // query model
+	lb_putline(&lbout, "AT+CGSN");   // query serial number
+	lb_putline(&lbout, "AT+CREG=1"); // enable network registration unsolicited result code
+#endif
 
 	const int64_t kQueryPeriod_us = 60 * 1E6;  // once a minute
 	int64_t now = now_us();
         int64_t next_query = now + kQueryPeriod_us;
 
 	for(;;) {
+
+		// write 1 line if buffered
+		if(lb_pending(&lbout)) {
+			syslog(LOG_DEBUG, "wrote line");
+			int r = lb_writefd(port, &lbout);
+			if (r == EAGAIN) continue;
+			if (r != 0) crash("writing to modem");		
+		}
 
 		// select on fifo and on port
 		fd_set rfds;
@@ -184,11 +197,15 @@ main(int argc, char* argv[])
                 sigemptyset(&empty_mask);
 
                 struct timespec timeout = { 0, 0 };
-                if (now < next_query)
-                        timeout.tv_nsec =  (next_query - now) * 1000;
+                if (now < next_query) {
+		  timeout.tv_nsec =  ((next_query - now) % 1000000)*1000;
+		  timeout.tv_sec  =   (next_query - now) / 1000000;
+		}
 
                 int r = pselect((port>fifo?port:fifo)+1, &rfds,  NULL, NULL, &timeout, &empty_mask);
                 if (r == -1 && errno != EINTR) crash("pselect");
+
+		syslog(LOG_DEBUG, "woke up %d", r);
 
                 now = now_us();
 
@@ -225,16 +242,12 @@ main(int argc, char* argv[])
 
 		while(now >= next_query) next_query += kQueryPeriod_us;
 
-		lb_putline(&lbout, "AT-MSGEO\r\n"); // query geolocation
-		lb_putline(&lbout, "AT+CSQ\r\n"); // query signal strenght
-		for(;;) {
-			int r = lb_writefd_all(port, &lbout);
-			if (r == 0) break;
-			if (r == EAGAIN) continue;
-			crash("writing query strings");		
-		}
+		lb_putline(&lbout, "AT-MSGEO"); // query geolocation
+		lb_putline(&lbout, "AT+CSQ"); // query signal strenght
 
 	}
+
+	setserial_final(port, argv[0]);
 
 	syslog(LOG_NOTICE, "executing login");
 	closelog();
