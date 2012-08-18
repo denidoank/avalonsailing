@@ -225,7 +225,7 @@ int DecodeSMS(const unsigned char* buffer, int buffer_length,
 
 	const int sms_deliver_start = 1 + buffer[0];
 	if (sms_deliver_start + 1 > buffer_length) return -1;
-	if (buffer[sms_deliver_start] & SMS_DELIVER_ONE_MESSAGE != SMS_DELIVER_ONE_MESSAGE) return -1;
+	if ((buffer[sms_deliver_start] & SMS_DELIVER_ONE_MESSAGE) != SMS_DELIVER_ONE_MESSAGE) return -1;
 
 	const int sender_number_length = buffer[sms_deliver_start + 1];
 	if (sender_number_length + 1 > sender_phone_number_size) return -1;  // Buffer too small to hold decoded phone number.
