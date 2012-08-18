@@ -26,6 +26,8 @@ struct LineBuffer {
 	int discard; // if true, writestr and writefd should skip until the next eol.
 };
 
+#define LB_INIT { "", 0, 0, 0 }
+
 // reset the linebuffer, discarding all buffered data, by resetting head and eol.
 // Does not clear the discard flag.
 void lb_clear(struct LineBuffer* lb);
