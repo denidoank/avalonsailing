@@ -43,7 +43,9 @@
 // in any pipeline we'd use we would have to close stdout on exec(login)
 // and the parent would get the exit from the last element in the pipe)
 // TODO reconsider sms i/o
-
+//
+// Documentation on the Iridium specific commands set is in the
+// Iridium ISU AT command reference.
 
 #include <errno.h>
 #include <fcntl.h>
@@ -83,11 +85,11 @@ setserial(int port, int baudrate, char* dev)
 {
         struct termios t;
         if (tcgetattr(port, &t) < 0) crash("tcgetattr(%s)", dev);
-	cfmakeraw(&t);
 
+	cfmakeraw(&t);
 	t.c_lflag |= ICANON;
 	t.c_iflag |= IGNCR;   // ignore \r on input
-	t.c_oflag = OPOST | ONLCR;   // map \n to \r\n on output
+	t.c_oflag  = OPOST | ONLCR;   // map \n to \r\n on output
         t.c_cflag |= CRTSCTS | CREAD;
 
         switch (baudrate) {
@@ -114,6 +116,14 @@ setserial_final(int port, char* dev)
 
 
 	if (tcsetattr(port, TCSANOW, &t) < 0) crash("tcsetattr(%s)", dev);
+}
+
+static int
+startswith(const char* pfx, const char* s) {
+	while(*pfx)
+		if (*pfx++ != *s++)
+			return 0;
+	return 1;
 }
 
 int
@@ -157,34 +167,34 @@ main(int argc, char* argv[])
 	if (port < 0) crash("open(%s)", argv[0]);
 	setserial(port, baudrate, argv[0]);
 
-	struct LineBuffer lbout;
-	struct LineBuffer lbin;
-	struct LineBuffer lbfifo;
-	memset(&lbout, 0, sizeof lbout);
-	memset(&lbin, 0, sizeof lbin);
-	memset(&lbfifo, 0, sizeof lbfifo);
+	struct LineBuffer lbout  = LB_INIT;
+	struct LineBuffer lbin   = LB_INIT;
+	struct LineBuffer lbfifo = LB_INIT;
 
-	// initialize modem (putline adds \n, OPOST|ONLCR turns that into \r\n
-//	lb_putline(&lbout, "ATZ0E0");      // reset
+	enum CmdState { IDLE, CGMI, CGMM, CGSN, OTHERCMD, PDU, CONNECTED } state = IDLE;
+	
+	// queue commands to initialize modem (putline adds \n, OPOST|ONLCR turns that into \r\n
+	lb_putline(&lbout, "ATZ0");      // reset.  Echo should be on (default) for the main loop to keep track of what's going on.
 	lb_putline(&lbout, "AT+CGMI");   // query manufacturer
-#if 0
 	lb_putline(&lbout, "AT+CGMM");   // query model
 	lb_putline(&lbout, "AT+CGSN");   // query serial number
 	lb_putline(&lbout, "AT+CREG=1"); // enable network registration unsolicited result code
-#endif
+	lb_putline(&lbout, "AT+CNMI=2,2,0,1"); // smses and status delivered spontaneously as full message, see Iridium doc section 6.12
 
 	const int64_t kQueryPeriod_us = 60 * 1E6;  // once a minute
 	int64_t now = now_us();
         int64_t next_query = now + kQueryPeriod_us;
 
-	for(;;) {
+	while(state != CONNECTED) {
 
-		// write 1 line if buffered
-		if(lb_pending(&lbout)) {
-			syslog(LOG_DEBUG, "wrote line");
+		// write 1 line 
+		while(lb_pending(&lbout) && state == IDLE) {
+			syslog(LOG_DEBUG, "writing line");
+			int eol = lbout.eol;  // hack; distinguish between EAGAIN this line/more lines; put in linebuffer api
 			int r = lb_writefd(port, &lbout);
-			if (r == EAGAIN) continue;
-			if (r != 0) crash("writing to modem");		
+			if (r == EAGAIN && lbout.eol == eol) continue;
+			if (r == 0 || r == EAGAIN) break;
+			crash("writing to modem");		
 		}
 
 		// select on fifo and on port
@@ -225,10 +235,63 @@ main(int argc, char* argv[])
 		// handle modem lines
                 while(lb_getline(line, sizeof line, &lbin) > 0) {
 			slog(LOG_DEBUG, "modem: %s", line);
-		// 	connect -> break main loop
+			if (state == PDU) {
+				// handle this first
+			}
 
-		// 	handle unsollicited  messages 
+			if(line[0] == '\n') continue;  // ignore empty lines
+			if(startswith("OK", line)) {
+				if (state == IDLE) slog(LOG_DEBUG, "spurious OK");
+				state = IDLE; 
+				continue;
+			}
+			if(startswith("ERROR", line)) {
+				if (state == IDLE) slog(LOG_DEBUG, "spurious ERROR");
+				state = IDLE;
+				//slog(LOG_INFO, "command %s failed", lastcmd);
+				slog(LOG_INFO, "command failed");
+				continue;
+			}
+			if(startswith("AT", line)) {
+				if (state != IDLE) slog(LOG_DEBUG, "premature next command %s", line);
+				// memcpy to lastcmd
+				state = OTHERCMD;
 
+				if(startswith("AT+CGMI", line)) state = CGMI;
+				else if(startswith("AT+CGMM", line)) state = CGMM;
+				else if(startswith("AT+CGSN", line)) state = CGSN;
+
+				continue;
+			}
+
+			if(startswith("-MSGEO:", line)) {
+				if (state != OTHERCMD) slog(LOG_DEBUG, "unexpected geo report");
+				syslog(LOG_NOTICE, "Geo report: %s", line + 7);
+				continue;
+			}
+
+			if(startswith("+CSQ:", line)) {
+				if (state != OTHERCMD) slog(LOG_DEBUG, "unexpected quality report");
+				syslog(LOG_NOTICE, "Signal quality report: %s", line + 5);
+				continue;
+			}
+
+			if(startswith("+CMT:", line)) {
+//				+CMT: [<alpha>],<length><CR><LF><pdu> (PDU mode)
+				state = PDU;
+			}
+
+			switch(state) {
+			case CGMI: syslog(LOG_NOTICE, "Manufacturer : %s", line); break;
+			case CGMM: syslog(LOG_NOTICE, "Model        : %s", line); break;
+			case CGSN: syslog(LOG_NOTICE, "Serial number: %s", line); break;
+			default: break;
+			}
+
+			if(startswith("CONNECT", line)) {
+				state = CONNECTED;
+				break;
+			}
 		}
 
 		// handle fifo lines
@@ -243,7 +306,7 @@ main(int argc, char* argv[])
 		while(now >= next_query) next_query += kQueryPeriod_us;
 
 		lb_putline(&lbout, "AT-MSGEO"); // query geolocation
-		lb_putline(&lbout, "AT+CSQ"); // query signal strenght
+		lb_putline(&lbout, "AT+CSQ");   // query signal strenght
 
 	}
 
