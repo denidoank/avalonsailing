@@ -5,6 +5,8 @@
 
 #include "skipper/skipper_internal.h"
 
+#include <syslog.h>
+
 #include "common/unknown.h"
 #include "common/convert.h"
 #include "common/delta_angle.h"
@@ -18,11 +20,12 @@ static const double kDefaultDirection = 225;  // SouthWest as an approximation o
 
 double SkipperInternal::old_alpha_star_deg_ = kDefaultDirection;
 WindStrengthRange SkipperInternal::wind_strength_ = kCalmWind;
+bool SkipperInternal::storm_ = false;
+bool SkipperInternal::storm_sign_plus_ = false;
 
 void SkipperInternal::Run(const SkipperInput& in,
                           const vector<skipper::AisInfo>& ais,
                           double* alpha_star_deg) {
-
   if (in.angle_true_deg == kUnknown ||
       in.mag_true_kn == kUnknown ||
       isnan(in.angle_true_deg) ||
@@ -34,7 +37,12 @@ void SkipperInternal::Run(const SkipperInput& in,
 
   wind_strength_ = WindStrength(wind_strength_, KnotsToMeterPerSecond(in.mag_true_kn));
 
+  // This is a serial decision process
+  // planned   ->   planned2   ->    safe       ->   feasible
+  // from map       modified      modified to       is sailable
+  //                if storm    avoid obstacles
   double planned = 0;
+  double planned2 = 0;
   double safe = 0;
   if (in.longitude_deg == kUnknown ||
       in.latitude_deg == kUnknown ||
@@ -53,22 +61,23 @@ void SkipperInternal::Run(const SkipperInput& in,
       // Without GPS fix there is no way to find a safe course, but it is likely
       // that our last safe course is still valid.
       safe = old_alpha_star_deg_;
+      safe = HandleStorm(wind_strength_, in.angle_true_deg, safe);
     }
   } else {
     planned = Planner::ToDeg(in.latitude_deg, in.longitude_deg);
-    // Finally the helmsman will steer a +-15 deg course relative to the wind (jibe zone).
-    if (kStormWind == wind_strength_) {
-      planned = in.angle_true_deg;
-      fprintf(stderr, "Storm, going downwind to %6.2lf deg.\n", planned);
-    }
-    safe = RunCollisionAvoider(planned, in, ais);
+    planned2 = HandleStorm(wind_strength_, in.angle_true_deg, planned);
+    safe = RunCollisionAvoider(planned2, in, ais);
     old_alpha_star_deg_ = safe;
   }
 
-  if (fabs(planned - safe) > 0.1)
+  if (fabs(planned - planned2) > 0.1)
+    fprintf(stderr,
+            "Override %8.6lg with %8.6lg because we have a storm.\n",
+            planned, planned2);
+  if (fabs(planned2 - safe) > 0.1)
       fprintf(stderr,
               "Override %8.6lg with %8.6lg because it is not collision free.\n",
-              planned, safe);
+              planned2, safe);
 
   double feasible = BestSailableHeadingDeg(safe, in.angle_true_deg);
 
@@ -105,5 +114,55 @@ double SkipperInternal::RunCollisionAvoider(
   return skipper_out.deg();
 }
 
+// In a storm the planner is overridden.
+// The helmsman will steer a close hauling course relative to the wind.
+// [http://www.gosailing.info/Sailing%20in%20Heavy%20Weather.htm]
+// [Discussion at Zurich Sailing Club, 2012/08/17]
+// No maneuvers possible. But a small risk of stalling.
+// If we assume that the wave fronts are orthogonal to the wind
+// direction then sailing 115 degrees off the wind vector direction
+// means we hit the waves not directly but at an angle of 25 degrees.
 
+// If there is a storm this function writes the
+// best bearing for this situation to storm_bearing;
+// storm_ and storm_sign_plus_ are modified.
+double SkipperInternal::HandleStorm(WindStrengthRange wind_strength,
+                                  double angle_true_deg,
+                                  double planned) {
+  bool transition_to_storm = false;
+  double storm_bearing = 0;
+  if (storm_) {
+    if (wind_strength != kStormWind) {
+      storm_ = false;
+    }
+  } else {
+    if (wind_strength == kStormWind) {
+      storm_ = true;
+      transition_to_storm = true;
+    }
+  }
 
+  // The direction side is kept as long as the storm lasts.
+  // We keep a constant angle to the true wind.
+  const double kStormAngle = 115.0;
+  if (transition_to_storm) {
+    double d1 = DeltaOldNewDeg(planned, NormalizeDeg(angle_true_deg + kStormAngle));
+    double d2 = DeltaOldNewDeg(planned, NormalizeDeg(angle_true_deg - kStormAngle));
+    storm_sign_plus_ = fabs(d1) < fabs(d2);
+  }
+
+  if (storm_) {
+    if (storm_sign_plus_) {
+      storm_bearing = NormalizeDeg(angle_true_deg + 115);
+    } else {
+      storm_bearing = NormalizeDeg(angle_true_deg - 115);
+    }
+    if (transition_to_storm) {
+      fprintf(stderr, "Storm, going to %6.2lf deg.\n", storm_bearing);
+      syslog(LOG_NOTICE, "Storm, going to %6.2lf deg.\n", storm_bearing);
+    }
+  } else {
+    storm_bearing = planned;
+  }
+  return storm_bearing;
+}
