@@ -535,7 +535,6 @@ TEST(SkipperInternal, StormyAtlantic) {
 
 int main(int argc, char* argv[]) {
   SkipperInternal_Storm();
-  /*
   SkipperInternal_UfenauPlan();
   SkipperInternal_Thalwil();
   SkipperInternal_SukkulentenhausPlan();
@@ -543,6 +542,5 @@ int main(int argc, char* argv[]) {
   SkipperInternal_Atlantic();
   SkipperInternal_ChangingAtlantic();
   SkipperInternal_StormyAtlantic();
-  */
   return 0;
 }
