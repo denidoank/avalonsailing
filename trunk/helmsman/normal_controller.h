@@ -45,14 +45,15 @@ class NormalController : public Controller {
   double RateLimit();
 
   // This method is public for test accessibility only.
-  ManeuverType ShapeReferenceValue(double alpha_star,
-                                   double alpha_true, double mag_true,
-                                   double phi_z_boat, double mag_boat,
-                                   double angle_app,  double mag_app,
-                                   double old_gamma_sail,
-                                   double* phi_z_star,
-                                   double* omega_z_star,
-                                   double* gamma_sail_star);
+  void ShapeReferenceValue(double alpha_star,
+                           double alpha_true, double mag_true,
+                           double phi_z_boat, double mag_boat,
+                           double angle_app,  double mag_app,
+                           double old_gamma_sail,
+                           double* phi_z_star,
+                           double* omega_z_star,
+                           double* gamma_sail_star,
+                           ControllerOutput* out);
   // public for test only.
   double FilterOffset(double offset);
 

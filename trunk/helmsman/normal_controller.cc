@@ -77,22 +77,15 @@ void NormalController::Run(const ControllerInput& in,
   double phi_star;
   double omega_star;
   double gamma_sail_star;
-  // maneuver is set just once to kJibe or kTack, when the maneuver starts.
-  // TODO: Put out->status updates into this method.
-  ManeuverType maneuver =
-      ShapeReferenceValue(SymmetricRad(in.alpha_star_rad),
-                          SymmetricRad(filtered.alpha_true), filtered.mag_true,
-                          SymmetricRad(filtered.phi_z_boat), filtered.mag_boat,
-                          SymmetricRad(filtered.angle_app),  filtered.mag_app,
-                          in.drives.gamma_sail_rad,
-                          &phi_star,
-                          &omega_star,
-                          &gamma_sail_star);
-  if (maneuver == kTack) {
-    out->status.tacks++;
-  } else if (maneuver == kJibe) {
-    out->status.jibes++;
-  }
+  ShapeReferenceValue(SymmetricRad(in.alpha_star_rad),
+                      SymmetricRad(filtered.alpha_true), filtered.mag_true,
+                      SymmetricRad(filtered.phi_z_boat), filtered.mag_boat,
+                      SymmetricRad(filtered.angle_app),  filtered.mag_app,
+                      in.drives.gamma_sail_rad,
+                      &phi_star,
+                      &omega_star,
+                      &gamma_sail_star,
+                      out);
 
   if (debug) fprintf(stderr, "IntRef: %6.2lf %6.2lf\n", Rad2Deg(phi_star), Rad2Deg(omega_star));
 
@@ -191,14 +184,15 @@ double LimitToMinimalManeuver(double old_bearing, double new_bearing,
 // suitable sail angle.
 // States: old_phi_z_star_ because phi_z_star must not jump
 //   and ref_ because a running plan trumps everything else.
-ManeuverType NormalController::ShapeReferenceValue(double alpha_star,
+void NormalController::ShapeReferenceValue(double alpha_star,
                                                    double alpha_true, double mag_true,
                                                    double phi_z_boat, double mag_boat,
                                                    double angle_app,  double mag_app,
                                                    double old_gamma_sail,
                                                    double* phi_z_star,
                                                    double* omega_z_star,
-                                                   double* gamma_sail_star) {
+                                                   double* gamma_sail_star,
+                                                   ControllerOutput* out) {
   double phi_z_offset = 0;  // used when sailing close hauled.
   double new_sailable = 0;
   if (debug) fprintf(stderr, "app %6.2lf true %6.2lf old_sail %6.2lf\n", angle_app, alpha_true, old_gamma_sail);
@@ -248,6 +242,18 @@ ManeuverType NormalController::ShapeReferenceValue(double alpha_star,
 
       ref_.SetReferenceValues(old_phi_z_star_, old_gamma_sail);
       ref_.NewPlan(new_sailable, delta_gamma_sail);
+      switch (maneuver_type_) {
+        case kTack:
+          out->status.tacks++;
+          break;
+        case kJibe:
+          out->status.jibes++;
+          break;
+        default:
+          if (debug) fprintf(stderr, "Wrong maneuver type %s!\n",
+                             ManeuverToString(maneuver_type_));
+      }
+
       ref_.GetReferenceValues(phi_z_star, omega_z_star, gamma_sail_star);
     } else {
       // Normal case, minor changes of the desired heading.
@@ -275,7 +281,6 @@ ManeuverType NormalController::ShapeReferenceValue(double alpha_star,
   fallen_off_ = FilterOffset(phi_z_offset);
   *phi_z_star += fallen_off_;  // so the offset is a temporary thing
   if (debug) fprintf(stderr, "* %6.2lf %6.2lf %6.2lf\n", alpha_star, new_sailable, *phi_z_star);
-  return maneuver_type_;
 }
 
 double NormalController::FilterOffset(double offset) {

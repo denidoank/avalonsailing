@@ -38,6 +38,7 @@ BoatModel::BoatModel(double sampling_period,
       apparent_(0, 0),
       gps_out_count_(1) {
   SetStartPoint(start_location);
+  debug = 0;
 }
 
 // The x-component of the sail force, very roughly.

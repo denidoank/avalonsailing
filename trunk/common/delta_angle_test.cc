@@ -21,6 +21,20 @@ TEST(DeltaAngle, All) {
   EXPECT_FLOAT_EQ(170, NearerDeg(179, 170, -172));
   EXPECT_FLOAT_EQ(-172, NearerDeg(179, -172, 170));
   EXPECT_FLOAT_EQ(-173, NearerDeg(179, 170, -173));
+
+  EXPECT_FLOAT_EQ(1, NearerRad(1.2, 1, 1.5));
+  EXPECT_FLOAT_EQ(1 + M_PI - 0.011, NearerRad(1, 1 - M_PI + 0.01, 1 + M_PI - 0.011));
+  EXPECT_FLOAT_EQ(-1, NearerRad(-0.01, 1, -1));
+  EXPECT_FLOAT_EQ( 1, NearerRad( 0.01, 1, -1));
+  EXPECT_FLOAT_EQ( 1, NearerRad(M_PI - 0.01, 1, -1));
+  EXPECT_FLOAT_EQ(-1, NearerRad(M_PI + 0.01, 1, -1));
+
+  EXPECT_FLOAT_EQ(1, NearerRad(1.2, 1, 0.99));
+  EXPECT_FLOAT_EQ(1 - M_PI + 0.01, NearerRad(1, 1 - M_PI + 0.01, 1 + M_PI - 0.009));
+  EXPECT_FLOAT_EQ(-1, NearerRad(-0.01, -1, -1.001));
+  EXPECT_FLOAT_EQ( 1, NearerRad( 0.01, 1, 1.001));
+  EXPECT_FLOAT_EQ( 1, NearerRad(M_PI - 0.01, 1, 0.99));
+  EXPECT_FLOAT_EQ(-1, NearerRad(M_PI + 0.01, -0.99, -1));
 }
 
 int main(int argc, char* argv[]) {

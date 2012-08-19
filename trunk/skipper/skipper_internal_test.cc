@@ -78,6 +78,100 @@ void CloseKML() {
 }
 
 
+TEST(SkipperInternal, Storm) {
+  SkipperInput in;
+  std::vector<skipper::AisInfo> ais;
+  double alpha_star;
+  in.mag_true_kn = kUnknown;
+  in.angle_true_deg = kUnknown;
+  SkipperInternal::Run(in, ais, &alpha_star);
+  EXPECT_FLOAT_EQ(225, alpha_star);
+  in.mag_true_kn = 40;
+
+  double angle_true_deg = 2;
+
+  WindStrengthRange wind_strength = kNormalWind;
+  double planned = 33;
+  double storm_override = SkipperInternal::HandleStorm(wind_strength,
+                                                       angle_true_deg,
+                                                       planned);
+  EXPECT_FLOAT_EQ(33, storm_override);
+
+  angle_true_deg = 0;
+  storm_override = SkipperInternal::HandleStorm(wind_strength,
+                                                angle_true_deg,
+                                                planned);
+  EXPECT_FLOAT_EQ(33, storm_override);
+
+  wind_strength = kStormWind;
+  storm_override = SkipperInternal::HandleStorm(wind_strength,
+                                                angle_true_deg,
+                                                planned);
+  const double storm_angle = 115;
+  EXPECT_FLOAT_EQ(storm_angle, storm_override);
+
+  planned = -33;
+  storm_override = SkipperInternal::HandleStorm(wind_strength,
+                                                angle_true_deg,
+                                                planned);
+  EXPECT_FLOAT_EQ(storm_angle, storm_override);
+
+  wind_strength = kNormalWind;
+  storm_override = SkipperInternal::HandleStorm(wind_strength,
+                                                angle_true_deg,
+                                                planned);
+  EXPECT_FLOAT_EQ(-33, storm_override);
+
+  planned = -34;
+  storm_override = SkipperInternal::HandleStorm(wind_strength,
+                                                angle_true_deg,
+                                                planned);
+  EXPECT_FLOAT_EQ(-34, storm_override);
+
+  wind_strength = kStormWind;
+  storm_override = SkipperInternal::HandleStorm(wind_strength,
+                                                angle_true_deg,
+                                                planned);
+  EXPECT_FLOAT_EQ(360 - storm_angle, storm_override);
+
+  planned = 44;
+  storm_override = SkipperInternal::HandleStorm(wind_strength,
+                                                angle_true_deg,
+                                                planned);
+  EXPECT_FLOAT_EQ(360 - storm_angle, storm_override);
+
+  // GPS fault
+  in.latitude_deg = NAN;
+  in.longitude_deg = NAN    ;
+  storm_override = SkipperInternal::HandleStorm(wind_strength,
+                                                angle_true_deg,
+                                                planned);
+  EXPECT_FLOAT_EQ(360 - storm_angle, storm_override);
+
+  wind_strength = kNormalWind;
+  storm_override = SkipperInternal::HandleStorm(wind_strength,
+                                                angle_true_deg,
+                                                planned);
+  EXPECT_FLOAT_EQ(44, storm_override);
+
+  wind_strength = kStormWind;
+  storm_override = SkipperInternal::HandleStorm(wind_strength,
+                                                angle_true_deg,
+                                                planned);
+  EXPECT_FLOAT_EQ(storm_angle, storm_override);
+  // Now the true wind rotates. We follow that rotation.
+  for (int i = 0; i < 720; ++i) {
+    storm_override = SkipperInternal::HandleStorm(wind_strength,
+                                                  SymmetricDeg(angle_true_deg + i),
+                                                  planned);
+    EXPECT_FLOAT_EQ(NormalizeDeg(storm_angle + i), storm_override);
+  }
+
+
+}
+
+
+
 TEST(SkipperInternal, Thalwil) {
   fprintf(stderr, "Running test: Thalwil\n");
   OpenKML("Thalwil");
@@ -440,6 +534,8 @@ TEST(SkipperInternal, StormyAtlantic) {
 }
 
 int main(int argc, char* argv[]) {
+  SkipperInternal_Storm();
+  /*
   SkipperInternal_UfenauPlan();
   SkipperInternal_Thalwil();
   SkipperInternal_SukkulentenhausPlan();
@@ -447,5 +543,6 @@ int main(int argc, char* argv[]) {
   SkipperInternal_Atlantic();
   SkipperInternal_ChangingAtlantic();
   SkipperInternal_StormyAtlantic();
+  */
   return 0;
 }

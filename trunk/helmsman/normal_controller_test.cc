@@ -371,7 +371,8 @@ TEST(NormalController, Synthetic) {
                         old_gamma_sail,                        \
                         &phi_z_star,                           \
                         &omega_z_star,                         \
-                        &gamma_sail_star);                     \
+                        &gamma_sail_star,                      \
+                        &out);                                 \
     printf("%6.2lf %6.2lf %6.2lf\n", phi_z_star, omega_z_star, gamma_sail_star);\
     old_gamma_sail = gamma_sail_star;
 

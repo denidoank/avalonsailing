@@ -21,12 +21,18 @@ class SkipperInternal {
                   double* alpha_star_deg);
   static void Init(const SkipperInput& in);
   static bool TargetReached(const ::LatLon& lat_lon);
+  // public for test only
+  static double HandleStorm(WindStrengthRange wind_strength,
+                            double angle_true_deg,
+                            double planned);
  private:
   static double RunCollisionAvoider(double alpha_planner_deg,
                                     const SkipperInput& in,
                                     const std::vector<skipper::AisInfo>& ais );
   static double old_alpha_star_deg_;
   static WindStrengthRange wind_strength_;
+  static bool storm_;
+  static bool storm_sign_plus_;
 };
 
 #endif  // SKIPPER_SKIPPER_INTERNAL_H
