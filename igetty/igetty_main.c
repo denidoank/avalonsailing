@@ -49,6 +49,7 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#include <math.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -58,11 +59,14 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <termios.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "lib/linebuffer.h"
 #include "lib/log.h"
 #include "lib/timer.h"
+
+#include "sms.h"
 
 static const char* argv0;
 static int debug = 0;
@@ -126,11 +130,14 @@ startswith(const char* pfx, const char* s) {
 	return 1;
 }
 
+enum CmdState { IDLE, CGMI, CGMM, CGSN, OTHERCMD, PDU, SENDPDU, CONNECTED };
+static char* statestr[] = { "IDLE", "CGMI", "CGMM", "CGSN", "OTHERCMD", "PDU", "SENDPDU", "CONNECTED" };
+
 int
 main(int argc, char* argv[])
 {
 	int ch;
-        int baudrate = 115200;
+        int baudrate = 19200;
 	const char* path_to_fifo = "/var/run/sendsms";
 
         argv0 = strrchr(argv[0], '/');
@@ -171,26 +178,28 @@ main(int argc, char* argv[])
 	struct LineBuffer lbin   = LB_INIT;
 	struct LineBuffer lbfifo = LB_INIT;
 
-	enum CmdState { IDLE, CGMI, CGMM, CGSN, OTHERCMD, PDU, CONNECTED } state = IDLE;
+	enum CmdState state = IDLE;
 	
 	// queue commands to initialize modem (putline adds \n, OPOST|ONLCR turns that into \r\n
-	lb_putline(&lbout, "ATZ0");      // reset.  Echo should be on (default) for the main loop to keep track of what's going on.
+	lb_putline(&lbout, "ATZ0");      // reset.  Echo should be on (default) for the main loop to keep track state
 	lb_putline(&lbout, "AT+CGMI");   // query manufacturer
 	lb_putline(&lbout, "AT+CGMM");   // query model
 	lb_putline(&lbout, "AT+CGSN");   // query serial number
 	lb_putline(&lbout, "AT+CREG=1"); // enable network registration unsolicited result code
 	lb_putline(&lbout, "AT+CNMI=2,2,0,1"); // smses and status delivered spontaneously as full message, see Iridium doc section 6.12
+	lb_putline(&lbout, "ATS0=1");    // answer after 1st ring
 
-	const int64_t kQueryPeriod_us = 60 * 1E6;  // once a minute
+	const int64_t kQueryPeriod_us = (debug ? 10 : 60) * 1E6;
 	int64_t now = now_us();
         int64_t next_query = now + kQueryPeriod_us;
 
 	while(state != CONNECTED) {
 
 		// write 1 line 
-		while(lb_pending(&lbout) && state == IDLE) {
-			syslog(LOG_DEBUG, "writing line %s", lbout.line);
-			int eol = lbout.head - lbout.eol;  // hack; distinguish between EAGAIN this line/more lines; put in linebuffer api
+		while(lb_pending(&lbout) && (state == IDLE || state == SENDPDU)) {
+			syslog(LOG_DEBUG, "writing (%d) line '%.*s'", lbout.eol,  lbout.eol-1, lbout.line);
+			// hack; distinguish between EAGAIN this line/more lines; put in linebuffer api
+			int eol = lbout.head - lbout.eol;
 			int r = lb_writefd(port, &lbout);
 			if (r == EAGAIN && (lbout.head - lbout.eol == eol)) continue;
 			if (r == 0 || r == EAGAIN) break;
@@ -222,36 +231,53 @@ main(int argc, char* argv[])
 		// handle port reads
 		if (FD_ISSET(port, &rfds)) {
                         r = lb_readfd(&lbin, port);
-                        if (r != 0 && r != EAGAIN) break;  // exit main loop if stdin no longer readable.
+                        if (r != 0 && r != EAGAIN) break;
                 }
 
 		// handle fifo reads
 		if (FD_ISSET(fifo, &rfds)) {
                         r = lb_readfd(&lbfifo, fifo);
-                        if (r != 0 && r != EAGAIN) break;  // exit main loop if stdin no longer readable.
+                        if (r != 0 && r != EAGAIN) break;
                 }
 
                 char line[1024];
 		// handle modem lines
                 while(lb_getline(line, sizeof line, &lbin) > 0) {
-			syslog(LOG_DEBUG, "modem (%d): %s", state, line);
+			if(line[0] == '\n') continue;  // ignore empty lines
+
+			syslog(LOG_DEBUG, "modem (%s): %s", statestr[state], line);
 			if (state == PDU) {
 				// handle this first
 			}
 
-			if(line[0] == '\n') continue;  // ignore empty lines
 			if(startswith("OK", line)) {
 				if (state == IDLE) syslog(LOG_DEBUG, "spurious OK");
 				state = IDLE; 
 				continue;
 			}
+
 			if(startswith("ERROR", line)) {
 				if (state == IDLE) syslog(LOG_DEBUG, "spurious ERROR");
-				state = IDLE;
+				else syslog(LOG_INFO, "command failed");
 				//syslog(LOG_INFO, "command %s failed", lastcmd);
-				syslog(LOG_INFO, "command failed");
+
+				state = IDLE;
 				continue;
 			}
+			if(startswith("+CMS ERROR", line)) {
+				if (state != SENDPDU) syslog(LOG_DEBUG, "spurious %s", line);
+				else syslog(LOG_INFO, "command failed: %s", line + 11);
+				//syslog(LOG_INFO, "command %s failed", lastcmd);
+				state = IDLE;
+				continue;
+			}
+
+			if(startswith("+CMGS: ", line)) {
+				if (state != SENDPDU) syslog(LOG_DEBUG, "spurious SMS send status");
+				state = IDLE; 
+				continue;
+			}
+
 			if(startswith("AT", line)) {
 				if (state != IDLE) syslog(LOG_DEBUG, "premature next command %s", line);
 				// memcpy to lastcmd
@@ -260,19 +286,36 @@ main(int argc, char* argv[])
 				if(startswith("AT+CGMI", line)) state = CGMI;
 				else if(startswith("AT+CGMM", line)) state = CGMM;
 				else if(startswith("AT+CGSN", line)) state = CGSN;
+				else if(startswith("AT+CMGS=", line)) state = SENDPDU;
 
 				continue;
 			}
 
 			if(startswith("-MSGEO:", line)) {
 				if (state != OTHERCMD) syslog(LOG_DEBUG, "unexpected geo report");
-				syslog(LOG_NOTICE, "Geo report: %s", line + 7);
+				int x, y, z, t;
+				if (sscanf(line+7, "%d,%d,%d,%x", &x, &y, &z, &t) != 4) {
+					syslog(LOG_NOTICE, "Geo report unparseable: %s", line + 7);
+				} else {
+					// Iridium system time epoch: March 8, 2007, 03:50:21.00 GMT. 
+					// (Note: the original Iridium system time epoch was June 1, 
+					// 1996, 00:00:11 GMT, and was reset to the new epoch in January, 2008).
+					enum { IRIDIUM_SYSTEM_TIME_SHIFT_S = 1173325821 };
+					double lat = atan2(z, sqrt(x*x + y*y)) * (180.0 / M_PI);
+					double lng = atan2(y, x) * (180.0 / M_PI);
+					int64_t ts_ms = t * 90LL + (IRIDIUM_SYSTEM_TIME_SHIFT_S * 1000LL);
+					time_t ts_s = ts_ms / 1000;
+					char buf[200];
+					strftime(buf, sizeof buf, "%a %F %T", gmtime(&ts_s));
+					syslog(LOG_NOTICE, "Iridium time: %s skew %lld ms", buf, (now/1000)-ts_ms);
+					syslog(LOG_NOTICE, "Geo report: iridium_timestamp_ms:%lld lat_deg:%.7lf lon_deg:%.7lf", ts_ms, lat, lng);
+				}
 				continue;
 			}
 
 			if(startswith("+CSQ:", line)) {
 				if (state != OTHERCMD) syslog(LOG_DEBUG, "unexpected quality report");
-				syslog(LOG_NOTICE, "Signal quality report: %s", line + 5);
+				syslog(LOG_NOTICE, "Signal quality report: %d%%", atoi(line + 5)*20);
 				continue;
 			}
 
@@ -297,7 +340,42 @@ main(int argc, char* argv[])
 		// handle fifo lines
                 while(lb_getline(line, sizeof line, &lbfifo) > 0) {
 			syslog(LOG_DEBUG, "fifo: %s", line);
+			char *msg = strchr(line, ' ');
+			if (msg) *msg++ = 0;  
+			while(msg && *msg == ' ') ++msg;
+			if (!msg || !*msg) {
+				syslog(LOG_ERR, "ill formed sms line: %s", line);
+				continue;
+			}
+			char *eol = msg + strlen(msg) - 1;
+			while(eol > msg) {
+				if (*eol != '\n' && *eol != ' ')
+					break;
+				*eol = 0;
+				--eol;
+			}
+		
+			unsigned char pdu[SMS_MAX_PDU_LENGTH];
+			int pdu_len = EncodeSMS("", line, msg, pdu, sizeof pdu);
+			if (r < 0) {
+				syslog(LOG_ERR, "error encoding to PDU: %s \"%s\"", line, msg);
+				continue;
+			}
 
+			// User data length equals with PDU length, except the SMSC.
+			const int pdu_len_except_smsc = pdu_len - 1 - pdu[0];
+			char buf[SMS_MAX_PDU_LENGTH*2+100];
+			snprintf(buf, sizeof buf, "AT+CMGS=%d", pdu_len_except_smsc);
+			lb_putline(&lbout, buf);
+
+			int i;
+			for (i = 0; i < pdu_len; ++i)
+				sprintf(buf + i * 2, "%02X", pdu[i]);
+			buf[2*pdu_len] = 0x1A;   // End PDU mode with Ctrl-Z.
+			buf[2*pdu_len+1] = 0;
+			lb_putline(&lbout, buf);
+			syslog(LOG_INFO, "sending sms to +%s: \"%s\"", line, msg);
+			syslog(LOG_DEBUG, "PDU encoded: %s",  buf);
 		}
 
 		// every minute, query signal strength, time and lat/long (response handled above)
