@@ -47,7 +47,7 @@ usage(void)
 		"\t-d debug            (don't syslog)\n"
 		"\t-m output_mode      default 0x....\n"
 		"\t-s output_settings  default 0x....\n"
-		"\t-c sCenario         default 10 (aerospace_nobaro, use 17 for marine)\n"
+		"\t-c sCenario         default 17 (10 aerospace_nobaro,  17 marine)\n"
 		"\t-k sKipfactor       default 19\n"
 		"\t-x, -y, -z  lever arm\n"
 		"\t-F       issue factory reset and exit (do not set anything)\n"
@@ -202,7 +202,7 @@ int main(int argc, char* argv[]) {
 	int querygps = 0;
 	int reset = 0;
 	int skipf = 19;
-	int scenario = IMU_XKFSCENARIO_AEROSPACE_NOBARO; 
+	int scenario = IMU_XKFSCENARIO_MARINE; 
 	uint16_t mode     = IMU_OUTPUT_MODE;
 	uint32_t settings = IMU_OUTPUT_SETTINGS;
 	float lev_x = -15.0;
