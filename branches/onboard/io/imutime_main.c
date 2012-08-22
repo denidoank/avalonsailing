@@ -81,6 +81,7 @@ int main(int argc, char* argv[]) {
 	int usegps = 0;
 	char line[1024];
 	int nn = 0;
+	int adjcount = 0;
 	uint64_t lastadj_ms = 0;
 	uint64_t diffs[10];
 	const int N = (sizeof(diffs) / sizeof(diffs[0]));
@@ -125,21 +126,28 @@ int main(int argc, char* argv[]) {
 
 			int ii = ++i % N;
 			diffs[ii] = gps_timestamp_ms - sys_timestamp_ms;
+
 			if (ii) continue;
+
 			// got N samples.  take average minus 2-outliers
 			qsort(diffs, N, sizeof diffs[0], cmpint64);
 			int j;
 			int64_t avg = 0;
 			for (j = 2; j < N-2; ++j) avg += diffs[j];
 			avg /= N-4;
+
 #if 0
 			if ((avg > -1000) && (avg < 1000)) continue;   // don't bother if less than a second
 #endif
 
+			++adjcount;
 			lastadj_ms = gps_timestamp_ms;
-			if ((avg > -1000*1000) && (avg < 1000*1000)) {
 
-				syslog(LOG_INFO, "Adjusting time by %lldms", avg);
+			// less than 10 mins: adjtime, otherwise just set it
+			if ((avg > -600*1000) && (avg < 600*1000)) {
+
+				if ((avg < -1000) || (avg > 1000) || (!adjcount % 60))  // only report big jumps or once/hr
+					syslog(LOG_INFO, "Adjusting time by %lldms", avg);
 				struct timeval delta = { avg/1000, (avg % 1000)*1000 };
 				if (adjtime(&delta, NULL))
 					if (!debug) crash("adjtime");

@@ -44,7 +44,7 @@ fi
 if imucfg /dev/ttyUSB0; then
 
     let i=0
-    for d in imu rudder_l rudder_r sail fuelcell compass ais modem wind; do
+    for d in imu rudder_l rudder_r sail fuelcell compass ais gps wind; do
 	ln -fs /dev/ttyUSB$i /dev/$d
 	let i=$i+1
     done
@@ -52,7 +52,7 @@ if imucfg /dev/ttyUSB0; then
 elif imucfg /dev/ttyUSB8; then
 
     let i=0
-    for d in rudder_l rudder_r sail fuelcell compass ais modem wind imu; do
+    for d in rudder_l rudder_r sail fuelcell compass ais gps wind imu; do
 	ln -fs /dev/ttyUSB$i /dev/$d
 	let i=$i+1
     done
@@ -92,14 +92,14 @@ for attempt in 1 ; do
 
     # input subsystems
 
-    plug -pi $LBUS -- `which imucat` /dev/imu &
-    plug -pi $LBUS -- `which nmeacat` -b 19200 /dev/compass &
-    plug -pi $LBUS -- `which nmeacat` -b 4800  /dev/wind &
-    #plug -pi $LBUS -- `which nmeacat` -b 4800  /dev/gps &
+    plug -i $LBUS -- `which imucat` /dev/imu &
+    plug -i $LBUS -- `which nmeacat` -b 19200 /dev/compass &
+    plug -i $LBUS -- `which nmeacat` -b 4800  /dev/wind &
+    plug -i $LBUS -- `which nmeacat` -b 4800  /dev/gps &
     #plug -i $LBUS -- `which nmeacat` -b 38400 -g 0 /dev/ais &   # no guard time
     
     # imutime dies if imu's timestamp is zero for too long, taking down the bus
-    plug -po -n "imutime" -f "imu:" $LBUS -- `which imutime`
+    plug -po -n "imutime" -f "imu:" $LBUS -- `which imutime` &
     plug -i $LBUS -- `which fcmon` /dev/fuelcell &  # not precious
 
     # output subsystems
@@ -137,6 +137,6 @@ for attempt in 1 ; do
 done
 
 
-logger -s -p local2.crit "Main loop ran 3 times, time to reboot ...."
+logger -s -p local2.crit "Main loop ran X times, time to reboot ...."
 
 # in production we'd send an sms here and reboot
