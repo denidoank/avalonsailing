@@ -77,8 +77,8 @@ usage(void)
         fprintf(stderr,
                 "usage: %s [options] /dev/ttyXXX\n"
                 "options:\n"
-                "\t-b 115200            baudrate\n"
-                "\t-d                   set debug mode\n"
+                "\t-b 19200      baudrate\n"
+                "\t-d            set debug mode\n"
                 "\t-f /var/run/sendsms  path to fifo to read smses to send from.\n"
                 , argv0);
         exit(2);
@@ -216,7 +216,7 @@ main(int argc, char* argv[])
                 sigemptyset(&empty_mask);
 
                 struct timespec timeout = { 0, 0 };
-                if (now < next_query) {
+                if (now < next_query) {  // BUT AT MOST 10 seconds and timeout state
 		  timeout.tv_nsec =  ((next_query - now) % 1000000)*1000;
 		  timeout.tv_sec  =   (next_query - now) / 1000000;
 		}
