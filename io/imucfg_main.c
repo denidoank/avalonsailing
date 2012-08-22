@@ -291,6 +291,8 @@ int main(int argc, char* argv[]) {
 	if (r < 0) crash("Unable to go to config mode.");
 
 	if (factoryreset) {
+		if (factoryreset < 3) crash("factory reset destroys magnetic mapping and the marine scenario.  use -FFF if you want to proceed anyway");
+
 		r = msg_xchg(port, kMsgFactoryReset, sizeof kMsgFactoryReset, msg, sizeof msg);
 		if (r <= 0) crash("Unable to issue factory reset.");
 		return 0;
