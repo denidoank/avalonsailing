@@ -25,6 +25,7 @@
 //  Wind, GPS: 4800
 // TODO: auto sensing, read a couple of times until valid_nmea
 //
+#include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <stdarg.h>
@@ -429,7 +430,7 @@ int main(int argc, char* argv[]) {
 			continue;
 		}
 
-		if (strncmp(start, "$C,", 3) == 0) {
+		if (strncmp(start, "$C", 2) == 0 && isdigit(start[2])) { 
 			struct CompassProto vars = INIT_COMPASSPROTO;
 			if (!parse_compass(start+1, &vars)) {
 				if (debug) fprintf(stderr, "Invalid C sentence: '%s'\n", line);
