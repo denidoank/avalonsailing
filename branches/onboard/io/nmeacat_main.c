@@ -316,12 +316,14 @@ int main(int argc, char* argv[]) {
 
 	int ch;
 	int baudrate = 4800; // Compass: 19200, AIS: 38400
+	double wind_bias =  WIND_ANGLE_BIAS_DEG;
 
 	argv0 = strrchr(argv[0], '/');
 	if (argv0) ++argv0; else argv0 = argv[0];
 
-	while ((ch = getopt(argc, argv, "b:dg:h")) != -1){
+	while ((ch = getopt(argc, argv, "a:b:dg:h")) != -1){
 		switch (ch) {
+		case 'a': wind_bias = atof(optarg); break;
 		case 'b': baudrate = atoi(optarg); break;
 		case 'd': ++debug; break;
 		case 'g': alarm_s = atoi(optarg); break;
@@ -409,8 +411,8 @@ int main(int argc, char* argv[]) {
 				if (debug) fprintf(stderr, "Invalid WIMWV sentence: '%s'\n", line);
 				continue;
 			}
-			if (WIND_ANGLE_BIAS_DEG  != 0.0) {
-				vars.angle_deg += WIND_ANGLE_BIAS_DEG;
+			if (wind_bias  != 0.0) {
+				vars.angle_deg += wind_bias;
 				while(vars.angle_deg >= 360.0) vars.angle_deg -= 360.0;
 				while(vars.angle_deg <    0.0) vars.angle_deg += 360.0;
 			}
