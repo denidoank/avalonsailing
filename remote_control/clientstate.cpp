@@ -83,7 +83,7 @@ void ClientState::processLine(const QString& line) {
    data_[source][entry[0]] = entry[1].trimmed();
  }
  // If each message causes a GUI update, we need 50-90% of the Macs CPU.
- if (++update_counter_ % 15 == 0) {
+ if (++update_counter_ % 30 == 0) {  // was 15: 11-14%
    emit dataUpdate();
  }
 }
