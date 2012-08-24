@@ -93,9 +93,10 @@ FilterBlock::FilterBlock()
 
 // Clip magnitude at the maximum possible boat speed.
 double FilterBlock::CensorSpeed(double speed_in) {
+  // 4.8kts max speed through the water.
   const double clip_speed = 2.8;  // m/s
-  if (speed_in < -clip_speed)
-    return -clip_speed;
+  if (speed_in < -0.5 * clip_speed)
+    return -0.5 * clip_speed;
   if (speed_in > clip_speed)
     return clip_speed;
   return speed_in;
@@ -178,7 +179,7 @@ void FilterBlock::Filter(const ControllerInput& in,
     ASSIGN_NOT_NAN(gps_speed_m_s, in.gps.speed_m_s);
   }
 
-  // The position values are not overwritten if but sensors fail.
+  // The position values are not overwritten if sensors fail.
   // TODO Mark them as stale after 15 minutes.
   if (imu_lat != 0 || gps_lat != 0) {
     // Due to the small relative errors of latitude and longitude the consensus is
@@ -212,15 +213,19 @@ void FilterBlock::Filter(const ControllerInput& in,
 
 
   // For the time beeing we take the average speed of IMU and GPS.
-  double weight_imu = imu_fault_ ? 0 : 0.5;
-  double weight_gps = gps_fault_ ? 0 : 0.5;
+  // The Garmin GPS has much less noise in the speed signal. So we give it more weight.
+  double weight_imu = imu_fault_ ? 0 : 0.2;
+  double weight_gps = gps_fault_ ? 0 : 0.8;
+  bool mag_boat_fault = false;
   if (weight_imu == 0 && weight_gps == 0) {
     // If everything else fails we optimistically assume that we are making some speed forward.
     fil->mag_boat = 1;
+    mag_boat_fault = true;
   } else {
     double sum = weight_imu * in.imu.velocity.x_m_s;
     sum += weight_gps * gps_speed_m_s;
     fil->mag_boat = CensorSpeed(speed_filter_.Filter(sum / (weight_imu + weight_gps)));
+    mag_boat_fault = false;
   }
   if (debug) {
       fprintf(stderr, "raw boat speed*0.8 %6.3lf filtered %6.3lf m/s, lat_lon %.7lf %.7lf phi_z %6.3lf \n",
@@ -292,7 +297,7 @@ void FilterBlock::Filter(const ControllerInput& in,
       angle_app = 0;
 
     Polar alpha_true_out(0, 0);
-    if (!imu_fault_) {
+    if (!mag_boat_fault) {
       Polar wind_true(0, 0);
       TruePolar(Polar(angle_app,  mag_app),
                 Polar(fil->phi_z_boat, fil->mag_boat),

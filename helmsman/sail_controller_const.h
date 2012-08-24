@@ -28,7 +28,7 @@ const double kTackHysteresis = Deg2Rad(35);      // for the tack side logic
 // (wind from behind). If the wind is too strong the
 // bow gets pushed down too much and the mast could
 // be overloaded.
-const double kSpinakkerLimit = 10;      // in m/s;
+const double kSpinakkerLimit = 7;       // in m/s;
 const double kAngleReductionLimit = 14; // in m/s
 
 

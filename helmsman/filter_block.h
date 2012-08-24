@@ -40,8 +40,17 @@ class FilterBlock {
   double CensorSpeed(double raw_speed);  // corrects the speed empirically
 
   bool valid_app_wind_;  // The filtered output data for the apparent wind are invalid initially. This is a temporary state.
-  bool imu_fault_;       // No speed, no orientation.
-  bool imu_gps_fault_;   // time and position are missing
+  // The IMU fails frequently and locks up in a state without GPS
+  // data and consequently without GPS time. We reset the power periodically
+  // and after the reset it may take up to 12 minutes to recover.
+  // During that period the position and speed precision is less than usual.
+  // No speed, no orientation from IMU. Frequent during power reset.
+  bool imu_fault_;
+  // IMU time, position and speed are missing.
+  // This may last for the power reset period plus 12 minutes.
+  bool imu_gps_fault_;
+  // Waves washing over the antenna and hardware faults may cause
+  // GPS faults.
   bool gps_fault_;       // fault of secondary GPS
 
   static const int len_0_6s;   // 0.6s
