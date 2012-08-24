@@ -96,7 +96,9 @@ void NormalController::Run(const ControllerInput& in,
   // with postive boat speeds, but at the transition from the InitialController the very slowly
   // boat speed may be still negative. We simply clip the speed here. If the speed gets too low then
   // we'll leave the NormalController anyway (see GiveUp() ).
-  double positive_speed = std::max(0.25, filtered.mag_boat);
+  // For the rudder controller the speed through the water is relevant only.
+  double positive_speed = std::max(0.2, filtered.mag_boat);
+  positive_speed = std::min(3.2, positive_speed);  // 4.8knots max speed = 2.46m/s
   rudder_controller_->Control(phi_star,
                               omega_star,
                               SymmetricRad(filtered.phi_z_boat),
