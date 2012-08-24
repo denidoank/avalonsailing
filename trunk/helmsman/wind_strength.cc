@@ -11,7 +11,7 @@
 // * Below 1 knot (0.5m/s) true wind speed the direction of
 //   true and apparent wind become unreliable, thus:
 //   - the skipper cannot determine the dead angle for tacking correctly
-//   - the sail controller cannot due proper alignment of the sail or is
+//   - the sail controller cannot work due proper alignment of the sail or is
 //     permanently changing it
 //   - the resulting boat speed through the water is so small that
 //     the rudders don't produce enough force and the heading control
@@ -26,12 +26,11 @@
 // "Bis zum Erstellen dieses Berichts wurde das gesamte System erfolgreich uber
 // eine Woche lang in Winden von 0 bis 25 Knoten getestet."
 // p. 35
-// "Navigationsf ̈higkeit: Aufgrund der Wetter- und Routenanalyse wurde
-// bei der Konstruktion eine Navigationsf ̈higkeit bis zu Windst ̈rke 7
+// "Navigationsfähigkeit: Aufgrund der Wetter- und Routenanalyse wurde
+// bei der Konstruktion eine Navigationsfaehigkeit bis zu Windst ̈rke 7
 // angestrebt."
 // p. 37
 // Wind maximal 48knots
-
 
 
 namespace {
@@ -39,8 +38,8 @@ const double kCalmLimit_m_s = 0.5;
 const double kCalmLimitHysteresis_m_s = 0.15;
                                              // 4 knots margin to the design
                                              // limit.
-const double kStormLimit_m_s = 20;           // 40 knots would be 20.578 .
-const double kStormLimitHysteresis_m_s = 2;  // 44 knots on, 36 off point.
+const double kStormLimit_m_s = 18;           // 40 knots would be 20.578 .
+const double kStormLimitHysteresis_m_s = 2;  // 40 knots on, 32 off point.
 static const char* kWindsStrings[] = { "CALM", "NORMAL", "STORM" };
 
 }  // namespace
