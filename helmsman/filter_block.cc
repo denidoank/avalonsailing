@@ -39,7 +39,7 @@ int logging_aoa = 1;
 namespace {
 
 const double kOmegaZFilterPeriod = 8.0;
-const double kSpeedFilterPeriod = 60.0;
+const double kSpeedFilterPeriod = 20.0;
 
 }  // namespace
 
