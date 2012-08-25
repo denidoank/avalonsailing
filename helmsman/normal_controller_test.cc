@@ -125,15 +125,15 @@ TEST(NormalController, AllSailCloseHauled) {
   EXPECT_EQ(out.drives_reference.gamma_rudder_star_left_rad,
             out.drives_reference.gamma_rudder_star_right_rad);
   // Sail very close to the middle
-  EXPECT_FLOAT_EQ(13.8351, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
+  EXPECT_FLOAT_EQ(23.8351, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
 
   c.Run(in, filtered, &out);
   c.Run(in, filtered, &out);
-  EXPECT_FLOAT_EQ(13.8351, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
+  EXPECT_FLOAT_EQ(23.8351, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
 
   c.Run(in, filtered, &out);
 
-  EXPECT_FLOAT_EQ(13.8351, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
+  EXPECT_FLOAT_EQ(23.8351, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
 
   wind_true = Polar(Deg2Rad(-35), 2);  // wind turns against us
   // so the apparent wind vector is around 180 degrees
@@ -143,7 +143,7 @@ TEST(NormalController, AllSailCloseHauled) {
   c.Run(in, filtered, &out);
   // sail opposing the apparent wind.
   // Limited by CHP +kCloseHauledLimit
-  EXPECT_FLOAT_EQ(4, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
+  EXPECT_FLOAT_EQ(6, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
 
   wind_true = Polar(Deg2Rad(-49.9), 2);  // wind turns completely against us
   // so the apparent wind vector is around 180 degrees
@@ -153,7 +153,7 @@ TEST(NormalController, AllSailCloseHauled) {
   c.Run(in, filtered, &out);
   // sail opposing the apparent wind.
   // Limited by CHP
-  EXPECT_FLOAT_EQ(4, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
+  EXPECT_FLOAT_EQ(6, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
 }
 
 // Check sail control negative
@@ -178,19 +178,20 @@ TEST(NormalController, AllSailCloseHauledNegative) {
 
   c.Entry(in, filtered);
   c.Run(in, filtered, &out);
-  EXPECT_FLOAT_EQ(0, Rad2Deg(out.drives_reference.gamma_rudder_star_left_rad));
+  // Too close, fall off right.
+  EXPECT_FLOAT_EQ(-4.55637, Rad2Deg(out.drives_reference.gamma_rudder_star_left_rad));
   EXPECT_EQ(out.drives_reference.gamma_rudder_star_left_rad,
             out.drives_reference.gamma_rudder_star_right_rad);
   // Sail very close to the middle
-  EXPECT_FLOAT_EQ(-13.8351, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
+  EXPECT_FLOAT_EQ(-23.8351, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
 
   c.Run(in, filtered, &out);
   c.Run(in, filtered, &out);
-  EXPECT_FLOAT_EQ(-13.8351, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
+  EXPECT_FLOAT_EQ(-23.8351, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
 
   c.Run(in, filtered, &out);
 
-  EXPECT_FLOAT_EQ(-13.8351, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
+  EXPECT_FLOAT_EQ(-23.8351, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
 
   wind_true = Polar(Deg2Rad(35), 2);  // wind turns against us
   // so the apparent wind vector is around 180 degrees
@@ -200,7 +201,7 @@ TEST(NormalController, AllSailCloseHauledNegative) {
   c.Run(in, filtered, &out);
   // sail opposing the apparent wind.
   // Limited by CHP +kCloseHauledLimit
-  EXPECT_FLOAT_EQ(-4, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
+  EXPECT_FLOAT_EQ(-6, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
 
   wind_true = Polar(Deg2Rad(49.9), 2);  // wind turns completely against us
   // so the apparent wind vector is around 180 degrees
@@ -210,7 +211,7 @@ TEST(NormalController, AllSailCloseHauledNegative) {
   c.Run(in, filtered, &out);
   // sail opposing the apparent wind.
   // Limited by CHP
-  EXPECT_FLOAT_EQ(-4, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
+  EXPECT_FLOAT_EQ(-6, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
 }
 
 TEST(NormalController, AllRudder) {
@@ -658,8 +659,8 @@ TEST(NormalController, OffsetFilter) {
 
 int main(int argc, char* argv[]) {
   NormalController_OffsetFilter();
-  //NormalController_AllSailCloseHauled();
-  //NormalController_AllSailCloseHauledNegative();
+  NormalController_AllSailCloseHauled();
+  NormalController_AllSailCloseHauledNegative();
   NormalController_AllSail();
   NormalController_AllRudder();
   NormalController_AllEast();
