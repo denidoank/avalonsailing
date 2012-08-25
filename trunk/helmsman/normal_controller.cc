@@ -340,6 +340,6 @@ double NormalController::NowSeconds() {
   return (now_ms() - start_time_ms_) / 1000.0;
 }
 
-double NormalController::RateLimit() {
+double NormalController::RateLimit() const{
   return alpha_star_rate_limit_;
 }

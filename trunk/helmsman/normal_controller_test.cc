@@ -362,6 +362,9 @@ TEST(NormalController, Synthetic) {
   //EXPECT_FLOAT_EQ(-25, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
 }
 
+int TicksNeeded(const NormalController& c, double from, double to) {
+  return Deg2Rad(fabs(from - to)) / c.RateLimit() / kSamplingPeriod;
+}
 
 #define SHAPE(alpha_star) \
   c.ShapeReferenceValue(SymmetricRad(Deg2Rad(alpha_star)),     \
@@ -410,7 +413,8 @@ TEST(NormalController, ReferenceValueShaping) {
   SHAPE(90);
   EXPECT_FLOAT_EQ(Deg2Rad(90), phi_z_star);
   EXPECT_FLOAT_EQ(0, omega_z_star);
-  EXPECT_IN_INTERVAL(Deg2Rad(60), gamma_sail_star, Deg2Rad(80));
+  // small angle of attack due to the high wind speed.
+  EXPECT_IN_INTERVAL(Deg2Rad(75), gamma_sail_star, Deg2Rad(85));
 
   // We sail no tack or jibe on this course. We expect a ramp over 1 second.
   const double length_of_ramp = 1.0;  // seconds
@@ -420,7 +424,7 @@ TEST(NormalController, ReferenceValueShaping) {
     SHAPE(new_alpha_star_deg);
     EXPECT_FLOAT_EQ(Deg2Rad(90) + (i + 1) * change_per_call_rad, phi_z_star);
     EXPECT_FLOAT_EQ(0, omega_z_star);
-    EXPECT_IN_INTERVAL(Deg2Rad(60), gamma_sail_star, Deg2Rad(80));
+    EXPECT_IN_INTERVAL(Deg2Rad(75), gamma_sail_star, Deg2Rad(85));
   }
   SHAPE(new_alpha_star_deg);
   EXPECT_FLOAT_EQ(Deg2Rad(new_alpha_star_deg), phi_z_star);
@@ -431,44 +435,49 @@ TEST(NormalController, ReferenceValueShaping) {
     SHAPE(90);
     EXPECT_FLOAT_EQ(Deg2Rad(90) + (9 - i) * change_per_call_rad, phi_z_star);
     EXPECT_FLOAT_EQ(0, omega_z_star);
-    EXPECT_IN_INTERVAL(Deg2Rad(60), gamma_sail_star, Deg2Rad(80));
+    EXPECT_IN_INTERVAL(Deg2Rad(75), gamma_sail_star, Deg2Rad(85));
   }
   SHAPE(90);
   EXPECT_FLOAT_EQ(Deg2Rad(90), phi_z_star);
   SHAPE(91);
   SHAPE(91);
   SHAPE(91);
+  EXPECT_FLOAT_EQ(Deg2Rad(91), phi_z_star);
   // A wide tack, turning over 178 degrees through the wind. Run for 30s.
-  for (int i = 0; i < 30.0/kSamplingPeriod; ++i) {
+  for (int i = 0; i < TicksNeeded(c, 91, -91); ++i) {
     SHAPE(-91);
   }
+  EXPECT_FLOAT_EQ(Deg2Rad(-91), phi_z_star);
   // And back.
   for (int i = 0; i < 30.0/kSamplingPeriod; ++i) {
     SHAPE(91);
   }
+  EXPECT_FLOAT_EQ(Deg2Rad(91), phi_z_star);
   // A gentle change of bearing
   for (int i = 0; i < 2.0/kSamplingPeriod; ++i) {
     SHAPE(89);
   }
-  // A wide jibe, turning over 178 degrees from the wind.
-  for (int i = 0; i < 50.0/kSamplingPeriod; ++i) {
-    SHAPE(-89);
-  }
-
+  EXPECT_FLOAT_EQ(Deg2Rad(89), phi_z_star);
   // The NormalController enforces a rate limit on the desired direction.
   // Tacks happen faster than than, jibes take longer because of the
   // 180 degree sail rotation (180 degree / 13 degree/s = 14s).
   // So we estimate each change to take delta_angle / kRateLimit with
   // an extra 10s for jibes.
   // TODO Check where the extra 3 steps come from.
-  for (int i = 0; i < (Deg2Rad(fabs(66 - -89)) / c.RateLimit())/kSamplingPeriod + 3; ++i) {
+  // A wide jibe, turning over 178 degrees from the wind.
+  for (int i = 0; i < TicksNeeded(c, 89, -89) + 100; ++i) {
+    SHAPE(-89);
+  }
+  EXPECT_FLOAT_EQ(Deg2Rad(-89), phi_z_star);
+
+  for (int i = 0; i < TicksNeeded(c, -89, 66) + 100; ++i) {
     SHAPE(66);
   }
   EXPECT_FLOAT_EQ(0, omega_z_star);
   EXPECT_FLOAT_EQ(Deg2Rad(66), phi_z_star);
 
   for (int i = 0;
-       i < Deg2Rad(fabs(50 - 60)) / c.RateLimit() / kSamplingPeriod + 30;
+       i < TicksNeeded(c, 66, 50) + 30;
        ++i) {
     SHAPE(50);
   }
@@ -476,14 +485,14 @@ TEST(NormalController, ReferenceValueShaping) {
   EXPECT_FLOAT_EQ(Deg2Rad(50), phi_z_star);
 
   // Jibes need about 14s extra time for the sail turn of 180 degrees.
-  for (int i = 0; i < Deg2Rad(fabs(-150 - 50)) / c.RateLimit() / kSamplingPeriod + 10; ++i) {
+  for (int i = 0; i < TicksNeeded(c, 50, -120) + 100; ++i) {
     SHAPE(-120);
   }
   EXPECT_FLOAT_EQ(0, omega_z_star);
   EXPECT_FLOAT_EQ(Deg2Rad(-120), phi_z_star);
-  EXPECT_IN_INTERVAL(-50, Rad2Deg(gamma_sail_star), -40);
+  EXPECT_IN_INTERVAL(-90, Rad2Deg(gamma_sail_star), -80);
   // TODO Check where the extra 3 steps come from.
-  for (int i = 0; i < Deg2Rad(fabs(50 - -120)) / c.RateLimit() / kSamplingPeriod + 3; ++i) {
+  for (int i = 0; i < TicksNeeded(c, -120, 50) + 100; ++i) {
     SHAPE(50);
   }
   EXPECT_FLOAT_EQ(0, omega_z_star);
@@ -516,16 +525,16 @@ TEST(NormalController, ReferenceValueShapingStormJibe) {
   double old_gamma_sail = gamma_sail_star;
   // Approximate the apparent wind as true wind direction - boat direction .
 
-  for (int i = 0; i < Deg2Rad(fabs(-180 - -45)) / c.RateLimit() / kSamplingPeriod; ++i) {
+  for (int i = 0; i < TicksNeeded(c, -45, -180); ++i) {
     SHAPE(-180);
   }
   EXPECT_FLOAT_EQ(0, omega_z_star);
   EXPECT_FLOAT_EQ(Deg2Rad(-180), phi_z_star);
-  EXPECT_IN_INTERVAL(-80, Rad2Deg(gamma_sail_star), -70);
+  EXPECT_IN_INTERVAL(-80, Rad2Deg(gamma_sail_star), -70); // -173 now?
 
   // South to North.
   // TODO Check where the extra 3 steps come from.
-  for (int i = 0; i < Deg2Rad(fabs(0 - -180)) / c.RateLimit() / kSamplingPeriod + 3; ++i) {
+  for (int i = 0; i < TicksNeeded(c, 0, -180) + 3; ++i) {
     SHAPE(0);
   }
   EXPECT_FLOAT_EQ(0, omega_z_star);
@@ -559,7 +568,7 @@ TEST(NormalController, ReferenceValueShapingWest) {
   double old_gamma_sail = gamma_sail_star;
   // Approximate the apparent wind as true wind direction - boat direction .
 
-  for (int i = 0; i < Deg2Rad(fabs(-180 - -45)) / c.RateLimit() / kSamplingPeriod; ++i) {
+  for (int i = 0; i < TicksNeeded(c, -180, 45); ++i) {
     SHAPE(-180);
   }
   EXPECT_FLOAT_EQ(0, omega_z_star);
@@ -569,7 +578,7 @@ TEST(NormalController, ReferenceValueShapingWest) {
   // South to North Jibe.
   // TODO Check where the extra 10 steps come from.
   for (int i = 0;
-       i < Deg2Rad(fabs(0 - -180)) / c.RateLimit() / kSamplingPeriod + 80 + 15;
+       i < TicksNeeded(c, 0, 180) + 80 + 15;
        ++i) {
     SHAPE(0);
   }
@@ -578,7 +587,7 @@ TEST(NormalController, ReferenceValueShapingWest) {
   EXPECT_IN_INTERVAL(60, Rad2Deg(gamma_sail_star), 80);
 
   for (int i = 0;
-       i < Deg2Rad(fabs(30 - 0)) / c.RateLimit() / kSamplingPeriod + 20;
+       i < TicksNeeded(c, 30, 0) + 20;
        ++i) {
     SHAPE(30);
   }
@@ -588,7 +597,7 @@ TEST(NormalController, ReferenceValueShapingWest) {
 
   // A tack.
   for (int i = 0;
-       i < Deg2Rad(fabs(150 - 30)) / c.RateLimit() / kSamplingPeriod + 20;
+       i < TicksNeeded(c, 150, 30) + 20;
        ++i) {
     SHAPE(150);
   }
