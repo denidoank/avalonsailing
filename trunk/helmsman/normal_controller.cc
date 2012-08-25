@@ -35,7 +35,8 @@ NormalController::NormalController(RudderController* rudder_controller,
      trap2_(999),
      prev_offset_(0),
      fallen_off_(0),
-     maneuver_type_(kChange) {
+     maneuver_type_(kChange),
+     wind_strength_apparent_(kCalmWind) {
   if (debug) fprintf(stderr, "NormalController::Entry time  %lld s\n",
                      start_time_ms_ / 1000);
   if (debug) fprintf(stderr, "NormalController::rate limit  %lf rad/s, %lf deg/s\n",
@@ -73,6 +74,8 @@ void NormalController::Run(const ControllerInput& in,
     fprintf(stderr, "Boat %6.1lf deg %6.1lf m/s ", Rad2Deg(filtered.phi_z_boat), filtered.mag_boat);
     fprintf(stderr, "App. %6.1lf deg %6.1lf m/s\n", Rad2Deg(filtered.angle_app), filtered.mag_app);
   }
+  wind_strength_apparent_ = WindStrength(wind_strength_apparent_, filtered.mag_app);
+
   CHECK_EQ(999, trap2_);  // Triggers at incomplete compilation errors.
   double phi_star;
   double omega_star;
@@ -109,7 +112,7 @@ void NormalController::Run(const ControllerInput& in,
     fprintf(stderr, "gamma_R* isnan: phi_star %6.2lfdeg, omega_star %6.2lf, phi_z_boat %6.2lf, omega_boat %6.2lf, mag_boat %6.2lf\n",
             Rad2Deg(phi_star), omega_star, SymmetricRad(filtered.phi_z_boat), filtered.omega_boat, filtered.mag_boat);
   }
-
+  epsilon_ = SymmetricRad(phi_star - filtered.phi_z_boat);
   out->drives_reference.gamma_rudder_star_left_rad  = gamma_rudder_star;
   out->drives_reference.gamma_rudder_star_right_rad = gamma_rudder_star;
   out->drives_reference.gamma_sail_star_rad = gamma_sail_star;
@@ -312,16 +315,25 @@ bool NormalController::TackingOrJibing() {
 
 bool NormalController::GiveUp(const ControllerInput& in,
                               const FilteredMeasurements& filtered) {
-  // Got stuck for more than 2 minutes.
+  const double give_up_limit_seconds = 30.0;
+  // Abort if we got stuck for more than 30s.
+  const double bearing_deviation_limit = Deg2Rad(35);
   // If the drift caused by stream is too big, we will not detect loss of control here
   // because our speed over ground is e.g. 0.5 knots.
   // Abort every 2 hours? Abort if epsilon is too big?
   // TODO: Contemplate this!
-  if (filtered.mag_boat < 0.03)
+  // The speed is filtered and rather imprecise.
+  if ((wind_strength_apparent_ != kCalmWind && filtered.mag_boat < 0.03) ||
+      (wind_strength_apparent_ != kCalmWind && fabs(epsilon_) > bearing_deviation_limit))
     ++give_up_counter_;
   else
     give_up_counter_ = 0;
-  return give_up_counter_ > 120.0 / kSamplingPeriod;  // The speed is filtered with 60s and rather imprecise.
+  if (give_up_counter_ > give_up_limit_seconds / kSamplingPeriod) {
+    if (debug) fprintf(stderr, "NormalController GiveUp mag_boat %6.2lf eps %6.2lf\n", filtered.mag_boat, epsilon_);
+    return true;
+  } else {
+    return false;
+  }
 }
 
 double NormalController::NowSeconds() {

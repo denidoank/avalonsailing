@@ -135,8 +135,6 @@ void ShipControl::Run(const ControllerInput& in, ControllerOutput* out) {
     if (filtered_.latitude_deg != 0 || filtered_.longitude_deg != 0) {
       out->skipper_input.latitude_deg    = filtered_.latitude_deg;
       out->skipper_input.longitude_deg   = filtered_.longitude_deg;
-      fprintf(stderr, "Ship Control lat_lon %lf %lf\n",
-              out->skipper_input.latitude_deg, out->skipper_input.longitude_deg);
       out->skipper_input.angle_true_deg  = NormalizeDeg(Rad2Deg(filtered_.alpha_true));
       out->skipper_input.mag_true_kn     = MeterPerSecondToKnots(filtered_.mag_true);
     } else {

@@ -19,6 +19,7 @@
 #include "helmsman/rudder_controller.h"
 #include "helmsman/reference_values.h"
 #include "helmsman/sail_controller.h"
+#include "helmsman/wind_strength.h"
 
 class NormalController : public Controller {
  public:
@@ -54,6 +55,8 @@ class NormalController : public Controller {
                            double* omega_z_star,
                            double* gamma_sail_star,
                            ControllerOutput* out);
+  // Sailing close hauled we might react to wind gusts by falling off.
+  // This offset has a quick rise and a slow decay.
   // public for test only.
   double FilterOffset(double offset);
 
@@ -83,6 +86,8 @@ class NormalController : public Controller {
   double prev_offset_;
   double fallen_off_;
   ManeuverType maneuver_type_;
+  WindStrengthRange wind_strength_apparent_;
+  double epsilon_;  // phi_z (bearing) control error
 };
 
 #endif  // HELMSMAN_NORMAL_CONTROLLER_H
