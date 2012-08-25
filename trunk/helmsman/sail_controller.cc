@@ -216,7 +216,20 @@ double SailController::StableGammaSail(double alpha_true, double mag_true,
     //CHECK_EQ(-1, alpha_sign_); // TODO convert into warning after tests.
   }
 
-  // The sign of gamma_sail is always identical with alpha_sign_!
+  // The sign of gamma_sail is identical with alpha_sign_.
+  // The sign of the apparent wind angle is opposite to alpha_sign_.
+  // 2 exceptions:
+  // * When running (wind blowing into the same direction as we go)
+  //   the wind may change a little bit, but we keep the sail on the
+  //   "wrong" side. No action.
+  // * If a tack failed, or a wave pushed us violently. We are fexible and
+  //   try to catch the wind on the other side.
+  if (mag_true > 0.5 &&
+      alpha_sign_ == SignNotZero(alpha_app) &&
+      fabs(a) > M_PI / 2) {
+    if (debug) fprintf(stderr, "alpha_sign_ flip\n");
+    alpha_sign_ = -SignNotZero(alpha_app);
+  }
 
   // Push the boat (phi_z) out of the wind if the quickly filtered apparent
   // wind is too adverse.
