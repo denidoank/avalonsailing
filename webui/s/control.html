@@ -1,71 +1,52 @@
 <!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
 <html><head>
-<title>Control</title>
+<title>Control (S version)</title>
 </head>
 
-<body onload="start()" onkeydown="handlekey()" style="background:gray";>
-<a href="control.html" target="control" style="background:gray;">Control</a>
-<a href="plan.html" target="plan">Plan</a>
-<a href="log.html" target="log">Log</a>
+<body onload="start()" onkeydown="handlekey()" style="background:gray;">
 
-<span id='helmsts' style="background:yellow;" ></span>
-
-<div id="widget" style="position: relative;  left:100;" >
-<img id="boat"   width="208" height="495" style="position: absolute; left: 0; top: 0;" src="boat.png"/>
-  
-<img id="sts_sail"   width="41" height="289" style="position: absolute; left: 80; top: 200;" src="boom.png"/>
-<img id="ctl_sail"   width="30" height="289" style="position: absolute; left: 80; top: 200;" src="needle.png"/>
-<img id="sts_rudd_l" width="10" height="60"  style="position: absolute; left: 60; top: 490;" src="boom.png"/>
-<img id="ctl_rudd_l" width="8" height="80"   style="position: absolute; left: 60; top: 490;" src="needle.png"/>
-<img id="sts_rudd_r" width="10" height="60"  style="position: absolute; left: 140; top: 490;" src="boom.png"/>
-<img id="ctl_rudd_r" width="8" height="80"   style="position: absolute; left: 140; top: 490;" src="needle.png"/>
-
-<img id="sns_wind"   width="20" height="100" style="position: absolute; left: 80; top: 200;" src="dashed.png"/>
-<img id="sns_compass"  width="240" height="240" style="position: absolute; left: 440; top: 50;" src="rose.png"/>
-<img id="ctl_alphastar"  width="20" height="140" style="position: absolute; left: 550; top: 160;" src="needle.png"/>
-<img id="sns_imuyaw"  width="240" height="240" style="position: absolute; left: 440; top: 350;" src="rose.png"/>
-
-
-    <div style="position: absolute; left: 0; top: 600;" >ASD: rudder  HJKL: sail IOP: helmsman</div>
+<div id="menu">
+  <a href="control.html" target="control" style="background:gray;">Control</a>
+  <a href="plan.html" target="plan">Plan</a>
+  <a href="log.html" target="log">Log</a>
 </div>
+
+<div style="width: 300px; height: 600px;">
+  <div id="widget" style="position: relative;  left:100;" >
+
+  <img id="boat"   width="208" height="495" style="position: absolute; left: 0; top: 0;" src="boat.png"/>
+  <img id="sts_sail"   width="41" height="289" style="position: absolute; left: 80; top: 200; -webkit-transform-origin:top;" src="boom.png"/>
+  <img id="ctl_sail"   width="30" height="289" style="position: absolute; left: 85; top: 200; -webkit-transform-origin:top;" src="needle.png"/>
+  <img id="sns_wind"   width="20" height="100" style="position: absolute; left: 90; top: 200; -webkit-transform-origin:top;" src="dashed.png"/>
+  
+  <img id="sts_rudd_l" width="10" height="60"  style="position: absolute; left: 60; top: 490; -webkit-transform-origin:top;" src="boom.png"/>
+  <img id="ctl_rudd_l" width="8" height="80"   style="position: absolute; left: 60; top: 490; -webkit-transform-origin:top;" src="needle.png"/>
+  <img id="sts_rudd_r" width="10" height="60"  style="position: absolute; left: 140; top: 490; -webkit-transform-origin:top;" src="boom.png"/>
+  <img id="ctl_rudd_r" width="8" height="80"   style="position: absolute; left: 140; top: 490; -webkit-transform-origin:top;" src="needle.png"/>
+
+  <img id="sns_imuyaw"   width="240" height="240" style="position: absolute; left: 440; top: 50;" src="rose.png"/>
+  <img id="sns_gpscog"   width="20" height="140" style="position: absolute; left: 550; top: 160; -webkit-transform-origin:top;" src="boom.png"/>
+  <img id="sns_compass"  width="20" height="140" style="position: absolute; left: 550; top: 160; -webkit-transform-origin:top;" src="needle.png"/>
+  <img id="sns_imuspeed"  width="20" height="140" style="position: absolute; left: 550; top: 160;" src="dashed.png"/>
+
+  <img id="sns_imuyaw2"   width="240" height="240" style="position: absolute; left: 440; top: 350; -webkit-transform-origin:top;" src="rose.png"/>
+  <img id="ctl_alphastar" width="20" height="140" style="position: absolute; left: 550; top: 460; -webkit-transform-origin:top;" src="needle.png"/>
+  <img id="fil_truewind"  width="20" height="140" style="position: absolute; left: 550; top: 460; -webkit-transform-origin:top;" src="dashed.png"/>
+  </div>
+</div>
+
+<div id="status" height="5%" width="100%" style="background:yellow;" >
+  status
+</div>
+
+<div id="help" height="5%" width="100%" style="background:white;" >
+    ZXC: rudder  ASD: sail HJKL: course  space: brake  N: normal M: dock
+</div>
+
+
 <script>
-var sts_sail, sts_rudd_l, sts_rudd_r
-var ctl_sail, ctl_rudd_l, ctl_rudd_r
-var sns_wind, sns_compass, sns_imuyaw
-
-var ws
-
 function e(id) { return document.getElementById(id) }
 function rot(id, angle) { e(id).style['-webkit-transform'] ='rotate(' + angle + 'deg)' }
-
-function start() {
-    e('sts_sail')   .style['-webkit-transform-origin'] ='top'
-    e('sts_rudd_l') .style['-webkit-transform-origin'] ='top'
-    e('sts_rudd_r') .style['-webkit-transform-origin'] ='top'
-    e('ctl_sail')   .style['-webkit-transform-origin'] ='top'
-    e('ctl_rudd_l') .style['-webkit-transform-origin'] ='top'
-    e('ctl_rudd_r') .style['-webkit-transform-origin'] ='top'
-    e('sns_wind')   .style['-webkit-transform-origin'] ='top'
-    e('ctl_alphastar').style['-webkit-transform-origin'] ='top'
-
-    var nan = Number.NaN
-
-    ws = new WebSocket("ws://" + window.location.host + "/lbus");
-    ws.onmessage = function (evt) {
-	var msg = eval('('+evt.data+')')
-	if (msg == null) return
-        for (x in msg) {
-	    f = handlers[x]
-            if (f != null) f(msg[x])
-	    lastmsg[x] = msg[x]
-        }
-
-    };
-
-    ws.onopen  = function(err) { document.body.style.background = 'white' }
-    ws.onclose = function(err) { document.body.style.background = 'darkgrey' }
-    ws.onerror = function(err) { document.body.style.background = 'red' }
-}
 
 function rnan(x) {
     if (Number.isNaN(x))  return "nan"
@@ -79,19 +60,13 @@ function znan(x) {
 
 var lastmsg = {
     'rudderctl': { 'timestamp_ms':0, 'rudder_l_deg':0, 'rudder_r_deg':0, 'sail_deg':0, },
-    'helmctl':   { 'timestamp_ms':0, 'alpha_star_deg':0, },
+    'helm':	 { 'timestamp_ms':0, 'alpha_star_deg':0, },
+    'helmsman_st': { 'direction_true_deg': 0 },
+    'imu':  	 { 'yaw_deg':0, 'vel_x_m_s':0, 'vel_y_m_s':0 },
     'compass':   { 'yaw_deg':0, },
+    'gps':   	 { 'cog_deg':0, },
+    'remote':    { 'command':1, 'alpha_star':0 },
 }
-
-
-function fmt_rudderctl(x) {
-    return "rudderctl: timestamp_ms:" + x.timestamp_ms + " rudder_l_deg:" + rnan(x.rudder_l_deg) + " rudder_r_deg:" + rnan(x.rudder_r_deg) + " sail_deg:" + rnan(x.sail_deg) + "\n"
-}
-
-function fmt_helmctl(x) {
-    return "helmctl: timestamp_ms:" + x.timestamp_ms + " alpha_star_deg:" + rnan(x.alpha_star_deg) + "\n"
-}
-
 
 var handlers = {
     'ruddersts': function(msg) {
@@ -108,91 +83,179 @@ var handlers = {
     'status_right': function(msg) { rot('sts_rudd_r', msg.angle_deg) },
     'status_sail':  function(msg) { rot('sts_sail', msg.angle_deg) },
     'wind': 	    function(msg) { rot('sns_wind', msg.angle_deg) },
-    'compass': 	    function(msg) { rot('sns_compass', -msg.yaw_deg); rot('ctl_alphastar', 180+lastmsg['helmctl'].alpha_star_deg - msg.yaw_deg) },
-    'imu':	    function(msg) { rot('sns_imuyaw',  -msg.yaw_deg) },
-    'helmsts':      function(msg) { e('helmsts').innerHTML = JSON.stringify(msg, null, 2) },
-    'helmctl':      function(msg) { rot('ctl_alphastar', 180+msg.alpha_star_deg - lastmsg['compass'].yaw_deg) },
+    'imu':	    function(msg) {
+	rot('sns_imuyaw',  -msg.yaw_deg);
+	rot('sns_imuyaw2', -msg.yaw_deg);
+	rot('sns_compass',   180 + lastmsg['compass'].yaw_deg - msg.yaw_deg)
+	rot('sns_gpscog',    180 + lastmsg['gps'].cog_deg - msg.yaw_deg)
+	rot('ctl_alphastar', 180 + lastmsg['helm'].alpha_star_deg - msg.yaw_deg)
+	rot('fil_truewind',  180 + lastmsg['helmsman_st'].direction_true_deg - msg.yaw_deg)
+	rot('sns_imuspeed',  180 + Math.atan2(msg.vel_x_m_s, msg.vel_y_m_s)*180.0/Math.PI - msg.yaw_deg)
+     },
+    'compass': 	    function(msg) { rot('sns_compass',   180 + msg.yaw_deg - lastmsg['imu'].yaw_deg); },
+    'gps': 	    function(msg) { rot('sns_gpscog',    180 + msg.cog_deg - lastmsg['imu'].yaw_deg); },
+    'helm':         function(msg) { rot('ctl_alphastar', 180 + msg.alpha_star_deg - lastmsg['imu'].yaw_deg) },
+    'helmsman_st':  function(msg) { rot('fil_truewind',  180 + msg.direction_true_deg - lastmsg['imu'].yaw_deg) },
 }
 
-var keys = {
-    32: function(msg) {  // Space
-	msg.rudder_l_deg = 0
-	msg.rudder_r_deg = 0
-	msg.sail_deg = 0
-	return msg
-    },
 
-    65: function(msg) {  // 'A'
-	msg.rudder_l_deg += 5
-	msg.rudder_r_deg += 5
-	return msg
-    },
-    83: function(msg) {  // 'S'
-	msg.rudder_l_deg = 0
-	msg.rudder_r_deg = 0
-	return msg
-    },
-    68: function(msg) {  // 'D'
-	msg.rudder_l_deg -= 5
-	msg.rudder_r_deg -= 5
-	return msg
-    },
-
-    72: function(msg) {  // 'H'
-	msg.sail_deg += 20
-	return msg
-    },
-    74: function(msg) {  // 'J'
-	msg.sail_deg += 5
-	return msg
-    },
-    75: function(msg) {  // 'K'
-	msg.sail_deg -= 5
-	return msg
-    },
-    76: function(msg) {  // 'L'
-	msg.sail_deg -= 20
-	return msg
-    },
+function fmt_rudderctl(x) {
+    return "rudderctl: timestamp_ms:" + x.timestamp_ms + " rudder_l_deg:" + rnan(x.rudder_l_deg) + " rudder_r_deg:" + rnan(x.rudder_r_deg) + " sail_deg:" + rnan(x.sail_deg) + "\n"
 }
 
-// IOP
-var hkeys = {
-    73: function(msg) {  // 'I'
-	msg.alpha_star_deg = znan(msg.alpha_star_deg) + 5
-	return msg
-    },
-    79: function(msg) {  // 'O'
-	msg.alpha_star_deg = Number.NaN
-	return msg
-    },
-    80: function(msg) {  // 'P'
-	msg.alpha_star_deg = znan(msg.alpha_star_deg) - 5
-	return msg
-    },
+function fmt_helmctl(x) {
+    return "helm: timestamp_ms:" + x.timestamp_ms + " alpha_star_deg:" + rnan(x.alpha_star_deg) + "\n"
+}
+
+function fmt_remotectl(x) {
+    return "remote: timestamp_s:0 command:" + x.command + " alpha_star:" + rnan(x.alpha_star) + "\n"
+}
+
+
+var kNormalControlMode = 1;
+var kDockingControlMode = 2;
+var kBrakeControlMode = 3;
+var kOverrideSkipperMode = 4;
+var kPowerCycleMode = 5;
+var kIdleHelmsmanMode = 6;
+
+var modestr = [ "", "NormalControlMode", "DockingControlMode", "BrakeControlMode", "OverrideSkipperMode", "PowerCycleMode", "IdleHelmsmanMode" ];
+
+
+
+function norm_angle(alpha) {
+    while(alpha > 180.0) { alpha -= 360.0 }
+    while(alpha <= -180.0) { alpha += 360.0 }
+    return alpha
+}
+
+function set_rudd(delta) {
+	if (delta) {
+		lastmsg['rudderctl'].rudder_l_deg += delta
+		lastmsg['rudderctl'].rudder_r_deg += delta
+                lastmsg['rudderctl'].rudder_r_deg = norm_angle(lastmsg['rudderctl'].rudder_r_deg)
+                lastmsg['rudderctl'].rudder_l_deg = norm_angle(lastmsg['rudderctl'].rudder_l_deg)
+	} else {
+		lastmsg['rudderctl'].rudder_l_deg = 0
+		lastmsg['rudderctl'].rudder_r_deg = 0
+	}
+}
+
+function set_sail(delta) {
+	if (delta) {
+		lastmsg['rudderctl'].sail_deg += delta
+		lastmsg['rudderctl'].sail_deg = norm_angle(lastmsg['rudderctl'].sail_deg)
+	} else {
+		lastmsg['rudderctl'].sail_deg = 0
+	}
+}
+
+function set_helm(delta) {
+	lastmsg['helm'].alpha_star_deg = znan(lastmsg['helm'].alpha_star_deg) + delta
+	lastmsg['helm'].alpha_star_deg = norm_angle(lastmsg['helm'].alpha_star_deg)
+	lastmsg['remote'].alpha_star = lastmsg['helm'].alpha_star_deg
+}
+
+
+var ws
+
+function send_rudderctl() {
+    handlers['rudderctl'](lastmsg['rudderctl']);
+    ws.send(fmt_rudderctl(lastmsg['rudderctl']));
+}
+function send_helmctl()   {
+    handlers['helm'](lastmsg['helm']);
+    ws.send(fmt_helmctl(lastmsg['helm']));
+}
+function send_remotectl() {
+    e('status').innerHTML = modestr[lastmsg['remote'].command];
+    ws.send(fmt_remotectl(lastmsg['remote']));
 }
 
 function handlekey() {
-    f = keys[event.keyCode]
-    if (f != null) {
-	msg = lastmsg['rudderctl']
-	msg = f(msg)
-	lastmsg['rudderctl'] = msg
-	ws.send(fmt_rudderctl(msg))
-	handlers['rudderctl'](msg)
-	return true
+
+    var kc = String.fromCharCode(event.keyCode)
+    
+    switch(kc) {
+    case 'C':  set_rudd(-2); break;
+    case 'X':  set_rudd(0); break;
+    case 'Z':  set_rudd(2); break;
+    case 'A':  set_sail(-5); break;
+    case 'S':  set_sail(0); break;
+    case 'D':  set_sail(5); break;
+    case 'H':  set_helm(-10);  break;
+    case 'J':  set_helm(-2);  break;
+    case 'K':  set_helm(2);  break;
+    case 'L':  set_helm(10);  break;
     }
 
-    f = hkeys[event.keyCode]
-    if (f != null) {
-	msg = lastmsg['helmctl']
-	msg = f(msg)
-	lastmsg['helmctl'] = msg
-	ws.send(fmt_helmctl(msg)) // TODO: do in a repeat loop
-	handlers['helmctl'](msg)
-	return true
+    switch(kc) {
+    case 'C':
+    case 'X':
+    case 'Z':
+    case 'A':
+    case 'S':
+    case 'D':
+        lastmsg['remote'].command = kIdleHelmsmanMode;
+	send_remotectl();
+	send_rudderctl();
+	break;
+
+    case 'H':
+    case 'J': 
+    case 'K': 
+    case 'L': 
+        lastmsg['remote'].command = kOverrideSkipperMode;
+	send_remotectl();
+	send_helmctl();
+	break;
+
+    case ' ':
+	lastmsg['remote'].command = kBrakeControlMode;
+	send_remotectl();
+	break;
+    
+    case 'N':
+	lastmsg['remote'].command = kNormalControlMode;
+	send_remotectl();
+	break;
+
+    case 'M':
+	lastmsg['remote'].command = kDockingControlMode;
+	send_remotectl();
+	break;
+	
     }
+
+    return true
 }
+
+function start() {
+    var nan = Number.NaN  // needed for eval of "label":nan in msg
+
+    ws = new WebSocket("ws://" + window.location.host + "/lbus");
+    ws.onmessage = function (evt) {
+	var msg = eval('('+evt.data+')')
+	if (msg == null) return
+        for (x in msg) {
+	    f = handlers[x]
+            if (f != null) f(msg[x])
+	    lastmsg[x] = msg[x]
+        }
+
+    };
+
+    ws.onopen  = function(err) { document.body.style.background = 'white' }
+    ws.onclose = function(err) { document.body.style.background = 'darkgrey' }
+    ws.onerror = function(err) { document.body.style.background = 'red' }
+
+    setInterval(function() {
+        if(lastmsg['remote'].command == kIdleHelmsmanMode || lastmsg['remote'].command == kOverrideSkipperMode) {
+		send_remotectl()
+	}
+    }, 2000)
+}
+
 
 </script>
 </body></html>

@@ -4,10 +4,15 @@
 <title>Log</title>
 </head>
 <body onload="startLog()" >
+
+<div id="menu">
 <a href="control.html" target="control">Control</a>
 <a href="plan.html" target="plan">Plan</a>
 <a href="log.html" target="log" style="background:gray;">Log</a>
+</div>
+
 <textarea id="log" style="width: 100%; height: 95%;" readonly="true" ></textarea>
+
 <script>
 var startLog = function() {
 	var ws = new WebSocket("ws://" + window.location.host + "/syslog");
