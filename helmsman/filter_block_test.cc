@@ -237,7 +237,7 @@ TEST(FilterBlock, All) {
 
   EXPECT_EQ(int(7.9 / kSamplingPeriod + 0.5), calls_until_valid);
   EXPECT_EQ(int(102.1 / kSamplingPeriod + 0.5), calls_until_wind_valid);
-  EXPECT_EQ(int(59.9 / kSamplingPeriod + 0.5), calls_until_speed_valid);
+  EXPECT_EQ(int(19.9 / kSamplingPeriod + 0.5), calls_until_speed_valid);
 
 
   // With sail angle information we can calculate the true wind.
@@ -301,7 +301,7 @@ TEST(FilterBlock, All) {
   // no effect on true and apparent wind ...
   EXPECT_IN_INTERVAL(-M_PI / 2 - 0.001, filtered.alpha_true, -M_PI / 2 + 0.001);
   EXPECT_IN_INTERVAL(1.998, filtered.mag_true, 2.002);
-  EXPECT_FLOAT_EQ(-M_PI * 3.0 / 4, filtered.angle_app);
+  EXPECT_IN_INTERVAL(-M_PI * 3.0 / 4 - 0.002, filtered.angle_app, -M_PI * 3.0 / 4 + 0.002);
   EXPECT_FLOAT_EQ(2.0 * sqrt(2), filtered.mag_app);
   // but on the wind sensor direction.
   for (int i = 0; i < 110 / kSamplingPeriod; ++i)

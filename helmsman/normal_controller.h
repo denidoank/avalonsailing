@@ -43,7 +43,7 @@ class NormalController : public Controller {
               const FilteredMeasurements& filtered);
   // for tests
   void SkipAlphaStarShaping(bool skip);
-  double RateLimit();
+  double RateLimit() const;
 
   // This method is public for test accessibility only.
   void ShapeReferenceValue(double alpha_star,
