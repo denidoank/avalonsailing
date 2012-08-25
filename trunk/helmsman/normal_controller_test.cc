@@ -8,6 +8,7 @@
 
 #include "common/convert.h"
 #include "common/polar.h"
+#include "common/sign.h"
 #include "helmsman/sampling_period.h"
 #include "helmsman/apparent.h"
 #include "helmsman/controller_io.h"
@@ -366,10 +367,12 @@ int TicksNeeded(const NormalController& c, double from, double to) {
   return Deg2Rad(fabs(from - to)) / c.RateLimit() / kSamplingPeriod;
 }
 
+// phi_z (boat.AngleRad()) is important for the sail controller.
+// Assume a perfect rudder controller: phi_z = phi_z*
 #define SHAPE(alpha_star) \
   c.ShapeReferenceValue(SymmetricRad(Deg2Rad(alpha_star)),     \
                         wind_true.AngleRad(), wind_true.Mag(), \
-                        boat.AngleRad(), boat.Mag(),           \
+                        phi_z_star, boat.Mag(),           \
                         SymmetricRad(wind_true.AngleRad() - phi_z_star), filtered.mag_app,  \
                         old_gamma_sail,                        \
                         &phi_z_star,                           \
@@ -377,7 +380,8 @@ int TicksNeeded(const NormalController& c, double from, double to) {
                         &gamma_sail_star,                      \
                         &out);                                 \
     printf("%6.2lf %6.2lf %6.2lf\n", phi_z_star, omega_z_star, gamma_sail_star);\
-    old_gamma_sail = gamma_sail_star;
+    old_gamma_sail = gamma_sail_star; \
+
 
 
 // Tests of the reference value rate limiting and maneuver planning.
@@ -449,12 +453,12 @@ TEST(NormalController, ReferenceValueShaping) {
   }
   EXPECT_FLOAT_EQ(Deg2Rad(-91), phi_z_star);
   // And back.
-  for (int i = 0; i < 30.0/kSamplingPeriod; ++i) {
+  for (int i = 0; i < TicksNeeded(c, -91, 91); ++i) {
     SHAPE(91);
   }
   EXPECT_FLOAT_EQ(Deg2Rad(91), phi_z_star);
   // A gentle change of bearing
-  for (int i = 0; i < 2.0/kSamplingPeriod; ++i) {
+  for (int i = 0; i < TicksNeeded(c, 91, 89); ++i) {
     SHAPE(89);
   }
   EXPECT_FLOAT_EQ(Deg2Rad(89), phi_z_star);
@@ -490,7 +494,7 @@ TEST(NormalController, ReferenceValueShaping) {
   }
   EXPECT_FLOAT_EQ(0, omega_z_star);
   EXPECT_FLOAT_EQ(Deg2Rad(-120), phi_z_star);
-  EXPECT_IN_INTERVAL(-90, Rad2Deg(gamma_sail_star), -80);
+  EXPECT_IN_INTERVAL(-60, Rad2Deg(gamma_sail_star), -50);
   // TODO Check where the extra 3 steps come from.
   for (int i = 0; i < TicksNeeded(c, -120, 50) + 100; ++i) {
     SHAPE(50);
@@ -511,8 +515,8 @@ TEST(NormalController, ReferenceValueShapingStormJibe) {
   FilteredMeasurements filtered;
   ControllerOutput out;
   Polar wind_true(Deg2Rad(-90), 25);  // Wind vector blowing to the West, with 25m/s. (15 is storm limit)
-  Polar boat(Deg2Rad(-90), kMagicTestSpeed);  // Boat going East, with about 1.1 m/s.
-                            // So the apparent wind vector is 0 degrees to
+  Polar boat(Deg2Rad(-45), kMagicTestSpeed);  // Boat going NorthWest, with about 1.1 m/s.
+                            // So the apparent wind vector is -45 degrees to
                             // the boats x-axis, 24m/s magnitude.
 
   SetEnv(wind_true, boat, &in, &filtered, &out);  // calculates the apparent wind
@@ -521,25 +525,23 @@ TEST(NormalController, ReferenceValueShapingStormJibe) {
   c.Entry(in, filtered);
   double phi_z_star = Deg2Rad(-45);
   double omega_z_star = 0;
-  double gamma_sail_star = Deg2Rad(93);
+  double gamma_sail_star = Deg2Rad(120);
   double old_gamma_sail = gamma_sail_star;
-  // Approximate the apparent wind as true wind direction - boat direction .
-
-  for (int i = 0; i < TicksNeeded(c, -45, -180); ++i) {
+  for (int i = 0; i < TicksNeeded(c, -45, -180) + 100; ++i) {
     SHAPE(-180);
   }
   EXPECT_FLOAT_EQ(0, omega_z_star);
   EXPECT_FLOAT_EQ(Deg2Rad(-180), phi_z_star);
-  EXPECT_IN_INTERVAL(-80, Rad2Deg(gamma_sail_star), -70); // -173 now?
+  EXPECT_IN_INTERVAL(-85, Rad2Deg(gamma_sail_star), -75);
 
   // South to North.
-  // TODO Check where the extra 3 steps come from.
-  for (int i = 0; i < TicksNeeded(c, 0, -180) + 3; ++i) {
+  // TODO Check where the extra steps come from.
+  for (int i = 0; i < TicksNeeded(c, 0, -180) + 30; ++i) {
     SHAPE(0);
   }
   EXPECT_FLOAT_EQ(0, omega_z_star);
   EXPECT_FLOAT_EQ(Deg2Rad(0), phi_z_star);
-  EXPECT_IN_INTERVAL(60, Rad2Deg(gamma_sail_star), 80);
+  EXPECT_IN_INTERVAL(75, Rad2Deg(gamma_sail_star), 85);  // storm: small angle of attack
 }
 
 
