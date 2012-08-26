@@ -273,9 +273,9 @@ double SailController::StableGammaSail(double alpha_true, double mag_true,
     // When sailing close hauled (hard to the wind) we observed sail angle oscillations
     // leading to the sail swinging over the boat symmetry axis. This will be
     // suppressed.
-    const double kCloseHauledLimit = Deg2Rad(6);
-    if (gamma_sail_rad < kCloseHauledLimit)
-      gamma_sail_rad = kCloseHauledLimit;
+    const double kSailTight = Deg2Rad(13);  // Manual control 2012_08_28
+    if (gamma_sail_rad < kSailTight)
+      gamma_sail_rad = kSailTight;
   }
   if (debug) {
     fprintf(stderr, "StableSail:: sign %d %lf\n",

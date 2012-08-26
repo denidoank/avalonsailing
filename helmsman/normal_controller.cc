@@ -323,8 +323,10 @@ bool NormalController::GiveUp(const ControllerInput& in,
   // Abort every 2 hours? Abort if epsilon is too big?
   // TODO: Contemplate this!
   // The speed is filtered and rather imprecise.
-  if ((wind_strength_apparent_ != kCalmWind && filtered.mag_boat < 0.03) ||
-      (wind_strength_apparent_ != kCalmWind && fabs(epsilon_) > bearing_deviation_limit))
+  // TODO Check other options like
+  // (wind_strength_apparent_ != kCalmWind && fabs(epsilon_) > bearing_deviation_limit))
+  // This aborted too early during 2012_08_28 tests.
+  if (wind_strength_apparent_ != kCalmWind && filtered.mag_boat < 0.03)
     ++give_up_counter_;
   else
     give_up_counter_ = 0;
