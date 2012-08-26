@@ -17,7 +17,7 @@
 extern int debug; // global shared
 
 namespace {
-const double kReverseMotionSailAngle = Deg2Rad(90);
+const double kReverseMotionSailAngle = Deg2Rad(95);
 const double kReverseMotionRudderAngle = Deg2Rad(8);
 // Lets sail a while in broad reach.
 const double kReferenceAngleApp = Deg2Rad(90);
@@ -32,19 +32,14 @@ const double kMinWindSpeedMPerS = 0.5;
 // KOGGE state.
 const double kRunSector = Deg2Rad(85);  // Definitively downwind.
 
-// The delay of 20s could be smaller but if we need to tack immediately
-// after leaving the InitialController then the boat needs some momentum
-// and the speed measurement filter should
-// have a stabilized value. This depends on the quality of the IMU speed
-// calculation. Therefore the more conservative waiting time of 20s.
-const double kKoggeTime = 20.0;  // s
 const double kMinimumSpeed = 0.15;  // m/s, needed to leave the KOGGE state.
 }
 
 
 InitialController::InitialController(SailController* sail_controller)
     : sail_controller_(sail_controller),
-      positive_speed_(false) {
+      positive_speed_(false),
+      kogge_time_(60) {
   Reset();
 }
   
@@ -52,6 +47,7 @@ void InitialController::InitialController::Reset() {
   phase_ = SLEEP;
   sign_ = 0; 
   count_ = 0;
+  kogge_time_ = 60;
 }
 
 void InitialController::Run(const ControllerInput& in,
@@ -73,6 +69,17 @@ void InitialController::Run(const ControllerInput& in,
 		      in.drives.homed_rudder_left ? "" : "left",
 		      in.drives.homed_rudder_left ? "" : "right");
   }
+
+
+  // The delay of 20s could be smaller but if we need to tack immediately
+  // after leaving the InitialController then the boat needs some momentum
+  // and the speed measurement filter should
+  // have a stabilized value. This depends on the quality of the IMU speed
+  // calculation. Therefore the more conservative waiting time of 20s.
+  kogge_time_ = filtered.mag_app > 4.0 ?
+          20.0 : // no time to waste
+          60.0;  // for weak wind
+
 
   positive_speed_ = filtered.mag_boat > kMinimumSpeed;
   if (debug) {
@@ -111,7 +118,7 @@ void InitialController::Run(const ControllerInput& in,
       // Turn into a sailable direction if necessary.
       if (fabs(angle_app) > kRunSector) {
         gamma_rudder = kReverseMotionRudderAngle * sign_;
-        gamma_sail = sail_controller_->BestGammaSailForReverseMotion(angle_app, filtered.mag_app);
+        gamma_sail = -sign_ * sail_controller_->BestGammaSailForReverseMotion(angle_app, filtered.mag_app);
       } else {
         phase_ = KOGGE;
         count_ = 0;
@@ -125,8 +132,9 @@ void InitialController::Run(const ControllerInput& in,
         gamma_rudder = -Sign(angle_app) * kBangBangRudderAngle;
       else  
         gamma_rudder = 0;
-      // Abort if the direction is not right.
-      if (count_ > 1.2 * kKoggeTime / kSamplingPeriod) {
+      // Abort if we don't get enough speed.
+      if (count_ > 3 * kogge_time_ / kSamplingPeriod &&
+          filtered.mag_app > 0.5) {
         count_ = 0;
         phase_ = TURTLE;
         // Decide which way to go.
@@ -158,7 +166,7 @@ void InitialController::Exit() {}
 
 bool InitialController::Done() {
   const bool done = (phase_ == KOGGE) &&
-                    (count_ > kKoggeTime / kSamplingPeriod) &&
+                    (count_ > kogge_time_ / kSamplingPeriod) &&
                      positive_speed_;
   if (done && debug) fprintf(stderr, "InitialController::Done\n");
   return done;

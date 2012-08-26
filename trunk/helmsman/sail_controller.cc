@@ -148,14 +148,12 @@ double SailController::BestGammaSailForReverseMotion(double alpha_wind_rad,
                                                      double mag_wind) {
   // Avoid unnecessary sail motor activity at low wind.
   if (mag_wind < 0.5)
-    return M_PI / 2;
+    return 1.3 * M_PI / 2;
 
   assert(alpha_wind_rad < 10);
   assert(-alpha_wind_rad > -10);
   alpha_wind_rad = SymmetricRad(alpha_wind_rad);
-  int sign = 1;
   if (alpha_wind_rad < 0) {
-    sign = -1;
     alpha_wind_rad = -alpha_wind_rad;
   }
   CHECK_LE(alpha_wind_rad, M_PI);  // in [0, pi]
@@ -164,7 +162,7 @@ double SailController::BestGammaSailForReverseMotion(double alpha_wind_rad,
       (M_PI - alpha_wind_rad + AngleOfAttack(mag_wind)) :
       M_PI / 2;      // reversed SPINNAKER mode, broad reach
 
-  return SymmetricRad(-sign * gamma_sail_rad);
+  return SymmetricRad(gamma_sail_rad);
 }
 
 void SailController::HandleSign(double* alpha_wind_rad, int* sign ) {

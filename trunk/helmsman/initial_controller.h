@@ -54,6 +54,7 @@ class InitialController : public Controller {
   int sign_; 
   int count_;
   bool positive_speed_;
+  double kogge_time_;
 };
 
 #endif  // HELMSMAN_INITIAL_CONTROLLER_H
