@@ -192,7 +192,7 @@ void FilterBlock::Filter(const ControllerInput& in,
                           &consensus)));
   }
   if (imu_lon != 0 || gps_lon != 0) {
-    fprintf(stderr,"lon mix %lf %lf \n", imu_lon, gps_lon);
+    // fprintf(stderr,"lon mix %lf %lf \n", imu_lon, gps_lon);
     fil->longitude_deg = SymmetricDeg(Rad2Deg(
         CompassMixer::Mix(Deg2Rad(imu_lon), imu_gps_fault_ ? 0 : 0.51,
                           0, 0,
@@ -208,7 +208,7 @@ void FilterBlock::Filter(const ControllerInput& in,
       fabs(DeltaOldNewRad(gps_cog_rad, fil->phi_z_boat)) > M_PI / 4) {
     gps_cog_rad = NormalizeRad(gps_cog_rad - M_PI);
     gps_speed_m_s = -gps_speed_m_s;
-    fprintf(stderr, "GPS neg. speed %lf\n", gps_speed_m_s);
+    // fprintf(stderr, "GPS neg. speed %lf\n", gps_speed_m_s);
   }
 
 
