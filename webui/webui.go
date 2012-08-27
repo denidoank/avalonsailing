@@ -17,7 +17,7 @@ import (
 
 var (
 	webroot = flag.String("webroot", "./s", "path to dir with static webpages")
-	lbus = flag.String("lbus", "/tmp/lbus", "path to lbus socket")
+	lbus = flag.String("lbus", "/var/run/lbus", "path to lbus socket")
 	slog = flag.String("log", "/var/log/messages", "path to syslog output")
 	port = flag.String("http", ":1969", "port to serve http on")
 )
