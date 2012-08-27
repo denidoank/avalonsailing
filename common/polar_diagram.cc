@@ -14,7 +14,7 @@ const double kTackZoneDeg = 50;        // degrees, a safe guess.
 const double kJibeZoneDeg = 180 - 15;  // degrees, might be 170 at storm
 }  // namespace
 
-double Speed(double angle, double wind_speed);
+double Speed(double angle_deg, double wind_speed);
 
 // In reality the polar diagram of the boat speeds (and the zone angles) depend
 // on the wind speed. We could not measure them so far, so we define a flexible
@@ -24,30 +24,31 @@ double Speed(double angle, double wind_speed);
 // See http://www.oppedijk.com/zeilen/create-polar-diagram or
 // http://www.scribd.com/doc/13811789/Segeln-gegen-den-Wind
 
-void ReadPolarDiagram(double angle_true_wind,
-                      double wind_speed,
+void ReadPolarDiagram(double angle_true_wind_deg,
+                      double wind_speed_m_s,
                       bool* dead_zone_tack,
                       bool* dead_zone_jibe,
-                      double* boat_speed) {
-  CHECK_GE(wind_speed, 0);
-  angle_true_wind = SymmetricDeg(angle_true_wind);  // convert to [-180, 180)
-  CHECK_LE(angle_true_wind, 180);
-  CHECK_GE(angle_true_wind, -180);
-
-  angle_true_wind = fabs(angle_true_wind);
-  *dead_zone_tack = angle_true_wind < kTackZoneDeg;
-  *dead_zone_jibe = angle_true_wind > kJibeZoneDeg;
+                      double* boat_speed_m_s) {
+  if (wind_speed_m_s < 0.01) {
+    *dead_zone_tack = false;
+    *dead_zone_jibe = false;
+    *boat_speed_m_s = 0;
+    return;
+  }
+  angle_true_wind_deg = fabs(SymmetricDeg(angle_true_wind_deg));  // convert to [-180, 180)
+  *dead_zone_tack = angle_true_wind_deg < kTackZoneDeg;
+  *dead_zone_jibe = angle_true_wind_deg > kJibeZoneDeg;
 
   if (*dead_zone_tack) {
-    const double v_0 = Speed(kTackZoneDeg, wind_speed) *
+    const double v_0 = Speed(kTackZoneDeg, wind_speed_m_s) *
                        cos(Deg2Rad(kTackZoneDeg));
-    *boat_speed = v_0 / cos(Deg2Rad(angle_true_wind));
+    *boat_speed_m_s = v_0 / cos(Deg2Rad(angle_true_wind_deg));
   } else if (*dead_zone_jibe) {
-    const double v_180 = Speed(kJibeZoneDeg, wind_speed) *
+    const double v_180 = Speed(kJibeZoneDeg, wind_speed_m_s) *
                          cos(Deg2Rad(kJibeZoneDeg));
-    *boat_speed = v_180 / cos(Deg2Rad(angle_true_wind));
+    *boat_speed_m_s = v_180 / cos(Deg2Rad(angle_true_wind_deg));
   } else {
-    *boat_speed = Speed(angle_true_wind, wind_speed);
+    *boat_speed_m_s = Speed(angle_true_wind_deg, wind_speed_m_s);
   }
 }
 
@@ -59,27 +60,41 @@ void ReadPolarDiagram(double angle_true_wind,
 // literature for wind speeds around 10knots. The angle range is limited to
 // 45 - 180 degree.
 
-double Speed(double angle, double wind_speed) {
-  CHECK_GE(angle, kTackZoneDeg);
-  CHECK_LE(angle, kJibeZoneDeg);
+double Speed(double angle_deg, double wind_speed) {
+  CHECK_GE(angle_deg, kTackZoneDeg);
+  CHECK_LE(angle_deg, kJibeZoneDeg);
   // We might adapt this for different wind speeds later.
   // This approximation was done for WindSpeed = 10 kts;
-  const double K0 = -0.9844053104;
-  const double K1 =  3.3123159119;
-  const double K2 = -2.3354225154;
-  const double K3 =  0.7061562329;
-  const double K4 = -0.0797837181;
+  const double K0 = -2.9839914453775590E-01;
+  const double K1 =  1.2774937184785125E-02;
+  const double K2 = -6.7907132882375607E-05;
+  const double K3 =  7.9556974926732012E-08;
 
-  double a = Deg2Rad(angle);
+  // y = a + bx + cx^2  + dx^3
+  // [zunzun.com]
+
+  double a = angle_deg;
   double a2 = a*a;
   double a3 = a2*a;
-  double a4 = a3*a;
 
-  double relative_speed  = K4 * a4 + K3 * a3 + K2 * a2 + K1 * a + K0;
+  double relative_speed  = K3 * a3 + K2 * a2 + K1 * a + K0;
   CHECK_LT(relative_speed, 1);
   // The boat speed is not proportional to the wind speed in reality.
-  return relative_speed * wind_speed;
+  if (wind_speed > 5) {
+    wind_speed = 4 + sqrt(wind_speed - 4);
+  }
+  // and the boat hull has high resistance above 2.3m/s.
+  // TODO(grundmann): Improve this once we have strong wind data.
+  double boat_speed = relative_speed * wind_speed;
+  if (boat_speed > 2.3) {
+    boat_speed = 1.3 + sqrt(boat_speed - 1.3);
+  }
+  if (boat_speed > 2.6) {
+    boat_speed = 2.6;
+  }
+  return boat_speed;
 }
+
 
 double TackZoneDeg() {
   return kTackZoneDeg;

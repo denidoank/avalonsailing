@@ -6,14 +6,17 @@
 #ifndef COMMON_POLAR_DIAGRAM_H_
 #define COMMON_POLAR_DIAGRAM_H_
 
-// In reality the polar diagram of the boat speeds (and the zone angles) depend
-// on the wind speed. We could not measure them so far, so we define a flexible
-// interface and use an approximation.
+// After tests in wind speed ranges of 2-10m/s I defined
+// this approximation. Our speed limit is around 2.5m/s.
+
 // If the wind speed is unknown, give 10.0 for the wind speed to get the
 // relative speed of the boat for the given angle.
 // See http://www.oppedijk.com/zeilen/create-polar-diagram or
 // http://www.scribd.com/doc/13811789/Segeln-gegen-den-Wind
 
+// angle_true_wind_deg is the angle to to where the wind is coming from,
+// i.e. 180 degrees is running or sailing into the same direction
+// as the wind blows.
 void ReadPolarDiagram(double angle_true_wind_deg,
                       double wind_speed_m_s,
                       bool* dead_zone_tack,
