@@ -12,27 +12,41 @@
   <a href="log.html" target="log">Log</a>
 </div>
 
-<div style="width: 300px; height: 600px;">
+<div style="width: 800px; height: 600px;">
   <div id="widget" style="position: relative;  left:100;" >
 
-  <img id="boat"   width="208" height="495" style="position: absolute; left: 0; top: 0;" src="boat.png"/>
-  <img id="sts_sail"   width="41" height="289" style="position: absolute; left: 80; top: 200; -webkit-transform-origin:top;" src="boom.png"/>
-  <img id="ctl_sail"   width="30" height="289" style="position: absolute; left: 85; top: 200; -webkit-transform-origin:top;" src="needle.png"/>
-  <img id="sns_wind"   width="20" height="100" style="position: absolute; left: 90; top: 200; -webkit-transform-origin:top;" src="dashed.png"/>
+  <img id="boat"       width="208" height="495" style="position: absolute; left: 0; top: 0;" src="boat.png"/>
+  <img id="sts_sail"   width="41" height="289"  style="position: absolute; left: 80; top: 200; -webkit-transform-origin:top;" src="boom.png"/>
+  <img id="ctl_sail"   width="30" height="289"  style="position: absolute; left: 85; top: 200; -webkit-transform-origin:top;" src="needle.png"/>
+  <img id="sns_wind"   width="20" height="100"  style="position: absolute; left: 90; top: 200; -webkit-transform-origin:top;" src="dashed.png"/>
   
   <img id="sts_rudd_l" width="10" height="60"  style="position: absolute; left: 60; top: 490; -webkit-transform-origin:top;" src="boom.png"/>
-  <img id="ctl_rudd_l" width="8" height="80"   style="position: absolute; left: 60; top: 490; -webkit-transform-origin:top;" src="needle.png"/>
+  <img id="ctl_rudd_l" width="8"  height="80"  style="position: absolute; left: 60; top: 490; -webkit-transform-origin:top;" src="needle.png"/>
   <img id="sts_rudd_r" width="10" height="60"  style="position: absolute; left: 140; top: 490; -webkit-transform-origin:top;" src="boom.png"/>
-  <img id="ctl_rudd_r" width="8" height="80"   style="position: absolute; left: 140; top: 490; -webkit-transform-origin:top;" src="needle.png"/>
+  <img id="ctl_rudd_r" width="8"  height="80"  style="position: absolute; left: 140; top: 490; -webkit-transform-origin:top;" src="needle.png"/>
 
-  <img id="sns_imuyaw"   width="240" height="240" style="position: absolute; left: 440; top: 50;" src="rose.png"/>
-  <img id="sns_gpscog"   width="20" height="140" style="position: absolute; left: 550; top: 160; -webkit-transform-origin:top;" src="boom.png"/>
-  <img id="sns_compass"  width="20" height="140" style="position: absolute; left: 550; top: 160; -webkit-transform-origin:top;" src="needle.png"/>
-  <img id="sns_imuspeed"  width="20" height="140" style="position: absolute; left: 550; top: 160;  -webkit-transform-origin:top;" src="dashed.png"/>
+  <img id="sns_imuyaw"   width="240" height="240" style="position: absolute; left: 340; top: 50;" src="rose.png"/>
+  <img id="sns_gpscog"   width="20"  height="140" style="position: absolute; left: 450; top: 160; -webkit-transform-origin:top;" src="boom.png"/>
+  <img id="sns_compass"  width="20"  height="140" style="position: absolute; left: 450; top: 160; -webkit-transform-origin:top;" src="needle.png"/>
+  <img id="sns_imuspeed" width="20"  height="140" style="position: absolute; left: 450; top: 160; -webkit-transform-origin:top;" src="dashed.png"/>
 
-  <img id="sns_imuyaw2"   width="240" height="240" style="position: absolute; left: 440; top: 350;" src="rose.png"/>
-  <img id="ctl_alphastar" width="20" height="140" style="position: absolute; left: 550; top: 460; -webkit-transform-origin:top;" src="needle.png"/>
-  <img id="fil_truewind"  width="20" height="140" style="position: absolute; left: 550; top: 460; -webkit-transform-origin:top;" src="dashed.png"/>
+    <div style="position: absolute; left: 600; top: 50;">
+    <div><img  width="10" height="20" src="boom.png"/>GPS COG</div>
+    <div><img  width="10" height="20" src="needle.png"/>Compass</div>
+    <div><img  width="10" height="20" src="dashed.png"/>IMU speed</div>
+    </div>
+    
+  <img id="sns_imuyaw2"   width="240" height="240" style="position: absolute; left: 340; top: 350;" src="rose.png"/>
+  <img id="ctl_alphastar" width="20" height="140" style="position: absolute; left: 450; top: 460; -webkit-transform-origin:top;" src="needle.png"/>
+  <img id="fil_truewind"  width="20" height="140" style="position: absolute; left: 450; top: 460; -webkit-transform-origin:top;" src="dashed.png"/>
+
+    <div style="position: absolute; left: 600; top: 350;">
+    <div><img  width="10" height="20" src="needle.png"/>alpha_star</div>
+    <div><img  width="10" height="20" src="dashed.png"/>true wind</div>
+    </div>
+
+   
+
   </div>
 </div>
 
@@ -173,9 +187,9 @@ function send_remotectl() {
     ws.send(fmt_remotectl(lastmsg['remote']));
 }
 
-function handlekey() {
-
-    var kc = String.fromCharCode(event.keyCode)
+function handlekey(e) {
+    if (!e) var e = window.event
+    var kc = String.fromCharCode(e.keyCode)
     
     switch(kc) {
     case 'C':  set_rudd(-2); break;
