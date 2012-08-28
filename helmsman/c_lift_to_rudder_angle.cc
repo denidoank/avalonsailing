@@ -19,7 +19,9 @@ double RudderLimit(double speed_m_s) {
   // don't know about it because we cannot measure it!).
   if (speed_m_s == kUnknown || speed_m_s < 0)
     return kAlphaLimit4Rad;
-  if (speed_m_s < kSpeed1_m_s) {
+  if        (speed_m_s < kSpeed0_m_s) {
+    return kAlphaLimit0Rad;
+  } else if (speed_m_s < kSpeed1_m_s) {
     return kAlphaLimit1Rad;
   } else if (speed_m_s < kSpeed2_m_s) {
     return kAlphaLimit2Rad;

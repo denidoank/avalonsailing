@@ -11,6 +11,17 @@
 // cd /home/grundmann/avalon/JavaFoil/
 // java -classpath ./java/javafoil.jar:./java/mhclasses.jar:/usr/java/lib/rt.jar -jar ./java/javafoil.jar
 
+// The optimal angles of attack given by other sources are higher because
+// they apply for bigger Reynold numbers, i.e. are valid at higher speeds.
+// We operate in a region of low speeds.
+
+// Reynold numbers (rounded) for Avalon
+// kts  m/s    Re(Keel)    Re(Rudder)
+//  1    0.514  175000       82000
+//  3    1.542  350000      250000
+//  6    3.084  700000      500000
+
+
 #ifndef HELMSMAN_NACA0010_H_
 #define HELMSMAN_NACA0010_H_
 
@@ -23,6 +34,8 @@ const double kCLiftPerRad = 0.1118 * 180 / M_PI;        // 1/rad
 const double kCLiftPerRadReverse = 0.052 * 180 / M_PI;  // 1/rad
 
 // Below speed_1 we apply limit_1 etc. .
+const double kAlphaLimit0Rad = Deg2Rad(6);  // I made this up.
+const double kSpeed0_m_s = 0.25;
 const double kAlphaLimit1Rad = Deg2Rad(7);
 const double kSpeed1_m_s = 0.5;
 const double kAlphaLimit2Rad = Deg2Rad(8);
