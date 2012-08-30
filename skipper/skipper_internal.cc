@@ -10,9 +10,11 @@
 #include "common/unknown.h"
 #include "common/convert.h"
 #include "common/delta_angle.h"
+#include "common/now.h"
 #include "common/polar_diagram.h"
 #include "helmsman/normal_controller.h"
 #include "skipper/planner.h"
+#include "vskipper/util.h"
 
 extern int debug;
 
@@ -143,8 +145,9 @@ double SkipperInternal::HandleStorm(WindStrengthRange wind_strength,
   }
 
   // The direction side is kept as long as the storm lasts.
+  // TODO Adapt every 6h (25miles)
   // We keep a constant angle to the true wind.
-  const double kStormAngle = 115.0;
+  const double kStormAngle = 50.0;
   if (transition_to_storm) {
     double d1 = DeltaOldNewDeg(planned, NormalizeDeg(angle_true_deg + kStormAngle));
     double d2 = DeltaOldNewDeg(planned, NormalizeDeg(angle_true_deg - kStormAngle));
@@ -153,9 +156,9 @@ double SkipperInternal::HandleStorm(WindStrengthRange wind_strength,
 
   if (storm_) {
     if (storm_sign_plus_) {
-      storm_bearing = NormalizeDeg(angle_true_deg + 115);
+      storm_bearing = NormalizeDeg(angle_true_deg + kStormAngle);
     } else {
-      storm_bearing = NormalizeDeg(angle_true_deg - 115);
+      storm_bearing = NormalizeDeg(angle_true_deg - kStormAngle);
     }
     if (transition_to_storm) {
       fprintf(stderr, "Storm, going to %6.2lf deg.\n", storm_bearing);
@@ -165,4 +168,74 @@ double SkipperInternal::HandleStorm(WindStrengthRange wind_strength,
     storm_bearing = planned;
   }
   return storm_bearing;
+}
+
+namespace {
+
+int sscan_ais(const char *line, int64_t now_ms, skipper::AisInfo* s) {
+  s->timestamp_ms = now_ms;
+
+  if (!strncmp(line, "ais: ", 5))
+    line += 5;
+
+  while (*line) {
+    char key[16];
+    double value = NAN;
+
+    int skip = 0;
+    int n = sscanf(line, "%16[a-z_]:%lf %n", key, &value, &skip);
+    if (n < 2) return 0;
+    if (skip == 0) return 0;
+    line += skip;
+
+    if (!strcmp(key, "timestamp_ms")  && !isnan(value)) {
+      s->timestamp_ms = int64_t(value);
+      continue;
+    }
+    if (!strcmp(key, "lat_deg")       && !isnan(value)) {
+      s->position = skipper::LatLon::Degrees(value, s->position.lon_deg());
+      continue;
+    }
+    if (!strcmp(key, "lng_deg")       && !isnan(value)) {
+      s->position = skipper::LatLon::Degrees(s->position.lat_deg(), value);
+      continue;
+    }
+    if (!strcmp(key, "speed_m_s")     && !isnan(value)) {
+      s->speed_m_s = value;
+      continue;
+    }
+    if (!strcmp(key, "cog_deg")       && !isnan(value)) {
+      s->bearing = skipper::Bearing::Degrees(value);
+      continue;
+    }
+    // ignore anything else
+    // return 0;
+  }
+  return 1;
+}
+
+} // namespace
+
+
+void SkipperInternal::ReadAisFile(
+    const char* ais_filename, std::vector<skipper::AisInfo>* ais) {
+  FILE* fp = fopen(ais_filename, "r");
+  if (!fp) {
+    // This failure is possible in the beginning, when the ais_buf
+    // hasn't written anything yet.
+    fprintf(stderr, "Could not open %s", ais_filename);
+    return;
+  }
+  while (!feof(fp)) {
+    char line[1024];
+    if (!fgets(line, sizeof(line), stdin)) break;
+    skipper::AisInfo ai;
+    if (!sscan_ais(line, now_ms(), &ai)) continue;
+    ais->push_back(ai);
+
+    if (debug) fprintf(stderr, "ais: %lld %lf %lf %lf %lf\n",
+                       ai.timestamp_ms, ai.position.lat_deg(), ai.position.lon_deg(),
+                       ai.speed_m_s, ai.bearing.deg());
+  }
+  fclose(fp);
 }
