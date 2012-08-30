@@ -112,7 +112,13 @@ TCP(48.1304, -5.17391, 0.289474),
 TCP(   48.2,       -5,     0.25),
 TCP(0, 0, 0)                      // end marker
 };
-const TargetCircle caribbean_final(caribbean_plan[0].lat_lon, 0.09);
+
+// for checks of the correct initial GPS data
+const TargetCirclePoint brest_check[] = {
+TargetCirclePoint( 48.2390, -4.7698, 1.0),
+TargetCirclePoint(0, 0, 0)}; // end marker
+const TargetCircle brest(brest_check[0].lat_lon, brest_check[0].radius_deg);
+const TargetCircle caribbean_final(caribbean_plan[0].lat_lon, 1.2*0.09);
 
 
 // Lake Zuerich plans, r = 550m for the plan, r=2000m to find the correct location initially
@@ -338,18 +344,62 @@ const TargetCirclePoint ufenau_plan[] = {
     TCP( 47.3482,   8.5434,   0.0018),
 TCP(       0,        0,        0) };  // end marker
 
-// Start Ufenau plan if we are less than 5 * 200m from the start point away.
+// Start the Ufenau plan if we are less than 5 * 200m from the start point away.
 const TargetCircle ufenau(47.3482,   8.5434,  0.0018 * 5 );
-const TargetCircle ufenau_target(47.2223,   8.7194,   0.0018);
+const TargetCircle ufenau_target(47.2223,   8.7194,   1.2*0.0018);
 
+const TargetCirclePoint mallorca_plan[] = {
+TCP( 39.9202,   3.3155,    0.018),
+TCP( 39.9331,  3.32342, 0.0235385),
+TCP( 39.9491,   3.3332, 0.0290769),
+TCP( 39.9681,  3.34485, 0.0346154),
+TCP( 39.9902,  3.35836, 0.0401539),
+TCP( 40.0153,  3.37373, 0.0456923),
+TCP( 40.0435,  3.39097, 0.0512308),
+TCP( 40.0747,  3.41007, 0.0567692),
+TCP( 40.1089,  3.43103, 0.0623077),
+TCP( 40.1462,  3.45386, 0.0678462),
+TCP( 40.1865,  3.47855, 0.0733846),
+TCP( 40.2299,   3.5051, 0.0789231),
+TCP( 40.2763,  3.53352, 0.0844615),
+TCP( 40.3258,   3.5638,     0.09),
+TCP( 40.3783,  3.60829,    0.102),
+TCP( 40.4369,  3.65802,    0.114),
+TCP( 40.5018,  3.71298,    0.126),
+TCP( 40.5728,  3.77318,    0.138),
+TCP( 40.6499,  3.83861,     0.15),
+TCP( 40.7333,  3.90927,    0.162),
+TCP( 40.8228,  3.98517,    0.174),
+TCP( 40.9185,   4.0663,    0.186),
+TCP( 41.0203,  4.15267,    0.198),
+TCP( 41.1284,  4.24427,     0.21),
+TCP( 41.2426,  4.34111,    0.222),
+TCP(  41.363,  4.44318,    0.234),
+TCP( 41.4896,  4.55049,    0.246),
+TCP( 41.6223,  4.66303,    0.258),
+TCP( 41.7612,   4.7808,     0.27),
+TCP( 41.8971,  4.90878, 0.255938),
+TCP( 42.0255,  5.02974, 0.241875),
+TCP( 42.1464,  5.14366, 0.227813),
+TCP( 42.2599,  5.25055,  0.21375),
+TCP( 42.3659,   5.3504, 0.199688),
+TCP( 42.4644,  5.44323, 0.185625),
+TCP( 42.5555,  5.52902, 0.171563),
+TCP( 42.6391,  5.60778,   0.1575),
+TCP( 42.7152,  5.67951, 0.143438),
+TCP( 42.7839,   5.7442, 0.129375),
+TCP( 42.8451,  5.80186, 0.115313),
+TCP( 42.8989,   5.8525,  0.10125),
+TCP( 42.9451,   5.8961, 0.0871875),
+TCP(  42.984,  5.93266, 0.073125),
+TCP( 43.0153,   5.9622, 0.0590625),
+TCP( 43.0392,   5.9847,    0.045),
+TCP(       0,         0,         0)};  // end marker
 
-
-// for checks of the correct initial GPS data
-const TargetCirclePoint brest_check[] = {
-TargetCirclePoint( 48.2390, -4.7698, 1.0),
-TargetCirclePoint(0, 0, 0)}; // end marker
-const TargetCircle brest(brest_check[0].lat_lon, brest_check[0].radius_deg);
-
+// Start Mallorca plan if we are less than 5000m from the start point near Toulon away.
+const TargetCircle toulon(43.0392,   5.9847,   0.045 );
+// final point 20km EastNorthEast of Port d'Alicudia, Mallorca, Spain
+const TargetCircle mallorca_target(39.9202,   3.3155,    0.018);
 
 
 

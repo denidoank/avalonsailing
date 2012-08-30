@@ -29,11 +29,14 @@ double Planner::last_turn_time_ = 0;
 // for a better polar diagram and general testing.
 // At the target of the real journey we will also
 // sail criss-cross.
-
+// TODO Remove the
 void Planner::Init(const LatLon& lat_lon) {
   if (ufenau.In(lat_lon)) {
     fprintf(stderr, "Ufenau plan\n");
     plan_.Build(ufenau_plan);
+  } else if (toulon.In(lat_lon)) {
+    fprintf(stderr, "Mallorca plan\n");
+    plan_.Build(mallorca_plan);
   } else if (sukku.In(lat_lon)) {
     fprintf(stderr, "sukku plan\n");
     plan_.Build(sukku_plan);
@@ -55,6 +58,9 @@ void Planner::Init(const LatLon& lat_lon) {
   } else if (wollerau.In(lat_lon)) {
     fprintf(stderr, "wollerau plan\n");
     plan_.Build(wollerau_plan);
+  } else if (brest.In(lat_lon)) {
+    fprintf(stderr, "carribean plan\n");
+    plan_.Build(caribbean_plan);
   } else {
     fprintf(stderr, "According to our GPS we are not on lake zuerich.\n");
     fprintf(stderr, "lat %8.6lg lon %8.6lg \n", lat_lon.lat, lat_lon.lon);
@@ -65,9 +71,13 @@ void Planner::Init(const LatLon& lat_lon) {
       fprintf(stderr, "According to our GPS we are in the middle of our journey\n");
       fprintf(stderr, "lat %8.6lg lon %8.6lg\n", lat_lon.lat, lat_lon.lon);
     }
-    fprintf(stderr, "Caribbean plan\n");
-    plan_.Build(caribbean_plan);
-    fprintf(stderr, "Built the Caribbean plan\n");
+    fprintf(stderr, "Mallorca plan\n");
+    plan_.Build(mallorca_plan);
+    fprintf(stderr, "Built the Mallorca plan\n");
+    // TODO for Atlantic change the default.
+    //fprintf(stderr, "Caribbean plan\n");
+    //plan_.Build(caribbean_plan);
+    //fprintf(stderr, "Built the Caribbean plan\n");
   }
 }
 
