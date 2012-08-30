@@ -129,6 +129,9 @@ for attempt in 1 2 3; do
     # aiscat is not connected to the lbus
     #  (aiscat /dev/ais | aisbuf /var/run/ais.txt; logger -s -p local2.crit "aiscat exited.")&
 
+    # Skipper reads AIS file written by aisbuf.
+    plug -n "skipper" $LBUS -- `which skipper` /var/run/ais.txt 2>> /var/log/skipper.log &
+
     # plug -o -n "statusd" $LBUS -- `which statusd` --queue=/var/run/modem --initial_timeout=180 --status_interval=86400 --remote_cmd_interval=5 &
 
     echo "Und immer eine Handbreit Wasser unter dem Kiel!"
