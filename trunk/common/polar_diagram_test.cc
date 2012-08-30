@@ -15,6 +15,9 @@
 // and xy values for constant speed circles at the 50%, 75% and 100% of the
 // wind speed.
 void LogPolarDiagram() {
+  bool dead_zone_tack;
+  bool dead_zone_jibe;
+  double boat_speed_m_s;
   for (double wind_speed_m_s = 5; wind_speed_m_s <= 10; wind_speed_m_s += 5) {
     printf("\n For wind_speed_m_s: %lg m/s\n", wind_speed_m_s);
     printf("angle/degree,speed_magnitude/ m/s,speed_x/k m/s,speed_y/ m/s,"
@@ -24,9 +27,6 @@ void LogPolarDiagram() {
            "wind_speed_100_x/m/s,wind_speed_100_y/m/s\n");
     for (double alpha = -180.0; alpha <= 180; alpha += 2) {
       double rad = Deg2Rad(alpha);
-      bool dead_zone_tack;
-      bool dead_zone_jibe;
-      double boat_speed_m_s;
       ReadPolarDiagram(alpha,
                        wind_speed_m_s,
                        &dead_zone_tack,
@@ -38,8 +38,19 @@ void LogPolarDiagram() {
              0.5 * wind_speed_m_s * sin(rad), 0.5 * wind_speed_m_s * cos(rad),
              0.75 * wind_speed_m_s * sin(rad), 0.75 * wind_speed_m_s * cos(rad),
              1.0 * wind_speed_m_s * sin(rad), 1.0 * wind_speed_m_s * cos(rad));
-      //printf("%lg,%lg,\n", alpha, boat_speed_m_s);
+      // printf("%lg,%lg,\n", alpha, boat_speed_m_s);
     }
+  }
+
+  printf("\n For angle 90 degrees wind_speed_m_s: 0 - 20 m/s\n true wind speed / m/s, boat speed / m/s\n");
+  for (double wind_speed_m_s = 0; wind_speed_m_s <= 30; wind_speed_m_s += 0.25) {
+    ReadPolarDiagram(90,
+                     wind_speed_m_s,
+                     &dead_zone_tack,
+                     &dead_zone_jibe,
+                     &boat_speed_m_s);
+    printf("%lg,%lg\n", wind_speed_m_s, boat_speed_m_s);
+
   }
 }
 
@@ -139,7 +150,7 @@ ReadPolarDiagram(180,
 EXPECT_EQ(dead_zone_tack, false);
 EXPECT_EQ(dead_zone_jibe, true);
 
-EXPECT_FLOAT_EQ(1.98151, boat_speed_m_s);
+EXPECT_FLOAT_EQ(2.01836, boat_speed_m_s);
 
 EXPECT_FLOAT_EQ(0.391058, TestSpeed(110, 1));
 EXPECT_FLOAT_EQ(1.75976,  TestSpeed(110, 4.5));

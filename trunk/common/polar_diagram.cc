@@ -11,7 +11,7 @@
 
 namespace {
 const double kTackZoneDeg = 50;        // degrees, a safe guess.
-const double kJibeZoneDeg = 180 - 15;  // degrees, might be 170 at storm
+const double kJibeZoneDeg = 180 - 20;  // degrees
 }  // namespace
 
 double Speed(double angle_deg, double wind_speed);
@@ -165,12 +165,7 @@ double BestStableSailableHeading(double alpha_star, double alpha_true, double pr
 }
 
 
-
-
-
-
 double BestSailableHeadingDeg(double alpha_star_deg, double alpha_true_deg){
   return Rad2Deg(BestSailableHeading(Deg2Rad(alpha_star_deg),
                                      Deg2Rad(alpha_true_deg)));
 }
-
