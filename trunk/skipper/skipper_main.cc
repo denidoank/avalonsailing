@@ -63,9 +63,10 @@ static void segv_fault(int i) { crash("segv fault"); }
 
 void usage(void) {
   fprintf(stderr,
-    "usage: [plug /path/to/bus] %s [options]\n"
+    "usage: [plug /path/to/bus] %s [options] <ais_file_path> \n"
     "options:\n"
     "\t-d debug\n"
+    "\t-v verbose\n"
     , argv0);
   exit(2);
 }
@@ -107,7 +108,7 @@ int main(int argc, char* argv[]) {
   argv += optind;
   argc -= optind;
 
-  if (argc != 0) usage();
+  if (argc != 1) usage();
 
   openlog(argv0, debug?LOG_PERROR:0, LOG_LOCAL0);
   if(!debug) setlogmask(LOG_UPTO(LOG_NOTICE));
@@ -119,10 +120,9 @@ int main(int argc, char* argv[]) {
   if (signal(SIGSEGV, segv_fault) == SIG_ERR)  crash("signal(SIGSEGV)");
   if (signal(SIGPIPE, SIG_IGN) == SIG_ERR) crash("signal");
 
-  syslog(LOG_NOTICE, "Skipper started");
+  syslog(LOG_NOTICE, "Skipper started, read AIS from %s", argv[0]);
 
   SkipperInput skipper_input;   // reported back from helmsman
-  std::vector<skipper::AisInfo> ais;
   double alpha_star_deg;
 
   // wake up every 120 second
@@ -164,6 +164,8 @@ int main(int argc, char* argv[]) {
     if (!new_input)
       continue;
 
+    std::vector<skipper::AisInfo> ais;
+    SkipperInternal::ReadAisFile(argv[0], &ais);
     SkipperInternal::Run(skipper_input, ais, &alpha_star_deg);
 
     // send desired angle to helmsman
