@@ -107,7 +107,7 @@ TEST(SkipperInternal, Storm) {
   storm_override = SkipperInternal::HandleStorm(wind_strength,
                                                 angle_true_deg,
                                                 planned);
-  const double storm_angle = 115;
+  const double storm_angle = 50;
   EXPECT_FLOAT_EQ(storm_angle, storm_override);
 
   planned = -33;
@@ -286,7 +286,7 @@ TEST(SkipperInternal, UfenauPlan) {
   std::vector<skipper::AisInfo> ais;
   double alpha_star;
 
-  in.angle_true_deg = 320;  // so we cannot sail soutth directly
+  in.angle_true_deg = 320;  // so we cannot sail south directly
   in.mag_true_kn = 10;
   double x0 = 47.3557;
   double y0 = 8.5368;       // Mythenquai, Shore
@@ -320,7 +320,89 @@ TEST(SkipperInternal, UfenauPlan) {
   CloseKML();
 }
 
+TEST(SkipperInternal, MallorcaPlan) {
+  fprintf(stderr, "Running test: MallorcaPlan\n");
+  OpenKML("Mallorca");
+  double end_time = 0;
+  SkipperInput in;
+  std::vector<skipper::AisInfo> ais;
+  double alpha_star;
 
+  in.angle_true_deg = 20;  // so we cannot sail south directly
+  in.mag_true_kn = 15;
+  double x0 = 43.0617;
+  double y0 = 6.0967;       // off Toulon, NOT in the first toulon target circle!
+  double v = 1.6 / to_cartesian_meters;
+  in.latitude_deg = x0;
+  in.longitude_deg = y0;
+  SkipperInternal::Init(in);
+  end_time = 0;
+
+  printf("t/s, x0, y0, alpha_star\n");
+  double time_step = 60;
+  for (double t = 0; t < 450000; t += time_step) {
+    in.latitude_deg = x0;
+    in.longitude_deg = y0;
+    SkipperInternal::Run(in, ais, &alpha_star);
+    if (SkipperInternal::TargetReached(LatLon(x0, y0))) {
+      EXPECT_TRUE(mallorca_target.In(x0, y0));
+      if (end_time == 0)
+        end_time = t;
+    }
+
+    // Simulate the motion
+    double phi_rad = Deg2Rad(alpha_star);
+    x0 += v * cos(phi_rad) * time_step;
+    y0 += v * sin(phi_rad) * time_step / cos(Deg2Rad(x0));
+    printf("%8.6lf %8.6lf %8.6lf %6.4lf\n", t, x0, y0, alpha_star);
+    DotKML(x0, y0);
+  }
+  printf("end time: %8.6lf days.\n", end_time / kDays);
+  EXPECT_GT(5 * kDays, end_time);
+  CloseKML();
+}
+
+TEST(SkipperInternal, MallorcaDetailsPlan) {
+  fprintf(stderr, "Running test: MallorcaDetailsPlan\n");
+  OpenKML("MallorcaTarget");
+  double end_time = 0;
+  SkipperInput in;
+  std::vector<skipper::AisInfo> ais;
+  double alpha_star;
+
+  in.angle_true_deg = 20;  // so we cannot sail south directly
+  in.mag_true_kn = 15;
+  double x0 = 39.937896;
+  double y0 = 3.326506;       // very near to the target
+  double v = 1.6 / to_cartesian_meters;
+  in.latitude_deg = x0;
+  in.longitude_deg = y0;
+  SkipperInternal::Init(in);
+  end_time = 0;
+
+  printf("t/s, x0, y0, alpha_star\n");
+  double time_step = 120;
+  for (double t = 0; t < 15000; t += time_step) {
+    in.latitude_deg = x0;
+    in.longitude_deg = y0;
+    SkipperInternal::Run(in, ais, &alpha_star);
+    if (SkipperInternal::TargetReached(LatLon(x0, y0))) {
+      EXPECT_TRUE(mallorca_target.In(x0, y0));
+      if (end_time == 0)
+        end_time = t;
+    }
+
+    // Simulate the motion
+    double phi_rad = Deg2Rad(alpha_star);
+    x0 += v * cos(phi_rad) * time_step;
+    y0 += v * sin(phi_rad) * time_step / cos(Deg2Rad(x0));
+    printf("%8.6lf %8.6lf %8.6lf %6.4lf\n", t, x0, y0, alpha_star);
+    DotKML(x0, y0);
+  }
+  printf("end time: %8.6lf days.\n", end_time / kDays);
+  EXPECT_GT(0.5 * kDays, end_time);
+  CloseKML();
+}
 
 TEST(SkipperInternal, ThalwilOpposingWind) {
   fprintf(stderr, "Running test: ThalwilOpposingWind\n");
@@ -386,7 +468,7 @@ TEST(SkipperInternal, Atlantic) {
 
   printf("t/days, x0, y0, alpha_star\n");
   double time_step = 4*3600;
-  // need to run this for alonger time.
+  // need to run this for a longer time.
   for (double t = 0;
        t < 64 * kDays;
        t += time_step ) {
@@ -535,6 +617,8 @@ TEST(SkipperInternal, StormyAtlantic) {
 
 int main(int argc, char* argv[]) {
   SkipperInternal_Storm();
+  SkipperInternal_MallorcaPlan();
+  SkipperInternal_MallorcaDetailsPlan();
   SkipperInternal_UfenauPlan();
   SkipperInternal_Thalwil();
   SkipperInternal_SukkulentenhausPlan();

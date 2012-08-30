@@ -42,11 +42,11 @@ double TargetCircleCascade::ToDeg(double x, double y) {
   // This is the needed expansion_factor. Thus we get just 2 iterations
   // through the chain.
   const double expansion_factor = 1.1;
-  for (double expand = 1.0; expand < 50; expand *= expansion_factor) {
+  for (double expand = 1.0; expand < 200; expand *= expansion_factor) {
     for (int i = 0; i < (int)chain_.size(); ++i) {
       // if (debug) fprintf(stderr, "i : %d, expand: %lf\n", i, expand);
       if (chain_[i].In(x, y, expand)) {
-        //if (debug) fprintf(stderr, "In target circle %d, dir %lf deg.\n", i, chain_[i].ToDeg(x, y));
+        // if (debug) fprintf(stderr, "In target circle %d, dir %lf deg.\n", i, chain_[i].ToDeg(x, y));
         if (debug && expand > 1) {
           fprintf(stderr, "Needed to expand target circles to %lf %%!\n", expand * 100);
         }
