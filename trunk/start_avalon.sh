@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright 2011 The Avalon Project Authors. All rights reserved.
+# Copyright 2012 The Avalon Project Authors. All rights reserved.
 # Use of this source code is governed by the Apache License 2.0
 # that can be found in the LICENSE file.
 #
@@ -10,10 +10,10 @@
 ##
 
 # for experimental use, get the binaries directly from the source tree.
-if ! which linebusd; then
+if ! which linebusd > /dev/null 2>&1 ; then
     echo "Running from source tree"
     AVALONROOT=$(dirname $0)
-    export PATH=$AVALONROOT/io:$AVALONROOT/io/rudderd2:$AVALONROOT/helmsman:$AVALONROOT/systools:$PATH
+    export PATH=$AVALONROOT/io:$AVALONROOT/helmsman:$PATH
 
     EBUS=/tmp/ebus
     LBUS=/tmp/lbus
@@ -26,8 +26,8 @@ else
 fi
 
 err=""
-for p in linebusd plug eposprobe ruddersts eposmon eposcom rudderctl sailctl drivests skewmon \
-	imucfg imucat aiscat aisbuf compasscat windcat fcmon; do
+for p in linebusd plug eposprobe eposmon eposcom rudderctl sailctl drivests skewmon \
+	imucfg imucat aisbuf nmeacat fcmon; do
     which $p >/dev/null 2>&1 || err="$err $p"
 done
 
@@ -40,10 +40,11 @@ fi
 
 # the ports you get depend on the order the imu and the 8-port are detected
 # TODO don't use the imu, or fall back to the windsensor or the compass
+# TODO modem -> ttyS0, gps on ttyUSB6/7
 if imucfg /dev/ttyUSB0; then
 
     let i=0
-    for d in imu rudder_l rudder_r sail fuelcell compass ais modem wind; do
+    for d in imu rudder_l rudder_r sail fuelcell compass ais gps wind; do
 	ln -fs /dev/ttyUSB$i /dev/$d
 	let i=$i+1
     done
@@ -51,7 +52,7 @@ if imucfg /dev/ttyUSB0; then
 elif imucfg /dev/ttyUSB8; then
 
     let i=0
-    for d in rudder_l rudder_r sail fuelcell compass ais modem wind imu; do
+    for d in rudder_l rudder_r sail fuelcell compass ais gps wind imu; do
 	ln -fs /dev/ttyUSB$i /dev/$d
 	let i=$i+1
     done
@@ -75,16 +76,14 @@ fi
 #    -o  only take what comes from the bus and feed it to the program (i.e. dont send any messages to the bus)
 #    -n name  a name for debugging when you ask for stats with kill -USR1 $bus.pid, not (yet) relevant for -i plugs.
 #    -f instal a filter on prefix (not relevant for -i plugs).
-#    -p tell the linebusd this one is 'precious': if it exits, take down the bus
+#    -p tell the linebusd this one is 'precious': if it exits or hangs, take down the bus
 #
 #  programs like eposcom and sailctl that are connected to the bus with both stdin and stdout typically install their own filters
 #  on the linebus, so there's no need to specify them there.
 #  the -- is needed in plug [options] $BUS -- command [command options] to explain to plug where to stop interpreting its options.
 #
 
-##    modemd  --queue=/var/run/modem --device=/dev/modem &
-
-for attempt in 1 2 3; do
+for attempt in 1 ; do
 
     logger -s -p local2.Notice "Avalon subsystems starting up (attempt $attempt)"
 
@@ -93,13 +92,15 @@ for attempt in 1 2 3; do
 
     # input subsystems
 
-    plug -pi $LBUS -- `which imucat` /dev/imu
-    plug -pi $LBUS -- `which compasscat` /dev/compass
-    plug -pi $LBUS -- `which windcat` /dev/wind
-
-    plug -po -n "imutime" -f "imu:" $LBUS -- `which imutime`
-    plug -i $LBUS -- `which fcmon` /dev/fuelcell
-
+    plug -i $LBUS -- `which imucat` /dev/imu &
+    plug -i $LBUS -- `which nmeacat` -b 19200 /dev/compass &
+    plug -i $LBUS -- `which nmeacat` -b 4800  /dev/wind &
+    plug -i $LBUS -- `which nmeacat` -b 4800  /dev/gps &
+    #plug -i $LBUS -- `which nmeacat` -b 38400 -g 0 /dev/ais &   # no guard time
+    
+    # imutime dies if imu's timestamp is zero for too long, taking down the bus
+    plug -po -n "imutime" -f "imu:" $LBUS -- `which imutime` &
+    plug -i $LBUS -- `which fcmon` /dev/fuelcell &  # not precious
 
     # output subsystems
 
@@ -107,7 +108,7 @@ for attempt in 1 2 3; do
     linebusd $EBUS	# blocks until socket exists, then goes daemon
 
     for p in /dev/rudder_l /dev/rudder_r /dev/sail;  do
-	    plug -n "epos-$(basename $p)" $EBUS -- `which eposcom` -T $p &
+	    plug $EBUS -- `which eposcom` -T $p &
     done
 
     plug -p $EBUS -- `which rudderctl` -l -T &		# homing and positioning of left rudder
@@ -121,31 +122,21 @@ for attempt in 1 2 3; do
     #   plug -f rudderctl: forward rudderctl: messages to ebus
     plug -po -n "drivests" $EBUS | drivests -n 100 | plug -pn "rudderctlfwd" -f "rudderctl:" $LBUS | plug -pi $EBUS &
 
-    
-    plug -n "helmsman" $LBUS -- `which helmsman` 2>> /var/log/helmsman.log & 
-
-
-
-    # aiscat is not connected to the lbus
-    #  (aiscat /dev/ais | aisbuf /var/run/ais.txt; logger -s -p local2.crit "aiscat exited.")&
-
-    # Skipper reads AIS file written by aisbuf.
-    plug -n "skipper" $LBUS -- `which skipper` /var/run/ais.txt 2>> /var/log/skipper.log &
-
-    # plug -o -n "statusd" $LBUS -- `which statusd` --queue=/var/run/modem --initial_timeout=180 --status_interval=86400 --remote_cmd_interval=5 &
+    # start by hand for now
+    #plug -n "helmsman" $LBUS -- `which helmsman` 2>> /var/log/helmsman.log & 
 
     echo "Und immer eine Handbreit Wasser unter dem Kiel!"
     echo "May she always have a good passage, wherever she goes!"
     echo
 
     ## keep a plug with a dummy filter on the lbus and wait for it to exit
-    plug -n "watch" -f xxx $LBUS > /dev/null
+    plug -on "watch" -f xxx $LBUS > /dev/null
 
     imucfg -R /dev/imu || logger -s -p local2.Notice "Failed to reset IMU"
 
 done
 
 
-logger -s -p local2.crit "Main loop ran 3 times, time to reboot ...."
+logger -s -p local2.crit "Main loop ran X times, time to reboot ...."
 
 # in production we'd send an sms here and reboot

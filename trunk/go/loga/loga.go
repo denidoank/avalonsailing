@@ -17,7 +17,7 @@ import (
 	"strconv"
 	"strings"
 
-        "code.google.com/p/avalonsailing/trunk/go/wgs84"
+        "code.google.com/p/lvd.go/geo/wgs84"
 )
 
 var (

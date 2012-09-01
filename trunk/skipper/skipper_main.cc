@@ -22,7 +22,7 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "io/linebuffer.h"
+#include "io2/lib/linebuffer.h"
 #include "proto/helmsman.h"
 #include "common/convert.h"
 #include "common/now.h"
