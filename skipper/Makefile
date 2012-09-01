@@ -2,7 +2,7 @@ DEPS+=common
 DEPS+=lib/util
 DEPS+=helmsman
 DEPS+=vskipper
-DEPS+=io
+DEPS+=io2/lib
 
 # TARGET_ARCH=-m32
 

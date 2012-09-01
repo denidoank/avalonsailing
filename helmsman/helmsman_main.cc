@@ -24,7 +24,7 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "io/linebuffer.h"
+#include "io2/lib/linebuffer.h"
 
 #include "proto/gps.h"
 #include "proto/rudder.h"

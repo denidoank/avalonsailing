@@ -1,7 +1,7 @@
 DEPS+=common
 DEPS+=lib/filter
 DEPS+=lib/testing
-DEPS+=io
+DEPS+=io2/lib
 TARGET_ARCH=-m32
 
 # Not on Mac: 
