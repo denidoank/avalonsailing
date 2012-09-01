@@ -143,7 +143,7 @@ TEST(NormalController, AllSailCloseHauled) {
   c.Run(in, filtered, &out);
   // sail opposing the apparent wind.
   // Limited by CHP +kCloseHauledLimit
-  EXPECT_FLOAT_EQ(6, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
+  EXPECT_FLOAT_EQ(13, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
 
   wind_true = Polar(Deg2Rad(-49.9), 2);  // wind turns completely against us
   // so the apparent wind vector is around 180 degrees
@@ -153,7 +153,7 @@ TEST(NormalController, AllSailCloseHauled) {
   c.Run(in, filtered, &out);
   // sail opposing the apparent wind.
   // Limited by CHP
-  EXPECT_FLOAT_EQ(6, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
+  EXPECT_FLOAT_EQ(13, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
 }
 
 // Check sail control negative
@@ -201,7 +201,7 @@ TEST(NormalController, AllSailCloseHauledNegative) {
   c.Run(in, filtered, &out);
   // sail opposing the apparent wind.
   // Limited by CHP +kCloseHauledLimit
-  EXPECT_FLOAT_EQ(-6, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
+  EXPECT_FLOAT_EQ(-13, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
 
   wind_true = Polar(Deg2Rad(49.9), 2);  // wind turns completely against us
   // so the apparent wind vector is around 180 degrees
@@ -211,7 +211,7 @@ TEST(NormalController, AllSailCloseHauledNegative) {
   c.Run(in, filtered, &out);
   // sail opposing the apparent wind.
   // Limited by CHP
-  EXPECT_FLOAT_EQ(-6, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
+  EXPECT_FLOAT_EQ(-13, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
 }
 
 TEST(NormalController, AllRudder) {

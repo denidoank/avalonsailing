@@ -96,17 +96,18 @@ TEST(SailController, Reverse) {
   double aoa_optimal = Deg2Rad(10);
   controller.SetOptimalAngleOfAttack(aoa_optimal);
 
-  EXPECT_FLOAT_EQ(Deg2Rad( 90), controller.BestGammaSailForReverseMotion(Deg2Rad(180 + 4), 5));
-  EXPECT_FLOAT_EQ(Deg2Rad(-90), controller.BestGammaSailForReverseMotion(Deg2Rad(180 - 4), 5));
+  // always positive angle
+  EXPECT_FLOAT_EQ(Deg2Rad(90), controller.BestGammaSailForReverseMotion(Deg2Rad(180 + 4), 5));
+  EXPECT_FLOAT_EQ(Deg2Rad(90), controller.BestGammaSailForReverseMotion(Deg2Rad(180 - 4), 5));
 
-  EXPECT_FLOAT_EQ(Deg2Rad(-100), controller.BestGammaSailForReverseMotion(Deg2Rad(90), 5));
-  EXPECT_FLOAT_EQ(Deg2Rad(-90), controller.BestGammaSailForReverseMotion(Deg2Rad(100), 5));
+  EXPECT_FLOAT_EQ(Deg2Rad(100), controller.BestGammaSailForReverseMotion(Deg2Rad(90), 5));
+  EXPECT_FLOAT_EQ(Deg2Rad(90), controller.BestGammaSailForReverseMotion(Deg2Rad(100), 5));
   // spinaker
-  EXPECT_FLOAT_EQ(Deg2Rad(-90), controller.BestGammaSailForReverseMotion(Deg2Rad(110), 5));
-  EXPECT_FLOAT_EQ(Deg2Rad(-90), controller.BestGammaSailForReverseMotion(Deg2Rad(120), 5));
+  EXPECT_FLOAT_EQ(Deg2Rad(90), controller.BestGammaSailForReverseMotion(Deg2Rad(110), 5));
+  EXPECT_FLOAT_EQ(Deg2Rad(90), controller.BestGammaSailForReverseMotion(Deg2Rad(120), 5));
 
   EXPECT_FLOAT_EQ(1.81514, controller.BestGammaSailForReverseMotion(Deg2Rad(-86), 10));
-  EXPECT_FLOAT_EQ(-1.81514, controller.BestGammaSailForReverseMotion(Deg2Rad(86), 10));
+  EXPECT_FLOAT_EQ(1.81514, controller.BestGammaSailForReverseMotion(Deg2Rad(86), 10));
 }
 
 TEST(SailController, Storm) {
