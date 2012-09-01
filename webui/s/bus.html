@@ -1,0 +1,71 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html><head>
+<title>Bus</title>
+</head>
+
+<body onload="start()" style="background:gray;">
+
+<style type="text/css">
+    .hdr { display:inline-block; width:80px; margin-right:20px; font-weight:bold; text-align:right; }
+    .fld { display:inline; margin:10px;  }
+    .val { display:inline; margin:2px; font-weight:bolder;}
+</style>
+
+<div id="menu">
+  <a href="control.html" target="control">Control</a>
+  <a href="bus.html" target="bus"  style="background:gray;">Bus</a>
+  <a href="plan.html" target="plan">Plan</a>
+  <a href="log.html" target="log">Log</a>
+</div>
+
+<div id="view"></div>
+
+<script>
+function e(id) { return document.getElementById(id) }
+
+var time0
+
+function r(src, msg) {
+    var s = '<div class="hdr">' + src + '</div>'
+    for (f in msg) {
+	k = f
+	v = msg[f]
+	if (f == "timestamp_ms") {
+	    if (!time0) {
+		time0 = msg[f]
+	    }
+	    k = "time[s]"
+	    v = (msg[f] - time0) / 1000
+	}
+	s += ' <div class="fld">' + k + ':</div><div class="val">' + v + '</div>'
+    }
+    return s
+}
+
+var ws
+
+function start() {
+    var nan = Number.NaN  // needed for eval of "label":nan in msg
+
+    ws = new WebSocket("ws://" + window.location.host + "/lbus");
+    ws.onmessage = function (evt) {
+	var msg = eval('('+evt.data+')')
+	if (msg == null) return
+        for (x in msg) {
+		if (!e(x)) {
+		    e("view").appendChild(document.createElement('div')).id = x
+                }
+	    e(x).innerHTML = r(x, msg[x])
+	}
+
+    };
+
+    ws.onopen  = function(err) { document.body.style.background = 'white' }
+    ws.onclose = function(err) { document.body.style.background = 'darkgrey' }
+    ws.onerror = function(err) { document.body.style.background = 'red' }
+
+}
+
+
+</script>
+</body></html>
