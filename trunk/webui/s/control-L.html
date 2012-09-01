@@ -1,0 +1,237 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html><head>
+<title>Control (L-version)</title>
+</head>
+
+<body onload="start()" onkeydown="handlekey()" style="background:gray;">
+
+<div id="menu">
+  <a href="control.html" target="control" style="background:gray;">Control</a>
+  <a href="plan.html" target="plan">Plan</a>
+  <a href="log.html" target="log">Log</a>
+</div>
+
+<div style="width: 300px; height: 600px;">
+  
+  <div id="widget" style="position: relative;  left:100;" >
+
+  <img id="boat"   width="208" height="495" style="position: absolute; left: 0; top: 0;" src="boat.png"/>
+  <img id="sts_sail"   width="41" height="289" style="position: absolute; left: 80; top: 200;" src="boom.png"/>
+  <img id="ctl_sail"   width="30" height="289" style="position: absolute; left: 85; top: 200;" src="needle.png"/>
+  <img id="sns_wind"   width="20" height="100" style="position: absolute; left: 90; top: 200;" src="dashed.png"/>
+  
+  <img id="sts_rudd_l" width="10" height="60"  style="position: absolute; left: 60; top: 490;" src="boom.png"/>
+  <img id="ctl_rudd_l" width="8" height="80"   style="position: absolute; left: 60; top: 490;" src="needle.png"/>
+  <img id="sts_rudd_r" width="10" height="60"  style="position: absolute; left: 140; top: 490;" src="boom.png"/>
+  <img id="ctl_rudd_r" width="8" height="80"   style="position: absolute; left: 140; top: 490;" src="needle.png"/>
+
+  <img id="sns_imuyaw"   width="240" height="240" style="position: absolute; left: 440; top: 50;" src="rose.png"/>
+  <img id="sns_gpscog"   width="20" height="140" style="position: absolute; left: 550; top: 160;" src="boom.png"/>
+  <img id="sns_compass"  width="20" height="140" style="position: absolute; left: 550; top: 160;" src="needle.png"/>
+  <img id="sns_imuspeed"  width="20" height="140" style="position: absolute; left: 550; top: 160;" src="dashed.png"/>
+
+  <img id="sns_imuyaw2"   width="240" height="240" style="position: absolute; left: 440; top: 350;" src="rose.png"/>
+  <img id="ctl_alphastar" width="20" height="140" style="position: absolute; left: 550; top: 460;" src="needle.png"/>
+  <img id="fil_truewind"  width="20" height="140" style="position: absolute; left: 550; top: 460;" src="dashed.png"/>
+  </div>
+</div>
+  
+<div id="status" height="5%" width="100%" style="background:yellow;" >
+status
+</div>
+
+
+<script>
+var ws
+
+function e(id) { return document.getElementById(id) }
+function rot(id, angle) { e(id).style['-webkit-transform'] ='rotate(' + angle + 'deg)' }
+
+function start() {
+    e('sts_sail')   .style['-webkit-transform-origin'] ='top'
+    e('sts_rudd_l') .style['-webkit-transform-origin'] ='top'
+    e('sts_rudd_r') .style['-webkit-transform-origin'] ='top'
+    e('ctl_sail')   .style['-webkit-transform-origin'] ='top'
+    e('ctl_rudd_l') .style['-webkit-transform-origin'] ='top'
+    e('ctl_rudd_r') .style['-webkit-transform-origin'] ='top'
+    e('sns_wind')   .style['-webkit-transform-origin'] ='top'
+
+    e('sns_gpscog') .style['-webkit-transform-origin'] ='top'
+    e('sns_compass').style['-webkit-transform-origin'] ='top'
+    e('sns_imuspeed').style['-webkit-transform-origin'] ='top'
+    e('ctl_alphastar').style['-webkit-transform-origin'] ='top'
+    e('fil_truewind').style['-webkit-transform-origin'] ='top'
+
+    var nan = Number.NaN  // needed for eval of "label":nan in msg
+
+    ws = new WebSocket("ws://" + window.location.host + "/lbus");
+    ws.onmessage = function (evt) {
+	var msg = eval('('+evt.data+')')
+	if (msg == null) return
+        for (x in msg) {
+	    f = handlers[x]
+            if (f != null) f(msg[x])
+	    lastmsg[x] = msg[x]
+        }
+
+    };
+
+    ws.onopen  = function(err) { document.body.style.background = 'white' }
+    ws.onclose = function(err) { document.body.style.background = 'darkgrey' }
+    ws.onerror = function(err) { document.body.style.background = 'red' }
+}
+
+function rnan(x) {
+    if (Number.isNaN(x))  return "nan"
+    return x
+}
+
+function znan(x) {
+    if (Number.isNaN(x))  return 0
+    return x
+}
+
+var lastmsg = {
+    'rudderctl': { 'timestamp_ms':0, 'rudder_l_deg':0, 'rudder_r_deg':0, 'sail_deg':0, },
+    'helmctl':   { 'timestamp_ms':0, 'alpha_star_deg':0, },
+    'helmsts':   { 'wind_true_deg': 0 },
+    'imu':  	 { 'yaw_deg':0, 'vel_x_m_s':0, 'vel_y_m_s':0 },
+    'compass':   { 'yaw_deg':0, },
+    'gps':   	 { 'cog_deg':0, },
+}
+
+var handlers = {
+    'ruddersts': function(msg) {
+	rot('sts_rudd_l', msg.rudder_l_deg)
+	rot('sts_rudd_r', msg.rudder_r_deg)
+	rot('sts_sail', msg.sail_deg)
+    },
+    'rudderctl': function(msg) {
+	rot('ctl_rudd_l', msg.rudder_l_deg)
+	rot('ctl_rudd_r', msg.rudder_r_deg)
+	rot('ctl_sail', msg.sail_deg)
+    },
+    'status_left':  function(msg) { rot('sts_rudd_l', msg.angle_deg) },
+    'status_right': function(msg) { rot('sts_rudd_r', msg.angle_deg) },
+    'status_sail':  function(msg) { rot('sts_sail', msg.angle_deg) },
+    'wind': 	    function(msg) { rot('sns_wind', msg.angle_deg) },
+    'imu':	    function(msg) {
+	rot('sns_imuyaw',  -msg.yaw_deg);
+	rot('sns_imuyaw2', -msg.yaw_deg);
+	rot('sns_compass',   180 + lastmsg['compass'].yaw_deg - msg.yaw_deg)
+	rot('sns_gpscog',    180 + lastmsg['gps'].cog_deg - msg.yaw_deg)
+	rot('ctl_alphastar', 180 + lastmsg['helmctl'].alpha_star_deg - msg.yaw_deg)
+	rot('fil_truewind',  180 + lastmsg['helmctl'].wind_true_deg - msg.yaw_deg)
+	rot('sns_imuspeed',  180 + Math.atan2(msg.vel_x_m_s, msg.vel_y_m_s)*180.0/Math.PI - msg.yaw_deg)
+     },
+    'compass': 	    function(msg) { rot('sns_compass',   180 + msg.yaw_deg - lastmsg['imu'].yaw_deg); },
+    'gps': 	    function(msg) { rot('sns_gpscog',    180 + msg.cog_deg - lastmsg['imu'].yaw_deg); },
+    'helmctl':      function(msg) { rot('ctl_alphastar', 180 + msg.alpha_star_deg - lastmsg['imu'].yaw_deg) },
+    'helmsts':      function(msg) { rot('fil_truewind',  180 + msg.wind_true_deg - lastmsg['imu'].yaw_deg) },
+}
+
+//    'helmsts':      function(msg) { e('helmsts').innerHTML = JSON.stringify(msg, null, 2) },
+
+
+function fmt_rudderctl(x) {
+    return "rudderctl: timestamp_ms:" + x.timestamp_ms + " rudder_l_deg:" + rnan(x.rudder_l_deg) + " rudder_r_deg:" + rnan(x.rudder_r_deg) + " sail_deg:" + rnan(x.sail_deg) + "\n"
+}
+
+function fmt_helmctl(x) {
+    return "helmctl: timestamp_ms:" + x.timestamp_ms + " alpha_star_deg:" + rnan(x.alpha_star_deg) + "\n"
+}
+
+function send_rudderctl() { ws.send(fmt_rudderctl(lastmsg['rudderctl'])) }
+function send_helmctl()   { ws.send(fmt_helmctl(lastmsg['helmctl'])) }
+
+var pinger
+
+function ping_none() {
+	if (pinger) clearInterval(pinger)
+	pinger = undefined
+}
+
+function ping_rudd() {
+	if (pinger) clearInterval(pinger)
+	pinger = setInterval(send_rudderctl, 5)
+}
+
+function ping_helm() {
+	if (pinger) clearInterval(pinger)
+	pinger = setInterval(send_helmctl, 10)
+}
+
+function set_rudd(delta) {
+	if (delta) {
+		lastmsg['rudderctl'].rudder_l_deg += delta
+		lastmsg['rudderctl'].rudder_r_deg += delta
+	} else {
+		lastmsg['rudderctl'].rudder_l_deg = 0
+		lastmsg['rudderctl'].rudder_r_deg = 0
+	}
+	ping_rudd()
+}
+
+function set_sail(delta) {
+	if (delta) {
+		lastmsg['rudderctl'].sail_deg += delta
+	} else {
+		lastmsg['rudderctl'].sail_deg = 0
+	}
+	ping_rudd()
+}
+
+function set_helm(delta) {
+	lastmsg['helmctl'].alpha_star_deg = znan(lastmsg['helmctl'].alpha_star_deg) + delta
+	ping_helm()
+}
+
+var ruddctlkeys = "ZXCVB"
+var sailctlkeys = "ASDFG"
+var helmctlkeys = "YUIOP"
+
+var keys = key2c({
+0: function() {set
+-5: 0,
+});
+
+function key2c(m) {
+var mm = {};
+for (k in m) {
+   mm[ruddctkeys.charOCdeat(k)] = m[k];
+}
+return mm;
+}
+
+var keys = {}  // dict literal keys must be literals?
+keys[	ruddctlkeys.charCodeAt(0)] = function() {	set_rudd(-15) }
+keys[	ruddctlkeys.charCodeAt(1)] = function() {	set_rudd(-5) }
+keys[	ruddctlkeys.charCodeAt(2)] = function() {	set_rudd(0) }
+keys[	ruddctlkeys.charCodeAt(3)] = function() {	set_rudd(5) }
+keys[	ruddctlkeys.charCodeAt(4)] = function() {	set_rudd(15) }
+
+keys[	sailctlkeys.charCodeAt(0)] = function() {	set_sail(-15) }
+keys[	sailctlkeys.charCodeAt(1)] = function() {	set_sail(-5) }
+keys[	sailctlkeys.charCodeAt(2)] = function() {	set_sail(0) }
+keys[	sailctlkeys.charCodeAt(3)] = function() {	set_sail(5) }
+keys[	sailctlkeys.charCodeAt(4)] = function() {	set_sail(15) }
+
+keys[	helmctlkeys.charCodeAt(0)] = function() {	set_helm(-15) }
+keys[	helmctlkeys.charCodeAt(1)] = function() {	set_helm(-5) }
+keys[	helmctlkeys.charCodeAt(2)] = function() {	set_helm(Number.NaN) }
+keys[	helmctlkeys.charCodeAt(3)] = function() {	set_helm(5) }
+keys[	helmctlkeys.charCodeAt(4)] = function() {	set_helm(15) }
+
+keys[	' '.charCodeAt(0)] = ping_none()
+}
+
+function handlekey() {
+    f = keys[event.keyCode]
+    if (f != null) {
+	f()
+	return true
+    }
+}
+
+</script>
+</body></html>
