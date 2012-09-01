@@ -17,6 +17,7 @@
 //    $xoff		   don't send any further output to this client.
 //    $subscribe <prefix>  Install a filter (see below)
 //    $precious		   when this client exits or hangs, take down the bus
+//    $kill <identifier>   close any client with this name (name uniqueness is not enforced)
 //
 // By default each client is eligible to receive all messages, but this can
 // be changed by setting filters.  As soon as a client $subscribes to a <prefix>
@@ -283,6 +284,18 @@ handle_cmd(struct Client* client, char* line) {
 			syslog(LOG_NOTICE, "Client %d named '%s'", client->fd, line + 5);
 		}
 		client->name = strndup(line+5, 20);
+		return;
+	}
+
+	if (strncmp("kill ", line, 5) == 0) {
+		syslog(LOG_NOTICE, "Client %d killing '%s'", client->fd, line + 5);
+		struct Client* cl;
+		for(cl = clients; cl; cl=cl->next) {
+			if (!strcmp(cl->name, line+5)) {
+				close(cl->fd);
+				cl->fd = -1;
+			}
+		}
 		return;
 	}
 
