@@ -4,11 +4,11 @@
 // Steffen Grundmann, June 2011
 #include "helmsman/new_gamma_sail.h"
 
+#include "common/apparent.h"
 #include "common/convert.h"
 #include "common/normalize.h"
 #include "common/polar_diagram.h"
 #include "lib/testing/testing.h"
-#include "helmsman/apparent.h"
 #include "helmsman/maneuver_type.h"
 
 

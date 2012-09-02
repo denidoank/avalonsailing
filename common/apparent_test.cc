@@ -4,7 +4,7 @@
 // Steffen Grundmann, June 2011
 
 
-#include "helmsman/apparent.h"
+#include "common/apparent.h"
 
 #include "common/convert.h"
 #include "common/normalize.h"

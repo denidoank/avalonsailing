@@ -8,12 +8,12 @@
 #define HELMSMAN_BOAT_MODEL_H
 
 
+#include "common/apparent.h"
 #include "common/check.h"
 #include "common/convert.h"
 #include "common/polar.h"
 #include "common/sign.h"
 
-#include "helmsman/apparent.h"
 #include "helmsman/boat.h" 
 #include "helmsman/controller_io.h"
 

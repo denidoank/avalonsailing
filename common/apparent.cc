@@ -2,7 +2,7 @@
 // Use of this source code is governed by the Apache License 2.0
 // that can be found in the LICENSE file.
 // Steffen Grundmann, June 2011
-#include "helmsman/apparent.h"
+#include "common/apparent.h"
 
 #include "common/normalize.h"
 
