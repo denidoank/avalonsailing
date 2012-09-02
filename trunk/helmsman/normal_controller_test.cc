@@ -6,11 +6,11 @@
 
 #include "helmsman/normal_controller.h"
 
+#include "common/apparent.h"
 #include "common/convert.h"
 #include "common/polar.h"
 #include "common/sign.h"
 #include "helmsman/sampling_period.h"
-#include "helmsman/apparent.h"
 #include "helmsman/controller_io.h"
 #include "helmsman/rudder_controller_const.h"
 #include "lib/testing/testing.h"

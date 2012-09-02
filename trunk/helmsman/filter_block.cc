@@ -21,17 +21,17 @@
 #include "helmsman/filter_block.h"
 
 #include <stdio.h>
-#include "helmsman/apparent.h"
-#include "helmsman/boat.h"  // kWindSensorOffsetRad, kOmegaMaxSail
-#include "helmsman/controller_io.h"
-#include "helmsman/sampling_period.h"
-
+#include "common/apparent.h"
 #include "common/check.h"
 #include "common/delta_angle.h"
 #include "common/limit_rate.h"
 #include "common/normalize.h"
 #include "common/polar.h"
 #include "common/unknown.h"
+
+#include "helmsman/boat.h"  // kWindSensorOffsetRad, kOmegaMaxSail
+#include "helmsman/controller_io.h"
+#include "helmsman/sampling_period.h"
 
 
 int logging_aoa = 1;

@@ -8,10 +8,10 @@
 
 #include <math.h>
 #include <stdio.h>
+#include "common/apparent.h"
 #include "common/unknown.h"
 #include "common/convert.h"
 #include "common/polar.h"
-#include "helmsman/apparent.h"
 #include "helmsman/controller_io.h"
 #include "lib/testing/testing.h"
 

@@ -7,11 +7,11 @@
 
 #include <math.h>
 
+#include "common/apparent.h"
 #include "common/convert.h"
 #include "common/normalize.h"
 #include "common/polar.h"
 #include "common/unknown.h"
-#include "helmsman/apparent.h"
 #include "helmsman/boat.h"   // kWindSensorOffsetRad
 #include "helmsman/controller_io.h"
 #include "helmsman/sampling_period.h"

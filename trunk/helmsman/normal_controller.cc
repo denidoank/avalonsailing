@@ -8,6 +8,7 @@
 #include <math.h>
 #include <stdint.h>
 #include <time.h>
+#include "common/apparent.h"
 #include "common/delta_angle.h"
 #include "common/normalize.h"
 #include "common/now.h"
@@ -15,7 +16,6 @@
 #include "common/sign.h"
 #include "common/polar_diagram.h"
 #include "common/unknown.h"
-#include "helmsman/apparent.h"
 #include "helmsman/new_gamma_sail.h"
 #include "helmsman/sampling_period.h"
 
@@ -317,7 +317,7 @@ bool NormalController::GiveUp(const ControllerInput& in,
                               const FilteredMeasurements& filtered) {
   const double give_up_limit_seconds = 30.0;
   // Abort if we got stuck for more than 30s.
-  const double bearing_deviation_limit = Deg2Rad(35);
+  // const double bearing_deviation_limit = Deg2Rad(35);
   // If the drift caused by stream is too big, we will not detect loss of control here
   // because our speed over ground is e.g. 0.5 knots.
   // Abort every 2 hours? Abort if epsilon is too big?
