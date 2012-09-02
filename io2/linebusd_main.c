@@ -291,7 +291,7 @@ handle_cmd(struct Client* client, char* line) {
 		syslog(LOG_NOTICE, "Client %d killing '%s'", client->fd, line + 5);
 		struct Client* cl;
 		for(cl = clients; cl; cl=cl->next) {
-			if (!strcmp(cl->name, line+5)) {
+			if (cl->name && !strcmp(cl->name, line+5)) {
 				close(cl->fd);
 				cl->fd = -1;
 			}

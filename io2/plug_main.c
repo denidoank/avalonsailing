@@ -35,7 +35,8 @@ usage(void)
 		"\t-o output from socket only\n"
 		"\t-f subscription (may be repeated)\n"
 		"\t-n name  diagnostic name for linebusd\n"
-		"\t-d debug (don't go daemon, don't syslog)\n"
+		"\t-b execute command in background and exit\n"
+		"\t-d debug \n"
 		"\t-c cmdchar linebusd uses alternate command character (default '$')\n"
 		"\t-p tell the linebusd this client is precious, i.e. the bus should go down if this client exits.\n"
 		, argv0);
@@ -73,6 +74,7 @@ int main(int argc, char* argv[]) {
 	int noin = 0;
 	int noout = 0;
 	int precious = 0;
+	int bg = 0;
 	int cmdchar = '$';
 	char *name = NULL;
 
@@ -83,8 +85,9 @@ int main(int argc, char* argv[]) {
 
         argv0 = argv[0];
 
-	while ((ch = getopt(argc, argv, "c:df:hin:opv")) != -1){
+	while ((ch = getopt(argc, argv, "bc:df:hin:opv")) != -1){
 		switch (ch) {
+		case 'b': ++bg; break;
 		case 'c': cmdchar = optarg[0]; break;
 		case 'n': name = optarg; break;
 		case 'd': ++debug; break;
@@ -145,8 +148,10 @@ int main(int argc, char* argv[]) {
 	if (argc) {
 		if (noout) close(0); else dup2(s, 0);  // stdin is what child reads from socket 
 		if (noin) close(1); else dup2(s, 1);   // stdout is what child writes to socket
-		execvp(argv[0], argv);
-		crash("Failed to exec %s", argv[0]);
+		if (!bg || fork() == 0) {
+			execvp(argv[0], argv);
+			crash("Failed to exec %s", argv[0]);
+		}
 		return 0;
 	}
 
