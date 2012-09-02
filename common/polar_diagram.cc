@@ -2,12 +2,19 @@
 // Use of this source code is governed by the Apache License 2.0
 // that can be found in the LICENSE file.
 // Author: grundmann@google.com (Steffen Grundmann)
+
+#include "common/polar_diagram.h"
+
+
 #include <math.h>
+#include <stdio.h>
 
 #include "common/check.h"
 #include "common/convert.h"
 #include "common/delta_angle.h"
 #include "common/normalize.h"
+
+extern int debug;
 
 namespace {
 const double kTackZoneDeg = 50;        // degrees, a safe guess.
@@ -112,6 +119,10 @@ double JibeZoneRad() {
   return Deg2Rad(kJibeZoneDeg);
 }
 
+double JibeZoneHalfWidthRad() {
+  return Deg2Rad(180 - kJibeZoneDeg);
+}
+
 double BestSailableHeading(double alpha_star, double alpha_true) {
   // Stay in sailable zone
   double tack_zone_min = Reverse(alpha_true) - TackZoneRad();
@@ -169,3 +180,104 @@ double BestSailableHeadingDeg(double alpha_star_deg, double alpha_true_deg){
   return Rad2Deg(BestSailableHeading(Deg2Rad(alpha_star_deg),
                                      Deg2Rad(alpha_true_deg)));
 }
+
+// We used to make this decision on the slowly filtered true
+// wind only. But if the wind turns quickly, then we got to
+// react on that later in the decision process and that means
+// that we have an unclear distribution of responsibilities.
+// A sudden turn of the wind might require a maneuver. So it has
+// to be detected early.
+// We use the apparent wind (which is not as inert as the
+// true wind) and phi_z to calculate the momentary true wind
+// and react to wind gusts at the very start of the normal controller logic.
+// Everything in radians here.
+double SailableHeading(double alpha_star,
+                       double alpha_true,
+                       double alpha_app,
+                       double mag_app,
+                       double phi_z,
+                       double previous_output,  // previous output direction, needed to implement hysteresis
+                       SectorT* sector,      // sector codes for state handling and maneuver
+                       double* target) {
+  double limit1t = alpha_true - M_PI - TackZoneRad();
+  double limit2t = alpha_true - M_PI + TackZoneRad();
+  double limit3t = alpha_true - JibeZoneHalfWidthRad();
+  double limit4t = alpha_true + JibeZoneHalfWidthRad();
+  if (debug) {
+    fprintf(stderr, "limits true: %lf %lf %lf %lf\n",
+            limit1t, limit2t, limit3t, limit4t);
+  }
+
+  double limit1 = limit1t;
+  double limit2 = limit2t;
+  double limit3 = limit3t;
+  double limit4 = limit4t;
+  if (mag_app > 0.5) {
+    // For the apparent wind the tack zone is smaller and the jibe zone is bigger.
+    // For the Jibe zone we do not take this into account because it will not
+    // have much of a negative effect, but would reduce the sailable angles
+    // a lot.
+    const double kAppOffset = Deg2Rad(10);
+    const double limit1a = phi_z + alpha_app - M_PI - TackZoneRad() + kAppOffset;
+    const double limit2a = phi_z + alpha_app - M_PI + TackZoneRad() - kAppOffset;
+    const double limit3a = phi_z + alpha_app - JibeZoneHalfWidthRad();
+    const double limit4a = phi_z + alpha_app + JibeZoneHalfWidthRad();
+    if (debug) {
+      fprintf(stderr, "limits app: %lf %lf %lf %lf\n",
+              limit1a, limit2a, limit3a, limit4a);
+    }
+    limit1 = SymmetricRad(Minimum(limit1t, limit1a));
+    limit2 = SymmetricRad(Maximum(limit2t, limit2a));
+    limit3 = SymmetricRad(Minimum(limit3t, limit3a));
+    limit4 = SymmetricRad(Maximum(limit4t, limit4a));
+  }
+
+  if (debug) {
+    fprintf(stderr, "limits mixed: %lf %lf %lf %lf\n",
+            limit1, limit2, limit3, limit4);
+  }
+
+  // This keeps a small part of the previous output.
+  double hysteresis = DeltaOldNewRad(previous_output, alpha_star) * 0.3;
+  bool left = false;
+
+  /* Sector defintion
+  1, 2: left and right in the tack zone
+  3   : Reaching with sail on starboard
+  4, 5: right and left in the jibe zone
+  6   : Reaching with sail on portside
+  */
+  *target = 0;
+  double alpha_star_limited = alpha_star;
+  if (LessOrEqual(limit1, alpha_star) && Less(alpha_star, limit2)) {
+    // Modify if in the non-sailable tack range.
+    alpha_star_limited = NearerRad(alpha_star - hysteresis, limit1, limit2, &left);
+    *sector = left ? TackPort : TackStar;
+    *target = left ? limit1 : limit2;
+  } else if (LessOrEqual(limit2, alpha_star) && Less(alpha_star, limit3)) {
+    *sector = ReachStar;
+  } else if (LessOrEqual(limit3, alpha_star) && Less(alpha_star, limit4)) {
+    // Modify if in the non-sailable jibe range.
+    alpha_star_limited = NearerRad(alpha_star - hysteresis, limit3, limit4, &left);
+    *sector = left ? JibeStar : JibePort;
+    *target = left ? limit3 : limit4;
+  } else if (LessOrEqual(limit4, alpha_star) && Less(alpha_star, limit1)) {
+    *sector = ReachPort;
+  } else {
+    // What if numerics fail here?
+    fprintf(stderr, "illegal range: limits: %lf %lf %lf %lf alpha*: %lf\n",
+            limit1, limit2, limit3, limit4, alpha_star);
+    CHECK(0);
+  }
+
+  if (debug) {
+    fprintf(stderr, "limits: %lf %lf %lf %lf alpha*: %lf sector %d %c\n",
+            limit1, limit2, limit3, limit4, alpha_star, int(sector), left?'L':'R');
+  }
+
+  return alpha_star_limited;
+}
+
+
+
+

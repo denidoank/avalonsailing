@@ -28,11 +28,29 @@ double TackZoneDeg();
 double JibeZoneDeg();
 // in radians
 double TackZoneRad();
-double JibeZoneRad();
+double JibeZoneRad();  // about 160 in radians
+double JibeZoneHalfWidthRad();  // Returns the more plausible 20 degrees in radians.
 
 double BestSailableHeading(double alpha_star, double alpha_true);
 double BestSailableHeadingDeg(double alpha_star_deg, double alpha_true_deg);
 double BestStableSailableHeading(double alpha_star, double alpha_true, double previous_output);
 
+// Calculate the sailable heading under the given circumstances.
+typedef enum Sector {
+  TackPort = 1,
+  TackStar,
+  ReachStar,
+  JibeStar,
+  JibePort,
+  ReachPort
+} SectorT;
 
+double SailableHeading(double alpha_star,    // desired heading alpha*
+                       double alpha_true,    // true wind vector direction
+                       double alpha_app,     // apparent wind vector direction
+                       double mag_app,       // apparent wind vector magnitude
+                       double phi_z,         // boat direction
+                       double previous_output,  // previous output direction, needed to implement hysteresis
+                       SectorT* sector,      // sector codes for state handling and maneuver
+                       double* target);      // target angle for maneuver
 #endif  // COMMON_POLAR_DIAGRAM_H_
