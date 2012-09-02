@@ -34,7 +34,7 @@ err=""
 for p in linebusd plug nmeacat ; do
     which $p >/dev/null 2>&1 || err="$err $p"
 done
-[ "$err" == "" ] || log_failure_msg "Missing binaries: $err"
+[ "$err" = "" ] || log_failure_msg "Missing binaries: $err"
 
 [ -r /dev/$NAME ] || log_failure_msg "Missing /dev/$NAME link"
 

@@ -40,13 +40,13 @@ err=""
 for p in linebusd plug eposcom rudderctl skewmon sailctl eposprobe eposmon drivests; do
     which $p >/dev/null 2>&1 || err="$err $p"
 done
-[ "$err" == "" ] || log_failure_msg "Missing binaries: $err"
+[ "$err" = "" ] || log_failure_msg "Missing binaries: $err"
 
 err=""
 for p in /dev/rudder_l /dev/rudder_r /dev/sail;  do
     [ -r $p ] || err="$err $p"
 done
-[ "$err" == "" ] || log_failure_msg "Missing device links: $err"
+[ "$err" = "" ] || log_failure_msg "Missing device links: $err"
 
 #
 # Function that starts the daemon/service
