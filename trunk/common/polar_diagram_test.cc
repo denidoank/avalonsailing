@@ -6,8 +6,13 @@
 
 #include <math.h>
 #include <stdio.h>
+#include "common/apparent.h"
 #include "common/convert.h"
+#include "common/polar.h"
+
 #include "lib/testing/testing.h"
+
+int debug = 1;
 
 // print polar diagram as x-y-chart.
 // Columns: angle/degree, speed_magnitude/m/s, speed_x/m/s, speed_y/m/s,
@@ -177,8 +182,300 @@ TEST(PolarDiagramTest, BestSailable) {
   EXPECT_FLOAT_EQ(50, BestSailableHeadingDeg(50, 0));
 }
 
+namespace {
+void Test_0(double* sailable, double star, double alpha_true, double expected) {
+  *sailable = BestStableSailableHeading(Deg2Rad(star), Deg2Rad(alpha_true), *sailable);
+  EXPECT_FLOAT_EQ(Deg2Rad(expected), *sailable);
+}
+}  // namespace
+
+TEST(PolarDiagramTest, BestStableSailableHeading) {
+  double sailable=0;
+  const double JibeZoneWidth = 180 - JibeZoneDeg();
+  //                                             alpha_star, alpha_true, previous
+  sailable = BestStableSailableHeading(Deg2Rad(1), Deg2Rad(0), sailable);
+  EXPECT_FLOAT_EQ( Deg2Rad(JibeZoneWidth), sailable);
+
+  // Hysteresis effect (stick to the previous decision if the difference is not too big)
+  sailable = BestStableSailableHeading(Deg2Rad(-1), Deg2Rad(0), sailable);
+  EXPECT_FLOAT_EQ(Deg2Rad(JibeZoneWidth), sailable);  // would be -JibeZoneWidth
+  sailable = BestStableSailableHeading(Deg2Rad(-5), Deg2Rad(0), sailable);
+  EXPECT_FLOAT_EQ(Deg2Rad(JibeZoneWidth), sailable);  // would be -JibeZoneWidth
+  sailable = BestStableSailableHeading(Deg2Rad(-10), Deg2Rad(0), sailable);
+  EXPECT_FLOAT_EQ(Deg2Rad(-JibeZoneWidth), sailable);  // flipped over now
+  sailable = BestStableSailableHeading(Deg2Rad(-15), Deg2Rad(0), sailable);
+  EXPECT_FLOAT_EQ(Deg2Rad(-JibeZoneWidth), sailable);
+  // Out of jibe zone
+  sailable = BestStableSailableHeading(Deg2Rad(-25), Deg2Rad(0), sailable);
+  EXPECT_FLOAT_EQ(Deg2Rad(-25), sailable);
+  sailable = BestStableSailableHeading(Deg2Rad(-5), Deg2Rad(0), sailable);
+  EXPECT_FLOAT_EQ(Deg2Rad(-JibeZoneWidth), sailable);  // would be -JibeZoneWidth
+  sailable = BestStableSailableHeading(Deg2Rad( 5), Deg2Rad(0), sailable);
+  EXPECT_FLOAT_EQ(Deg2Rad(-JibeZoneWidth), sailable);  // would be -JibeZoneWidth
+  sailable = BestStableSailableHeading(Deg2Rad( 6), Deg2Rad(0), sailable);
+  EXPECT_FLOAT_EQ(Deg2Rad(-JibeZoneWidth), sailable);  // would be -JibeZoneWidth
+  sailable = BestStableSailableHeading(Deg2Rad( 7), Deg2Rad(0), sailable);
+  EXPECT_FLOAT_EQ(Deg2Rad(-JibeZoneWidth), sailable);  // would be -JibeZoneWidth
+  sailable = BestStableSailableHeading(Deg2Rad( 8), Deg2Rad(0), sailable);
+  EXPECT_FLOAT_EQ(Deg2Rad(-JibeZoneWidth), sailable);  // would be -JibeZoneWidth
+  sailable = BestStableSailableHeading(Deg2Rad( 9), Deg2Rad(0), sailable);
+  EXPECT_FLOAT_EQ(Deg2Rad( JibeZoneWidth), sailable);  // flipped below 9 degrees
+  sailable = BestStableSailableHeading(Deg2Rad(10), Deg2Rad(0), sailable);
+  EXPECT_FLOAT_EQ(Deg2Rad( JibeZoneWidth), sailable);
+  sailable = BestStableSailableHeading(Deg2Rad(45), Deg2Rad(0), sailable);
+  EXPECT_FLOAT_EQ(Deg2Rad(45), sailable);
+
+  Test_0(&sailable, 45, 0,   45);
+  Test_0(&sailable,  0, 0,   JibeZoneWidth);
+  // Hysteresis effect (stick to the previous decision if the difference is not too big)
+  Test_0(&sailable,  -1, 0,  JibeZoneWidth);
+  Test_0(&sailable,  -5, 0,  JibeZoneWidth);
+  Test_0(&sailable,  -8, 0,  JibeZoneWidth);
+  Test_0(&sailable,  -9, 0, -JibeZoneWidth); // flipped over
+  Test_0(&sailable, -10, 0, -JibeZoneWidth);
+  Test_0(&sailable, -JibeZoneWidth, 0, -JibeZoneWidth);
+  Test_0(&sailable, -30, 0, -30);
+  Test_0(&sailable,  -9, 0, -JibeZoneWidth);
+  Test_0(&sailable,  -5, 0, -JibeZoneWidth);
+  Test_0(&sailable,  -1, 0, -JibeZoneWidth);
+  Test_0(&sailable,   0, 0, -JibeZoneWidth);
+  Test_0(&sailable,   1, 0, -JibeZoneWidth);
+  Test_0(&sailable,   8, 0, -JibeZoneWidth);
+  Test_0(&sailable,   9, 0,  JibeZoneWidth);
+  Test_0(&sailable,  15, 0,  JibeZoneWidth);
+  Test_0(&sailable,  33, 0,  33);
+
+  Test_0(&sailable, 0, 90, 0);
+
+  Test_0(&sailable, 0, 120, 0);
+  Test_0(&sailable, 0, 180, TackZoneDeg());
+  Test_0(&sailable, 0, 179, TackZoneDeg() - 1);
+  Test_0(&sailable, 0, -179, (TackZoneDeg() + 1));  // still sticky
+  Test_0(&sailable, 0, -175, (TackZoneDeg() + 5));  // still sticky
+  Test_0(&sailable, 0, -170, (TackZoneDeg() + 10));  // still sticky
+  Test_0(&sailable, 0, -165, (TackZoneDeg() + 15));  // still sticky
+  Test_0(&sailable, 0, -160, -TackZoneDeg() + 20);  // flipped
+  Test_0(&sailable, 0, -155, -TackZoneDeg() + 25);
+  Test_0(&sailable, 0, -150, -TackZoneDeg() + 30);
+  Test_0(&sailable, 50, 0, 50);
+  Test_0(&sailable, 90, 0, 90);
+  Test_0(&sailable, 91, 0, 91);
+  Test_0(&sailable, -50, 0, -50);
+  Test_0(&sailable, -90, 0, -90);
+  Test_0(&sailable, -91, 0, -91);
+}
+
+typedef struct Env {
+  double alpha_true;
+  double alpha_app;
+  double mag_app;
+  double phi_z;
+  double delta_app;  // difference of apparent wind in relation to true wind
+} EnvT;
+
+namespace {
+void Test(double* sailable, double star, const EnvT& env, double expected) {
+  printf("Want to sail %lf at %lf true wind.\n", star, Rad2Deg(env.alpha_true));
+  Sector sector;
+  double target;
+  *sailable = SailableHeading(Deg2Rad(star),
+                              env.alpha_true,
+                              env.alpha_app + env.delta_app,
+                              env.mag_app,
+                              env.phi_z,
+                              *sailable,
+                              &sector,
+                              &target);
+  EXPECT_FLOAT_EQ(Deg2Rad(expected), *sailable);
+}
+
+void SetEnv(double alpha_wind_true_deg, double mag_wind_true,
+            double phi_z_boat_deg, double mag_boat,
+            EnvT* env) {
+  Polar wind_true(Deg2Rad(alpha_wind_true_deg), mag_wind_true);
+  Polar boat(Deg2Rad(phi_z_boat_deg), mag_boat);
+
+  env->alpha_true = Deg2Rad(alpha_wind_true_deg);
+  env->phi_z = Deg2Rad(phi_z_boat_deg);
+
+  Apparent(Deg2Rad(alpha_wind_true_deg), mag_wind_true,
+           Deg2Rad(phi_z_boat_deg), mag_boat,
+           phi_z_boat_deg,
+           &env->alpha_app, &env->mag_app);
+
+  printf("Env: T%lf A%lf delta:%lf |A%lf| phi_z%lf\n",
+         env->alpha_true, env->alpha_app, env->delta_app,
+         env->mag_app, env->phi_z);
+}
+
+}  // namespace
+
+TEST(PolarDiagramTest, SailableHeading) {
+  double sailable = 0;
+  Env env = {0, 0, 10, 0, 0};  // running
+
+  SetEnv(0, 10, 0, 2, &env);  // Go North, running.
+
+  const double JibeZoneWidth = 180 - JibeZoneDeg();
+  Sector sector;
+  double target;
+  sailable = SailableHeading(Deg2Rad(1),
+                              env.alpha_true,
+                              env.alpha_app,
+                              env.mag_app,
+                              env.phi_z,
+                              sailable,
+                              &sector,
+                              &target);
+  EXPECT_FLOAT_EQ( Deg2Rad(JibeZoneWidth), sailable);
+
+  //              a*         expected
+  Test(&sailable, 45, env,   45);
+  Test(&sailable,  0, env,   JibeZoneWidth);
+  // Hysteresis effect (stick to the previous decision if the difference is not too big)
+  Test(&sailable,  -1, env,  JibeZoneWidth);
+  Test(&sailable,  -5, env,  JibeZoneWidth);
+  Test(&sailable,  -8, env,  JibeZoneWidth);
+  Test(&sailable,  -9, env, -JibeZoneWidth); // flipped over
+  Test(&sailable, -10, env, -JibeZoneWidth);
+  Test(&sailable, -JibeZoneWidth, env, -JibeZoneWidth);
+  Test(&sailable, -30, env, -30);
+  Test(&sailable,  -9, env, -JibeZoneWidth);
+  Test(&sailable,  -5, env, -JibeZoneWidth);
+  Test(&sailable,  -1, env, -JibeZoneWidth);
+  Test(&sailable,   0, env, -JibeZoneWidth);
+  Test(&sailable,   1, env, -JibeZoneWidth);
+  Test(&sailable,   8, env, -JibeZoneWidth);
+  Test(&sailable,   9, env,  JibeZoneWidth);
+  Test(&sailable,  15, env,  JibeZoneWidth);
+  Test(&sailable,  33, env,  33);
+
+  Test(&sailable,  50, env,  50);
+  Test(&sailable,  90, env,  90);
+  Test(&sailable,  91, env,  91);
+  Test(&sailable, -50, env, -50);
+  Test(&sailable, -90, env, -90);
+  Test(&sailable, -91, env, -91);
+
+  SetEnv(90, 10, 0, 2, &env);   // Still go North, Reaching.
+  Test(&sailable, 0, env, 0);
+  SetEnv(120, 10, 0, 2, &env);  // Still go North, Reaching.
+  Test(&sailable, 0, env, 0);
+
+  SetEnv(120, 10, 0, 2, &env);
+  Test(&sailable, 0, env, 0);
+  SetEnv(180, 10, 0, 2, &env);
+  Test(&sailable, 0.00001, env, TackZoneDeg());
+  // for boat speed 0 the apparent wind direction is equal to the true wind direction.
+  double boat_speed = 0;
+  SetEnv(179, 10, 0, boat_speed, &env);
+  Test(&sailable, 0, env, TackZoneDeg() - 1);
+  SetEnv(-179, 10, 0, boat_speed, &env);
+  Test(&sailable, 0, env, TackZoneDeg() + 1);  // still sticky
+  SetEnv(-175, 10, 0, boat_speed, &env);
+  Test(&sailable, 0, env, TackZoneDeg() + 5);  // still sticky
+  SetEnv(-170, 10, 0, boat_speed, &env);
+  Test(&sailable, 0, env, TackZoneDeg() + 10);  // still sticky
+  SetEnv(-165, 10, 0, boat_speed, &env);
+  Test(&sailable, 0, env, TackZoneDeg() + 15);  // still sticky
+  SetEnv(-160, 10, 0, boat_speed, &env);
+  Test(&sailable, 0, env, -TackZoneDeg() + 20);  // flipped
+  SetEnv(-155, 10, 0, boat_speed, &env);
+  Test(&sailable, 0, env, -TackZoneDeg() + 25);
+  SetEnv(-150, 10, 0, boat_speed, &env);
+  Test(&sailable, 0, env, -TackZoneDeg() + 30);
+  SetEnv(90, 10, 0, boat_speed, &env);
+  printf("AA");
+  Test(&sailable, 60, env, 60);
+
+  // So the wind turned right by 3 degrees
+  env.delta_app = Deg2Rad(3);
+  // But the TackZone is reduced for the apparent wind by more than 3 degree.
+  SetEnv(179, 10, 0, boat_speed, &env);
+  Test(&sailable, 0, env, TackZoneDeg() - 1);
+  printf("HH");
+  SetEnv(-179, 10, 0, boat_speed, &env);
+  Test(&sailable, 0, env, TackZoneDeg() + 1);  // still sticky
+  printf("HH");
+  SetEnv(-175, 10, 0, boat_speed, &env);
+  Test(&sailable, 0, env, TackZoneDeg() + 5);  // still sticky
+  printf("HH");
+  SetEnv(-170, 10, 0, boat_speed, &env);
+  Test(&sailable, 0, env, TackZoneDeg() + 10);  // still sticky
+  SetEnv(-165, 10, 0, boat_speed, &env);
+  printf("HH");
+  Test(&sailable, 0, env, TackZoneDeg() + 15);  // still sticky
+  SetEnv(-160, 10, 0, boat_speed, &env);
+  Test(&sailable, 0, env, -TackZoneDeg() + 20);  // flipped
+  printf("HH");
+  SetEnv(-155, 10, 0, boat_speed, &env);
+  Test(&sailable, 0, env, -TackZoneDeg() + 25);
+  SetEnv(-150, 10, 0, boat_speed, &env);
+  Test(&sailable, 0, env, -TackZoneDeg() + 30);
+  SetEnv(150, 10, 0, boat_speed, &env);
+  Test(&sailable, 0, env, TackZoneDeg() - 30);
+
+  printf("The other way round\n\n");
+
+  SetEnv(179, 10, 0, boat_speed, &env);
+  env.delta_app = Deg2Rad(-3);  // So the wind turned left by 3 degrees
+
+  SetEnv(179, 10, 0, boat_speed, &env);
+  Test(&sailable, 0, env, TackZoneDeg() - 1);
+  SetEnv(-179, 10, 0, boat_speed, &env);
+  Test(&sailable, 0, env, TackZoneDeg() + 1);  // still sticky
+  SetEnv(-175, 10, 0, boat_speed, &env);
+  Test(&sailable, 0, env, TackZoneDeg() + 5);  // still sticky
+  SetEnv(-170, 10, 0, boat_speed, &env);
+  Test(&sailable, 0, env, TackZoneDeg() + 10);  // still sticky
+  SetEnv(-165, 10, 0, boat_speed, &env);
+  Test(&sailable, 0, env, TackZoneDeg() + 15);  // still sticky
+  SetEnv(-160, 10, 0, boat_speed, &env);
+  Test(&sailable, 0, env, -TackZoneDeg() + 20);  // flipped
+  SetEnv(-155, 10, 0, boat_speed, &env);
+  Test(&sailable, 0, env, -TackZoneDeg() + 25);
+  SetEnv(-150, 10, 0, boat_speed, &env);
+  Test(&sailable, 0, env, -TackZoneDeg() + 30);
+  SetEnv(150, 10, 0, boat_speed, &env);
+  Test(&sailable, 0, env, TackZoneDeg() - 30);
+
+  boat_speed = 2.5;
+  env.delta_app = Deg2Rad(0);             // Stable wind
+  SetEnv(120, 10, 0, boat_speed, &env);   // Still go North, Reaching.
+  Test(&sailable, 0, env, 0);
+  SetEnv(180, 10, 0, boat_speed, &env);
+  Test(&sailable, 0, env, TackZoneDeg());
+  SetEnv(179, 10, 0, boat_speed, &env);
+  Test(&sailable, 0, env, TackZoneDeg() - 1);
+  SetEnv(-179, 10, 0, boat_speed, &env);
+  Test(&sailable, 0, env, TackZoneDeg() + 1);  // still sticky
+  SetEnv(-175, 10, 0, boat_speed, &env);
+  Test(&sailable, 0, env, TackZoneDeg() + 5);  // still sticky
+  SetEnv(-170, 10, 0, boat_speed, &env);
+  Test(&sailable, 0, env, TackZoneDeg() + 10);  // still sticky
+  SetEnv(-165, 10, 0, boat_speed, &env);
+  Test(&sailable, 0, env, TackZoneDeg() + 15);  // still sticky
+  SetEnv(-160, 10, 0, boat_speed, &env);
+  Test(&sailable, 0, env, -TackZoneDeg() + 20);  // flipped
+  SetEnv(-155, 10, 0, boat_speed, &env);
+  Test(&sailable, 0, env, -TackZoneDeg() + 25);
+  SetEnv(-150, 10, 0, boat_speed, &env);
+  Test(&sailable, 0, env, -TackZoneDeg() + 30);
+  SetEnv(150, 10, 0, boat_speed, &env);
+  Test(&sailable, 0, env, TackZoneDeg() - 30);
+
+}
+
+
+
+
+
+
+
 int main(int argc, char* argv[]) {
   PolarDiagramTest_All();
   PolarDiagramTest_BestSailable();
+  PolarDiagramTest_BestStableSailableHeading();
+  PolarDiagramTest_SailableHeading();
   return 0;
 }

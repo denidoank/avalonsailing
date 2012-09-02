@@ -9,6 +9,22 @@
 #include <math.h>
 #include "common/normalize.h"
 
+bool Less(double left_rad, double right_rad) {
+  return DeltaOldNewRad(left_rad, right_rad) > 0;
+}
+
+bool LessOrEqual(double left_rad, double right_rad) {
+  return DeltaOldNewRad(left_rad, right_rad) >= 0;
+}
+
+double Minimum(double left_rad, double right_rad) {
+  return Less(left_rad, right_rad) ? left_rad : right_rad;
+}
+
+double Maximum(double left_rad, double right_rad) {
+  return Less(left_rad, right_rad) ? right_rad : left_rad;
+}
+
 double DeltaOldNewRad(double old_rad, double new_rad) {
   return SymmetricRad(new_rad - old_rad);
 }
@@ -26,6 +42,17 @@ double NearerRad(double target_rad, double option1_rad, double option2_rad) {
     return option1_rad;
   else
     return option2_rad;
+}
+
+double NearerRad(double target_rad, double option1_rad, double option2_rad, bool* option1) {
+  double d1 = DeltaOldNewRad(target_rad, option1_rad);
+  double d2 = DeltaOldNewRad(target_rad, option2_rad);
+  *option1 = fabs(d1) < fabs(d2);
+  if (*option1) {
+    return option1_rad;
+  } else {
+    return option2_rad;
+  }
 }
 
 // Out of the 2 options return the one with less way to go to the target.

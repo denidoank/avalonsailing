@@ -2,8 +2,8 @@
 // Use of this source code is governed by the Apache License 2.0
 // that can be found in the LICENSE file.
 // Steffen Grundmann, June 2011
-#ifndef HELMSMAN_APPARENT_H
-#define  HELMSMAN_APPARENT_H
+#ifndef  COMMON_APPARENT_H
+#define   COMMON_APPARENT_H
 
 #include "helmsman/maneuver_type.h"
 #include "common/polar.h"
@@ -45,4 +45,4 @@ void TruePolar(const Polar& apparent_wind_on_boat,
                double phi_z,
                Polar* true_wind);
                    
-#endif   //  HELMSMAN_APPARENT_H
+#endif  //  COMMON_APPARENT_H
