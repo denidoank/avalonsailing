@@ -47,9 +47,9 @@ do_start()
 	#   0 if daemon has been started
 	#   1 if daemon was already running
 	#   2 if daemon could not be started
-        echo '$stats' | plug /var/run/lbus | grep $NAME && return 1
+        echo '$stats' | plug -f xxx /var/run/lbus | grep -q $NAME && return 1
 	plug -bin $NAME /var/run/lbus -- `which nmeacat` -b 19200 /dev/$NAME
-        echo '$stats' | plug /var/run/lbus | grep $NAME && return 0
+        echo '$stats' | plug -f xxx /var/run/lbus | grep -q $NAME && return 0
 	return 2
 }
 
@@ -63,15 +63,15 @@ do_stop()
 	#   1 if daemon was already stopped
 	#   2 if daemon could not be stopped
 	#   other if a failure occurred
-        echo '$stats' | plug /var/run/lbus | grep $NAME || return 1
-	echo '$kill' $NAME | plug /var/run/lbus
-        echo '$stats' | plug /var/run/lbus | grep $NAME || return 0
+        echo '$stats' | plug -f xxx /var/run/lbus | grep -q $NAME || return 1
+	echo '$kill' $NAME | plug -i /var/run/lbus
+        echo '$stats' | plug -f xxx /var/run/lbus | grep -q $NAME || return 0
 	return 2
 }
 
 do_status()
 {
-    echo '$stats' | plug /var/run/lbus | grep $NAME || log_warning_msg "$NAME not plugged in."
+    echo '$stats' | plug -f xxx /var/run/lbus | grep $NAME || log_warning_msg "$NAME not plugged in."
 }
 
 case "$1" in
