@@ -126,14 +126,14 @@ void FilterBlock::Filter(const ControllerInput& in,
   fil->Reset();
   // TODO: signal mixer (IMU + compass) comes here. It overwrites IMU data.
   imu_fault_ = isnan(in.imu.attitude.phi_z_rad) || isnan(in.imu.velocity.x_m_s);
-  if (imu_fault_)
+  if (imu_fault_ && debug)
     fprintf(stderr, "IMU fault\n");
   imu_gps_fault_ = !ValidIMUGPS(in);
-  if (imu_gps_fault_)
+  if (imu_gps_fault_ && debug)
     fprintf(stderr, "IMU GPS fault\n");
 
   gps_fault_ = !ValidGPS(in);
-  if (gps_fault_)
+  if (gps_fault_ && debug)
     fprintf(stderr, "Secondary GPS fault\n");
 
 
@@ -276,7 +276,7 @@ void FilterBlock::Filter(const ControllerInput& in,
               Rad2Deg(fil->angle_aoa), fil->mag_aoa, fil->mag_boat);
     }
   } else {
-    fprintf(stderr, "aoa, sensor invalid\n");
+    if (debug) fprintf(stderr, "aoa, sensor invalid\n");
   }
 
   if (in.drives.homed_sail && in.wind_sensor.valid) {
