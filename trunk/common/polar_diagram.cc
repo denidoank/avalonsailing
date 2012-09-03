@@ -181,6 +181,36 @@ double BestSailableHeadingDeg(double alpha_star_deg, double alpha_true_deg){
                                      Deg2Rad(alpha_true_deg)));
 }
 
+namespace {
+// paranoid fallback function
+double BestSailableFallback(double alpha_star,
+                            double limit1, double limit2,
+                            double limit3, double limit4,
+                            SectorT* sector, double* target) {
+  if (fabs(alpha_star - limit1) < 0.1) {
+    *sector = TackPort;
+    *target = limit1;
+    return limit1;
+  }
+  if (fabs(alpha_star - limit2) < 0.1) {
+    *sector = TackStar;
+    *target = limit2;
+    return limit2;
+  }
+  if (fabs(alpha_star - limit3) < 0.1) {
+    *sector = JibeStar;
+    *target = limit3;
+    return limit3;
+  }
+  // if (fabs(alpha_star - limit4) < 0.1)
+  *sector = JibePort;
+  *target = limit4;
+  return limit4;
+}
+
+}  // namespace
+
+
 // We used to make this decision on the slowly filtered true
 // wind only. But if the wind turns quickly, then we got to
 // react on that later in the decision process and that means
@@ -264,20 +294,19 @@ double SailableHeading(double alpha_star,
   } else if (LessOrEqual(limit4, alpha_star) && Less(alpha_star, limit1)) {
     *sector = ReachPort;
   } else {
-    // What if numerics fail here?
-    fprintf(stderr, "illegal range: limits: %lf %lf %lf %lf alpha*: %lf\n",
+    // Theoretically the numerics could fail and an alpha* could exist
+    // that falls between 2 cases. No such test cases could be found.
+    fprintf(stderr, "Illegal sector range: limits: %lf %lf %lf %lf alpha*: %lf\n",
             limit1, limit2, limit3, limit4, alpha_star);
-    CHECK(0);
+    alpha_star_limited =
+        BestSailableFallback(alpha_star, limit1, limit2, limit3, limit4, sector, target);
   }
 
   if (debug) {
     fprintf(stderr, "limits: %lf %lf %lf %lf alpha*: %lf sector %d %c\n",
-            limit1, limit2, limit3, limit4, alpha_star, int(sector), left?'L':'R');
+            limit1, limit2, limit3, limit4, alpha_star, int(*sector), left?'L':'R');
   }
 
   return alpha_star_limited;
 }
-
-
-
 

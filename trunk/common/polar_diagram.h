@@ -45,6 +45,9 @@ typedef enum Sector {
   ReachPort
 } SectorT;
 
+
+
+// target is not written for sector == ReachStar or target == ReachPort
 double SailableHeading(double alpha_star,    // desired heading alpha*
                        double alpha_true,    // true wind vector direction
                        double alpha_app,     // apparent wind vector direction

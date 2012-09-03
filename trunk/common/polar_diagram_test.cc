@@ -327,7 +327,51 @@ TEST(PolarDiagramTest, SailableHeading) {
                               sailable,
                               &sector,
                               &target);
-  EXPECT_FLOAT_EQ( Deg2Rad(JibeZoneWidth), sailable);
+  EXPECT_FLOAT_EQ(Deg2Rad(JibeZoneWidth), sailable);
+
+  // Test that the sector cases have no gaps.
+  // 4 test with alpha star exacly at the limit boundaries.
+  double alpha_star = 2.268928027592628460240576;
+  sailable = SailableHeading(alpha_star,
+                              env.alpha_true,
+                              env.alpha_app,
+                              env.mag_app,
+                              env.phi_z,
+                              sailable,
+                              &sector,
+                              &target);
+  EXPECT_FLOAT_EQ(alpha_star, sailable);
+
+  alpha_star = -2.268928027592628460240576;
+  sailable = SailableHeading(alpha_star,
+                              env.alpha_true,
+                              env.alpha_app,
+                              env.mag_app,
+                              env.phi_z,
+                              sailable,
+                              &sector,
+                              &target);
+  EXPECT_FLOAT_EQ(alpha_star, sailable);
+  alpha_star = -0.349065850398865951120797;
+  sailable = SailableHeading(alpha_star,
+                              env.alpha_true,
+                              env.alpha_app,
+                              env.mag_app,
+                              env.phi_z,
+                              sailable,
+                              &sector,
+                              &target);
+  EXPECT_FLOAT_EQ(alpha_star, sailable);
+  alpha_star = 0.349065850398865951120796;
+  sailable = SailableHeading(alpha_star,
+                              env.alpha_true,
+                              env.alpha_app,
+                              env.mag_app,
+                              env.phi_z,
+                              sailable,
+                              &sector,
+                              &target);
+  EXPECT_FLOAT_EQ(alpha_star, sailable);
 
   //              a*         expected
   Test(&sailable, 45, env,   45);
@@ -463,13 +507,7 @@ TEST(PolarDiagramTest, SailableHeading) {
   Test(&sailable, 0, env, -TackZoneDeg() + 30);
   SetEnv(150, 10, 0, boat_speed, &env);
   Test(&sailable, 0, env, TackZoneDeg() - 30);
-
 }
-
-
-
-
-
 
 
 int main(int argc, char* argv[]) {
