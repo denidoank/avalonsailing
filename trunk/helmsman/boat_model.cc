@@ -38,7 +38,7 @@ BoatModel::BoatModel(double sampling_period,
       apparent_(0, 0),
       gps_out_count_(1) {
   SetStartPoint(start_location);
-  debug = 0;
+  // debug = 0;
 }
 
 // The x-component of the sail force, very roughly.
@@ -363,7 +363,7 @@ void BoatModel::RudderModel(double omega,
   double v_rudder_alpha = 0;
   if (omega != 0 || v_x_ != 0)
     v_rudder_alpha = atan2(-v_y, v_x_);                 // (2)
-  if (debug) fprintf(stderr, "FLR: alpha water: %6.4lf deg, speed %6.4lf\n", Rad2Deg(v_rudder_alpha), v_rudder_mag);
+  // if (debug) fprintf(stderr, "FLR: alpha water: %6.4lf deg, speed %6.4lf\n", Rad2Deg(v_rudder_alpha), v_rudder_mag);
 
   double force_x_left;
   double force_y_left;
@@ -374,7 +374,7 @@ void BoatModel::RudderModel(double omega,
     // Rudders parallel, forces can be calculated more easily.
     OneRudder(gamma_rudder_left_, v_rudder_alpha, v_rudder_mag,
               &force_x_left, &force_y_left);
-    if (debug) fprintf(stderr, "FLR: force_y_L %6.4lf (R==L)  | force_x_left %6.4lf\n", force_y_left, force_x_left);
+    // if (debug) fprintf(stderr, "FLR: force_y_L %6.4lf (R==L)  | force_x_left %6.4lf\n", force_y_left, force_x_left);
     *force_rudder_x = 2 * force_x_left;
     force_y = 2 * force_y_left;
   } else {
@@ -384,7 +384,7 @@ void BoatModel::RudderModel(double omega,
     OneRudder(gamma_rudder_right_, v_rudder_alpha, v_rudder_mag,
               &force_x_right, &force_y_right);
 
-    if (debug) fprintf(stderr, "FLR: force_y_L %6.4lf force_y_R %6.4lf | force_x_left: %6.4lf\n", force_y_left, force_y_right, force_x_left);
+    // if (debug) fprintf(stderr, "FLR: force_y_L %6.4lf force_y_R %6.4lf | force_x_left: %6.4lf\n", force_y_left, force_y_right, force_x_left);
     *force_rudder_x = force_x_left + force_x_right;
     force_y = force_y_left + force_y_right;
   }
@@ -401,8 +401,8 @@ void BoatModel::IntegrateRudderModel(double* delta_omega_rudder,
   double r_left = gamma_rudder_left_;
   double r_right = gamma_rudder_right_;
   double delta_max = 0;
-  if (debug)
-    fprintf(stderr, "rudders L/R: %6.4lf deg, %6.4lf deg\n", Rad2Deg(gamma_rudder_left_), Rad2Deg(gamma_rudder_right_));
+  // if (debug)
+  //   fprintf(stderr, "rudders L/R: %6.4lf deg, %6.4lf deg\n", Rad2Deg(gamma_rudder_left_), Rad2Deg(gamma_rudder_right_));
   if (fabs(r_left - r_right) > Deg2Rad(10)) {
     // rudders not parallel, stationary rotation not possible
     delta_max = 0.000;  // TODO Make this corner case during rudder drive homing work.
@@ -420,11 +420,11 @@ void BoatModel::IntegrateRudderModel(double* delta_omega_rudder,
     // Use average rudders angle
     double omega_stat = -v_x_ * tan((r_left + r_right) / 2) * kLeverR;
     delta_max = 1.5 * (omega_stat - omega_) + 0.1;
-    if (debug)
-      fprintf(stderr, "omega_stat: %6.4lf deg/s, omega_: %lf delta_max %lf\n", Rad2Deg(omega_stat), Rad2Deg(omega_), Rad2Deg(delta_max));
+    // if (debug)
+    //   fprintf(stderr, "omega_stat: %6.4lf deg/s, omega_: %lf delta_max %lf\n", Rad2Deg(omega_stat), Rad2Deg(omega_), Rad2Deg(delta_max));
   }
-  if (debug)
-    fprintf(stderr, "delta_max: %6.4lf deg/s\n", delta_max);
+  // if (debug)
+  //   fprintf(stderr, "delta_max: %6.4lf deg/s\n", delta_max);
 
   // Trapez integration model in respect to omega.
   double delta_omega1_unlimited;
@@ -434,8 +434,8 @@ void BoatModel::IntegrateRudderModel(double* delta_omega_rudder,
   // limit the initially calculated acceleration
   double delta_omega1 = std::min(std::max(delta_omega1_unlimited, -fabs(delta_max)),
                                  fabs(delta_max));
-  if (delta_omega1_unlimited != delta_omega1 && debug)
-    fprintf(stderr, "O1 Limited: %lf %lf\n", delta_omega1_unlimited, delta_omega1);
+  // if (delta_omega1_unlimited != delta_omega1 && debug)
+  //   fprintf(stderr, "O1 Limited: %lf %lf\n", delta_omega1_unlimited, delta_omega1);
 
   // Then calculate with the new omega.
   double delta_omega2_unlimited;
@@ -446,8 +446,8 @@ void BoatModel::IntegrateRudderModel(double* delta_omega_rudder,
   // limit the initially calculated acceleration
   double delta_omega2 = std::min(std::max(delta_omega2_unlimited, -fabs(delta_max)),
                                  fabs(delta_max));
-  if (delta_omega2_unlimited != delta_omega2 && debug)
-    fprintf(stderr, "O2 Limited: %lf %lf\n", delta_omega2_unlimited, delta_omega2);
+  // if (delta_omega2_unlimited != delta_omega2 && debug)
+  //   fprintf(stderr, "O2 Limited: %lf %lf\n", delta_omega2_unlimited, delta_omega2);
 
   // The truth lies in the middle (probably) ...
   double delta_omega_m_unlimited;
@@ -469,11 +469,13 @@ void BoatModel::IntegrateRudderModel(double* delta_omega_rudder,
       (fabs(delta_omega1) < 0.001 &&
        fabs(delta_omega2) < 0.001 &&
        fabs(delta_omega2) < 0.001)) {
+    /*
     if (range_12 != 0) {
       if (debug) fprintf(stderr, "mix at %5.4lf %%\n" , 100 * range_1m / range_12);
     } else {
       if (debug) fprintf(stderr, "mix at %5.4lf of 0\n" , 100 * range_1m );
     }
+    */
 
     *delta_omega_rudder = delta_omega_m;
     *force_rudder_x = force_rudder_x_m;
