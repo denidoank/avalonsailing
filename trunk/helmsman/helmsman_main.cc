@@ -222,7 +222,9 @@ int main(int argc, char* argv[]) {
 
     if (FD_ISSET(fileno(stdin), &rfds)) {
       r = lb_readfd(&lbuf, fileno(stdin));
-      if (r != 0 && r != EAGAIN) break;  // exit main loop if stdin no longer readable.
+      if (r == EOF) break;
+      if (r == EAGAIN) continue;
+      if (r != 0) crash("reading stdin");
     }
 
     char line[1024];
