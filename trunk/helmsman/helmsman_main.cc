@@ -205,7 +205,7 @@ int main(int argc, char* argv[]) {
 
     fd_set rfds;
     FD_ZERO(&rfds);
-    FD_SET(fileno(stdin) &rfds);
+    FD_SET(fileno(stdin), &rfds);
     sigset_t empty_mask;
     sigemptyset(&empty_mask);
     int r = pselect(fileno(stdin) + 1, &rfds,  NULL, NULL, &timeout, &empty_mask);
