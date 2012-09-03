@@ -184,6 +184,11 @@ int main(int argc, char* argv[]) {
 	if ((in_to_s_pid  != -1) ||(s_to_out_pid != -1))
 		if (wait(NULL) < 0) crash("wait");
 
+	// hack: if you use plug like echo '$stats' | plug ... | grep ... '
+	// the closing of stdin may cause us to kill the stdout before anything came back.
+	// solve the pragmatic way
+	sleep(1);
+
 	// kill any other
 	if (in_to_s_pid  != -1) kill(in_to_s_pid, SIGTERM);
         if (s_to_out_pid != -1) kill(s_to_out_pid, SIGTERM);
