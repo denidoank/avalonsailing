@@ -59,23 +59,23 @@ do_start()
 	#   2 if daemon could not be started
 	start-stop-daemon --start --quiet --pidfile $PIDFILE --exec $DAEMON --test > /dev/null \
 		|| return 1
-	start-stop-daemon --start --quiet --pidfile $PIDFILE --exec $DAEMON -- $EBUS \
+	start-stop-daemon --start --quiet --pidfile $PIDFILE --exec $DAEMON -- $EBUS 2> /dev/null \
 		|| return 2
 
 	for p in /dev/rudder_l /dev/rudder_r /dev/sail;  do
-            plug -b $EBUS -- `which eposcom` -T $p
+            plug -b $EBUS -- `which eposcom` -T $p 2> /dev/null
 	done
 
-	plug -bp $EBUS -- `which rudderctl` -l -T   # homing and positioning of left rudder
-	plug -bp $EBUS -- `which rudderctl` -r -T   # homing and positioning of right rudder
-	plug -bp $EBUS -- `which skewmon` -T        # monitor sail motor/bmmh sensor angle skew
-	plug -bp $EBUS -- `which sailctl` -T        # positioning for sail
+	plug -bp $EBUS -- `which rudderctl` -l -T 2> /dev/null  # homing and positioning of left rudder
+	plug -bp $EBUS -- `which rudderctl` -r -T 2> /dev/null  # homing and positioning of right rudder
+	plug -bp $EBUS -- `which skewmon` -T      2> /dev/null  # monitor sail motor/bmmh sensor angle skew
+	plug -bp $EBUS -- `which sailctl` -T      2> /dev/null  # positioning for sail
 
         # periodically (-f Hz) issue status register probe commands (needed by drivests and eposmon)
-	plug -bpi $EBUS -- `which eposprobe` -f 2 -T
+	plug -bpi $EBUS -- `which eposprobe` -f 2 -T 2> /dev/null
 
         # summarize and report epos communication errors to syslog
-	plug -bon "eposmon" $EBUS -- `which eposmon` 
+	plug -bon "eposmon" $EBUS -- `which eposmon` 2> /dev/null
 
 	return 0
 }
