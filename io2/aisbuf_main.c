@@ -155,6 +155,8 @@ int main(int argc, char* argv[]) {
 			}
 		}
 
+		if(!msgs) continue;
+
 		// clean to lowwatermark when above highwatermarkxs
 		if (msgcnt > 3000) {  // highwatermark
 			if (debug) fprintf(stderr, "Cleaning %d to low watermark\n", msgcnt);
