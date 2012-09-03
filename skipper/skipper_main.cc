@@ -71,12 +71,6 @@ void usage(void) {
   exit(2);
 }
 
-static void set_fd(fd_set* s, int* maxfd, FILE* f) {
-        int fd = fileno(f);
-        FD_SET(fd, s);
-        if (*maxfd < fd) *maxfd = fd;
-}
-
 static const int64_t kPeriodMicros = kSamplingPeriod * 1E6;
 
 
@@ -133,17 +127,15 @@ int main(int argc, char* argv[]) {
   for (;;) {
 
     fd_set rfds;
-    int max_fd = -1;
     FD_ZERO(&rfds);
-    set_fd(&rfds, &max_fd, stdin);
     sigset_t empty_mask;
     sigemptyset(&empty_mask);
-    int r = pselect(max_fd + 1, &rfds,  NULL, NULL, &timeout, &empty_mask);
+    int r = pselect(fileno(stdin) + 1, &rfds,  NULL, NULL, &timeout, &empty_mask);
     if (r == -1 && errno != EINTR) crash("pselect");
 
     if (debug>2) syslog(LOG_DEBUG, "Woke up %d\n", r);
 
-    if (FD_ISSET(fileno(stdin), &rfds)) {
+    if (r == 1) {
       r = lb_readfd(&lbuf, fileno(stdin));
       if (r == EOF) break;
       if (r == EAGAIN) continue;
