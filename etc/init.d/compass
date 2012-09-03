@@ -34,9 +34,9 @@ err=""
 for p in linebusd plug nmeacat ; do
     which $p >/dev/null 2>&1 || err="$err $p"
 done
-[ "$err" = "" ] || log_failure_msg "Missing binaries: $err"
+[ "$err" = "" ] || { log_failure_msg "Missing binaries: $err"; exit 0; }
 
-[ -r /dev/$NAME ] || log_failure_msg "Missing /dev/$NAME link"
+[ -r /dev/$NAME ] || { log_failure_msg "Missing /dev/$NAME link"; exit 0; }
 
 #
 # Function that starts the daemon/service
