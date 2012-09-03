@@ -121,38 +121,38 @@ int main(int argc, char* argv[]) {
 			if (r == EOF) break;
 			if (r == EAGAIN) continue;
 			if (r != 0) crash("reading stdin");
+		}
 
-			while(lb_getline(msg->line, sizeof msg->line, &line) > 0) {
+		while(lb_getline(msg->line, sizeof msg->line, &line) > 0) {
 
-				int n = sscanf(msg->line, "ais: timestamp_ms:%lld mmsi:%d msgtype:%d ",
-					       &msg->timestamp_ms, &msg->mmsi, &msg->msgtype);
-				if (n < 3) {
-					if (badcnt++ > 100) crash("Nothing but garbage on stdin: %s", msg->line);
-					if (debug) fprintf(stderr, "Could not parse stdin:%s", msg->line);
-					continue;
-				}
+			int n = sscanf(msg->line, "ais: timestamp_ms:%lld mmsi:%d msgtype:%d ",
+				       &msg->timestamp_ms, &msg->mmsi, &msg->msgtype);
+		  if (n < 3) {
+			  if (badcnt++ > 100) crash("Nothing but garbage on stdin: %s", msg->line);
+			  if (debug) fprintf(stderr, "Could not parse stdin:%s", msg->line);
+			  continue;
+		  }
 
-				badcnt = 0;
-				msgcnt++;
-				msg->link = msgs;
-				msgs = msg;
+		  badcnt = 0;
+		  msgcnt++;
+		  msg->link = msgs;
+		  msgs = msg;
 
-				msg = malloc(sizeof *msg);
-				memset(msg, 0, sizeof *msg);
+		  msg = malloc(sizeof *msg);
+		  memset(msg, 0, sizeof *msg);
 
-				// delete older versions
-				struct AISMsg** pp = &msgs->link;
-				while (*pp) {
-					struct AISMsg* curr = *pp;
-					if (samemsg(curr, msgs)) {
-						*pp = curr->link;
-						free(curr);
-						msgcnt--;
-					} else {
-						pp = &(*pp)->link;
-					}
-				}
-			}
+		  // delete older versions
+		  struct AISMsg** pp = &msgs->link;
+		  while (*pp) {
+			  struct AISMsg* curr = *pp;
+			  if (samemsg(curr, msgs)) {
+				  *pp = curr->link;
+				  free(curr);
+				  msgcnt--;
+			  } else {
+				  pp = &(*pp)->link;
+			  }
+		  }
 		}
 
 		if(!msgs) continue;
