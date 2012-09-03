@@ -221,13 +221,8 @@ double SailController::StableGammaSail(double alpha_true, double mag_true,
   //   the wind may change a little bit, but we keep the sail on the
   //   "wrong" side. No action.
   // * If a tack failed, or a wave pushed us violently. We are fexible and
-  //   try to catch the wind on the other side.
-  if (mag_true > 0.5 &&
-      alpha_sign_ == SignNotZero(alpha_app) &&
-      fabs(a) > M_PI / 2) {
-    if (debug) fprintf(stderr, "alpha_sign_ flip\n");
-    alpha_sign_ = -SignNotZero(alpha_app);
-  }
+  //   try to catch the wind on the other side. This is handled by the
+  //   sector logic polar_diagram.cc::SailableHeading()
 
   // Push the boat (phi_z) out of the wind if the quickly filtered apparent
   // wind is too adverse.
@@ -248,7 +243,7 @@ double SailController::StableGammaSail(double alpha_true, double mag_true,
   }
   fall_off *= brute_factor;
   // If we get pushed away too much, we cannot make the next tack.
-  const double fall_off_limit = 0.3;  // 15 degrees maximal
+  const double fall_off_limit = 0.3;  // 15 degrees maximum
   if (fall_off > fall_off_limit)
     fall_off = fall_off_limit;
   if (fall_off < -fall_off_limit)

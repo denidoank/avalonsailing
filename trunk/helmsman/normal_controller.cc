@@ -34,9 +34,10 @@ NormalController::NormalController(RudderController* rudder_controller,
      start_time_ms_(now_ms()),
      trap2_(999),
      prev_offset_(0),
-     fallen_off_(0),
      maneuver_type_(kChange),
-     wind_strength_apparent_(kCalmWind) {
+     wind_strength_apparent_(kCalmWind),
+     prev_sector_(JibePort),
+     alpha_star_rate_limited_(0) {
   if (debug) fprintf(stderr, "NormalController::Entry time  %lld s\n",
                      start_time_ms_ / 1000);
   if (debug) fprintf(stderr, "NormalController::rate limit  %lf rad/s, %lf deg/s\n",
@@ -52,9 +53,20 @@ void NormalController::Entry(const ControllerInput& in,
   // Make sure we get the right idea of the direction change when we come
   // from another state.
   old_phi_z_star_ = SymmetricRad(filtered.phi_z_boat);
-  double gamma_sail =
-      sail_controller_->BestGammaSail(filtered.angle_app, filtered.mag_app);
-  sail_controller_->SetAlphaSign(SignNotZero(gamma_sail));
+  alpha_star_rate_limited_ = old_phi_z_star_;
+  // This serves to initialize prev_sector_ only.
+  double dummy_target;
+  SailableHeading(filtered.phi_z_boat,  // desired heading alpha*
+                  filtered.alpha_true,  // true wind vector direction
+                  filtered.angle_app,   // apparent wind vector direction
+                  filtered.mag_app,     // apparent wind vector magnitude
+                  filtered.phi_z_boat,  // boat direction
+                  filtered.phi_z_boat,  // previous output direction, needed to implement hysteresis
+                  &prev_sector_,        // sector codes for state handling and maneuver
+                  &dummy_target);
+  //double gamma_sail =
+  //    sail_controller_->BestGammaSail(filtered.angle_app, filtered.mag_app);
+  sail_controller_->SetAlphaSign(SectorToGammaSign(prev_sector_));
   ref_.SetReferenceValues(old_phi_z_star_, in.drives.gamma_sail_rad);
   give_up_counter_ = 0;
   start_time_ms_ = now_ms();
@@ -123,63 +135,17 @@ void NormalController::Exit() {
   if (debug) fprintf(stderr, " NormalController::Exit\n");
 }
 
-bool NormalController::IsJump(double old_direction, double new_direction) {
-  // All small direction changes are handled directly by the rudder control,
-  // with rate limitation for the reference value. Bigger changes and maneuvers
-  // require planning because of the synchronized motion of boat and sail.
-  // For them IsJump returns true.
-  const double JibeZoneWidth = M_PI - JibeZoneRad();
-  CHECK(JibeZoneWidth < TackZoneRad());
-  return fabs(DeltaOldNewRad(old_direction, new_direction)) >
-              1.8 * JibeZoneWidth;
-}
-
-// a in [b-eps, b+eps] interval
-bool NormalController::Near(double a, double b) {
-  const double tolerance = 2 * kSamplingPeriod * alpha_star_rate_limit_;
-  return b - tolerance <= a && a <= b + tolerance;
-}
-
-// The current bearing is near the TackZone (close hauled) or near the Jibe Zone (broad reach)
-// and we will have to do a maneuver.
-bool NormalController::IsGoodForManeuver(double old_direction, double new_direction, double angle_true) {
-  const double turn = DeltaOldNewRad(old_direction, new_direction);
-
-  const double old_relative = DeltaOldNewRad(angle_true, old_direction);
-  // Critical angles to the wind vector. Because the PolarDiagram follows the
-  // "wind blows from" convention, we have to turn the tack zone and jibe zone angles.
-  const double tack_zone = M_PI - TackZoneRad();
-  const double jibe_zone = M_PI - JibeZoneRad();
-  if (turn < 0) {
-    return Near(old_relative,  jibe_zone) || Near(old_relative, -tack_zone);
-  }
-  if (turn > 0) {
-    return Near(old_relative, -jibe_zone) || Near(old_relative,  tack_zone);
-  }
-  return false;
-}
-
-// Every tack or jibe uses the same angle, i.e. we have standardized jibes and tacks.
-double LimitToMinimalManeuver(double old_bearing, double new_bearing,
-                              double alpha_true, double maneuver_type,
-                              double fallen_off_magnitude) {
-  if (maneuver_type == kChange)
-    return new_bearing;
-  double old_to_wind = DeltaOldNewRad(old_bearing, alpha_true);
+double AddOvershoot(double old_bearing,
+                    double new_bearing,
+                    double maneuver_type) {
+  int sign = SignNotZero(DeltaOldNewRad(old_bearing, new_bearing));
   if (maneuver_type == kTack) {
-    double tack_angle = 2 * TackZoneRad() + kTackOvershootRad + fallen_off_magnitude;
-    if (old_to_wind < 0)
-      return SymmetricRad(old_bearing + tack_angle);
-    else
-      return SymmetricRad(old_bearing - tack_angle);
+    return new_bearing + sign * kTackOvershootRad;
   }
   if (maneuver_type == kJibe) {
-    double jibe_angle = 2 * (M_PI - JibeZoneRad());
-    if (old_to_wind < 0)
-      return SymmetricRad(old_bearing - jibe_angle);
-    else
-      return SymmetricRad(old_bearing + jibe_angle);
+    return new_bearing;
   }
+  CHECK(maneuver_type != kChange);
   CHECK(0);  // Define behaviour for new maneuver type!
   return new_bearing;
 }
@@ -219,21 +185,30 @@ void NormalController::ShapeReferenceValue(double alpha_star,
     if (maneuver_type_ == kTack) {
       *omega_z_star *= 4;  // So we will always overshoot and abort tacks.
     }
+    alpha_star_rate_limited_ = *phi_z_star;
     if (debug) fprintf(stderr, "* %6.2lf %6.2lf %6.2lf\n", alpha_star, alpha_star, *phi_z_star);
   } else {
+    // Rate limit alpha_star.
+    LimitRateWrapRad(alpha_star, alpha_star_rate_limit_ * kSamplingPeriod, &alpha_star_rate_limited_);
     // Stay in sailable zone
-    new_sailable = BestStableSailableHeading(alpha_star, alpha_true, old_phi_z_star_);
+    SectorT sector;
+    double maneuver_target;
+    new_sailable = SailableHeading(alpha_star_rate_limited_,  // desired heading alpha*
+                  alpha_true,  // true wind vector direction
+                  angle_app,   // apparent wind vector direction
+                  mag_app,      // apparent wind vector magnitude
+                  phi_z_boat,  // boat direction
+                  old_phi_z_star_,  // previous output direction, needed to implement hysteresis
+                  &sector,        // sector codes for state handling and maneuver
+                  &maneuver_target);
+    maneuver_type_ = SectorToManeuver(sector);
+    sail_controller_->SetAlphaSign(SectorToGammaSign(sector));
+
     if (debug) fprintf(stderr, "new sailable: %6.2lf\n", new_sailable);
-    if (IsGoodForManeuver(old_phi_z_star_, new_sailable, alpha_true) &&
-        IsJump(old_phi_z_star_, new_sailable)) {
+
+    if (maneuver_type_ == kTack || maneuver_type_ == kJibe) {
       // We need a new plan ...
-      maneuver_type_ = FindManeuverType(old_phi_z_star_,
-                                        new_sailable,
-                                        alpha_true);
-      // Limit new_sailable to the other side of the maneuver zone.
-      new_sailable = LimitToMinimalManeuver(old_phi_z_star_, new_sailable,
-                                            alpha_true, maneuver_type_,
-                                            fabs(fallen_off_));
+      new_sailable = AddOvershoot(old_phi_z_star_, maneuver_target, maneuver_type_);
       if (debug) fprintf(stderr, "Start %s maneuver, from  %lf to %lf degrees\n",
                          ManeuverToString(maneuver_type_), Rad2Deg(old_phi_z_star_), Rad2Deg(new_sailable));
       double new_gamma_sail;
@@ -243,7 +218,6 @@ void NormalController::ShapeReferenceValue(double alpha_star,
                    kTackOvershootRad,
                    &new_gamma_sail,
                    &delta_gamma_sail);
-      sail_controller_->SetAlphaSign(SignNotZero(new_gamma_sail));
 
       ref_.SetReferenceValues(old_phi_z_star_, old_gamma_sail);
       ref_.NewPlan(new_sailable, delta_gamma_sail);
@@ -255,17 +229,13 @@ void NormalController::ShapeReferenceValue(double alpha_star,
           out->status.jibes++;
           break;
         default:
-          if (debug) fprintf(stderr, "Wrong maneuver type %s!\n",
-                             ManeuverToString(maneuver_type_));
+          CHECK(0);
       }
 
       ref_.GetReferenceValues(phi_z_star, omega_z_star, gamma_sail_star);
     } else {
       // Normal case, minor changes of the desired heading.
-      // Rate limit alpha_star.
-      double limited = old_phi_z_star_;
-      LimitRateWrapRad(new_sailable, alpha_star_rate_limit_ * kSamplingPeriod, &limited);
-      *phi_z_star = limited;
+      *phi_z_star = new_sailable;
       // Feed forward of the rotation speed helps, but if the boats speed
       // is estimated too low, we get a big overshoot due to exaggerated gamma_0
       // values.
@@ -280,14 +250,14 @@ void NormalController::ShapeReferenceValue(double alpha_star,
 
       // TODO sail drive lazyness
     }
+    prev_sector_ = sector;
   }
 
   old_phi_z_star_ = *phi_z_star;
-  fallen_off_ = FilterOffset(phi_z_offset);
-  *phi_z_star += fallen_off_;  // so the offset is a temporary thing
   if (debug) fprintf(stderr, "* %6.2lf %6.2lf %6.2lf\n", alpha_star, new_sailable, *phi_z_star);
 }
 
+// currently unused
 double NormalController::FilterOffset(double offset) {
   const double decay = Deg2Rad(0.1) * kSamplingPeriod;
   if (Sign(offset) != 0 && Sign(offset) != Sign(prev_offset_)) {
@@ -344,4 +314,38 @@ double NormalController::NowSeconds() {
 
 double NormalController::RateLimit() const{
   return alpha_star_rate_limit_;
+}
+
+// uses prev_sector_
+ManeuverType NormalController::SectorToManeuver(SectorT sector) {
+  if ((prev_sector_ == TackPort && sector == TackStar)  ||
+      (prev_sector_ == TackStar && sector == TackPort)) {
+    return kTack;
+  }
+  if ((prev_sector_ == JibePort && sector == JibeStar)  ||
+      (prev_sector_ == JibeStar && sector == JibePort)) {
+    return kJibe;
+  }
+  return kChange;
+}
+
+int NormalController::SectorToGammaSign(SectorT sector) {
+  if (sector == TackStar || sector == ReachStar || sector == JibeStar) {
+    return -1;
+  } else {
+    return 1;
+  }
+}
+
+void NormalController::CountManeuvers(ControllerOutput* out) {
+  switch (maneuver_type_) {
+    case kTack:
+      out->status.tacks++;
+      break;
+    case kJibe:
+      out->status.jibes++;
+      break;
+    default:
+      break;
+  }
 }

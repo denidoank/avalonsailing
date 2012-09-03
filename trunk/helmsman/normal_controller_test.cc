@@ -51,31 +51,31 @@ TEST(NormalController, AllSail) {
   FilteredMeasurements filtered;
   ControllerOutput out;
 
-  Polar wind_true(0, 2);      // Wind vector forward to North, with 2m/s.
+  Polar wind_true(0, 5);      // Wind vector forward to North, with 5m/s.
   Polar boat(Deg2Rad(0), 1);  // Boat going forward as well, with 1 m/s.
                               // So the apparent wind vector is at 0 degrees to
-                              // the boats x-axis, 1m/s magnitude.
+                              // the boats x-axis, 4m/s magnitude.
   SetEnv(wind_true, boat, &in, &filtered, &out);
 
   in.alpha_star_rad = Deg2Rad(0);
   c.Entry(in, filtered);
   c.Run(in, filtered, &out);
-  EXPECT_FLOAT_EQ(-0.295634, Rad2Deg(out.drives_reference.gamma_rudder_star_left_rad));
+  EXPECT_FLOAT_EQ(-8, Rad2Deg(out.drives_reference.gamma_rudder_star_left_rad));
   EXPECT_EQ(out.drives_reference.gamma_rudder_star_left_rad,
             out.drives_reference.gamma_rudder_star_right_rad);
   // Sail in spinakker mode
-  EXPECT_FLOAT_EQ(-93, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
+  EXPECT_FLOAT_EQ(93, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
 
   c.Run(in, filtered, &out);
-  EXPECT_FLOAT_EQ(-0.605813, Rad2Deg(out.drives_reference.gamma_rudder_star_left_rad));
+  EXPECT_FLOAT_EQ(-8, Rad2Deg(out.drives_reference.gamma_rudder_star_left_rad));
   EXPECT_EQ(out.drives_reference.gamma_rudder_star_left_rad,
             out.drives_reference.gamma_rudder_star_right_rad);
   c.Run(in, filtered, &out);
-  EXPECT_FLOAT_EQ(-0.930537, Rad2Deg(out.drives_reference.gamma_rudder_star_left_rad));
+  EXPECT_FLOAT_EQ(-8, Rad2Deg(out.drives_reference.gamma_rudder_star_left_rad));
   EXPECT_EQ(out.drives_reference.gamma_rudder_star_left_rad,
             out.drives_reference.gamma_rudder_star_right_rad);
   // Sail in spinakker mode
-  EXPECT_FLOAT_EQ(-93, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
+  EXPECT_FLOAT_EQ(93, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
   in.alpha_star_rad = 0.001;
 
   c.Run(in, filtered, &out);
@@ -83,7 +83,7 @@ TEST(NormalController, AllSail) {
   EXPECT_EQ(out.drives_reference.gamma_rudder_star_left_rad,
             out.drives_reference.gamma_rudder_star_right_rad);
   // Sail in spinakker mode
-  EXPECT_FLOAT_EQ(-93, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
+  EXPECT_FLOAT_EQ(93, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
 
   wind_true = Polar(-M_PI / 2, 2);  // wind vector to West, with 2m/s
   boat = Polar(0, 2);               // boat going North, with 2 m/s
@@ -112,9 +112,9 @@ TEST(NormalController, AllSailCloseHauled) {
   FilteredMeasurements filtered;
   ControllerOutput out;
 
-  Polar wind_true(0, 2);      // Wind vector forward to North, with 2m/s.
+  Polar wind_true(0, 2);        // Wind vector forward to North, with 2m/s.
   Polar boat(Deg2Rad(130), 1);  // Boat going SouthEast, with 1 m/s.
-                              // Close hauled, on backbord bow.
+                                // Close hauled, on backbord bow.
   SetEnv(wind_true, boat, &in, &filtered, &out);
   in.alpha_star_rad = Deg2Rad(130);
 
@@ -236,6 +236,7 @@ TEST(NormalController, AllRudder) {
     in.alpha_star_rad = alpha_star_rad;  //  no tack or jibe zone
     c.Entry(in, filtered);
 
+    c.Run(in, filtered, &out);
     c.Run(in, filtered, &out);
     EXPECT_FLOAT_EQ(0, Rad2Deg(out.drives_reference.gamma_rudder_star_left_rad));
     EXPECT_EQ(out.drives_reference.gamma_rudder_star_left_rad,
@@ -449,17 +450,17 @@ TEST(NormalController, ReferenceValueShaping) {
   SHAPE(91);
   EXPECT_FLOAT_EQ(Deg2Rad(91), phi_z_star);
   // A wide tack, turning over 178 degrees through the wind. Run for 30s.
-  for (int i = 0; i < TicksNeeded(c, 91, -91); ++i) {
+  for (int i = 0; i < TicksNeeded(c, 91, -91) + 50; ++i) {
     SHAPE(-91);
   }
   EXPECT_FLOAT_EQ(Deg2Rad(-91), phi_z_star);
   // And back.
-  for (int i = 0; i < TicksNeeded(c, -91, 91); ++i) {
+  for (int i = 0; i < TicksNeeded(c, -91, 91) + 50; ++i) {
     SHAPE(91);
   }
   EXPECT_FLOAT_EQ(Deg2Rad(91), phi_z_star);
   // A gentle change of bearing
-  for (int i = 0; i < TicksNeeded(c, 91, 89); ++i) {
+  for (int i = 0; i < TicksNeeded(c, 91, 89) + 50; ++i) {
     SHAPE(89);
   }
   EXPECT_FLOAT_EQ(Deg2Rad(89), phi_z_star);
@@ -537,7 +538,7 @@ TEST(NormalController, ReferenceValueShapingStormJibe) {
 
   // South to North.
   // TODO Check where the extra steps come from.
-  for (int i = 0; i < TicksNeeded(c, 0, -180) + 30; ++i) {
+  for (int i = 0; i < TicksNeeded(c, 0, -180) + 80; ++i) {
     SHAPE(0);
   }
   EXPECT_FLOAT_EQ(0, omega_z_star);
@@ -600,7 +601,7 @@ TEST(NormalController, ReferenceValueShapingWest) {
 
   // A tack.
   for (int i = 0;
-       i < TicksNeeded(c, 150, 30) + 20;
+       i < TicksNeeded(c, 150, 30) + 100;
        ++i) {
     SHAPE(150);
   }

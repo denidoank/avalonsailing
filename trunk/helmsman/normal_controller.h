@@ -14,6 +14,7 @@
 #ifndef HELMSMAN_NORMAL_CONTROLLER_H
 #define HELMSMAN_NORMAL_CONTROLLER_H
 
+#include "common/polar_diagram.h"  // SectorT
 #include "helmsman/controller.h"
 #include "helmsman/maneuver_type.h"
 #include "helmsman/rudder_controller.h"
@@ -61,16 +62,9 @@ class NormalController : public Controller {
   double FilterOffset(double offset);
 
  private:
-  // Near for bearings.
-  bool Near(double a, double b);
-  bool IsJump(double old_direction, double new_direction);
-  // The current bearing is near the TackZone (close reach) or near the Jibe Zone (broad reach)
-  // and we will have to do a maneuver.
-  bool IsGoodForManeuver(double old_direction, double new_direction, double angle_true);
-
-  bool OutputChanges(const DriveReferenceValuesRad& out,
-                     double gamma_rudder_star,
-                     double gamma_sail_star);
+  ManeuverType SectorToManeuver(SectorT sector);
+  int SectorToGammaSign(SectorT sector);
+  void CountManeuvers(ControllerOutput* out);
 
   double NowSeconds();                   
 
@@ -84,10 +78,11 @@ class NormalController : public Controller {
   int64_t start_time_ms_;
   int trap2_;  // paranoid protection against incomplete compilation errors.
   double prev_offset_;
-  double fallen_off_;
   ManeuverType maneuver_type_;
   WindStrengthRange wind_strength_apparent_;
   double epsilon_;  // phi_z (bearing) control error
+  SectorT prev_sector_;
+  double alpha_star_rate_limited_;
 };
 
 #endif  // HELMSMAN_NORMAL_CONTROLLER_H

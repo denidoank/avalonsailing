@@ -28,7 +28,7 @@ void NormalControllerTest(double wind_direction_deg,
                           double expected_min_speed_m_s,
                           double wind_strength_m_s = 10) {
   logging_aoa = 0;
-  // debug = 1;
+  debug = 0;
   BoatModel model(kSamplingPeriod,
                   0,                // omega_ / rad, turning rate, + turns right
                   0,                // phi_z_ / rad, heading relative to North, + turns right
@@ -46,7 +46,7 @@ void NormalControllerTest(double wind_direction_deg,
                                        // Initial controller.
   ShipControl::Run(in, &out);
   ShipControl::Normal();
-  printf("\nWind direction: %6.0f degree, Wind speed: %4.2f m/s\n",
+  printf("\nWind direction: %6.2lf degree, Wind speed: %4.2lf m/s\n",
           wind_direction_deg, wind_strength_m_s);
   int64_t micros_max = 0;
   int64_t micros_sum = 0;
@@ -91,6 +91,28 @@ TEST(SimShip, Wind_1) {
     if (fabs(wind_direction - -90) < 20)  // Not sailable.
       continue;
     NormalControllerTest(wind_direction, 0.8);  // speeds vary from 0.8 to 2.1 m/s
+  }
+}
+
+TEST(SimShip, Wind_0) {
+  // Cannot sail with less than 2m/s wind strength.
+  for (double wind_strength = 1; wind_strength < 20; wind_strength *= 1.15) {
+    // All initial wind directions are handled correctly.
+    for (double wind_direction = -180; wind_direction < 180; wind_direction += 0.3) {
+      if (fabs(wind_direction - -90) < 20)  // Not sailable
+        continue;
+      // put failing cases here
+      if (0 && fabs(wind_direction - 12 ) < 0.1 && fabs(wind_strength - 16.37) < 0.1) {
+        debug = 1;
+        print_model = 1;
+      } else {
+        debug = 0;
+        print_model = 0;
+      }
+      // speeds vary due to different wind strength and headings.
+      // If our model was correct, we would get the polar diagram here.
+      NormalControllerTest(wind_direction, std::min(0.06 * wind_strength, 2.5), wind_strength);
+    }
   }
 }
 
@@ -149,6 +171,7 @@ TEST(SimShip, Wind_Debug) {
 
 int main(int argc, char* argv[]) {
   debug = 0;
+  SimShip_Wind_0();
   SimShip_Wind_2();
   SimShip_Wind_Strong();
   SimShip_Wind_Debug();
