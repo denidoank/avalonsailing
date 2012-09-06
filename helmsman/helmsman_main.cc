@@ -261,7 +261,8 @@ int main(int argc, char* argv[]) {
       } else if (sscanf(line, IFMT_REMOTEPROTO(&remote, &nn)) > 0) {
     HandleRemoteControl(remote, &control_mode);
     last_remote_message_millis = now_ms();
-	if (control_mode == kOverrideSkipperMode)
+	if (control_mode == kOverrideSkipperMode &&
+	    !isnan(remote.alpha_star_deg))
 	  ctrl_in.alpha_star_rad = Deg2Rad(remote.alpha_star_deg);
       } else {
 	// Any unexpected input (messages not sent to us, or debug output that
