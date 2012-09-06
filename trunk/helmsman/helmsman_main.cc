@@ -265,9 +265,10 @@ int main(int argc, char* argv[]) {
 	    !isnan(remote.alpha_star_deg))
 	  ctrl_in.alpha_star_rad = Deg2Rad(remote.alpha_star_deg);
       } else {
+  // For debugging only:    
 	// Any unexpected input (messages not sent to us, or debug output that
 	// accidentally was sent to stdout instead of stderr comes here.
-	syslog(LOG_DEBUG, "Unreadable input \n>>>%s<<<\n", line);
+	// syslog(LOG_DEBUG, "Unreadable input \n>>>%s<<<\n", line);
       }
     }
 
