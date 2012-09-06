@@ -59,7 +59,7 @@ do_start()
 	#   2 if daemon could not be started
 	start-stop-daemon --start --quiet --pidfile $PIDFILE --exec $DAEMON --test > /dev/null \
 		|| return 1
-	start-stop-daemon --start --quiet --pidfile $PIDFILE --exec $DAEMON -- $EBUS 2> /dev/null \
+	start-stop-daemon --start --quiet --pidfile $PIDFILE --exec $DAEMON -N -5 -- $EBUS 2> /dev/null \
 		|| return 2
 
 	for p in /dev/rudder_l /dev/rudder_r /dev/sail;  do
@@ -73,6 +73,8 @@ do_start()
 
         # periodically (-f Hz) issue status register probe commands (needed by drivests and eposmon)
 	plug -bpi $EBUS -- `which eposprobe` -f 2 -T 2> /dev/null
+
+	(plug -po -n "drivests" $EBUS | drivests -n 100 | plug -pn "rudderctlfwd" -f "rudderctl:" $LBUS | plug -pi $EBUS )  < /dev/null >/dev/null 2>&1 &
 
         # summarize and report epos communication errors to syslog
 	plug -bon "eposmon" $EBUS -- `which eposmon` 2> /dev/null
