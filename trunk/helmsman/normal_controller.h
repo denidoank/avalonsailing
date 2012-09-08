@@ -14,7 +14,7 @@
 #ifndef HELMSMAN_NORMAL_CONTROLLER_H
 #define HELMSMAN_NORMAL_CONTROLLER_H
 
-#include "common/polar_diagram.h"  // SectorT
+#include "common/point_of_sail.h"  // SectorT
 #include "helmsman/controller.h"
 #include "helmsman/maneuver_type.h"
 #include "helmsman/rudder_controller.h"
@@ -83,6 +83,7 @@ class NormalController : public Controller {
   double epsilon_;  // phi_z (bearing) control error
   SectorT prev_sector_;
   double alpha_star_rate_limited_;
+  PointOfSail point_of_sail_;
 };
 
 #endif  // HELMSMAN_NORMAL_CONTROLLER_H

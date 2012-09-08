@@ -229,12 +229,12 @@ double SailableHeading(double alpha_star,
                        double previous_output,  // previous output direction, needed to implement hysteresis
                        SectorT* sector,      // sector codes for state handling and maneuver
                        double* target) {
-  double limit1t = alpha_true - M_PI - TackZoneRad();
-  double limit2t = alpha_true - M_PI + TackZoneRad();
-  double limit3t = alpha_true - JibeZoneHalfWidthRad();
-  double limit4t = alpha_true + JibeZoneHalfWidthRad();
+  double limit1t = SymmetricRad(alpha_true - M_PI - TackZoneRad());
+  double limit2t = SymmetricRad(alpha_true - M_PI + TackZoneRad());
+  double limit3t = SymmetricRad(alpha_true - JibeZoneHalfWidthRad());
+  double limit4t = SymmetricRad(alpha_true + JibeZoneHalfWidthRad());
   if (debug) {
-    fprintf(stderr, "limits true: %lf %lf %lf %lf\n",
+    fprintf(stderr, "limits true : % 5.2lf % 5.2lf % 5.2lf % 5.2lf\n",
             limit1t, limit2t, limit3t, limit4t);
   }
 
@@ -247,13 +247,12 @@ double SailableHeading(double alpha_star,
     // For the Jibe zone we do not take this into account because it will not
     // have much of a negative effect, but would reduce the sailable angles
     // a lot.
-    const double kAppOffset = Deg2Rad(10);
-    const double limit1a = phi_z + alpha_app - M_PI - TackZoneRad() + kAppOffset;
-    const double limit2a = phi_z + alpha_app - M_PI + TackZoneRad() - kAppOffset;
-    const double limit3a = phi_z + alpha_app - JibeZoneHalfWidthRad();
-    const double limit4a = phi_z + alpha_app + JibeZoneHalfWidthRad();
+    const double limit1a = SymmetricRad(phi_z + alpha_app - M_PI - TackZoneRad());
+    const double limit2a = SymmetricRad(phi_z + alpha_app - M_PI + TackZoneRad());
+    const double limit3a = SymmetricRad(phi_z + alpha_app - JibeZoneHalfWidthRad());
+    const double limit4a = SymmetricRad(phi_z + alpha_app + JibeZoneHalfWidthRad());
     if (debug) {
-      fprintf(stderr, "limits app: %lf %lf %lf %lf\n",
+      fprintf(stderr, "limits app  : % 5.2lf % 5.2lf % 5.2lf % 5.2lf\n",
               limit1a, limit2a, limit3a, limit4a);
     }
     limit1 = SymmetricRad(Minimum(limit1t, limit1a));
@@ -263,7 +262,7 @@ double SailableHeading(double alpha_star,
   }
 
   if (debug) {
-    fprintf(stderr, "limits mixed: %lf %lf %lf %lf\n",
+    fprintf(stderr, "limits mixed: % 5.2lf % 5.2lf % 5.2lf % 5.2lf\n",
             limit1, limit2, limit3, limit4);
   }
 
@@ -303,7 +302,7 @@ double SailableHeading(double alpha_star,
   }
 
   if (debug) {
-    fprintf(stderr, "limits: %lf %lf %lf %lf alpha*: %lf sector %d %c\n",
+    fprintf(stderr, "limits:       % 5.2lf % 5.2lf % 5.2lf % 5.2lf alpha*: %lf sector %d %c\n",
             limit1, limit2, limit3, limit4, alpha_star, int(*sector), left?'L':'R');
   }
 
