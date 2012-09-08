@@ -56,14 +56,15 @@ void NormalController::Entry(const ControllerInput& in,
   alpha_star_rate_limited_ = old_phi_z_star_;
   // This serves to initialize prev_sector_ only.
   double dummy_target;
-  SailableHeading(filtered.phi_z_boat,  // desired heading alpha*
-                  filtered.alpha_true,  // true wind vector direction
-                  filtered.angle_app,   // apparent wind vector direction
-                  filtered.mag_app,     // apparent wind vector magnitude
-                  filtered.phi_z_boat,  // boat direction
-                  filtered.phi_z_boat,  // previous output direction, needed to implement hysteresis
-                  &prev_sector_,        // sector codes for state handling and maneuver
-                  &dummy_target);
+  point_of_sail_.SailableHeading(
+      filtered.phi_z_boat,  // desired heading alpha*
+      filtered.alpha_true,  // true wind vector direction
+      filtered.angle_app,   // apparent wind vector direction
+      filtered.mag_app,     // apparent wind vector magnitude
+      filtered.phi_z_boat,  // boat direction
+      filtered.phi_z_boat,  // previous output direction, needed to implement hysteresis
+      &prev_sector_,        // sector codes for state handling and maneuver
+      &dummy_target);
   //double gamma_sail =
   //    sail_controller_->BestGammaSail(filtered.angle_app, filtered.mag_app);
   sail_controller_->SetAlphaSign(SectorToGammaSign(prev_sector_));
@@ -75,6 +76,7 @@ void NormalController::Entry(const ControllerInput& in,
     fprintf(stderr, "Entry Time: %10.1lf s\n", (double)start_time_ms_ / 1000);
   }
   rudder_controller_->Reset();
+  point_of_sail_.Reset();
 }
 
 void NormalController::Run(const ControllerInput& in,
@@ -156,14 +158,14 @@ double AddOvershoot(double old_bearing,
 // States: old_phi_z_star_ because phi_z_star must not jump
 //   and ref_ because a running plan trumps everything else.
 void NormalController::ShapeReferenceValue(double alpha_star,
-                                                   double alpha_true, double mag_true,
-                                                   double phi_z_boat, double mag_boat,
-                                                   double angle_app,  double mag_app,
-                                                   double old_gamma_sail,
-                                                   double* phi_z_star,
-                                                   double* omega_z_star,
-                                                   double* gamma_sail_star,
-                                                   ControllerOutput* out) {
+                                           double alpha_true, double mag_true,
+                                           double phi_z_boat, double mag_boat,
+                                           double angle_app,  double mag_app,
+                                           double old_gamma_sail,
+                                           double* phi_z_star,
+                                           double* omega_z_star,
+                                           double* gamma_sail_star,
+                                           ControllerOutput* out) {
   double phi_z_offset = 0;  // used when sailing close hauled.
   double new_sailable = 0;
   if (debug) fprintf(stderr, "app %6.2lf true %6.2lf old_sail %6.2lf\n", angle_app, alpha_true, old_gamma_sail);
@@ -193,14 +195,15 @@ void NormalController::ShapeReferenceValue(double alpha_star,
     // Stay in sailable zone
     SectorT sector;
     double maneuver_target;
-    new_sailable = SailableHeading(alpha_star_rate_limited_,  // desired heading alpha*
-                  alpha_true,  // true wind vector direction
-                  angle_app,   // apparent wind vector direction
-                  mag_app,      // apparent wind vector magnitude
-                  phi_z_boat,  // boat direction
-                  old_phi_z_star_,  // previous output direction, needed to implement hysteresis
-                  &sector,        // sector codes for state handling and maneuver
-                  &maneuver_target);
+    new_sailable = point_of_sail_.SailableHeading(
+        alpha_star_rate_limited_,  // desired heading alpha*
+        alpha_true,   // true wind vector direction
+        angle_app,    // apparent wind vector direction
+        mag_app,      // apparent wind vector magnitude
+        phi_z_boat,   // boat direction
+        old_phi_z_star_,  // previous output direction, needed to implement hysteresis
+        &sector,      // sector codes for state handling and maneuver
+        &maneuver_target);
     maneuver_type_ = SectorToManeuver(sector);
     sail_controller_->SetAlphaSign(SectorToGammaSign(sector));
 
@@ -318,6 +321,7 @@ double NormalController::RateLimit() const{
 
 // uses prev_sector_
 ManeuverType NormalController::SectorToManeuver(SectorT sector) {
+  if (debug) fprintf(stderr, "sector %d\n", int(sector));
   if ((prev_sector_ == TackPort && sector == TackStar)  ||
       (prev_sector_ == TackStar && sector == TackPort)) {
     return kTack;
