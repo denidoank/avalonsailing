@@ -286,6 +286,8 @@ void Test(double* sailable, double star, const EnvT& env, double expected) {
                               *sailable,
                               &sector,
                               &target);
+  EXPECT_IN_INTERVAL(-M_PI, target, M_PI);
+  EXPECT_IN_INTERVAL(-M_PI, *sailable, M_PI);
   EXPECT_FLOAT_EQ(Deg2Rad(expected), *sailable);
 }
 
