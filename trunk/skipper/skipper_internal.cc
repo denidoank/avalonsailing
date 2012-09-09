@@ -129,8 +129,8 @@ double SkipperInternal::RunCollisionAvoider(
 // best bearing for this situation to storm_bearing;
 // storm_ and storm_sign_plus_ are modified.
 double SkipperInternal::HandleStorm(WindStrengthRange wind_strength,
-                                  double angle_true_deg,
-                                  double planned) {
+                                    double angle_true_deg,
+                                    double planned) {
   bool transition_to_storm = false;
   double storm_bearing = 0;
   if (storm_) {
@@ -224,6 +224,8 @@ void SkipperInternal::ReadAisFile(
     // This failure is possible in the beginning, when the ais_buf
     // hasn't written anything yet.
     fprintf(stderr, "Could not open %s", ais_filename);
+    syslog(LOG_NOTICE, "Could not open %s", ais_filename);
+
     return;
   }
   while (!feof(fp)) {
