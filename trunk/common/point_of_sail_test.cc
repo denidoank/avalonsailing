@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include "common/apparent.h"
 #include "common/convert.h"
+#include "common/delta_angle.h"
 #include "common/polar.h"
 #include "common/polar_diagram.h"
 
@@ -46,7 +47,7 @@ double Test(double* sailable, double star, const EnvT& env, double expected) {
   return *sailable - Deg2Rad(expected);
 }
 
-void SetEnv(double alpha_wind_true_deg, double mag_wind_true,
+void SetEnvWithoutReset(double alpha_wind_true_deg, double mag_wind_true,
             double phi_z_boat_deg, double mag_boat,
             EnvT* env) {
   Polar wind_true(Deg2Rad(alpha_wind_true_deg), mag_wind_true);
@@ -63,6 +64,14 @@ void SetEnv(double alpha_wind_true_deg, double mag_wind_true,
   printf("Env: T:%lf A:%lf delta:%lf |A:%lf| phi_z:%lf\n",
          env->alpha_true, env->alpha_app, env->delta_app,
          env->mag_app, env->phi_z);
+}
+
+void SetEnv(double alpha_wind_true_deg, double mag_wind_true,
+            double phi_z_boat_deg, double mag_boat,
+            EnvT* env) {
+  SetEnvWithoutReset(alpha_wind_true_deg, mag_wind_true,
+         phi_z_boat_deg, mag_boat,
+         env);
   p.Reset();
 }
 
@@ -78,13 +87,13 @@ TEST(PointOfSailTest, SailableHeading) {
   SectorT sector;
   double target;
   sailable = p.SailableHeading(Deg2Rad(1),
-                                env.alpha_true,
-                                env.alpha_app,
-                                env.mag_app,
-                                env.phi_z,
-                                sailable,
-                                &sector,
-                                &target);
+                               env.alpha_true,
+                               env.alpha_app,
+                               env.mag_app,
+                               env.phi_z,
+                               sailable,
+                               &sector,
+                               &target);
   EXPECT_FLOAT_EQ(Deg2Rad(JibeZoneWidth), sailable);
 
   // Test that the sector cases have no gaps.
@@ -194,13 +203,13 @@ TEST(PointOfSailTest, SailableHeading) {
   env.delta_app = Deg2Rad(3);
   // But the TackZone is reduced for the apparent wind by more than 3 degrees.
   SetEnv(179, 10, 0, boat_speed, &env);
-  EXPECT_FLOAT_EQ(0, Test(&sailable, 0, env, TackZoneDeg() - 1 + 3));
+  EXPECT_FLOAT_EQ(0, Test(&sailable, 0, env, TackZoneDeg() - 1));
   printf("HH");
   SetEnv(-179, 10, 0, boat_speed, &env);
-  EXPECT_FLOAT_EQ(0, Test(&sailable, 0, env, TackZoneDeg() + 1 + 3));  // still sticky
+  EXPECT_FLOAT_EQ(0, Test(&sailable, 0, env, TackZoneDeg() + 1));  // still sticky
   printf("HH");
   SetEnv(-175, 10, 0, boat_speed, &env);
-  EXPECT_FLOAT_EQ(0, Test(&sailable, 0, env, -TackZoneDeg() + 5));  // flipped, 5 degree hysteresis
+  EXPECT_FLOAT_EQ(0, Test(&sailable, 0, env, TackZoneDeg() + 5));  // flipped, 5 degree hysteresis
   printf("HH");
   SetEnv(-174, 10, 0, boat_speed, &env);
   EXPECT_FLOAT_EQ(0, Test(&sailable, 0, env, -TackZoneDeg() + 6));  // flipped
@@ -215,7 +224,7 @@ TEST(PointOfSailTest, SailableHeading) {
   SetEnv(-150, 10, 0, boat_speed, &env);
   EXPECT_FLOAT_EQ(0, Test(&sailable, 0, env, -TackZoneDeg() + 30));
   SetEnv(150, 10, 0, boat_speed, &env);
-  EXPECT_FLOAT_EQ(0, Test(&sailable, 0, env, TackZoneDeg() - 30 + 3));
+  EXPECT_FLOAT_EQ(0, Test(&sailable, 0, env, TackZoneDeg() - 30));
 
   printf("The other way round\n\n");
 
@@ -229,46 +238,151 @@ TEST(PointOfSailTest, SailableHeading) {
   SetEnv(-175, 10, 0, boat_speed, &env);
   EXPECT_FLOAT_EQ(0, Test(&sailable, 0, env, TackZoneDeg() + 5));  // still sticky
   SetEnv(-174, 10, 0, boat_speed, &env);
-  EXPECT_FLOAT_EQ(0, Test(&sailable, 0, env, TackZoneDeg() + 6));  // flipped
+  EXPECT_FLOAT_EQ(0, Test(&sailable, 0, env, -TackZoneDeg() + 6));  // flipped
   SetEnv(-165, 10, 0, boat_speed, &env);
-  EXPECT_FLOAT_EQ(0, Test(&sailable, 0, env, -TackZoneDeg() + 15 - 3));
+  EXPECT_FLOAT_EQ(0, Test(&sailable, 0, env, -TackZoneDeg() + 15));
   SetEnv(-160, 10, 0, boat_speed, &env);
-  EXPECT_FLOAT_EQ(0, Test(&sailable, 0, env, -TackZoneDeg() + 20 - 3));
+  EXPECT_FLOAT_EQ(0, Test(&sailable, 0, env, -TackZoneDeg() + 20));
   SetEnv(-155, 10, 0, boat_speed, &env);
-  EXPECT_FLOAT_EQ(0, Test(&sailable, 0, env, -TackZoneDeg() + 25 - 3));
+  EXPECT_FLOAT_EQ(0, Test(&sailable, 0, env, -TackZoneDeg() + 25));
   SetEnv(-150, 10, 0, boat_speed, &env);
-  EXPECT_FLOAT_EQ(0, Test(&sailable, 0, env, -TackZoneDeg() + 30 - 3));
+  EXPECT_FLOAT_EQ(0, Test(&sailable, 0, env, -TackZoneDeg() + 30));
   SetEnv(150, 10, 0, boat_speed, &env);
   EXPECT_FLOAT_EQ(0, Test(&sailable, 0, env, TackZoneDeg() - 30));
 
   boat_speed = 2.5;
   env.delta_app = Deg2Rad(0);             // Stable wind
   SetEnv(120, 10, 0, boat_speed, &env);   // Still go North, Reaching.
-  EXPECT_FLOAT_EQ(0.0155927, Test(&sailable, 0, env, 0));
+  EXPECT_FLOAT_EQ(0, Test(&sailable, 0, env, 0));
   SetEnv(180, 10, 0, boat_speed, &env);
   EXPECT_FLOAT_EQ(0, Test(&sailable, 0, env, TackZoneDeg()));
   SetEnv(179, 10, 0, boat_speed, &env);
-  EXPECT_FLOAT_EQ(0.00349057, Test(&sailable, 0, env, TackZoneDeg() - 1));
+  EXPECT_FLOAT_EQ(0, Test(&sailable, 0, env, TackZoneDeg() - 1));
   SetEnv(-179, 10, 0, boat_speed, &env);
   EXPECT_FLOAT_EQ(0, Test(&sailable, 0, env, TackZoneDeg() + 1));  // still sticky
   SetEnv(-175, 10, 0, boat_speed, &env);
   EXPECT_FLOAT_EQ(0, Test(&sailable, 0, env, TackZoneDeg() + 5));  // still sticky
   SetEnv(-170, 10, 0, boat_speed, &env);
-  EXPECT_FLOAT_EQ(-0.0348214, Test(&sailable, 0, env, -TackZoneDeg() + 10));  // flipped
+  EXPECT_FLOAT_EQ(0, Test(&sailable, 0, env, -TackZoneDeg() + 10));  // flipped
   SetEnv(-165, 10, 0, boat_speed, &env);
-  EXPECT_FLOAT_EQ(-0.0520719, Test(&sailable, 0, env, -TackZoneDeg() + 15));
+  EXPECT_FLOAT_EQ(0, Test(&sailable, 0, env, -TackZoneDeg() + 15));
   SetEnv(-160, 10, 0, boat_speed, &env);
-  EXPECT_FLOAT_EQ(-0.0691288, Test(&sailable, 0, env, -TackZoneDeg() + 20));
+  EXPECT_FLOAT_EQ(0, Test(&sailable, 0, env, -TackZoneDeg() + 20));
   SetEnv(-155, 10, 0, boat_speed, &env);
-  EXPECT_FLOAT_EQ(-0.0859256, Test(&sailable, 0, env, -TackZoneDeg() + 25));
+  EXPECT_FLOAT_EQ(0, Test(&sailable, 0, env, -TackZoneDeg() + 25));
   SetEnv(-150, 10, 0, boat_speed, &env);
-  EXPECT_FLOAT_EQ(-0.102394, Test(&sailable, 0, env, -TackZoneDeg() + 30));
+  EXPECT_FLOAT_EQ(-0.0151274, Test(&sailable, 0, env, -TackZoneDeg() + 30));
   SetEnv(150, 10, 0, boat_speed, &env);
-  EXPECT_FLOAT_EQ(0.102394, Test(&sailable, 0, env, TackZoneDeg() - 30));
+  EXPECT_FLOAT_EQ(0.0151274, Test(&sailable, 0, env, TackZoneDeg() - 30));
+
+  // Tests of the buffers for apparent wind peaks
+  boat_speed = 0;
+  SetEnv(179, 10, 0, boat_speed, &env);
+  env.delta_app = Deg2Rad(-10);  // So the wind turned left by 10 degrees
+
+  SetEnvWithoutReset(179, 10, 0, boat_speed, &env);
+  EXPECT_FLOAT_EQ(0, Test(&sailable, 0, env, TackZoneDeg() - 1));
+  SetEnvWithoutReset(-179, 10, 0, boat_speed, &env);
+  EXPECT_FLOAT_EQ(0, Test(&sailable, 0, env, TackZoneDeg() + 1));  // still sticky
+  SetEnvWithoutReset(-175, 10, 0, boat_speed, &env);
+  EXPECT_FLOAT_EQ(0, Test(&sailable, 0, env, TackZoneDeg() + 5));  // still sticky
+  SetEnvWithoutReset(-174, 10, 0, boat_speed, &env);
+  EXPECT_FLOAT_EQ(0, Test(&sailable, 0, env, TackZoneDeg() + 6));  //  not flipped
+  SetEnvWithoutReset(-173, 10, 0, boat_speed, &env);
+  EXPECT_FLOAT_EQ(0, Test(&sailable, 0, env, TackZoneDeg() + 7));  //  not flipped
+  SetEnvWithoutReset(-172, 10, 0, boat_speed, &env);
+  EXPECT_FLOAT_EQ(0, Test(&sailable, 0, env, TackZoneDeg() + 8));  //  not flipped
+  SetEnvWithoutReset(-171, 10, 0, boat_speed, &env);
+  EXPECT_FLOAT_EQ(0, Test(&sailable, 0, env, -TackZoneDeg() + 9 - 10 + 5));  // 5 degree apparent tack zone reduction
+  SetEnvWithoutReset(-165, 10, 0, boat_speed, &env);
+  EXPECT_FLOAT_EQ(0, Test(&sailable, 0, env, -TackZoneDeg() + 15 - 10 + 5));
+  env.delta_app = Deg2Rad(0);  // test of slow decay
+  SetEnvWithoutReset(-160, 10, 0, boat_speed, &env);
+  // The change rate depends on the decay definition in SailableHeading().
+  EXPECT_FLOAT_EQ(0, Test(&sailable, 0, env, -TackZoneDeg() + 20 - 5 + 0.02));
+  EXPECT_FLOAT_EQ(0, Test(&sailable, 0, env, -TackZoneDeg() + 20 - 5 + 0.04));
+  EXPECT_FLOAT_EQ(0, Test(&sailable, 0, env, -TackZoneDeg() + 20 - 5 + 0.06));
+  EXPECT_FLOAT_EQ(0, Test(&sailable, 0, env, -TackZoneDeg() + 20 - 5 + 0.08));
+  SetEnv(-155, 10, 0, boat_speed, &env);
+  EXPECT_FLOAT_EQ(0, Test(&sailable, 0, env, -TackZoneDeg() + 25));
+  SetEnvWithoutReset(-150, 10, 0, boat_speed, &env);
+  EXPECT_FLOAT_EQ(0, Test(&sailable, 0, env, -TackZoneDeg() + 30));
+  SetEnvWithoutReset(150, 10, 0, boat_speed, &env);
+  EXPECT_FLOAT_EQ(0, Test(&sailable, 0, env, TackZoneDeg() - 30));
+
+
+  boat_speed = 2.5;
+  for (double delta_app = -180; delta_app < 181; delta_app += 0.1673567) {
+    env.delta_app = Deg2Rad(delta_app);
+    SetEnv(0, 10, 0, boat_speed, &env);
+    Test(&sailable, 0, env, 0);
+    EXPECT_TRUE(Rad2Deg(fabs(DeltaOldNewRad(sailable, 0))) < 60);
+    printf ("BestWay: %lf %lf\n", delta_app, Rad2Deg(sailable));
+  }
+
+  for (double delta_app = 180; delta_app > -181; delta_app -= 0.1673567) {
+    env.delta_app = Deg2Rad(delta_app);
+    SetEnv(0, 10, 0, boat_speed, &env);
+    Test(&sailable, 0, env, 0);
+    EXPECT_TRUE(Rad2Deg(fabs(DeltaOldNewRad(sailable, 0))) < 60);
+    printf ("BestWay: %lf %lf\n", delta_app, Rad2Deg(sailable));
+  }
+
+
+
+
+
+
+}
+
+TEST(PointOfSail, OffsetFilter) {
+  double memory = 0;
+  const double decay = Deg2Rad(1) * 0.1;
+  double out = -1;
+  double in = Deg2Rad(1.03);  // recovery within 1 second (10 ticks).
+  for (int n = 0; n < 3; ++n) {
+    out = FilterOffset(in, decay, &memory);  // recovery within 1 second (10 ticks).
+    printf("%lf -> %lf\n" , in, out);
+    EXPECT_FLOAT_EQ(in, out);
+  }
+  in = 0;
+  for (int n = 0; n < 20; ++n) {
+    out = FilterOffset(in, decay, &memory);  // recovery within 1 second (10 ticks).
+    printf("%lf -> %lf\n" , in, out);
+    if (10 == n)
+      EXPECT_FLOAT_EQ(0, out);
+  }
+  in = Deg2Rad(-1);;
+  for (int n = 0; n < 3; ++n) {
+    out = FilterOffset(in, decay, &memory);  // recovery within 1 second (10 ticks).
+    printf("%lf -> %lf\n" , in, out);
+    EXPECT_FLOAT_EQ(in, out);
+  }
+  in = 0;
+  for (int n = 0; n < 20; ++n) {
+    out = FilterOffset(in, decay, &memory);  // recovery within 1 second (10 ticks).
+    printf("%lf -> %lf\n" , in, out);
+    if (10 == n)
+      EXPECT_FLOAT_EQ(0, out);
+  }
+  in = Deg2Rad(-1);;
+  for (int n = 0; n < 3; ++n) {
+    out = FilterOffset(in, decay, &memory);  // recovery within 1 second (10 ticks).
+    printf("%lf -> %lf\n" , in, out);
+    EXPECT_FLOAT_EQ(in, out);
+  }
+  in = Deg2Rad(1);
+  for (int n = 0; n < 20; ++n) {
+    out = FilterOffset(in, decay, &memory);  // recovery within 1 second (10 ticks).
+    printf("%lf -> %lf\n" , in, out);
+    EXPECT_FLOAT_EQ(in, out);
+  }
+
 }
 
 
 int main(int argc, char* argv[]) {
   PointOfSailTest_SailableHeading();
+  PointOfSail_OffsetFilter();
   return 0;
 }

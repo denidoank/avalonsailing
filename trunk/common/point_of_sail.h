@@ -7,6 +7,13 @@
 #define COMMON_POINT_OF_SAIL_H_
 
 
+// An asymmetric filter. Input pulses pass through and cause a
+// slow return to zero. prev serves as state.
+// decay is the maximum amount of decrease of the output per call.
+double FilterOffset(double offset, double decay, double* prev);
+double PositiveFilterOffset(double in, double decay, double* prev);
+double NegativeFilterOffset(double in, double decay, double* prev);
+
 typedef enum Sector {
   TackPort = 1,
   TackStar,
@@ -15,8 +22,6 @@ typedef enum Sector {
   JibePort,
   ReachPort
 } SectorT;
-
-
 
 class PointOfSail {
  public:
