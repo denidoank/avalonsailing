@@ -14,6 +14,8 @@ $MAKE -C io
 $MAKE -C helmsman
 $MAKE -C fakeio
 $MAKE -C skipper
+# empty AIS file
+echo > "/tmp/ais.txt"
 
 pushd remote_control
 if which qmake > /dev/null; then
@@ -35,7 +37,7 @@ sleep 1
 ${PLUG} ./fakeio/fakeboat 2> fakeboat.log  &
 echo fakeboat started
 
-${PLUG} ./skipper/skipper 2> skipper.log &
+${PLUG} ./skipper/skipper "/tmp/ais.txt" 2> skipper.log &
 echo skipper started
 
 # Run the remote_control tool, and configure it.
