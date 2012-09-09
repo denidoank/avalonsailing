@@ -9,7 +9,6 @@
 
 #include "helmsman/skipper_input.h"  
 #include "helmsman/wind_strength.h"
-#include "skipper/ais.h"
 #include "skipper/lat_lon.h"
 #include "vskipper/vskipper.h"
 
