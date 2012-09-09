@@ -260,28 +260,6 @@ void NormalController::ShapeReferenceValue(double alpha_star,
   if (debug) fprintf(stderr, "* %6.2lf %6.2lf %6.2lf\n", alpha_star, new_sailable, *phi_z_star);
 }
 
-// currently unused
-double NormalController::FilterOffset(double offset) {
-  const double decay = Deg2Rad(0.1) * kSamplingPeriod;
-  if (Sign(offset) != 0 && Sign(offset) != Sign(prev_offset_)) {
-    prev_offset_ = offset;
-    return offset;
-  }
-  if (offset > 0 || prev_offset_ > 0) {
-    if (prev_offset_ > 0)
-      prev_offset_ -= decay;
-    if (offset > prev_offset_)
-      prev_offset_ = offset;
-  }
-  if (offset < 0 || prev_offset_ < 0) {
-    if (prev_offset_ < 0)
-      prev_offset_ += decay;
-    if (offset < prev_offset_)
-      prev_offset_ = offset;
-  }
-  return prev_offset_;
-}
-
 bool NormalController::TackingOrJibing() {
   return ref_.RunningPlan();
 }

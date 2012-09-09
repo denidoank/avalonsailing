@@ -619,47 +619,7 @@ TEST(NormalController, ReferenceValueShapingWest) {
 
 #undef SHAPE
 
-TEST(NormalController, OffsetFilter) {
-  RudderController rudder_controller;
-  SailController sail_controller;
-
-  NormalController c(&rudder_controller, &sail_controller);
-  double in = Deg2Rad(1);  // recovery within 1 second (10 ticks).
-  for (int n = 0; n < 20; ++n) {
-    double offset_filtered = c.FilterOffset(in);  // recovery within 1 second (10 ticks).
-    printf("%lf -> %lf\n" , in, offset_filtered);
-  }
-  in = 0;
-  for (int n = 0; n < 20; ++n) {
-    double offset_filtered = c.FilterOffset(in);  // recovery within 1 second (10 ticks).
-    printf("%lf -> %lf\n" , in, offset_filtered);
-  }
-  in = Deg2Rad(-1);;
-  for (int n = 0; n < 20; ++n) {
-    double offset_filtered = c.FilterOffset(in);  // recovery within 1 second (10 ticks).
-    printf("%lf -> %lf\n" , in, offset_filtered);
-  }
-  in = 0;
-  for (int n = 0; n < 20; ++n) {
-    double offset_filtered = c.FilterOffset(in);  // recovery within 1 second (10 ticks).
-    printf("%lf -> %lf\n" , in, offset_filtered);
-  }
-  in = Deg2Rad(-1);;
-  for (int n = 0; n < 5; ++n) {
-    double offset_filtered = c.FilterOffset(in);  // recovery within 1 second (10 ticks).
-    printf("%lf -> %lf\n" , in, offset_filtered);
-  }
-  in = Deg2Rad(1);
-  for (int n = 0; n < 20; ++n) {
-    double offset_filtered = c.FilterOffset(in);  // recovery within 1 second (10 ticks).
-    printf("%lf -> %lf\n" , in, offset_filtered);
-  }
-
-}
-
-
 int main(int argc, char* argv[]) {
-  NormalController_OffsetFilter();
   NormalController_AllSailCloseHauled();
   NormalController_AllSailCloseHauledNegative();
   NormalController_AllSail();
