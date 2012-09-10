@@ -183,6 +183,7 @@ int sscan_ais(const char *line, int64_t now_ms, skipper::AisInfo* s) {
     double value = NAN;
 
     int skip = 0;
+    // This is a bug as the timestamp is a 64 bit number but the double mantissa is 53 bits only.
     int n = sscanf(line, "%16[a-z_]:%lf %n", key, &value, &skip);
     if (n < 2) return 0;
     if (skip == 0) return 0;
@@ -230,9 +231,11 @@ void SkipperInternal::ReadAisFile(
   }
   while (!feof(fp)) {
     char line[1024];
-    if (!fgets(line, sizeof(line), stdin)) break;
+    if (!fgets(line, sizeof(line), fp))
+      break;
     skipper::AisInfo ai;
-    if (!sscan_ais(line, now_ms(), &ai)) continue;
+    if (!sscan_ais(line, now_ms(), &ai))
+      continue;
     ais->push_back(ai);
 
     if (debug) fprintf(stderr, "ais: %lld %lf %lf %lf %lf\n",

@@ -84,7 +84,6 @@ int sscan_skipper_input(const char *line, SkipperInput* s) {
 //   Main.
 // -----------------------------------------------------------------------------
 int main(int argc, char* argv[]) {
-
   int ch;
   argv0 = strrchr(argv[0], '/');
   if (argv0) ++argv0; else argv0 = argv[0];
@@ -146,15 +145,10 @@ int main(int argc, char* argv[]) {
 
     char line[1024];
     bool new_input = false;
-    while(lb_getline(line, sizeof line, &lbuf) > 0) {
+    while(lb_getline(line, sizeof line, &lbuf) > 0 && !new_input) {
       int nn = 0;
       nn = sscan_skipper_input(line, &skipper_input);
-      if (nn > 0) {
-        new_input = true;
-      } else {
-        // TODO: Fill ais.
-        ;
-      }
+      new_input = nn > 0;
     }
 
     if (!new_input)
