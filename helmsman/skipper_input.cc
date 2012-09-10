@@ -62,7 +62,7 @@ int SkipperInput::FromString(const char* line) {
     angle_true_deg = langle_true_deg;
     mag_true_kn = lmag_true_kn;
   }
-  return items ==5 ? advance : 0;
+  return items == 5 ? advance : 0;
 }
 
 

@@ -8,6 +8,7 @@
 
 #include "common/apparent.h"
 #include "common/convert.h"
+#include "common/delta_angle.h"
 #include "common/polar.h"
 #include "common/sign.h"
 #include "helmsman/sampling_period.h"
@@ -18,11 +19,8 @@
 
 void SetEnv(const Polar& wind_true,
             const Polar& boat,
-            ControllerInput* in,
             FilteredMeasurements* filtered,
             ControllerOutput* out) {
-  in->Reset();
-  in->drives.gamma_sail_rad = 0;
   filtered->Reset();
   out->Reset();
   filtered->phi_z_boat = boat.AngleRad();
@@ -37,6 +35,13 @@ void SetEnv(const Polar& wind_true,
            &filtered->angle_app, &filtered->mag_app);
 }
 
+void SimDrives(const ControllerOutput& out,
+               ControllerInput* in) {
+  in->drives.gamma_sail_rad +=
+       0.8 * (DeltaOldNewRad(in->drives.gamma_sail_rad,
+              out.drives_reference.gamma_sail_star_rad));
+}
+
 // Check sail control
 TEST(NormalController, AllSail) {
   RudderController rudder_controller;
@@ -48,6 +53,8 @@ TEST(NormalController, AllSail) {
 
   NormalController c(&rudder_controller, &sail_controller);
   ControllerInput in;
+  in.drives.gamma_sail_rad = 0;
+
   FilteredMeasurements filtered;
   ControllerOutput out;
 
@@ -55,7 +62,7 @@ TEST(NormalController, AllSail) {
   Polar boat(Deg2Rad(0), 1);  // Boat going forward as well, with 1 m/s.
                               // So the apparent wind vector is at 0 degrees to
                               // the boats x-axis, 4m/s magnitude.
-  SetEnv(wind_true, boat, &in, &filtered, &out);
+  SetEnv(wind_true, boat, &filtered, &out);
 
   in.alpha_star_rad = Deg2Rad(0);
   c.Entry(in, filtered);
@@ -90,7 +97,7 @@ TEST(NormalController, AllSail) {
   //!! This is not a realistic res tsetup because the boat speed is as big as the wind speed.
   // so the apparent wind vector is at -135 degree to
   // the boats x-axis, sqrt(2) * 2m/s magnitude.
-  SetEnv(wind_true, boat, &in, &filtered, &out);
+  SetEnv(wind_true, boat, &filtered, &out);
   c.Entry(in, filtered);
 
   c.Run(in, filtered, &out);
@@ -109,13 +116,15 @@ TEST(NormalController, AllSailCloseHauled) {
 
   NormalController c(&rudder_controller, &sail_controller);
   ControllerInput in;
+  in.drives.gamma_sail_rad = 0;
+
   FilteredMeasurements filtered;
   ControllerOutput out;
 
   Polar wind_true(0, 2);        // Wind vector forward to North, with 2m/s.
   Polar boat(Deg2Rad(130), 1);  // Boat going SouthEast, with 1 m/s.
                                 // Close hauled, on backbord bow.
-  SetEnv(wind_true, boat, &in, &filtered, &out);
+  SetEnv(wind_true, boat, &filtered, &out);
   in.alpha_star_rad = Deg2Rad(130);
 
   c.Entry(in, filtered);
@@ -132,28 +141,31 @@ TEST(NormalController, AllSailCloseHauled) {
   EXPECT_FLOAT_EQ(23.8351, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
 
   c.Run(in, filtered, &out);
+  SimDrives(out, &in);
 
   EXPECT_FLOAT_EQ(23.8351, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
 
   wind_true = Polar(Deg2Rad(-35), 2);  // wind turns against us
   // so the apparent wind vector is around 180 degrees
-  SetEnv(wind_true, boat, &in, &filtered, &out);
+  SetEnv(wind_true, boat, &filtered, &out);
   in.alpha_star_rad = Deg2Rad(130);
 
   c.Run(in, filtered, &out);
+  SimDrives(out, &in);
   // sail opposing the apparent wind.
   // Limited by CHP +kCloseHauledLimit
   EXPECT_FLOAT_EQ(13, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
 
   wind_true = Polar(Deg2Rad(-49.9), 2);  // wind turns completely against us
   // so the apparent wind vector is around 180 degrees
-  SetEnv(wind_true, boat, &in, &filtered, &out);
+  SetEnv(wind_true, boat, &filtered, &out);
   in.alpha_star_rad = Deg2Rad(130);
 
   c.Run(in, filtered, &out);
+  SimDrives(out, &in);
   // sail opposing the apparent wind.
   // Limited by CHP
-  EXPECT_FLOAT_EQ(13, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
+  EXPECT_FLOAT_EQ(13.8767, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
 }
 
 // Check sail control negative
@@ -167,13 +179,15 @@ TEST(NormalController, AllSailCloseHauledNegative) {
 
   NormalController c(&rudder_controller, &sail_controller);
   ControllerInput in;
+  in.drives.gamma_sail_rad = 0;
+
   FilteredMeasurements filtered;
   ControllerOutput out;
 
   Polar wind_true(0, 2);      // Wind vector forward to North, with 2m/s.
   Polar boat(Deg2Rad(-130), 1);  // Boat going SouthWest, with 1 m/s.
                               // Close hauled, on starboard bow.
-  SetEnv(wind_true, boat, &in, &filtered, &out);
+  SetEnv(wind_true, boat, &filtered, &out);
   in.alpha_star_rad = Deg2Rad(-130);
 
   c.Entry(in, filtered);
@@ -190,28 +204,31 @@ TEST(NormalController, AllSailCloseHauledNegative) {
   EXPECT_FLOAT_EQ(-23.8351, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
 
   c.Run(in, filtered, &out);
+  SimDrives(out, &in);
 
   EXPECT_FLOAT_EQ(-23.8351, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
 
   wind_true = Polar(Deg2Rad(35), 2);  // wind turns against us
   // so the apparent wind vector is around 180 degrees
-  SetEnv(wind_true, boat, &in, &filtered, &out);
+  SetEnv(wind_true, boat, &filtered, &out);
   in.alpha_star_rad = Deg2Rad(-130);
 
   c.Run(in, filtered, &out);
-  // sail opposing the apparent wind.
+  SimDrives(out, &in);
+ // sail opposing the apparent wind.
   // Limited by CHP +kCloseHauledLimit
   EXPECT_FLOAT_EQ(-13, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
 
   wind_true = Polar(Deg2Rad(49.9), 2);  // wind turns completely against us
   // so the apparent wind vector is around 180 degrees
-  SetEnv(wind_true, boat, &in, &filtered, &out);
+  SetEnv(wind_true, boat, &filtered, &out);
   in.alpha_star_rad = Deg2Rad(130);
 
   c.Run(in, filtered, &out);
+  SimDrives(out, &in);
   // sail opposing the apparent wind.
   // Limited by CHP
-  EXPECT_FLOAT_EQ(-13, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
+  EXPECT_FLOAT_EQ(-13.8767, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
 }
 
 TEST(NormalController, AllRudder) {
@@ -226,13 +243,14 @@ TEST(NormalController, AllRudder) {
     NormalController c(&rudder_controller, &sail_controller);
     double alpha_star_rad = Deg2Rad(90);  // So we steer a sailable course.
     ControllerInput in;
+    in.drives.gamma_sail_rad = 0;
     FilteredMeasurements filtered;
     ControllerOutput out;
     Polar wind_true(0, 2);       // Wind vector forward to North, with 2m/s.
     Polar boat(alpha_star_rad, kMagicTestSpeed);  // Boat going East, with about 1.1 m/s.
                             // So the apparent wind vector is at about -120 degrees to
                             // the boats x-axis, 2.3m/s magnitude.
-    SetEnv(wind_true, boat, &in, &filtered, &out);
+    SetEnv(wind_true, boat, &filtered, &out);
     in.alpha_star_rad = alpha_star_rad;  //  no tack or jibe zone
     c.Entry(in, filtered);
 
@@ -265,6 +283,7 @@ sail_controller.SetOptimalAngleOfAttack(Deg2Rad(20));
 
 NormalController c(&rudder_controller, &sail_controller);
 ControllerInput in;
+in.drives.gamma_sail_rad = 0;
 FilteredMeasurements filtered;
 ControllerOutput out;
 
@@ -273,7 +292,7 @@ double alpha_star_rad = Deg2Rad(90);  // So we aren't in the tack zone or jibe z
 Polar boat(alpha_star_rad, 1);  // Boat going East, with 1 m/s.
                          // So the apparent wind vector is at about -120 degrees to
                          // the boats x-axis, approx. 2.4m/s magnitude.
-SetEnv(wind_true, boat, &in, &filtered, &out);
+SetEnv(wind_true, boat, &filtered, &out);
 
 in.alpha_star_rad = alpha_star_rad;
 c.Entry(in, filtered);
@@ -311,6 +330,8 @@ TEST(NormalController, Synthetic) {
 
   NormalController c(&rudder_controller, &sail_controller);
   ControllerInput in;
+  in.drives.gamma_sail_rad = 0;
+
   FilteredMeasurements filtered;
   ControllerOutput out;
 
@@ -318,7 +339,7 @@ TEST(NormalController, Synthetic) {
   Polar boat(Deg2Rad(90), kMagicTestSpeed);  // Boat going East, with about 1.1 m/s.
                           // So the apparent wind vector is at about -20 degrees to
                           // the boats x-axis, 1m/s magnitude.
-  SetEnv(wind_true, boat, &in, &filtered, &out);
+  SetEnv(wind_true, boat, &filtered, &out);
   in.alpha_star_rad = Deg2Rad(90);  //  no tack or jibe zone
   c.Entry(in, filtered);
 
@@ -359,7 +380,7 @@ TEST(NormalController, Synthetic) {
   boat = Polar(0, 2);              // boat going North, with 2 m/s
   // so the apparent wind vector is at -135 degree to
   // the boats x-axis, sqrt(2) * 2m/s magnitude.
-  SetEnv(wind_true, boat, &in, &filtered, &out);
+  SetEnv(wind_true, boat, &filtered, &out);
   c.Entry(in, filtered);
   c.Run(in, filtered, &out);
   //EXPECT_FLOAT_EQ(-25, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
@@ -398,13 +419,15 @@ TEST(NormalController, ReferenceValueShaping) {
   sail_controller.SetOptimalAngleOfAttack(Deg2Rad(20));
   NormalController c(&rudder_controller, &sail_controller);
   ControllerInput in;
+  in.drives.gamma_sail_rad = 0;
+
   FilteredMeasurements filtered;
   ControllerOutput out;
   Polar wind_true(0, 25);  // Wind vector blowing to the North, with 25m/s.
   Polar boat(Deg2Rad(90), kMagicTestSpeed);  // Boat going East, with about 1.1 m/s.
                             // So the apparent wind vector is at about +90 degrees to
                             // the boats x-axis, 25m/s magnitude.
-  SetEnv(wind_true, boat, &in, &filtered, &out);  // calculates the apparent wind
+  SetEnv(wind_true, boat, &filtered, &out);  // calculates the apparent wind
   // straight ahead, in the forbidden zone around the dead run.
   in.alpha_star_rad = Deg2Rad(90);
   c.Entry(in, filtered);
@@ -514,6 +537,7 @@ TEST(NormalController, ReferenceValueShapingStormJibe) {
   sail_controller.SetOptimalAngleOfAttack(Deg2Rad(20));
   NormalController c(&rudder_controller, &sail_controller);
   ControllerInput in;
+  in.drives.gamma_sail_rad = 0;
   FilteredMeasurements filtered;
   ControllerOutput out;
   Polar wind_true(Deg2Rad(-90), 25);  // Wind vector blowing to the West, with 25m/s. (15 is storm limit)
@@ -521,7 +545,7 @@ TEST(NormalController, ReferenceValueShapingStormJibe) {
                             // So the apparent wind vector is -45 degrees to
                             // the boats x-axis, 24m/s magnitude.
 
-  SetEnv(wind_true, boat, &in, &filtered, &out);  // calculates the apparent wind
+  SetEnv(wind_true, boat, &filtered, &out);  // calculates the apparent wind
   // NorthEast, downwind.
   in.alpha_star_rad = Deg2Rad(-45);
   c.Entry(in, filtered);
@@ -555,6 +579,7 @@ TEST(NormalController, ReferenceValueShapingWest) {
   sail_controller.SetOptimalAngleOfAttack(Deg2Rad(20));
   NormalController c(&rudder_controller, &sail_controller);
   ControllerInput in;
+  in.drives.gamma_sail_rad = 0;
   FilteredMeasurements filtered;
   ControllerOutput out;
   Polar wind_true(Deg2Rad(-90), 10);  // Wind vector blowing to the West, with 10m/s (15 is storm limit).
@@ -562,7 +587,7 @@ TEST(NormalController, ReferenceValueShapingWest) {
                             // So the apparent wind vector is 0 degrees to
                             // the boats x-axis, 24m/s magnitude.
 
-  SetEnv(wind_true, boat, &in, &filtered, &out);  // calculates the apparent wind
+  SetEnv(wind_true, boat, &filtered, &out);  // calculates the apparent wind
   // NorthEast, downwind.
   in.alpha_star_rad = Deg2Rad(-45);
   c.Entry(in, filtered);
