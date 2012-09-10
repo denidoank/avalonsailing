@@ -62,6 +62,8 @@ void Planner::Init(const LatLon& lat_lon) {
     fprintf(stderr, "carribean plan\n");
     plan_.Build(caribbean_plan);
   } else {
+  // This default branch is most important because a restart in
+  // the middle of our journey will use this plan.
     fprintf(stderr, "According to our GPS we are not on lake zuerich.\n");
     fprintf(stderr, "lat %8.6lg lon %8.6lg \n", lat_lon.lat, lat_lon.lon);
     if (brest.In(lat_lon)) {
