@@ -390,7 +390,7 @@ int main(int argc, char* argv[]) {
 
 	// Go daemon and write pidfile.
 	if (!debug) {
-		daemon(0,1);
+		daemon(0,0);
 
 		char* path_to_pidfile = NULL;
 		asprintf(&path_to_pidfile, "%s.pid", argv[0]);
