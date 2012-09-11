@@ -91,7 +91,7 @@ func findpfx(s string) int {
 	return 0
 }
 
-var zero time.Time
+var zero = time.Now()
 
 // ratelimit lines per prefix to hz
 // prefix is line[0:i] where line[i] == ':' for the first i.

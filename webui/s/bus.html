@@ -44,7 +44,16 @@ function r(src, msg) {
 
 var ws
 
+var musthave = [ "compass", "imu", "gps", "wind", "status_left", "status_right", "status_sail" ]
+	
 function start() {
+    for (x in musthave) {
+	e("view").appendChild(document.createElement('div')).id = musthave[x]
+	e(musthave[x]).innerHTML = r(musthave[x], null)
+    }
+
+
+
     var nan = Number.NaN  // needed for eval of "label":nan in msg
 
     ws = new WebSocket("ws://" + window.location.host + "/lbus");
