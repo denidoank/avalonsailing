@@ -64,24 +64,9 @@ test: $(TST_CCSRCS:.cc=) $(TST_CSRCS:.c=)
 
 install: $(BINARIES)
 ifneq ($(strip $(BINARIES)),)
-	$(INSTALL) $+ $(DESTDIR)/usr/bin
+	$(INSTALL) $+ $(DESTDIR)/
 endif
 
-# temporary for ease in laketests
-installscp: $(BINARIES)
-ifneq ($(strip $(BINARIES)),)
-	scp $+ root@192.168.1.29:/usr/bin/
-endif
-
-installconf: $(CONF_FILES)
-ifneq ($(strip $(CONF_FILES)),)
-	$(INSTALL) $+ $(DESTDIR)/etc
-endif
-
-installinit: $(INIT_FILES)
-ifneq ($(strip $(INIT_FILES)),)
-	$(INSTALL) $+ $(DESTDIR)/etc/init.d
-endif
 
 test.run: $(TST_CCSRCS:.cc=.run) $(TST_CSRCS:.c=.run)
 
