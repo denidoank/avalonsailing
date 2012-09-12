@@ -19,6 +19,9 @@
 #include <time.h>
 #include <unistd.h>
 
+#include <list>
+
+
 #include "common/check.h"
 #include "common/convert.h"
 #include "common/normalize.h"
@@ -31,8 +34,13 @@
 #include "helmsman/controller_io.h"
 #include "helmsman/boat_model.h"
 #include "helmsman/sampling_period.h"
+#include "vskipper/util.h"
 
-//static const char* version = "$Id: $";
+using std::string;
+
+void SimulateShips(double latitude_deg, double longitude_deg);
+
+
 static const char* argv0;
 static int verbose = 0;
 static int debug = 0;
@@ -150,7 +158,8 @@ int main(int argc, char* argv[]) {
         } else if (sscanf(line_ptr, IFMT_METEOPROTO(&meteo_input, &nn)) > 0) {
           meteo_info = meteo_input;
         } else {
-          fprintf(stderr, "Unreadable input: \"%s\"\n", line_ptr);
+          // Ignore input for other recipients.
+          // fprintf(stderr, "Unreadable input: \"%s\"\n", line_ptr);
           nn = strlen(line_ptr);
         }
         line_ptr += nn;
@@ -236,9 +245,117 @@ int main(int argc, char* argv[]) {
       gps.timestamp_ms = now_ms();
       printf(OFMT_GPSPROTO(gps));
     }
+
+    // Other ships
+    if (rounds % 30 == 1) {  // 600 is the correct value here !!!
+      fprintf(stderr, "SimulateShips, %lf %lf \n", gps.lat_deg, gps.lng_deg);
+      SimulateShips(gps.lat_deg, gps.lng_deg);  // writes ais file
+    }
+
     ++rounds;
   }
 
   crash("Terminating.");
   return 0;
+}
+
+
+const int kShipStepSeconds=60;
+const double MilesToDegrees = 1.852*360/40000;
+int ais_debug = 1;
+
+class Ship {
+ public:
+  Ship(double lat, double lon, double bearing_deg, double speed_kts, const std::string& name)
+      : lat_(lat), lon_(lon), name_(name), cog_(bearing_deg) {
+    lat_increment_ = kShipStepSeconds / 3600 * MilesToDegrees *
+                     speed_kts * cos(Deg2Rad(bearing_deg));
+    lon_increment_ = kShipStepSeconds / 3600 * MilesToDegrees *
+                     speed_kts * sin(Deg2Rad(bearing_deg)) / cos(Deg2Rad(lat));
+    speed_ = KnotsToMeterPerSecond(speed_kts);
+    if (ais_debug) fprintf(stderr, "Create ship %s at [% 10.7lf, % 10.7lf] bearing %lf deg with %lf knots\n",
+                           name_.c_str(), lat_, lon_, cog_, speed_kts);
+  }
+
+  bool less(const Ship& other) {
+    if (speed_ == other.speed_) {
+      return cog_ < other.cog_;
+    }
+    return speed_ < other.speed_;
+  }
+
+  void Advance() {
+    lat_ += lat_increment_;
+    lon_ += lon_increment_;
+  }
+
+  std::string ToAis() {
+    char buffer[1000];
+    sprintf(buffer, "timestamp_ms:%lld lat_deg:%10.7lf lng_deg:%10.7lf speed_m_s:%lf cog_deg:%lf",
+     now_ms(), lat_, lon_, speed_, cog_);
+    std::string result(buffer);
+    return result;
+  }
+
+  double DistanceMiles(double lat, double lon) {
+    const double dx = (lon - lon_) * cos(Deg2Rad(lat));
+    const double dy = lat - lat_;
+    return 1.0 / MilesToDegrees * sqrt(dx*dx + dy*dy);
+  }
+
+ private:
+  double lat_;
+  double lon_;
+  double lat_increment_;
+  double lon_increment_;
+  std::string name_;
+  double speed_;
+  double cog_;
+};
+
+
+std::list<Ship> ships;
+// called once a minute
+// void SimulateShips(gps.latitude_deg, gps.longitude_deg);
+// Tales the Avalons position as argument such that we create
+// ships in the vincinity and remove them if they are too far away.
+void SimulateShips(double latitude_deg, double longitude_deg) {
+
+  double bearing_deg = rand() % 360;
+  double speed_kts = 5 + (rand() % 15);
+  double relative_rad = Deg2Rad(rand() % 360);  // bearing seen from Avalon.
+  double first_distance_miles = 3;
+  double lat =
+      latitude_deg + first_distance_miles * MilesToDegrees * cos(relative_rad);
+  double lon =
+      longitude_deg + first_distance_miles * MilesToDegrees * sin(relative_rad) / cos(Deg2Rad(latitude_deg));
+  if (!isnan(lat) && !isnan(lon)) {
+    Ship flying_dutchman(lat, lon, bearing_deg, speed_kts, "MS Martha");
+    ships.push_back(flying_dutchman);
+  }
+
+  FILE* fp = fopen("/tmp/ais.txt", "w");
+  double min_distance = 10000;
+  for (std::list<Ship>::iterator it = ships.begin();
+       it != ships.end();
+       ++it) {
+    it->Advance();
+    string line = it->ToAis();
+    fprintf(fp,"%s\n", line.c_str());
+    double distance_miles = it->DistanceMiles(latitude_deg, longitude_deg);
+    if (ais_debug)
+      fprintf(stderr, " distance %lf miles\n", distance_miles);
+    if (distance_miles > 20)
+      it = ships.erase(it);
+    if (distance_miles < min_distance)
+      min_distance = distance_miles;
+  }
+
+  if (ais_debug)
+    fprintf(stderr, "%ld other ships, minimum distance %lf\n", ships.size(), min_distance);
+
+  if (min_distance < 0.1)
+    fprintf(stderr, "\n\n\nCRASH with minimum distance %lf\n\n\n", min_distance);
+
+  fclose(fp);
 }

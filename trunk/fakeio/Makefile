@@ -1,3 +1,3 @@
-DEPS+=helmsman common
+DEPS+=helmsman common vskipper
 include ../mk/Makefile.inc
 
