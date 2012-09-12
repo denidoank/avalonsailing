@@ -76,10 +76,13 @@ void SkipperInternal::Run(const SkipperInput& in,
     fprintf(stderr,
             "Override %8.6lg with %8.6lg because we have a storm.\n",
             planned, planned2);
-  if (fabs(planned2 - safe) > 0.1)
+  if (fabs(planned2 - safe) > 0.1) {
       fprintf(stderr,
               "Override %8.6lg with %8.6lg because it is not collision free.\n",
               planned2, safe);
+  } else {
+      fprintf(stderr, "Bearing %8.6lg is collision free.\n", safe);
+  }
 
   double feasible = BestSailableHeadingDeg(safe, in.angle_true_deg);
 
@@ -108,22 +111,22 @@ double SkipperInternal::RunCollisionAvoider(
     const vector<skipper::AisInfo>& ais) {
   skipper::AvalonState avalon;
   avalon.timestamp_ms = ais.size() ? ais[0].timestamp_ms : 0;
-  avalon.position = skipper::LatLon(in.longitude_deg, in.latitude_deg);
+  avalon.position = skipper::LatLon::Degrees(in.latitude_deg, in.longitude_deg);
   avalon.target = skipper::Bearing::Degrees(planned);
   avalon.wind_from = skipper::Bearing::Degrees(in.angle_true_deg + 180);
   avalon.wind_speed_m_s = KnotsToMeterPerSecond(in.mag_true_kn);
-  skipper::Bearing skipper_out = RunVSkipper(avalon, ais, 0);
+  skipper::Bearing skipper_out = RunVSkipper(avalon, ais, 1);
   return skipper_out.deg();
 }
 
 // In a storm the planner is overridden.
-// The helmsman will steer a close hauling course relative to the wind.
+// The helmsman will steer a broad reach course relative to the wind.
 // [http://www.gosailing.info/Sailing%20in%20Heavy%20Weather.htm]
 // [Discussion at Zurich Sailing Club, 2012/08/17]
 // No maneuvers possible. But a small risk of stalling.
 // If we assume that the wave fronts are orthogonal to the wind
-// direction then sailing 115 degrees off the wind vector direction
-// means we hit the waves not directly but at an angle of 25 degrees.
+// direction then sailing 50 degrees off the wind vector direction
+// means we hit the waves not directly but at an angle.
 
 // If there is a storm this function writes the
 // best bearing for this situation to storm_bearing;
