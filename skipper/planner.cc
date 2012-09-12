@@ -115,3 +115,15 @@ bool Planner::TargetReached(const LatLon& lat_lon){
 bool Planner::Initialized() {
   return initialized_;
 }
+
+void Planner::Reset() {
+  initialized_ = false;
+}
+
+void Planner::SimplePlan(double lat_deg, double lon_deg) {
+  TargetCirclePoint cover_all = TargetCirclePoint(lat_deg, lon_deg, 1);
+  TargetCirclePoint exact = TargetCirclePoint(lat_deg, lon_deg, 0.004);  // Target reached circle with 500m radius.
+  TargetCirclePoint end_marker = TargetCirclePoint(0, 0, 0);
+  TargetCirclePoint management_summary[3] = {exact, cover_all, end_marker};
+  plan_.Build(management_summary);
+}

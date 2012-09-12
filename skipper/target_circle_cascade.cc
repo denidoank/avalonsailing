@@ -26,7 +26,6 @@ void TargetCircleCascade::Build(const TargetCirclePoint* plan) {
   CHECK_GT(chain_.size(), 0);
 }
 
-
 // The direction (in degrees) to follow.
 double TargetCircleCascade::ToDeg(double x, double y) {
   if (chain_.size() == 0) {
@@ -63,6 +62,7 @@ void TargetCircleCascade::Add(const TargetCircle t) {
   // check for invariant
   if (chain_.size() > 0)
     CHECK(chain_.back().In(t));
+  CHECK(t.radius() > 0);
   chain_.push_back(t);
 }
 

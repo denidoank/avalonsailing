@@ -11,6 +11,8 @@ class Planner {
   static void Init(const LatLon& lat_lon);
   static bool TargetReached(const LatLon& lat_lon);
   static bool Initialized();
+  static void Reset();
+  static void SimplePlan(double lat_deg, double lon_deg);
  private:
   static bool initialized_;
   static TargetCircleCascade plan_;
