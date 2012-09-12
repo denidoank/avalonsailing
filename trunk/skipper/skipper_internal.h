@@ -25,6 +25,8 @@ class SkipperInternal {
                             double angle_true_deg,
                             double planned);
   static void ReadAisFile(const char* ais_filename, std::vector<skipper::AisInfo>* ais);
+  static void ReadSimplePlanFile(const char* simple_target_filename);
+
  private:
   static double RunCollisionAvoider(double alpha_planner_deg,
                                     const SkipperInput& in,
@@ -33,6 +35,8 @@ class SkipperInternal {
   static WindStrengthRange wind_strength_;
   static bool storm_;
   static bool storm_sign_plus_;
+  static bool full_plan_;
+
 };
 
 #endif  // SKIPPER_SKIPPER_INTERNAL_H

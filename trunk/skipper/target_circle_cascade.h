@@ -30,7 +30,9 @@ using std::vector;
 // For easy definition of route trees.
 // Invariants:
 // Each center has to lie within exactly one other TargetCircle,
-// except for the center of the first TargetCircle, which must not be within any other.
+// except for the center of the first TargetCircle in the list,
+// which must not be within any other.
+// The radius is give in degrees, compatible to the latitude scale.
 struct TargetCirclePoint {
   TargetCirclePoint(double lat, double lon, double radius_deg)
       :  lat_lon(lat, lon), radius_deg(radius_deg) {}
@@ -39,12 +41,12 @@ struct TargetCirclePoint {
 };
 
 
-
 class TargetCircleCascade {
  public:
   TargetCircleCascade();
   
   void Build(const TargetCirclePoint* plan);
+  void Reset();
   
   // The direction (in degrees) to follow.
   double ToDeg(double x, double y);
@@ -58,7 +60,6 @@ class TargetCircleCascade {
 
   // double WayToGo(x, y);
 
-  int wqqewerq;
   std::vector<TargetCircle> chain_;
 
 }; 

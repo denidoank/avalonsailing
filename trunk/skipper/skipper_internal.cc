@@ -6,6 +6,7 @@
 #include "skipper/skipper_internal.h"
 
 #include <syslog.h>
+#include <stdint.h>
 
 #include "common/unknown.h"
 #include "common/convert.h"
@@ -24,6 +25,7 @@ double SkipperInternal::old_alpha_star_deg_ = kDefaultDirection;
 WindStrengthRange SkipperInternal::wind_strength_ = kCalmWind;
 bool SkipperInternal::storm_ = false;
 bool SkipperInternal::storm_sign_plus_ = false;
+bool SkipperInternal::full_plan_ = true;
 
 void SkipperInternal::Run(const SkipperInput& in,
                           const vector<skipper::AisInfo>& ais,
@@ -36,6 +38,12 @@ void SkipperInternal::Run(const SkipperInput& in,
     fprintf(stderr, "No true wind info so far, going SW.\n");
     return;
   }
+
+  // If there is a valid simple plan file then we go to the point specified there.
+  // If the file exists, it shall contain just 2 numbers separated by a space character
+  // like "44.66 6.3332" .
+  // Otherwise we follow the plan we prepared.
+  ReadSimplePlanFile("/tmp/simple.txt");
 
   wind_strength_ = WindStrength(wind_strength_, KnotsToMeterPerSecond(in.mag_true_kn));
 
@@ -115,7 +123,15 @@ double SkipperInternal::RunCollisionAvoider(
   avalon.target = skipper::Bearing::Degrees(planned);
   avalon.wind_from = skipper::Bearing::Degrees(in.angle_true_deg + 180);
   avalon.wind_speed_m_s = KnotsToMeterPerSecond(in.mag_true_kn);
+  int64_t vskipper_start = now_micros();
   skipper::Bearing skipper_out = RunVSkipper(avalon, ais, 1);
+  if (debug)
+    fprintf(stderr, "Vskipper runtime %lld micros\n", now_micros() - vskipper_start);
+  if (skipper::kVSkipperNoWay == skipper_out.deg()) {
+    // In this situation we keep the bearing,
+    // such that at least the approaching ship has a chance to avoid us.
+    return planned;
+  }
   return skipper_out.deg();
 }
 
@@ -244,6 +260,40 @@ void SkipperInternal::ReadAisFile(
     if (debug) fprintf(stderr, "ais: %lld %lf %lf %lf %lf\n",
                        ai.timestamp_ms, ai.position.lat_deg(), ai.position.lon_deg(),
                        ai.speed_m_s, ai.bearing.deg());
+  }
+  fclose(fp);
+}
+
+void SkipperInternal::ReadSimplePlanFile(const char* simple_target_filename) {
+  FILE* fp = fopen(simple_target_filename, "r");
+  if (!fp) {
+    // Normal case with long plan.
+    if (!full_plan_) {
+      // But now this file is gone so we return to the full plan.
+      full_plan_ = true;
+      Planner::Reset();
+    }
+    return;
+  }
+  // We follow a simple plan defined by the simple plan file
+  // which has just this content: e.g. "46.4389 -9.40275" .
+  while (!feof(fp)) {
+    char line[1024];
+    if (!fgets(line, sizeof(line), fp)) {
+      full_plan_ = true;
+      break;
+    }
+    double lat = 0;
+    double lon = 0;
+    if (2 == sscanf(line, "%lf %lf", &lat, &lon)) {
+      if (debug) fprintf(stderr, "Follow simple plan to [%lf %lf]\n", lat, lon);
+      Planner::SimplePlan(lat, lon);
+      full_plan_ = false;
+      break;
+    }
+    // Reading failed
+    Planner::Reset();
+    full_plan_ = true;
   }
   fclose(fp);
 }
