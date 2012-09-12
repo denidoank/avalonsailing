@@ -248,8 +248,15 @@ int main(int argc, char* argv[]) {
 
     // Other ships
     if (rounds % 30 == 1) {  // 600 is the correct value here !!!
-      fprintf(stderr, "SimulateShips, %lf %lf \n", gps.lat_deg, gps.lng_deg);
-      SimulateShips(gps.lat_deg, gps.lng_deg);  // writes ais file
+      double lat_deg = gps.lat_deg;
+      double lon_deg = gps.lon_deg;
+      // GPS faults are simulated, so sometimes we work with the IMU data.
+      if (isnan(lat_deg)) {
+        lat_deg = imu.lat_deg;
+        lon_deg = imu.lng_deg;
+      }
+      fprintf(stderr, "SimulateShips, %lf %lf \n", lat_deg, lng_deg);
+      SimulateShips(lat_deg, lng_deg);  // Writes the ais file.
     }
 
     ++rounds;
