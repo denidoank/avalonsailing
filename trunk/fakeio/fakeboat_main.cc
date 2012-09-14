@@ -247,16 +247,16 @@ int main(int argc, char* argv[]) {
     }
 
     // Other ships
-    if (rounds % 30 == 1) {  // 600 is the correct value here !!!
+    if (rounds % 600 == 1) {
       double lat_deg = gps.lat_deg;
-      double lon_deg = gps.lon_deg;
+      double lon_deg = gps.lng_deg;
       // GPS faults are simulated, so sometimes we work with the IMU data.
       if (isnan(lat_deg)) {
         lat_deg = imu.lat_deg;
         lon_deg = imu.lng_deg;
       }
-      fprintf(stderr, "SimulateShips, %lf %lf \n", lat_deg, lng_deg);
-      SimulateShips(lat_deg, lng_deg);  // Writes the ais file.
+      fprintf(stderr, "SimulateShips, %lf %lf \n", lat_deg, lon_deg);
+      SimulateShips(lat_deg, lon_deg);  // Writes the ais file.
     }
 
     ++rounds;
@@ -298,7 +298,7 @@ class Ship {
 
   std::string ToAis() {
     char buffer[1000];
-    sprintf(buffer, "timestamp_ms:%lld lat_deg:%10.7lf lng_deg:%10.7lf speed_m_s:%lf cog_deg:%lf",
+    sprintf(buffer, "timestamp_ms:%lld lat_deg:%.7lf lng_deg:%.7lf speed_m_s:%lf cog_deg:%lf",
      now_ms(), lat_, lon_, speed_, cog_);
     std::string result(buffer);
     return result;
