@@ -522,7 +522,7 @@ double BoatModel::ForceLift(double alpha_aoa_rad, double speed) {
   } else { // linear range backwards
     c_lift = naca0010::kCLiftPerRadReverse * (alpha_aoa_rad - Deg2Rad(180));
   }
-  if (debug && stalled)
+  if (0 && debug && stalled)
     fprintf(stderr, "Rudder stall, cL: %lg\n", c_lift);
   // if (debug) fprintf(stderr, "N: c_lift: %6.4lf \n", sign * c_lift);
   return sign * c_lift * speed * speed *
