@@ -32,18 +32,15 @@ void SphericalShortestPath(const LatLon& from, const LatLon& to,
 
 LatLon SphericalMove(const LatLon& from, Bearing bearing, double distance_m) {
   CHECK(fabs(from.lat_deg()) < 80);  // Singularities near the poles.
-  fprintf(stderr, "SphericalMove");
   double dist = distance_m / kEarthRadius;
   double sin_lat = sin(from.lat_rad());
   double cos_lat = cos(from.lat_rad());
-  fprintf(stderr, "SphericalMove %lf %lf %lf\n", dist, sin_lat, cos_lat);
   // lat2 can be nan for "from" near the poles.
   double lat2 = asin(sin_lat*cos(dist) + cos_lat*sin(dist)*cos(bearing.rad()));
   CHECK(!isnan(lat2));
   double dlon = atan2(sin(bearing.rad())*sin(dist)*cos_lat,
                       cos(dist)-sin_lat*sin(lat2));
   double lon2 = from.lon_rad() + dlon;
-  fprintf(stderr, "SphericalMove dlon, lat2, lon2: %lf %lf %lf\n", dlon, lat2, lon2);
   return LatLon(lat2, lon2);
 }
 
