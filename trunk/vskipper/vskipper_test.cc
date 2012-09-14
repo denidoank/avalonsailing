@@ -111,7 +111,9 @@ ATEST(VSkipper, TreeInTheWay) {
 
   Bearing actual = RunVSkipper(state, ships, 0);
   // Safe tangent is at 30º. Plus another 5 for safety corridor.
-  EXPECT_NEAR(270 - 30 - 5, 1, actual.deg());
+  // EXPECT_NEAR(270 - 30 - 5, 1, actual.deg());  pre revision 600
+  // Passing on the other side is good as well.
+  EXPECT_NEAR(270 + 30 + 5, 1, actual.deg());
   // Go around it at close to min safe distance (slightly above due to safety
   // corridor).
   EXPECT_IN_INTERVAL(199, Simulate(state, ships, 10, 60), 300);

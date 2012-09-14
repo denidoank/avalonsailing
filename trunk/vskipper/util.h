@@ -2,6 +2,7 @@
 // Use of this source code is governed by the Apache License 2.0
 // that can be found in the LICENSE file.
 // Ivan Zauharodneu, Aug 2011
+// Does not work near the poles of the earth.
 
 #ifndef VSKIPPER_UTIL_H
 #define VSKIPPER_UTIL_H
@@ -61,6 +62,7 @@ class LatLon {
 //
 // Note, precision is ony decent for relatively short distances (a few 100 km).
 // Also as the name suggests, it assumes Earth is a sphere, not geoid.
+// DO NOT USE FOR LATITUDES ABOVE 70 OR BELOW -70 DEGREES!
 void SphericalShortestPath(const LatLon& from, const LatLon& to,
                            Bearing* bearing, double* distance_m);
 
@@ -68,6 +70,7 @@ void SphericalShortestPath(const LatLon& from, const LatLon& to,
 // direction @bearing for @distance_m meters and returns resulting position.
 //
 // Note, similary to previous function, only works well for short distances.
+// DO NOT USE FOR LATITUDES ABOVE 70 OR BELOW -70 DEGREES!
 LatLon SphericalMove(const LatLon& from, Bearing bearing, double distance_m);
 
 // Given bearings and velocities of two ships as well as their relative position
@@ -78,6 +81,7 @@ LatLon SphericalMove(const LatLon& from, Bearing bearing, double distance_m);
 // Warning, this function assumes velocities, distance and time window to have
 // non-negative values. Just like the functions above, only works well for short
 // distances.
+// DO NOT USE FOR LATITUDES ABOVE 70 OR BELOW -70 DEGREES!
 double MinDistance(Bearing a, double velocity_a,
                    Bearing b, double velocity_b,
                    Bearing a_b, double distance_a_b,
