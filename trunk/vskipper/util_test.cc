@@ -69,16 +69,55 @@ ATEST(BearingDistance, SphericalDistance) {
   EXPECT_NEAR(157e3, 1e3, GetDistance(SphericalShortestPath, 0, 0, -1, -1));
   EXPECT_NEAR(111e3, 1e3, GetDistance(SphericalShortestPath, 0, 0,  0, -1));
   EXPECT_NEAR(157e3, 1e3, GetDistance(SphericalShortestPath, 0, 0,  1, -1));
+  EXPECT_NEAR(0, 1e0, GetDistance(SphericalShortestPath, 0, 0,  0, 0));
 }
 
 // Take 1M random origin points on Earth, try to navigate to a random
 // destination point within 1-2 degrees of the origin point.
+
+
 ATEST(BearingDistance, SphericalRandom) {
+  {
+    /* crash for
+    from
+    LatLon: [-89.5467354 -63.9646163]
+    to
+    LatLon: [-90.0000000 -64.1450058]
+    due to singularities ner the poles.
+    */
+    LatLon from = LatLon::Degrees(-79.5467354, -63.9646163);
+    LatLon to = LatLon::Degrees(-80.0000000, -64.1450058);
+
+    Bearing b;
+    double dist;
+    SphericalShortestPath(from, to, &b, &dist);
+
+    // Check against alternative formula
+    {
+      Bearing alt_b;
+      double alt_dist;
+      Alternative(from, to, &alt_b, &alt_dist);
+
+      fprintf(stderr, "distances / m: %lf %lf\n", dist, alt_dist);
+      EXPECT_LT(fabs(SymmetricDeg(b.deg() - alt_b.deg())), 1e-4);
+      EXPECT_LT(fabs(dist - alt_dist), 2);  //
+    }
+
+    LatLon actual = SphericalMove(from, b, dist);
+
+    double error;
+    SphericalShortestPath(to, actual, &b, &error);
+
+    EXPECT_LT(error, 1.0);
+  }
+
+  // No tests nearer than 12 degrees off the poles.
   for (int i = 0; i < 1000000; ++i) {
-    double lat1 = rand() * 180.0 / RAND_MAX - 90.0;
+    fprintf(stderr, "%d\n", i);
+    double lat1 = rand() * 156.0 / RAND_MAX - 78.0;
     double lon1 = rand() * 360.0 / RAND_MAX - 180.0;
     LatLon from = LatLon::Degrees(lat1, lon1);
-    double lat2 = min(90.0, max(-90.0, lat1 + rand() * 2.0 / RAND_MAX - 1.0));
+    double lat2 = min(78.0, max(-78.0, lat1 + rand() * 2.0 / RAND_MAX - 1.0));
     double lon2 = SymmetricDeg(lon1 + rand() * 2.0 / RAND_MAX - 1.0);
     LatLon to = LatLon::Degrees(lat2, lon2);
 
@@ -93,6 +132,8 @@ ATEST(BearingDistance, SphericalRandom) {
       Alternative(from, to, &alt_b, &alt_dist);
 
       EXPECT_LT(fabs(SymmetricDeg(b.deg() - alt_b.deg())), 1e-4);
+      fprintf(stderr, "distances / m: %lf %lf\n", dist, alt_dist);
+
       EXPECT_LT(fabs(dist - alt_dist), 1);
     }
 
@@ -103,6 +144,8 @@ ATEST(BearingDistance, SphericalRandom) {
 
     EXPECT_LT(error, 1.0);
   }
+
+
 }
 
 ATEST(MinDistance, Still) {

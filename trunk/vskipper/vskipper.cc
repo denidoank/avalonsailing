@@ -2,14 +2,16 @@
 // Use of this source code is governed by the Apache License 2.0
 // that can be found in the LICENSE file.
 
-#include "common/normalize.h"
-#include "common/polar_diagram.h"
-#include "vskipper.h"
 #include <utility>
 #include <iostream>
 #include <iomanip>
 #include <algorithm>
 #include <stdio.h>
+#include <syslog.h>
+
+#include "common/normalize.h"
+#include "common/polar_diagram.h"
+#include "vskipper.h"
 
 using namespace std;
 
@@ -148,7 +150,7 @@ void SkipperImpl(const AvalonState& now,
   for (int i = 0; i < 360; ++i) {
     // Make sure our target is one of the candidates.
     candidates.push_back(CandidateBearing(
-        Bearing::Radians(now.target.rad() + i * M_PI / 180.0) ));
+        Bearing::Radians(NormalizeRad(now.target.rad() + i * M_PI / 180.0)) ));
   }
 
   for (size_t i = 0; i < candidates.size(); ++i) {
@@ -196,7 +198,12 @@ void SkipperImpl(const AvalonState& now,
 Bearing RunVSkipper(const AvalonState& now,
                     const std::vector<AisInfo>& ais_in,
                     int debug) {
-  // fprintf(stderr, "in : %6.2lf\n", now.target.deg());
+  fprintf(stderr, "RunVSkipper: %d other ships around \n", int(ais_in.size()));
+  fprintf(stderr, "in : %6.2lf\n", now.target.deg());
+  fprintf(stderr, "in wind_from:  %6.2lf\n", now.wind_from.deg());
+  fprintf(stderr, "in wind_speed: %6.2lf\n", now.wind_speed_m_s);
+  fprintf(stderr, "in pos lat deg: %6.2lf\n", now.position.lat_deg());
+  fprintf(stderr, "in pos lon deg: %6.2lf\n", now.position.lon_deg());
 
   std::vector<LocalAis> ships(ais_in.size());
   for (size_t i = 0; i < ais_in.size(); ++i) {
@@ -211,12 +218,15 @@ Bearing RunVSkipper(const AvalonState& now,
     bool safe;
     SkipperImpl(now, ships, time_window_s, debug, &safe, &out);
     if (safe) {
-      break;
+      fprintf(stderr, "RunVSkipper: %6.2lf deg safe for the next %6.2lfs.\n", out.deg(), time_window_s);
+      return out;
     }
   }
 
-  // fprintf(stderr, "out: %6.2lf\n", out.deg());
+  syslog(LOG_EMERG, "No safe bearing found for the next %lf seconds!", kMinTimeWindow);
+  out = Bearing::Degrees(kVSkipperNoWay);
   return out;
+
 }
 
 }  // skipper
