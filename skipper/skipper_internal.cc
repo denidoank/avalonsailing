@@ -99,8 +99,8 @@ void SkipperInternal::Run(const SkipperInput& in,
             safe, feasible);
 
   if (debug)
-    fprintf(stderr, "planner %lg , alpha* %lg,  true wind: %lg, feasible: %lg\n",
-            planned, safe, in.angle_true_deg, feasible);
+    fprintf(stderr, "planner %6.1lf, alpha* %6.1lf,  true wind: %6.1lf, feasible: %6.1lf degrees\n",
+            planned, safe, in.angle_true_deg, NormalizeDeg(feasible));
 
   *alpha_star_deg = feasible;
 }
@@ -130,7 +130,7 @@ double SkipperInternal::RunCollisionAvoider(
   if (skipper::kVSkipperNoWay == skipper_out.deg()) {
     // In this situation we keep the bearing,
     // such that at least the approaching ship has a chance to avoid us.
-    return planned;
+    return old_alpha_star_deg_;
   }
   return skipper_out.deg();
 }
