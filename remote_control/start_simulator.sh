@@ -14,6 +14,7 @@ $MAKE -C io
 $MAKE -C helmsman
 $MAKE -C fakeio
 $MAKE -C skipper
+$MAKE -C vskipper
 # empty AIS file
 echo > "/tmp/ais.txt"
 
