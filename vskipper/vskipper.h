@@ -34,6 +34,9 @@ struct AisInfo {
   AisInfo() : timestamp_ms(0), speed_m_s(0) {}
 };
 
+const double kVSkipperNoWay = -444;
+
+
 Bearing RunVSkipper(const AvalonState& now,
                     const std::vector<AisInfo>& ais,
                     int debug);

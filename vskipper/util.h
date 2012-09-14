@@ -7,7 +7,9 @@
 #define VSKIPPER_UTIL_H
 
 #include <math.h>
+#include <stdio.h>
 #include "common/normalize.h"
+#include "common/check.h"
 
 namespace skipper {
 
@@ -16,7 +18,9 @@ class Bearing {
  public:
   Bearing() : rad_(0) {}
   static Bearing Degrees(double deg) { return Bearing(NormalizeRad(deg / 180.0 * M_PI)); }
-  static Bearing Radians(double rad) { return Bearing(NormalizeRad(rad)); }
+  static Bearing Radians(double rad) {
+    CHECK(-10 < rad && rad < 10);
+    return Bearing(NormalizeRad(rad)); }
   static Bearing West() { return Bearing::Degrees(270); }
 
   double deg() const { return rad_ * 180.0 / M_PI; }
@@ -30,7 +34,10 @@ class Bearing {
 class LatLon {
  public:
   LatLon() : lat_(0), lon_(0) {}
-  LatLon(double lat, double lon) : lat_(lat), lon_(lon) {}
+  LatLon(double lat, double lon) : lat_(lat), lon_(lon) {
+    CHECK(-10 < lat && lat < 10);
+    CHECK(-10 < lon && lon < 10);
+  }
   static LatLon Degrees(double lat, double lon) {
     return LatLon(lat / 180.0 * M_PI, lon / 180.0 * M_PI); 
   }
@@ -39,6 +46,10 @@ class LatLon {
   double lon_deg() const { return SymmetricDeg(lon_ * 180.0 / M_PI); }
   double lat_rad() const { return lat_; }
   double lon_rad() const { return lon_; }
+  void print() {
+    fprintf(stderr, "LatLon: [%.7lf %.7lf]", lat_deg(), lon_deg());
+  }
+
  private:
   // radians
   double lat_;
