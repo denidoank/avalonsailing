@@ -3,7 +3,7 @@
 <title>Control (S version)</title>
 </head>
 
-<body onload="start()" style="background:gray;">
+<body onload="start()" onkeydown="handlekey()" style="background:gray;">
 
 <div id="menu">
   <a href="control.html" target="control" style="background:gray;">Control</a>
@@ -53,7 +53,7 @@
 </div>
 
 <div id="help" height="5%" width="100%" style="background:white;" >
-   This is a r/o page; use controlrw.html to control Avalon
+    ZXC: rudder  ASD: sail HJKL: course  space: brake  N: normal M: dock
 </div>
 
 
@@ -114,7 +114,134 @@ var handlers = {
 }
 
 
+function fmt_rudderctl(x) {
+    return "rudderctl: timestamp_ms:" + x.timestamp_ms + " rudder_l_deg:" + rnan(x.rudder_l_deg) + " rudder_r_deg:" + rnan(x.rudder_r_deg) + " sail_deg:" + rnan(x.sail_deg) + "\n"
+}
+
+function fmt_helmctl(x) {
+    return "helm: timestamp_ms:" + x.timestamp_ms + " alpha_star_deg:" + rnan(x.alpha_star_deg) + "\n"
+}
+
+function fmt_remotectl(x) {
+    return "remote: timestamp_s:0 command:" + x.command + " alpha_star:" + rnan(x.alpha_star) + "\n"
+}
+
+
+var kNormalControlMode = 1;
+var kDockingControlMode = 2;
+var kBrakeControlMode = 3;
+var kOverrideSkipperMode = 4;
+var kPowerCycleMode = 5;
+var kIdleHelmsmanMode = 6;
+
+var modestr = [ "", "NormalControlMode", "DockingControlMode", "BrakeControlMode", "OverrideSkipperMode", "PowerCycleMode", "IdleHelmsmanMode" ];
+
+
+
+function norm_angle(alpha) {
+    while(alpha > 180.0) { alpha -= 360.0 }
+    while(alpha <= -180.0) { alpha += 360.0 }
+    return alpha
+}
+
+function set_rudd(delta) {
+	if (delta) {
+		lastmsg['rudderctl'].rudder_l_deg += delta
+		lastmsg['rudderctl'].rudder_r_deg += delta
+                lastmsg['rudderctl'].rudder_r_deg = norm_angle(lastmsg['rudderctl'].rudder_r_deg)
+                lastmsg['rudderctl'].rudder_l_deg = norm_angle(lastmsg['rudderctl'].rudder_l_deg)
+	} else {
+		lastmsg['rudderctl'].rudder_l_deg = 0
+		lastmsg['rudderctl'].rudder_r_deg = 0
+	}
+}
+
+function set_sail(delta) {
+	if (delta) {
+		lastmsg['rudderctl'].sail_deg += delta
+		lastmsg['rudderctl'].sail_deg = norm_angle(lastmsg['rudderctl'].sail_deg)
+	} else {
+		lastmsg['rudderctl'].sail_deg = 0
+	}
+}
+
+function set_helm(delta) {
+	lastmsg['helm'].alpha_star_deg = znan(lastmsg['helm'].alpha_star_deg) + delta
+	lastmsg['helm'].alpha_star_deg = norm_angle(lastmsg['helm'].alpha_star_deg)
+	lastmsg['remote'].alpha_star = lastmsg['helm'].alpha_star_deg
+}
+
+
 var ws
+
+function send_rudderctl() {
+    handlers['rudderctl'](lastmsg['rudderctl']);
+    ws.send(fmt_rudderctl(lastmsg['rudderctl']));
+}
+function send_helmctl()   {
+    handlers['helm'](lastmsg['helm']);
+    ws.send(fmt_helmctl(lastmsg['helm']));
+}
+function send_remotectl() {
+    e('status').innerHTML = modestr[lastmsg['remote'].command];
+    ws.send(fmt_remotectl(lastmsg['remote']));
+}
+
+function handlekey(e) {
+    if (!e) var e = window.event
+    var kc = String.fromCharCode(e.keyCode)
+    
+    switch(kc) {
+    case 'C':  set_rudd(-2); break;
+    case 'X':  set_rudd(0); break;
+    case 'Z':  set_rudd(2); break;
+    case 'A':  set_sail(-5); break;
+    case 'S':  set_sail(0); break;
+    case 'D':  set_sail(5); break;
+    case 'H':  set_helm(-10);  break;
+    case 'J':  set_helm(-2);  break;
+    case 'K':  set_helm(2);  break;
+    case 'L':  set_helm(10);  break;
+    }
+
+    switch(kc) {
+    case 'C':
+    case 'X':
+    case 'Z':
+    case 'A':
+    case 'S':
+    case 'D':
+        lastmsg['remote'].command = kIdleHelmsmanMode;
+	send_remotectl();
+	send_rudderctl();
+	break;
+
+    case 'H':
+    case 'J': 
+    case 'K': 
+    case 'L': 
+        lastmsg['remote'].command = kOverrideSkipperMode;
+	send_remotectl();
+	send_helmctl();
+	break;
+
+    case ' ':
+	lastmsg['remote'].command = kBrakeControlMode;
+	send_remotectl();
+	break;
+    
+    case 'N':
+	lastmsg['remote'].command = kNormalControlMode;
+	send_remotectl();
+	break;
+
+    case 'M':
+	lastmsg['remote'].command = kDockingControlMode;
+	send_remotectl();
+	break;
+	
+    }
+}
 
 function start() {
     var nan = Number.NaN  // needed for eval of "label":nan in msg
