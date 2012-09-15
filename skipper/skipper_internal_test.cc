@@ -190,16 +190,11 @@ TEST(SkipperInternal, ToulonPlan) {
   end_time = 0;
 
   printf("t/s, x0, y0, alpha_star\n");
-  double time_step = 60;
+  double time_step = 1200;  // seconds
   for (double t = 0; t < 600000; t += time_step) {
     in.latitude_deg = x0;
     in.longitude_deg = y0;
     SkipperInternal::Run(in, ais, &alpha_star, NULL);
-    if (SkipperInternal::TargetReached(LatLon(x0, y0))) {
-      EXPECT_TRUE(toulon_target.In(x0, y0));
-      if (end_time == 0)
-        end_time = t;
-    }
 
     // Simulate the motion
     double phi_rad = Deg2Rad(alpha_star);
@@ -207,6 +202,12 @@ TEST(SkipperInternal, ToulonPlan) {
     y0 += v * sin(phi_rad) * time_step / cos(Deg2Rad(x0));
     printf("%8.6lf %8.6lf %8.6lf %6.4lf\n", t, x0, y0, alpha_star);
     DotKML(x0, y0);
+    if (SkipperInternal::TargetReached(LatLon(x0, y0))) {
+      EXPECT_TRUE(toulon_target.In(x0, y0));
+      if (end_time == 0)
+        end_time = t;
+      break;
+    }
   }
   printf("end time: %8.6lf days.\n", end_time / kDays);
   EXPECT_GT(5 * kDays, end_time);
@@ -237,11 +238,6 @@ TEST(SkipperInternal, ToulonDetailsPlan) {
     in.latitude_deg = x0;
     in.longitude_deg = y0;
     SkipperInternal::Run(in, ais, &alpha_star, NULL);
-    if (SkipperInternal::TargetReached(LatLon(x0, y0))) {
-      EXPECT_TRUE(toulon_target.In(x0, y0));
-      if (end_time == 0)
-        end_time = t;
-    }
 
     // Simulate the motion
     double phi_rad = Deg2Rad(alpha_star);
@@ -249,6 +245,12 @@ TEST(SkipperInternal, ToulonDetailsPlan) {
     y0 += v * sin(phi_rad) * time_step / cos(Deg2Rad(x0));
     printf("%8.6lf %8.6lf %8.6lf %6.4lf\n", t, x0, y0, alpha_star);
     DotKML(x0, y0);
+    if (SkipperInternal::TargetReached(LatLon(x0, y0))) {
+      EXPECT_TRUE(toulon_target.In(x0, y0));
+      if (end_time == 0)
+        end_time = t;
+      break;
+    }
   }
   printf("end time: %8.6lf days.\n", end_time / kDays);
   EXPECT_GT(0.5 * kDays, end_time);
