@@ -40,6 +40,13 @@ struct TargetCirclePoint {
   double radius_deg;
 };
 
+struct TCStatus {
+  TCStatus() : target_lat_deg(0), target_lon_deg(0), index(0) {}
+  double target_lat_deg;
+  double target_lon_deg;
+  int index;
+};
+
 
 class TargetCircleCascade {
  public:
@@ -49,7 +56,7 @@ class TargetCircleCascade {
   void Reset();
   
   // The direction (in degrees) to follow.
-  double ToDeg(double x, double y);
+  double ToDeg(double x, double y, TCStatus* tc_status);
 
   bool TargetReached(LatLon lat_lon);
 

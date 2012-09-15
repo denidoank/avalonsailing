@@ -117,6 +117,7 @@ int main(int argc, char* argv[]) {
 
   SkipperInput skipper_input;   // reported back from helmsman
   double alpha_star_deg;
+  TCStatus tc_status;
 
   // wake up every 120 second
   struct timespec timeout= { 120, 0 };
@@ -156,10 +157,11 @@ int main(int argc, char* argv[]) {
 
     std::vector<skipper::AisInfo> ais;
     SkipperInternal::ReadAisFile(argv[0], &ais);
-    SkipperInternal::Run(skipper_input, ais, &alpha_star_deg);
+    SkipperInternal::Run(skipper_input, ais, &alpha_star_deg, &tc_status);
 
     // send desired angle to helmsman
-    HelmsmanCtlProto ctl = {now_ms(), alpha_star_deg};
+    HelmsmanCtlProto ctl = {now_ms(), alpha_star_deg,
+        tc_status.index, tc_status.target_lat_deg, tc_status.target_lon_deg};
     if (printf(OFMT_HELMSMANCTLPROTO(ctl)) <= 0)
       crash("Could not send skipper_out_text");
 

@@ -27,9 +27,14 @@ void TargetCircleCascade::Build(const TargetCirclePoint* plan) {
 }
 
 // The direction (in degrees) to follow.
-double TargetCircleCascade::ToDeg(double x, double y) {
+double TargetCircleCascade::ToDeg(double x, double y, TCStatus* tc_status) {
   if (chain_.size() == 0) {
     fprintf(stderr, "No plan! Going south west.\n");
+    if (tc_status) {
+      tc_status->target_lat_deg = 0;
+      tc_status->target_lon_deg = 0;
+      tc_status->index = 0;
+    }
     return kDefaultDirection;
   }
   // We might get blown off track by a storm or currents
@@ -48,6 +53,11 @@ double TargetCircleCascade::ToDeg(double x, double y) {
         // if (debug) fprintf(stderr, "In target circle %d, dir %lf deg.\n", i, chain_[i].ToDeg(x, y));
         if (debug && expand > 1) {
           fprintf(stderr, "Needed to expand target circles to %lf %%!\n", expand * 100);
+        }
+        if (tc_status) {
+          tc_status->target_lat_deg = chain_[i].x0();
+          tc_status->target_lon_deg = chain_[i].y0();
+          tc_status->index = i;
         }
         return chain_[i].ToDeg(x, y);
       }
