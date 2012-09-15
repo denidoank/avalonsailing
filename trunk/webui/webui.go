@@ -61,6 +61,7 @@ func main() {
 	flag.Parse()
 	http.Handle("/", http.RedirectHandler("/s/control.html", 301))
 	http.Handle("/s/", http.StripPrefix("/s/", http.FileServer(http.Dir(*webroot))))
+	http.Handle("/log/", http.StripPrefix("/log/", http.FileServer(http.Dir("/var/log"))))
 	http.Handle("/lbus", websocket.Handler(PlugServer))
 	http.Handle("/syslog", websocket.Handler(TailServer))
 	if err := http.ListenAndServe(*port, nil); err != nil {
