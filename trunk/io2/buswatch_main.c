@@ -23,7 +23,7 @@ static void
 usage(void)
 {
 	fprintf(stderr,
-		"usage: [plug -o /path/to/bus |] %s [options] /path/to/cmd pfx [pfx...]\n"
+		"usage: [plug -o /path/to/bus |] %s [options] {/path/to/cmd| \"DIE\"} pfx [pfx...]\n"
 		"options:\n"
 		"\t-d debug\n"
 		"\t-t seconds  interval to check over\n"
@@ -134,6 +134,8 @@ int main(int argc, char* argv[]) {
 		memset(counts, 0, argc*sizeof counts[0]);
 
 		if(i > 1) {
+			if(strcmp(outargs[0], "DIE")==0) crash("buswatch commiting suicide");
+		  
 			syslog(LOG_ERR, "buswatch invoking %s %s...", outargs[0], outargs[1]);
 			pid_t pid = fork();
 			if (pid < 0) crash("fork");
