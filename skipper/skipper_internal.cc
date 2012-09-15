@@ -29,7 +29,8 @@ bool SkipperInternal::full_plan_ = true;
 
 void SkipperInternal::Run(const SkipperInput& in,
                           const vector<skipper::AisInfo>& ais,
-                          double* alpha_star_deg) {
+                          double* alpha_star_deg,
+                          TCStatus* tc_status) {
   if (in.angle_true_deg == kUnknown ||
       in.mag_true_kn == kUnknown ||
       isnan(in.angle_true_deg) ||
@@ -74,7 +75,7 @@ void SkipperInternal::Run(const SkipperInput& in,
       safe = HandleStorm(wind_strength_, in.angle_true_deg, safe);
     }
   } else {
-    planned = Planner::ToDeg(in.latitude_deg, in.longitude_deg);
+    planned = Planner::ToDeg(in.latitude_deg, in.longitude_deg, tc_status);
     planned2 = HandleStorm(wind_strength_, in.angle_true_deg, planned);
     safe = RunCollisionAvoider(planned2, in, ais);
     old_alpha_star_deg_ = safe;

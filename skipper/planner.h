@@ -6,8 +6,9 @@
 
 class Planner {
  public:
-  static double /* alpha_star_deg to our target */ ToDeg(double latitude_deg,   // North, degrees
-                                                         double longitude_deg); // East, degrees
+  static double /* alpha_star_deg to our target */ ToDeg(double latitude_deg,  // North, degrees
+                                                         double longitude_deg, // East, degrees
+                                                         TCStatus* tc_status);
   static void Init(const LatLon& lat_lon);
   static bool TargetReached(const LatLon& lat_lon);
   static bool Initialized();
