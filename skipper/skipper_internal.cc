@@ -288,6 +288,8 @@ void SkipperInternal::ReadSimplePlanFile(const char* simple_target_filename) {
     double lon = 0;
     if (2 == sscanf(line, "%lf %lf", &lat, &lon)) {
       if (debug) fprintf(stderr, "Follow simple plan to [%lf %lf]\n", lat, lon);
+      if (lat > 70) lat = 70;
+      if (lat < -70) lat = -70;
       Planner::SimplePlan(lat, lon);
       full_plan_ = false;
       break;
