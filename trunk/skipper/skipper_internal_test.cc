@@ -179,10 +179,10 @@ TEST(SkipperInternal, ToulonPlan) {
   std::vector<skipper::AisInfo> ais;
   double alpha_star;
 
-  in.angle_true_deg = 20;  // so we cannot sail south directly
+  in.angle_true_deg = 60;  // so we cannot sail south directly
   in.mag_true_kn = 15;
   double x0 = 43.0617;
-  double y0 = 6.0967;       // off Toulon, NOT in the first toulon target circle!
+  double y0 = 5.7567;       // off Toulon, NOT in the first toulon target circle!
   double v = 1.6 / to_cartesian_meters;
   in.latitude_deg = x0;
   in.longitude_deg = y0;
@@ -261,6 +261,6 @@ TEST(SkipperInternal, ToulonDetailsPlan) {
 int main(int argc, char* argv[]) {
   SkipperInternal_Storm();
   SkipperInternal_ToulonPlan();
-  SkipperInternal_ToulonDetailsPlan();
+  //SkipperInternal_ToulonDetailsPlan();
   return 0;
 }
