@@ -22,7 +22,7 @@ DAEMON_ARGS=""
 PIDFILE=/var/run/$NAME.pid
 SCRIPTNAME=/etc/init.d/$NAME
 
-AVALONDEVS="rudder_l rudder_r sail fuelcell compass ais gps wind"
+AVALONDEVS="rudder_l rudder_r sail relais compass ais gps wind"
 
 # Exit if the package is not installed
 [ -x "$DAEMON" ] || exit 0

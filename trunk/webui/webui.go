@@ -13,12 +13,14 @@ import (
 	"flag"
 	"log"
 	"net/http"
+	"os"
 )
 
 var (
 	webroot = flag.String("webroot", "./s", "path to dir with static webpages")
 	lbus = flag.String("lbus", "/var/run/lbus", "path to lbus socket")
-	slog = flag.String("log", "/var/log/messages", "path to syslog output")
+	slog = flag.String("log", "/var/log/syslog", "path to syslog output")
+	plog = flag.String("pos", "/var/log/gps.%d.log", "path to gps linelog output")
 	port = flag.String("http", ":1969", "port to serve http on")
 )
 
@@ -57,6 +59,34 @@ func TailServer(ws *websocket.Conn) {
 	close(stop)
 }
 
+func PosServer(ws *websocket.Conn) {
+	o := bufio.NewWriter(ws)
+	for i := 1; i >= 0; i-- {
+		path := fmt.Sprintf(*plog, i)
+		log.Print("opening ", path)
+		f, err := os.Open(path)
+		if err != nil {
+			continue
+		}
+		b := bufio.NewReader(f)
+
+		for {
+			line, err := b.ReadString('\n')
+			log.Print("line: ", line)
+			if err != nil {
+				break
+			}
+			_, err = o.WriteString(line2json(line))
+			o.Flush()
+			if err != nil {
+				break
+			}
+		}
+		f.Close()
+	}
+	ws.Close()
+}
+
 func main() {
 	flag.Parse()
 	http.Handle("/", http.RedirectHandler("/s/control.html", 301))
@@ -64,6 +94,7 @@ func main() {
 	http.Handle("/log/", http.StripPrefix("/log/", http.FileServer(http.Dir("/var/log"))))
 	http.Handle("/lbus", websocket.Handler(PlugServer))
 	http.Handle("/syslog", websocket.Handler(TailServer))
+	http.Handle("/poshist", websocket.Handler(PosServer))
 	if err := http.ListenAndServe(*port, nil); err != nil {
 		log.Fatal(err)
 	}

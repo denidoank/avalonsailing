@@ -11,6 +11,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <sys/wait.h>
 
 #include "lib/log.h"
 #include "lib/timer.h"
@@ -66,6 +68,7 @@ int main(int argc, char* argv[]) {
         signal(SIGSEGV, fault);
 
 	openlog(argv0, (debug?LOG_PERROR:0), LOG_DAEMON);
+	if(!debug) setlogmask(LOG_UPTO(LOG_NOTICE));
 
 	int* counts = malloc(argc * sizeof counts[0]);
 	memset(counts, 0, argc * sizeof counts[0]);

@@ -5,6 +5,7 @@
 
 #include "skipper/planner.h"
 #include <stdio.h>
+#include <syslog.h>
 
 #include "helmsman/normal_controller.h"
 #include "lib/util/stopwatch.h"
@@ -53,6 +54,7 @@ double Planner::ToDeg(double lat_deg, double lon_deg, TCStatus* tc_status) {
     initialized_ = true;
   }
   if (plan_.TargetReached(lat_lon)) {
+    syslog(LOG_ERR, "Hurray! Target Reached!\n");
     fprintf(stderr, "Hurray! Target Reached!\n");
     if (NowSeconds() > last_turn_time_ + 120) { // TODO: Increase this time after lake tests!
       last_turn_time_ = NowSeconds();

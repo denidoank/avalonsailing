@@ -36,7 +36,6 @@ for p in plug buswatch ; do
 done
 [ "$err" = "" ] || { log_failure_msg "Missing binaries: $err" ; exit 0; }
 
-
 #
 # Function that starts the daemon/service
 #
@@ -48,8 +47,11 @@ do_start()
 	#   2 if daemon could not be started
         echo '$stats' | plug -f xxx /var/run/lbus | grep -q $NAME && return 1
 	# TODO: if runlevel is 3, also monitor helmsman_st: and helm:
-	plug -bon $NAME /var/run/lbus -- `which buswatch` /etc/init.d/restart.sh compass: gps: imu: wind: status_left: status_right: status_sail: 2> /dev/null
-        echo '$stats' | plug -f /var/run/lbus | grep -q $NAME && return 0
+	plug -bon $NAME /var/run/lbus -- `which buswatch` /usr/local/bin/restart.sh compass: gps: imu: wind: status_left: status_right: status_sail: 2> /dev/null
+	if [ "$RUNLEVEL" = "3" ] ; then
+		plug -bon $NAME /var/run/lbus -- `which buswatch` -t 300 /usr/local//restart.sh rudderctl: helm: 2> /dev/null
+	fi
+        echo '$stats' | plug -f xxx /var/run/lbus | grep -q $NAME && return 0
 	return 2
 }
 

@@ -7,6 +7,7 @@
 
 #include <syslog.h>
 #include <stdint.h>
+#include  <string.h>
 
 #include "common/unknown.h"
 #include "common/convert.h"
@@ -36,7 +37,7 @@ void SkipperInternal::Run(const SkipperInput& in,
       isnan(in.angle_true_deg) ||
       isnan(in.mag_true_kn)) {
     *alpha_star_deg = kDefaultDirection;  // Southwest is our general direction.
-    fprintf(stderr, "No true wind info so far, going SW.\n");
+    syslog(LOG_NOTICE, "No true wind info so far, going SW.\n");
     return;
   }
 
@@ -61,7 +62,7 @@ void SkipperInternal::Run(const SkipperInput& in,
       isnan(in.latitude_deg)) {
     if (!Planner::Initialized()) {
       *alpha_star_deg = kDefaultDirection;  // Southwest is our general direction.
-      fprintf(stderr, "No position info so far, going SW.\n");
+      syslog(LOG_NOTICE, "No position info so far, going SW.\n");
       return;
     } else {
       // Temporary loss of GPS fix. This might happen due to big
@@ -82,25 +83,24 @@ void SkipperInternal::Run(const SkipperInput& in,
   }
 
   if (fabs(planned - planned2) > 0.1)
-    fprintf(stderr,
-            "Override %8.6lg with %8.6lg because we have a storm.\n",
+	syslog(LOG_NOTICE,
+            	"Override %8.6lg with %8.6lg because we have a storm.\n",
             planned, planned2);
   if (fabs(planned2 - safe) > 0.1) {
-      fprintf(stderr,
+	syslog(LOG_NOTICE,
               "Override %8.6lg with %8.6lg because it is not collision free.\n",
               planned2, safe);
   } else {
-      fprintf(stderr, "Bearing %8.6lg is collision free.\n", safe);
+     syslog(LOG_NOTICE, "Bearing %8.6lg is collision free.\n", safe);
   }
 
   double feasible = BestSailableHeadingDeg(safe, in.angle_true_deg);
 
   if (fabs(DeltaOldNewDeg(safe, feasible)) > 0.1)
-    fprintf(stderr, "Override %8.6lg deg with %8.6lg deg because it is not sailable.\n",
+    syslog(LOG_NOTICE, "Override %8.6lg deg with %8.6lg deg because it is not sailable.\n",
             safe, feasible);
 
-  if (debug)
-    fprintf(stderr, "planner %6.1lf, alpha* %6.1lf,  true wind: %6.1lf, feasible: %6.1lf degrees\n",
+    syslog(LOG_DEBUG, "planner %6.1lf, alpha* %6.1lf,  true wind: %6.1lf, feasible: %6.1lf degrees\n",
             planned, safe, in.angle_true_deg, NormalizeDeg(feasible));
 
   *alpha_star_deg = feasible;
@@ -126,8 +126,7 @@ double SkipperInternal::RunCollisionAvoider(
   avalon.wind_speed_m_s = KnotsToMeterPerSecond(in.mag_true_kn);
   int64_t vskipper_start = now_micros();
   skipper::Bearing skipper_out = RunVSkipper(avalon, ais, 1);
-  if (debug)
-    fprintf(stderr, "Vskipper runtime %lld micros\n", now_micros() - vskipper_start);
+    syslog(LOG_DEBUG, "Vskipper runtime %lld micros\n", now_micros() - vskipper_start);
   if (skipper::kVSkipperNoWay == skipper_out.deg()) {
     // In this situation we keep the bearing,
     // such that at least the approaching ship has a chance to avoid us.
@@ -181,7 +180,6 @@ double SkipperInternal::HandleStorm(WindStrengthRange wind_strength,
       storm_bearing = NormalizeDeg(angle_true_deg - kStormAngle);
     }
     if (transition_to_storm) {
-      fprintf(stderr, "Storm, going to %6.2lf deg.\n", storm_bearing);
       syslog(LOG_NOTICE, "Storm, going to %6.2lf deg.\n", storm_bearing);
     }
   } else {
@@ -244,7 +242,6 @@ void SkipperInternal::ReadAisFile(
   if (!fp) {
     // This failure is possible in the beginning, when the ais_buf
     // hasn't written anything yet.
-    fprintf(stderr, "Could not open %s", ais_filename);
     syslog(LOG_NOTICE, "Could not open %s", ais_filename);
 
     return;
@@ -258,7 +255,7 @@ void SkipperInternal::ReadAisFile(
       continue;
     ais->push_back(ai);
 
-    if (debug) fprintf(stderr, "ais: %lld %lf %lf %lf %lf\n",
+    syslog(LOG_DEBUG, "ais: %lld %lf %lf %lf %lf\n",
                        ai.timestamp_ms, ai.position.lat_deg(), ai.position.lon_deg(),
                        ai.speed_m_s, ai.bearing.deg());
   }
@@ -287,7 +284,7 @@ void SkipperInternal::ReadSimplePlanFile(const char* simple_target_filename) {
     double lat = 0;
     double lon = 0;
     if (2 == sscanf(line, "%lf %lf", &lat, &lon)) {
-      if (debug) fprintf(stderr, "Follow simple plan to [%lf %lf]\n", lat, lon);
+      syslog(LOG_NOTICE, "Follow simple plan to [%lf %lf]\n", lat, lon);
       if (lat > 70) lat = 70;
       if (lat < -70) lat = -70;
       Planner::SimplePlan(lat, lon);

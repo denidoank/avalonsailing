@@ -35,7 +35,8 @@ static void usage(void) {
 static Bus* bus = NULL;
 static Device* motor;
 static double target_angle_deg = NAN;
-static struct SkewProto skew = INIT_SKEWPROTO;
+//static struct SkewProto skew = INIT_SKEWPROTO;
+static struct SkewProto skew = { 0, 0.0 };
 
 const double TOLERANCE_DEG = 1.0;
 const int64_t BUSLATENCY_WARN_THRESH_US = 200*1000;  // 200ms

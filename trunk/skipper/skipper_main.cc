@@ -165,8 +165,7 @@ int main(int argc, char* argv[]) {
     if (printf(OFMT_HELMSMANCTLPROTO(ctl)) <= 0)
       crash("Could not send skipper_out_text");
 
-    if (debug)
-      fprintf(stderr,"helm: timestamp_ms:%lld alpha_star_deg:%lf\n", now_ms(), alpha_star_deg);
+	syslog(LOG_DEBUG, "helm: timestamp_ms:%lld alpha_star_deg:%lf\n", now_ms(), alpha_star_deg);
 
   }  // for ever
 
