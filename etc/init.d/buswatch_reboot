@@ -49,12 +49,13 @@ do_start()
         echo '$stats' | plug -f xxx /var/run/lbus | grep -q $NAME && return 1
 
 	# don't background, be precious
-	# TODO: in runlevel 3 also watch for helmsman_st: and helm:
+	# don't watch for helmsman and skipper, they can't be saved by a power cycle anyway
 	plug -pon $NAME /var/run/lbus -- `which buswatch` -t 600 DIE compass: gps: imu: wind: status_left: status_right: status_sail: 2> /dev/null
 	# if we exit, the lbus was dead or will be dead: sms and reboot
 	for p in `cat /etc/smsphonenr`; do
 	    sms send $p "$(date) lbus watch died, rebooting"
 	done
+	sleep 10
 	reboot
 }
 

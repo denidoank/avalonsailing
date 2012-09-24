@@ -7,6 +7,8 @@
 // - Read destination phone number and message on stdin and send as sms
 // - poll all smses stored on the phone and delete them
 // - get status, timestamp and geo info
+//
+// NOTE that before you can use the 9522B to send smses you have to set the sms service number with +CSCA
 #define _GNU_SOURCE
 
 #include <ctype.h>
@@ -237,7 +239,7 @@ int main(int argc, char* argv[]) {
 		while(fgets(buf, sizeof buf, pfi)) {
 			syslog(LOG_DEBUG, "modem: '%s'", buf);
 			if(startswith("+CMGS:", buf)) {
-				syslog(LOG_INFO, "sms sent sucessfully: %s", buf + 7);
+				syslog(LOG_NOTICE, "sms sent sucessfully: %s", buf + 7);
 				return 0;
 			} else if(startswith("+CMS ERROR:", buf)) {
 				crash("sms not sent, code: %s", buf + 11);
@@ -323,6 +325,7 @@ int main(int argc, char* argv[]) {
 					continue;
 				}
 				syslog(LOG_NOTICE, "Network registration: %s", networkregstr[st]);
+				//printf("Network registration: %s", networkregstr[st]);
 				break;
 			}
 		}
@@ -333,6 +336,7 @@ int main(int argc, char* argv[]) {
 			syslog(LOG_DEBUG, "modem: '%s'", buf);
 			if(startswith("+CSQ:", buf)) {
 				syslog(LOG_NOTICE, "Signal quality: %d%%", atoi(buf+5)*20);
+				//printf("Signal quality: %d%%", atoi(buf+5)*20);
 				break;
 			}
 		}
@@ -360,6 +364,7 @@ int main(int argc, char* argv[]) {
 				strftime(tbuf, sizeof tbuf, "%a %F %T", gmtime(&ts_s));
 				syslog(LOG_NOTICE, "Iridium time: %s", tbuf);
 				syslog(LOG_NOTICE, "Geo report: iridium_timestamp_ms:%lld lat_deg:%.7lf lon_deg:%.7lf", ts_ms, lat, lng);
+				printf("avalon %.7lf %.7lf  %s", lat, lng, tbuf);
 				break;
 			}
 		}

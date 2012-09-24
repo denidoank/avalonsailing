@@ -39,6 +39,7 @@ int main(int argc, char* argv[]) {
 	int ch;
 	int64_t min_us = 125 *1000;
 	int64_t max_us = 1000 *1000;
+	int usebmmh = 0;
 
 	argv0 = strrchr(argv[0], '/');
 	if (argv0) ++argv0; else argv0 = argv[0];
@@ -48,6 +49,7 @@ int main(int argc, char* argv[]) {
 		case 'd': ++debug; break;
 		case 'n': min_us = 1000*atoi(optarg); break;
 		case 'x': max_us = 1000*atoi(optarg); break;
+		case 'B': ++usebmmh; break;
 		case 'h': 
 		default:
 			usage();
@@ -94,7 +96,8 @@ int main(int argc, char* argv[]) {
 
 		if (us == 0) us = now_us();
 
-		if (serial == motor_params[BMMH].serial_number && reg == REG_BMMHPOS) {
+		if (usebmmh && serial == motor_params[BMMH].serial_number && reg == REG_BMMHPOS) {
+
 			sts.timestamp_ms = us / 1000;
 			if (value >= (1<<29)) value -= (1<<30); // bmmh is 30 bit signed
 			value &= 4095;
@@ -107,6 +110,20 @@ int main(int argc, char* argv[]) {
 				printf(OFMT_STATUS_SAIL(sts));
 				timer_tick(&timer[SAIL], us, 1);
 			}
+
+		} else if (!usebmmh && serial == motor_params[SAIL].serial_number && reg == REG_CURRPOS) {
+
+			sts.timestamp_ms = us / 1000;
+			sts.sail_deg = qc_to_angle(&motor_params[SAIL], value);
+			while (sts.sail_deg < -180.0) sts.sail_deg += 360.0;
+			while (sts.sail_deg >  180.0) sts.sail_deg -= 360.0;
+
+			if (us > timer_started(&timer[SAIL]) + min_us) {
+				timer_tick(&timer[SAIL], us, 0);
+				printf(OFMT_STATUS_SAIL(sts));
+				timer_tick(&timer[SAIL], us, 1);
+			}
+
 
 		} else if (serial == motor_params[LEFT].serial_number && reg == REG_STATUS) {
 

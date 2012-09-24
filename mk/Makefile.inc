@@ -46,6 +46,7 @@ CFLAGS+=-I$(TOP) -m32 -Wall
 CXXFLAGS+=-I$(TOP) -fno-rtti -fno-exceptions -m32 -Wall
 LDFLAGS+=-fno-rtti -fno-exceptions -m32
 INSTALL = install
+DESTDIR = /usr/local/bin
 
 .PHONY: all bin test test.run clean
 
