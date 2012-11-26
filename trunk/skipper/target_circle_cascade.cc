@@ -42,30 +42,34 @@ double TargetCircleCascade::ToDeg(double x, double y, TCStatus* tc_status) {
   // If that happens, we increase the radius of all circles until one is
   // big enough to cover our current position. This leads
   // us back on track.
-  // TODO: in the first iteration store max(distance/circle radius).
-  // This is the needed expansion_factor. Thus we get just 2 iterations
-  // through the chain.
-  const double expansion_factor = 1.1;
-  for (double expand = 1.0; expand < 200; expand *= expansion_factor) {
-    for (int i = 0; i < (int)chain_.size(); ++i) {
-      // if (debug) fprintf(stderr, "i : %d, expand: %lf\n", i, expand);
-      if (chain_[i].In(x, y, expand)) {
-        // if (debug) fprintf(stderr, "In target circle %d, dir %lf deg.\n", i, chain_[i].ToDeg(x, y));
-        if (debug && expand > 1) {
-          fprintf(stderr, "Needed to expand target circles to %lf %%!\n", expand * 100);
-        }
-        if (tc_status) {
-          tc_status->target_lat_deg = chain_[i].x0();
-          tc_status->target_lon_deg = chain_[i].y0();
-          tc_status->index = i;
-        }
-        return chain_[i].ToDeg(x, y);
+  double min_distance = 1E9;
+  int best_tc = 0;
+  for (int i = 0; i < (int)chain_.size(); ++i) {
+    // if (debug) fprintf(stderr, "i : %d, expand: %lf\n", i, expand);
+    if (chain_[i].In(x, y, 1.0)) {
+      // if (debug) fprintf(stderr, "In target circle %d, dir %lf deg.\n", i, chain_[i].ToDeg(x, y));
+      if (tc_status) {
+        tc_status->target_lat_deg = chain_[i].x0();
+        tc_status->target_lon_deg = chain_[i].y0();
+        tc_status->index = i;
       }
+      return chain_[i].ToDeg(x, y);
+    }
+    if (chain_[i].Distance(x, y) < min_distance) {
+      min_distance = chain_[i].Distance(x, y);
+      best_tc = i;
     }
   }
-  // Can never get here.
-  CHECK(0);
-  return 0;
+  if (debug) {
+    fprintf(stderr, "Needed to expand target circles!\n");
+  }
+  // if (debug) fprintf(stderr, "In target circle %d, dir %lf deg.\n", i, chain_[i].ToDeg(x, y));
+  if (tc_status) {
+    tc_status->target_lat_deg = chain_[best_tc].x0();
+    tc_status->target_lon_deg = chain_[best_tc].y0();
+    tc_status->index = best_tc;
+  }
+  return chain_[best_tc].ToDeg(x, y);
 }
 
 void TargetCircleCascade::Add(const TargetCircle t) {

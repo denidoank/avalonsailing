@@ -1,4 +1,5 @@
 DEPS+=common
+DEPS+=lib/testing
 DEPS+=lib/util
 DEPS+=helmsman
 DEPS+=vskipper
