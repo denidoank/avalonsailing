@@ -191,7 +191,7 @@ void BoatModel::Simulate(const DriveReferenceValuesRad& drives_reference,
   // Convert a meter of way into the change of latitude, roughly, at equator.
   const double MeterToDegree = Rad2Deg(1/6378100.0);
   north_deg_ += v_x_ * cos(phi_z_) * period_ * MeterToDegree;
-  east_deg_  += v_x_ * sin(phi_z_) * period_ * MeterToDegree;
+  east_deg_  += v_x_ * sin(phi_z_) * period_ * MeterToDegree / cos(north_deg_ / 180.0 * M_PI);
   x_ += v_x_ * cos(phi_z_) * period_;
   y_ += v_x_ * sin(phi_z_) * period_;
 
