@@ -9,6 +9,7 @@
 
 #include <assert.h>
 #include <iostream>
+#include <iomanip>  // setprecision
 #include <math.h>  // fabs
 #include <stdio.h>
 #include <stdlib.h>
@@ -73,9 +74,23 @@ void class_name##_##test_case()
     if (fabs((a) - (b)) > 1E-4) { \
       std::cout << __FILE__ << ":" <<__LINE__ \
       << "\nTest a == b (tol:1E-4) failed with expected:\n"; \
-      std::cout << #a " which is " << (a) << "\n"; \
+      std::cout << #a " which is " << std::setprecision(16) << (a) << "\n"; \
       std::cout << "versus actual:\n"; \
       std::cout << #b " which is " << (b) << "\n"; \
+      exit(1); \
+    } \
+  } while(0)
+
+// Expect equality with a given tolerance.
+#define EXPECT_EQ_TOL(a, b, tol) \
+  do { \
+    if (fabs((a) - (b)) > tol) { \
+      std::cout << __FILE__ << ":" <<__LINE__ \
+      << "\nTest a == b (tol:" << tol << ") failed with expected:\n"; \
+      std::cout << #a " which is " << std::setprecision(16) << (a) << "\n"; \
+      std::cout << "versus actual:\n"; \
+      std::cout << #b " which is " << std::setprecision(16) << (b) << "\n"; \
+      std::cout << "actual-expected = " << std::setprecision(16) << (b-a) << "\n"; \
       exit(1); \
     } \
   } while(0)
