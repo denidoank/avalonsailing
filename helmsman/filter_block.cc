@@ -8,7 +8,7 @@
 // they are filtered with an unknown delay dependant on the noise.
 // After IMU tests we found out that the speed data are just a very rough
 // approximation of the real motion vector over ground. The bearing (phi_z)
-// and the rotational speeds omega_z need spike suppression and sliding average filters of 1s and 8s respectively.
+// and the rotational speed omega_z need spike suppression and sliding average filters of 1s and 8s respectively.
 // The drive actual values are exact and noise-free.
 // The wind sensor updates once per second and reflects the strong
 // fluctuations of the measured wind overlayed with the errors
@@ -140,12 +140,14 @@ void FilterBlock::Filter(const ControllerInput& in,
   // yaw (== bearing) from 2 independant sources: IMU Kalman filter, raw IMU magnetic sensor and
   // independant compass.
   // The IMU magnetic sensor is variable by +- 8 degrees in standstill so the IMU weight
-  // is reduced to 0.225 in total. Effectively the IMU serves as a hot back-up.
+  // is reduced to 0.575 in total.
   // The raw magnetic sensor IMU output is a rather noisy and often incorrect.
+  // Under rough conditions (high waves) the compass is disturbed by the changing
+  // accelerations. So the compass weight was reduced to 0.5.
   double consensus = 0;
-  double compass_phi_z = CompassMixer::Mix(in.imu.attitude.phi_z_rad, imu_fault_ ? 0 : 0.15,
+  double compass_phi_z = CompassMixer::Mix(in.imu.attitude.phi_z_rad, imu_fault_ ? 0 : 0.5,
                                            in.imu.compass.phi_z_rad, in.imu.compass.valid ? 0.075 : 0,
-                                           in.compass_sensor.phi_z_rad, 1,  // invalid if outdated TODO
+                                           in.compass_sensor.phi_z_rad, 0.5,  // invalid if outdated TODO
                                            &consensus);
   if (consensus >= 0.5) {
     fil->phi_z_boat = phi_z_wrap_.Filter(compass_phi_z);
@@ -204,11 +206,8 @@ void FilterBlock::Filter(const ControllerInput& in,
   // Speed
   // The GPS has no orientation (bearing) information so all speeds are
   // speed magnitudes. But we may drift backwards.
-  if (!gps_fault_ &&
-      fabs(DeltaOldNewRad(gps_cog_rad, fil->phi_z_boat)) > M_PI / 4) {
-    gps_cog_rad = NormalizeRad(gps_cog_rad - M_PI);
-    gps_speed_m_s = -gps_speed_m_s;
-    // fprintf(stderr, "GPS neg. speed %lf\n", gps_speed_m_s);
+  if (!gps_fault_) {
+    gps_speed_m_s = gps_speed_m_s * cos(gps_cog_rad - fil->phi_z_boat);
   }
 
 
