@@ -76,6 +76,9 @@ void NormalControllerTest(double wind_direction_deg,
   EXPECT_LT(expected_min_speed_m_s, model.GetSpeed());
   if (fabs(model.GetPhiZ() - in.alpha_star_rad) > Deg2Rad(5))
     printf("final heading %lg for wind direction %lg\n", Rad2Deg(model.GetPhiZ()), wind_direction_deg);
+  if (out.status.inits > 1) {
+    printf("Extra inits: %d\n", out.status.inits);
+  }
   printf("\nRuntimes/microseconds\n=================\n");
   printf("Average:    %6.4lf micros\n", micros_sum / static_cast<double>(rounds));
   printf("Max:        %lld micros\n", micros_max);

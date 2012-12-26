@@ -33,18 +33,20 @@ class PointOfSail {
   // target is not written for sector == ReachStar or target == ReachPort
   double SailableHeading(double alpha_star,    // desired heading alpha*
                          double alpha_true,    // true wind vector direction
-                         double alpha_app,     // apparent wind vector direction
-                         double mag_app,       // apparent wind vector magnitude
-                         double phi_z,         // boat direction
                          double previous_output,  // previous output direction, needed to implement hysteresis
                          SectorT* sector,      // sector codes for state handling and maneuver
                          double* target);      // target angle for maneuver
 
+  // If the sector is stable, we can calculate a bearing correction in response to fast wind
+  // turns.
+  double AntiWindGust(SectorT sector,       // sector codes
+                      double alpha_app_rad, // apparent wind vector direction
+                      double mag_app_m_s);  // apparent wind vector magnitude
+
+
  private:
   double buffer1_;
   double buffer2_;
-  double buffer3_;
-  double buffer4_;
 };
 
 #endif  // COMMON_POINT_OF_SAIL_H_
