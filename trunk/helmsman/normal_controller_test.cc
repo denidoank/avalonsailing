@@ -165,7 +165,7 @@ TEST(NormalController, AllSailCloseHauled) {
   SimDrives(out, &in);
   // sail opposing the apparent wind.
   // Limited by CHP
-  EXPECT_FLOAT_EQ(13.8767, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
+  EXPECT_FLOAT_EQ(13, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
 }
 
 // Check sail control negative
@@ -228,7 +228,7 @@ TEST(NormalController, AllSailCloseHauledNegative) {
   SimDrives(out, &in);
   // sail opposing the apparent wind.
   // Limited by CHP
-  EXPECT_FLOAT_EQ(-13.8767, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
+  EXPECT_FLOAT_EQ(-13, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
 }
 
 TEST(NormalController, AllRudder) {

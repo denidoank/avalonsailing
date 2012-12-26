@@ -59,9 +59,6 @@ void NormalController::Entry(const ControllerInput& in,
   point_of_sail_.SailableHeading(
       filtered.phi_z_boat,  // desired heading alpha*
       filtered.alpha_true,  // true wind vector direction
-      filtered.angle_app,   // apparent wind vector direction
-      filtered.mag_app,     // apparent wind vector magnitude
-      filtered.phi_z_boat,  // boat direction
       filtered.phi_z_boat,  // previous output direction, needed to implement hysteresis
       &prev_sector_,        // sector codes for state handling and maneuver
       &dummy_target);
@@ -198,12 +195,14 @@ void NormalController::ShapeReferenceValue(double alpha_star,
     new_sailable = point_of_sail_.SailableHeading(
         alpha_star_rate_limited_,  // desired heading alpha*
         alpha_true,   // true wind vector direction
-        angle_app,    // apparent wind vector direction
-        mag_app,      // apparent wind vector magnitude
-        phi_z_boat,   // boat direction
         old_phi_z_star_,  // previous output direction, needed to implement hysteresis
         &sector,      // sector codes for state handling and maneuver
         &maneuver_target);
+    if (sector == prev_sector_) {
+      new_sailable += point_of_sail_.AntiWindGust(sector,
+                                                  angle_app,  // apparent wind vector direction
+                                                  mag_app);   // apparent wind vector magnitude
+    }
     maneuver_type_ = SectorToManeuver(sector);
     sail_controller_->SetAlphaSign(SectorToGammaSign(sector));
 
