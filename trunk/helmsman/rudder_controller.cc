@@ -65,8 +65,7 @@ void RudderController::Control(double phi_star,
   double eps_phi = SymmetricRad(phi_star - phi);
 
   // Anti-wind-up (integrator does not fill further, if the
-  // control output is at it limits already)
-  // reference value for int_phi is always 0.
+  // control output is at it limits already).
   if (eps_phi * limited_ <= 0)
     eps_integral_phi_ += kSamplingPeriod * eps_phi;
 
