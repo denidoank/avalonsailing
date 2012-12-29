@@ -193,10 +193,10 @@ void NormalController::ShapeReferenceValue(double alpha_star,
     SectorT sector;
     double maneuver_target;
     new_sailable = point_of_sail_.SailableHeading(
-        alpha_star_rate_limited_,  // desired heading alpha*
-        alpha_true,   // true wind vector direction
+        alpha_star_rate_limited_,  // desired heading alpha*, must be rate limited.
+        alpha_true,       // true wind vector direction
         old_phi_z_star_,  // previous output direction, needed to implement hysteresis
-        &sector,      // sector codes for state handling and maneuver
+        &sector,          // sector codes for state handling and maneuver
         &maneuver_target);
     if (sector == prev_sector_) {
       new_sailable += point_of_sail_.AntiWindGust(sector,
