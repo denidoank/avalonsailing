@@ -22,11 +22,19 @@
 extern int debug;
 extern int logging_aoa;
 
+struct Timing {
+  Timing() : micros_max(0), micros_sum(0), rounds(0) {}
+  int64_t micros_max;
+  int64_t micros_sum;
+  int rounds;
+};
+
 static int print_model = 0;
 
 void NormalControllerTest(double wind_direction_deg,
                           double expected_min_speed_m_s,
-                          double wind_strength_m_s = 10) {
+                          double wind_strength_m_s = 10,
+                          Timing* timing = NULL) {
   logging_aoa = 0;
   debug = 0;
   BoatModel model(kSamplingPeriod,
@@ -79,25 +87,40 @@ void NormalControllerTest(double wind_direction_deg,
   if (out.status.inits > 1) {
     printf("Extra inits: %d\n", out.status.inits);
   }
-  printf("\nRuntimes/microseconds\n=================\n");
+  printf("\nRuntimes/microseconds\n=====================\n");
   printf("Average:    %6.4lf micros\n", micros_sum / static_cast<double>(rounds));
   printf("Max:        %lld micros\n", micros_max);
   printf("\n");
+  if (timing) {
+    timing->rounds += rounds;
+    timing->micros_sum += micros_sum;
+    timing->micros_max = std::max(timing->micros_max, micros_max);
+  }
 }
 
+void PrintTiming(const Timing& timing) {
+  printf("\nTotal runtimes/microseconds\n===========================\n");
+  printf("Average:    %6.4lf micros (%d tests)\n",
+         timing.micros_sum / static_cast<double>(timing.rounds), timing.rounds);
+  printf("Max:        %lld micros\n", timing.micros_max);
+  printf("\n");
+}
 
 TEST(SimShip, Wind_1) {
+  Timing timing;
   NormalControllerTest(-165,   // wind vector direction, in degrees
                        0.8);   // minimum final boat speed, m/s
   // All initial wind directions are handled correctly.
   for (double wind_direction = -180; wind_direction < 180; wind_direction += 0.3) {
     if (fabs(wind_direction - -90) < 20)  // Not sailable.
       continue;
-    NormalControllerTest(wind_direction, 0.8);  // speeds vary from 0.8 to 2.1 m/s
+    NormalControllerTest(wind_direction, 0.8, 10, &timing);  // speeds vary from 0.8 to 2.1 m/s
   }
+  PrintTiming(timing);
 }
 
 TEST(SimShip, Wind_0) {
+  Timing timing;
   // Cannot sail with less than 2m/s wind strength.
   for (double wind_strength = 1; wind_strength < 20; wind_strength *= 1.15) {
     // All initial wind directions are handled correctly.
@@ -114,12 +137,15 @@ TEST(SimShip, Wind_0) {
       }
       // speeds vary due to different wind strength and headings.
       // If our model was correct, we would get the polar diagram here.
-      NormalControllerTest(wind_direction, std::min(0.06 * wind_strength, 2.5), wind_strength);
+      NormalControllerTest(wind_direction, std::min(0.06 * wind_strength, 2.5),
+                           wind_strength, &timing);
     }
   }
+  PrintTiming(timing);
 }
 
 TEST(SimShip, Wind_2) {
+  Timing timing;
   // Cannot sail with less than 2m/s wind strength.
   for (double wind_strength = 1; wind_strength < 20; wind_strength *= 1.15)
   // All initial wind directions are handled correctly.
@@ -137,12 +163,15 @@ TEST(SimShip, Wind_2) {
     */
     // speeds vary due to different wind strength and headings.
     // If our model was correct, we would get the polar diagram here.
-    NormalControllerTest(wind_direction, std::min(0.06 * wind_strength, 2.5), wind_strength);
+    NormalControllerTest(wind_direction, std::min(0.06 * wind_strength, 2.5),
+                         wind_strength, &timing);
   }
+  PrintTiming(timing);
 }
 
 TEST(SimShip, Wind_Strong) {
-  for (double wind_strength = 10; wind_strength < 20; wind_strength *= 1.5)
+  Timing timing;
+  for (double wind_strength = 10; wind_strength < 20; wind_strength *= 1.5) {
     // All initial wind directions are handled correctly.
     for (double wind_direction = -180; wind_direction < 180; wind_direction += 0.3) {
       if (fabs(wind_direction - -90) < 20)  // Not sailable.
@@ -158,17 +187,23 @@ TEST(SimShip, Wind_Strong) {
       */
       // speeds vary due to different wind strength and headings.
       // If our model was correct, we would get the polar diagram here.
-      NormalControllerTest(wind_direction, std::min(0.06 * wind_strength, 2.5), wind_strength);
+      NormalControllerTest(wind_direction, std::min(0.06 * wind_strength, 2.5),
+                           wind_strength, &timing);
       debug = 0;
     }
+  }
+  PrintTiming(timing);
 }
 
 TEST(SimShip, Wind_Debug) {
+  Timing timing;
   debug = 0;
   NormalControllerTest(31.8,           // wind vector direction, in degrees
                        1.5,            // minimum final boat speed, m/s
-                       16.2741232583); // wind speed, m/s
+                       16.2741232583,  // wind speed, m/s
+                       &timing);
   debug = 0;
+  PrintTiming(timing);
 }
 
 
