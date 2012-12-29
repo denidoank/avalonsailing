@@ -24,12 +24,14 @@ PointOfSail::PointOfSail() {
 
 // We make the decision about the point of sail on the slowly
 // filtered true wind only. If the wind turns quickly, then we
-// react on that early.
+// react on that with the AntiWindGust method.
 // Everything in radians here.
+// If alpha_star and alpha_true are rate limited then the sector
+// output doesn't jump.
 // TODO: 4 limits as array.
 double PointOfSail::SailableHeading(
-    double alpha_star,
-    double alpha_true,
+    double alpha_star,       // rate limited alpha star
+    double alpha_true,       // true wind vector, slowly filtered
     double previous_output,  // previous output direction, needed to implement hysteresis
     SectorT* sector,         // sector codes for state handling and maneuver
     double* target) {
@@ -41,7 +43,6 @@ double PointOfSail::SailableHeading(
     fprintf(stderr, "limits true : % 5.2lf % 5.2lf % 5.2lf % 5.2lf\n",
             limit1, limit2, limit3, limit4);
   }
-
 
   // This keeps a small part of the previous output, later used in the hysteresis
   // calculation. The hysteresis is good for minimizing the number of maneuvers
@@ -94,6 +95,11 @@ double PointOfSail::SailableHeading(
 double PointOfSail::AntiWindGust(SectorT sector,      // sector codes
                                  double alpha_app,
                                  double mag_app) {
+  // If the apparent wind has direct influence on the desired heading then
+  // an instable system is created. We observed such oscillations during our
+  // lake tests: their exact mechanism is not clear. We apply an asymmetric
+  // change rate limitation, i.e. if we notice that we went too much into the wind then
+  // we fall off quickly and return very slowly only. Just like a real helmsman.
   const double decay = Deg2Rad(0.2) * 0.1;  // 0.2 degree per second (very slow)
 
   double  correction = 0;
@@ -102,20 +108,19 @@ double PointOfSail::AntiWindGust(SectorT sector,      // sector codes
     // For the Jibe zone we do not take this into account because it will not
     // have much of a negative effect, but would reduce the sailable angles
     // a lot.
-    const double kAppOffset = Deg2Rad(5);
-    double delta1 = SymmetricRad(-M_PI + TackZoneRad() - kAppOffset - alpha_app);  // negative, if we are too close and have to fall off right.
-    double delta2 = SymmetricRad( M_PI - TackZoneRad() + kAppOffset - alpha_app);  // pos.
-    if (debug) {
-      fprintf(stderr, "app %lf  D1 %lf \ndeltas      : % 5.2lf % 5.2lf\n",
-              alpha_app, M_PI - TackZoneRad() + kAppOffset, delta1, delta2);
-    }
+    const double kAppOffset = Deg2Rad(12);
+        // Bigger than 0, if we are too close and have to fall off left.
+        double delta1 = SymmetricRad(-M_PI + TackZoneRad() - kAppOffset - alpha_app);
+        // Bigger than 0, if we shall fall off right.
+        double delta2 = SymmetricRad( M_PI - TackZoneRad() + kAppOffset - alpha_app);
+
     // What do these deltas mean? It means that the normal control has failed or
     // that the wind turned quickly.
-    // If delta1 is negative then the current phi_z (precisely the phi_z averaged during the
+    // If delta1 is positive then the current phi_z (precisely the phi_z averaged during the
     // measuring period of the most recent available apparent wind) should be changed by
     // (-delta1). By doing that the boat would turn in such a way that it steers at the limit of the
-    // tack or jibe zone.
-    // If delta1 is positive it can be ignored.
+    // tack zone.
+    // If delta1 is negative it can be ignored.
     switch (sector) {
       case TackPort:
       case ReachPort:
