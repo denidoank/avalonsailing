@@ -87,6 +87,30 @@ ATEST(AngleTest, fromDeg) {
   EXPECT_EQ_TOL( -40,    Angle::fromDeg(normalizeDeg(-400)).deg(), 1E-9);
 }
 
+ATEST(AngleTest, deg) {
+  EXPECT_EQ( 0, Angle::fromDeg(0.0).deg());
+  EXPECT_FLOAT_EQ( 0.01, Angle::fromDeg(0.01).deg());
+  EXPECT_FLOAT_EQ( 0.18, Angle::fromDeg(0.18).deg());
+  EXPECT_FLOAT_EQ( 1.8,  Angle::fromDeg(1.8).deg());
+  EXPECT_FLOAT_EQ( 18.0, Angle::fromDeg(18.0).deg());
+  EXPECT_FLOAT_EQ( 45.0, Angle::fromDeg( 45.0).deg());
+  EXPECT_FLOAT_EQ( 179.999999, Angle::fromDeg(179.999999).deg());
+  EXPECT_FLOAT_EQ(-0.01, Angle::fromDeg(-0.01).deg());
+  EXPECT_FLOAT_EQ(-0.18, Angle::fromDeg(-0.18).deg());
+  EXPECT_FLOAT_EQ(-1.8,  Angle::fromDeg(-1.8).deg());
+  EXPECT_FLOAT_EQ(-18.0, Angle::fromDeg(-18.0).deg());
+  EXPECT_FLOAT_EQ(-45.0, Angle::fromDeg(-45.0).deg());
+  EXPECT_FLOAT_EQ(-179.999999, Angle::fromDeg(-179.999999).deg());
+
+  EXPECT_EQ(-180,    Angle::fromDeg(-180.0).deg());
+  EXPECT_EQ(-180,    Angle::fromDeg(-180).deg());
+  EXPECT_EQ(-179.99, Angle::fromDeg(-179.99).deg());
+  EXPECT_EQ( 179.99, Angle::fromDeg(179.99).deg());
+  EXPECT_EQ(-180,    Angle::fromDeg(180.0).deg());
+  EXPECT_EQ(-180,    Angle::fromDeg(180).deg());
+}
+
+
 ATEST(AngleTest, fromRad) {
   // [-M_PI, M_PI)
   const double eps = 0.01;
@@ -112,6 +136,8 @@ ATEST(AngleTest, Add) {
   c = a + Angle::fromDeg(  179.999999999999);
   c.print();
   EXPECT_FLOAT_EQ(          -0.000000000001, c.deg());
+  c = 0;
+  EXPECT_EQ(0, c.deg());
 }
 
 ATEST(AngleTest, Add2) {
@@ -209,6 +235,33 @@ ATEST(AngleTest, Trigo) {
   EXPECT_FLOAT_EQ(0, c.deg());
   c = Angle::fromAtan2(-1, -1);
   EXPECT_FLOAT_EQ(-135, c.deg());
+}
+
+ATEST(AngleTest, SignETC) {
+  Angle b = Angle::fromDeg(179.99);
+  Angle a = -b;
+  EXPECT_EQ(-1, a.sign());
+  EXPECT_EQ(-1, a.signNotZero());
+  EXPECT_EQ(false, a.positive());
+  EXPECT_EQ(true, a.negative());
+
+  EXPECT_EQ(1, b.sign());
+  EXPECT_EQ(1, b.signNotZero());
+  EXPECT_EQ(true, b.positive());
+  EXPECT_EQ(false, b.negative());
+
+  Angle c;
+  EXPECT_EQ(0, c.sign());
+  EXPECT_EQ(1, c.signNotZero());
+  EXPECT_EQ(false, c.positive());
+  EXPECT_EQ(false, c.negative());
+
+  EXPECT_EQ(true, a < b);
+  EXPECT_EQ(false, a > b);
+  EXPECT_EQ(true, a < c);
+  EXPECT_EQ(false, a > c);
+  EXPECT_EQ(false, b < c);
+  EXPECT_EQ(true, b > c);
 }
 
 
