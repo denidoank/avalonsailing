@@ -383,17 +383,17 @@ TEST(PointOfSailTest, AntiWindGust) {
   EXPECT_FLOAT_EQ(0, p.AntiWindGust(ReachStar, alpha_app, mag_app));
   // Now fall off right:
   alpha_app = Deg2Rad(140);
-  EXPECT_FLOAT_EQ(Deg2Rad(5), p.AntiWindGust(ReachStar, alpha_app, mag_app));
+  EXPECT_FLOAT_EQ(0, p.AntiWindGust(ReachStar, alpha_app, mag_app));
   p.Reset();
   alpha_app = Deg2Rad(150);
-  EXPECT_FLOAT_EQ(Deg2Rad(15), p.AntiWindGust(ReachStar, alpha_app, mag_app));
+  EXPECT_FLOAT_EQ(Deg2Rad(8), p.AntiWindGust(ReachStar, alpha_app, mag_app));
   p.Reset();
   alpha_app = Deg2Rad(179);
-  EXPECT_FLOAT_EQ(Deg2Rad(44), p.AntiWindGust(ReachStar, alpha_app, mag_app));
+  EXPECT_FLOAT_EQ(Deg2Rad(37), p.AntiWindGust(ReachStar, alpha_app, mag_app));
   // memory in the buffer decays
   alpha_app = Deg2Rad(90);
-  EXPECT_GT(Deg2Rad(44), p.AntiWindGust(ReachStar, alpha_app, mag_app));
-  alpha_app = Deg2Rad(181);
+  EXPECT_GT(Deg2Rad(37), p.AntiWindGust(ReachStar, alpha_app, mag_app));
+  alpha_app = Deg2Rad(220);
   EXPECT_FLOAT_EQ(Deg2Rad(45), p.AntiWindGust(ReachStar, alpha_app, mag_app));
   // Result would be 46 deg, but is clipped at 45 deg.
 
@@ -407,61 +407,64 @@ TEST(PointOfSailTest, AntiWindGust) {
   EXPECT_FLOAT_EQ(Deg2Rad(0), p.AntiWindGust(ReachPort, alpha_app, mag_app));
   p.Reset();
   alpha_app = Deg2Rad(-140);
-  EXPECT_FLOAT_EQ(Deg2Rad(-5), p.AntiWindGust(ReachPort, alpha_app, mag_app));
+  EXPECT_FLOAT_EQ(Deg2Rad(0), p.AntiWindGust(ReachPort, alpha_app, mag_app));
+  p.Reset();
+  alpha_app = Deg2Rad(-150);
+  EXPECT_FLOAT_EQ(Deg2Rad(-8), p.AntiWindGust(ReachPort, alpha_app, mag_app));
   p.Reset();
   alpha_app = Deg2Rad(-179);
-  EXPECT_FLOAT_EQ(Deg2Rad(-44), p.AntiWindGust(ReachPort, alpha_app, mag_app));
+  EXPECT_FLOAT_EQ(Deg2Rad(-37), p.AntiWindGust(ReachPort, alpha_app, mag_app));
   // memory in the buffer decays
   alpha_app = Deg2Rad(-90);
-  EXPECT_LT(Deg2Rad(-44), p.AntiWindGust(ReachPort, alpha_app, mag_app));
+  EXPECT_LT(Deg2Rad(-37), p.AntiWindGust(ReachPort, alpha_app, mag_app));
   p.Reset();
-  alpha_app = Deg2Rad(-181);
+  alpha_app = Deg2Rad(-199);
   EXPECT_FLOAT_EQ(Deg2Rad(-45), p.AntiWindGust(ReachPort, alpha_app, mag_app));
   // clip at -45 deg
 }
 
 
 TEST(PointOfSailTest, OffsetFilter) {
-  double memory = 0;
-  const double decay = Deg2Rad(1) * 0.1;
-  double out = -1;
-  double in = Deg2Rad(1.03);  // recovery within 1 second (10 ticks).
+  Angle memory;
+  const Angle decay = Angle::fromDeg(1 * 0.1);
+  Angle out = Angle::fromDeg(-1);
+  Angle in = Angle::fromDeg(1.03);  // recovery within 1 second (10 ticks).
   for (int n = 0; n < 3; ++n) {
     out = FilterOffset(in, decay, &memory);  // recovery within 1 second (10 ticks).
-    printf("%lf -> %lf\n" , in, out);
-    EXPECT_FLOAT_EQ(in, out);
+    printf("%lf -> %lf\n" , in.deg(), out.deg());
+    EXPECT_ANGLE_EQ(in, out);
   }
   in = 0;
   for (int n = 0; n < 20; ++n) {
     out = FilterOffset(in, decay, &memory);  // recovery within 1 second (10 ticks).
-    printf("%lf -> %lf\n" , in, out);
+    printf("%lf -> %lf\n" , in.deg(), out.deg());
     if (10 == n)
-      EXPECT_FLOAT_EQ(0, out);
+      EXPECT_EQ(0, out);
   }
-  in = Deg2Rad(-1);;
+  in = Deg2Rad(-1);
   for (int n = 0; n < 3; ++n) {
     out = FilterOffset(in, decay, &memory);  // recovery within 1 second (10 ticks).
-    printf("%lf -> %lf\n" , in, out);
-    EXPECT_FLOAT_EQ(in, out);
+    printf("%lf -> %lf\n" , in.deg(), out.deg());
+    EXPECT_ANGLE_EQ(in, out);
   }
   in = 0;
   for (int n = 0; n < 20; ++n) {
     out = FilterOffset(in, decay, &memory);  // recovery within 1 second (10 ticks).
-    printf("%lf -> %lf\n" , in, out);
+    printf("%lf -> %lf\n" , in.deg(), out.deg());
     if (10 == n)
-      EXPECT_FLOAT_EQ(0, out);
+      EXPECT_EQ(0, out);
   }
-  in = Deg2Rad(-1);;
+  in = Deg2Rad(-1);
   for (int n = 0; n < 3; ++n) {
     out = FilterOffset(in, decay, &memory);  // recovery within 1 second (10 ticks).
-    printf("%lf -> %lf\n" , in, out);
-    EXPECT_FLOAT_EQ(in, out);
+    printf("%lf -> %lf\n" , in.deg(), out.deg());
+    EXPECT_ANGLE_EQ(in, out);
   }
   in = Deg2Rad(1);
   for (int n = 0; n < 20; ++n) {
     out = FilterOffset(in, decay, &memory);  // recovery within 1 second (10 ticks).
-    printf("%lf -> %lf\n" , in, out);
-    EXPECT_FLOAT_EQ(in, out);
+    printf("%lf -> %lf\n" , in.deg(), out.deg());
+    EXPECT_ANGLE_EQ(in, out);
   }
 
 }

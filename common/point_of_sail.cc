@@ -9,6 +9,7 @@
 #include <math.h>
 #include <stdio.h>
 
+#include "common/angle.h"
 #include "common/check.h"
 #include "common/convert.h"
 #include "common/delta_angle.h"
@@ -100,19 +101,19 @@ double PointOfSail::AntiWindGust(SectorT sector,      // sector codes
   // lake tests: their exact mechanism is not clear. We apply an asymmetric
   // change rate limitation, i.e. if we notice that we went too much into the wind then
   // we fall off quickly and return very slowly only. Just like a real helmsman.
-  const double decay = Deg2Rad(0.2) * 0.1;  // 0.2 degree per second (very slow)
+  const Angle decay = Angle::fromDeg(0.2 * 0.1);  // 0.2 degree per second (very slow)
 
-  double  correction = 0;
+  Angle correction;
   if (mag_app > 0.5) {
     // For the apparent wind the tack zone is smaller and the jibe zone is bigger.
     // For the Jibe zone we do not take this into account because it will not
     // have much of a negative effect, but would reduce the sailable angles
     // a lot.
     const double kAppOffset = Deg2Rad(12);
-        // Bigger than 0, if we are too close and have to fall off left.
-        double delta1 = SymmetricRad(-M_PI + TackZoneRad() - kAppOffset - alpha_app);
-        // Bigger than 0, if we shall fall off right.
-        double delta2 = SymmetricRad( M_PI - TackZoneRad() + kAppOffset - alpha_app);
+    // Bigger than 0, if we are too close and have to fall off left.
+    double delta1 = SymmetricRad(-M_PI + TackZoneRad() - kAppOffset - alpha_app);
+    // Bigger than 0, if we shall fall off right.
+    double delta2 = SymmetricRad( M_PI - TackZoneRad() + kAppOffset - alpha_app);
 
     // What do these deltas mean? It means that the normal control has failed or
     // that the wind turned quickly.
@@ -125,17 +126,17 @@ double PointOfSail::AntiWindGust(SectorT sector,      // sector codes
       case TackPort:
       case ReachPort:
         buffer2_ = 0;
-        correction = -PositiveFilterOffset(delta1, decay, &buffer1_);
-        if (debug && correction < 0) {
-          fprintf(stderr, "corr1 FALL OFF LEFT: % 5.2lf \n",  correction);
+        correction = -PositiveFilterOffset(Angle::fromRad(delta1), decay, &buffer1_);
+        if (debug && correction.negative()) {
+          fprintf(stderr, "corr1 FALL OFF LEFT: % 5.2lf \n",  correction.deg());
         }
         break;
       case TackStar:
       case ReachStar:
         buffer1_ = 0;
-        correction = PositiveFilterOffset(-delta2, decay, &buffer2_);
+        correction = PositiveFilterOffset(Angle::fromRad(-delta2), decay, &buffer2_);
         if (debug && correction > 0) {
-          fprintf(stderr, "corr2 FALL OFF RIGHT: % 5.2lf \n",  correction);
+          fprintf(stderr, "corr2 FALL OFF RIGHT: % 5.2lf \n",  correction.deg());
         }
         break;
       case JibeStar:
@@ -147,7 +148,7 @@ double PointOfSail::AntiWindGust(SectorT sector,      // sector codes
     }
 
   }
-  return correction;
+  return correction.rad();
 }
 
 
@@ -156,19 +157,19 @@ void PointOfSail::Reset() {
   buffer2_ = 0;
 }
 
-double FilterOffset(double in, double decay, double* prev) {
-  if (Sign(in) != 0 && Sign(in) != Sign(*prev)) {
-    *prev = in;
+Angle FilterOffset(Angle in, Angle decay, Angle* prev) {
+  if (in.sign() != 0 && in.sign() != prev->sign()) {
+   *prev = in;
     return in;
   }
-  if (in > 0 || *prev > 0) {
-    if (*prev > 0)
+  if (in.positive() || prev->positive()) {
+    if (prev->positive())
       *prev -= decay;
     if (in > *prev)
       *prev = in;
   }
-  if (in < 0 || *prev < 0) {
-    if (*prev < 0)
+  if (in.negative() || prev->negative()) {
+    if (prev->negative())
       *prev += decay;
     if (in < *prev)
       *prev = in;
@@ -176,18 +177,11 @@ double FilterOffset(double in, double decay, double* prev) {
   return *prev;
 }
 
-double PositiveFilterOffset(double in, double decay, double* prev) {
-  if (in > 0)
+Angle PositiveFilterOffset(Angle in, Angle decay, Angle* prev) {
+  if (in.positive()) {
     // clip the correction at 45 degrees.
-    return FilterOffset(std::min(in, Deg2Rad(45)), decay, prev);
-  else
-    return FilterOffset(0, decay, prev);
+    return FilterOffset(std::min(in, Angle::fromDeg(45)), decay, prev);
+  } else {
+    return FilterOffset(Angle::fromDeg(0), decay, prev);
+  }
 }
-
-double NegativeFilterOffset(double in, double decay, double* prev) {
-  if (in < 0)
-    return FilterOffset(in, decay, prev);
-  else
-    return FilterOffset(0, decay, prev);
-}
-

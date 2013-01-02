@@ -54,7 +54,10 @@ double SymmetricRad(double alpha_rad);
 #ifndef COMMON_ANGLE_H_
 #define COMMON_ANGLE_H_
 
+#include <iostream>
 #include <stdint.h>
+
+#include "../common/check.h"
 
 // If the range of x is actually undefined use
 // Angle::fromDeg(normalizeDeg(x));
@@ -90,9 +93,16 @@ public:
   static Angle fromDeg(long double deg);
   static Angle fromRad(double rad);
   static Angle fromRad(long double rad);
+  // as atan2 from math.h
+  // N.B. atan2 has a value range (-pi, pi] but
+  // we work with [-pi, pi).
+  static Angle fromAtan2(double y, double x);
 
   Angle();  // Intentionally there is no constructor with an input value.
             // Use fromDeg() or fromRad()!
+
+  // Requires that zero is 0.
+  Angle& operator= (int zero);
 
   // Returns the angle in the desired unit.
   // signed degrees, in [-180, 180), i.e. -180 <= x.deg() < 180
@@ -104,7 +114,9 @@ public:
   // unsigned radians, in [0, 2*pi)
   double urad() const;
 
-  // Overloaded operators
+  // Overloaded operators all work as if the angles were signed double angles,
+  // with the addition that the wrap around at +180 degrees / 180 degrees is
+  // handled.
   Angle& add(const Angle& left, const Angle& right);
   Angle& sub(const Angle& left, const Angle& right);
   Angle operator+ (const Angle& right) const;
@@ -112,28 +124,50 @@ public:
   Angle operator- (const Angle& right) const;
   Angle& operator-=(const Angle& right);
 
-  // unary minus, implies signed representation
-  Angle operator-() const;
+  // unary minus, as ususal implies signed representation.
+  Angle operator- () const;
   // implies signed representation, i.e. -160 / 2 = -80 .
-  Angle operator/(int divisor) const;
+  Angle operator/ (int divisor) const;
 
-  double sin();
-  double cos();
-  // as atan2 from math.h
-  // N.B. atan2 has a value range (-pi, pi] but
-  // we work with [-pi, pi).
-  static Angle fromAtan2(double y, double x);
+  double sin() const;
+  double cos() const;
 
-  bool operator==(const Angle& right);
+  // The following methods imply a signed angle interpretation.
+  int sign() const;
+  int signNotZero() const;
+  bool positive() const;
+  bool negative() const;
+  bool zero() const;
 
-  void print() const;
+  bool operator< (const Angle& right) const;
+  bool operator==(const Angle& right) const;
+  inline bool operator!=(const Angle& right) const {return !operator==(right);}
+  inline bool operator> (const Angle& right) const {return right.operator< (*this);}
+  inline bool operator<=(const Angle& right) const {return !operator> (right);}
+  inline bool operator>=(const Angle& right) const {return !operator< (right);}
+
+  inline bool operator< (int zero) const {
+    CHECK_EQ(0, zero);
+    return negative();
+  }
+
+  inline bool operator> (int zero) const {
+    CHECK_EQ(0, zero);
+    return positive();
+  }
+
+  inline bool operator==(int zero) const {
+    CHECK_EQ(0, zero);
+    return angle_ == 0;
+  }
+
+  void print(const char* label = "") const;
 
   // Returns the oppsite direction, i.e. this + 180 degrees.
   Angle opposite() const;
 
   const static long double EPSILON_DEG;
   const static long double EPSILON_RAD;
-
 
 private:
   typedef int64_t atype;
@@ -175,5 +209,40 @@ double NormalizeRad(double alpha_rad);
 
 // Force angle into [-pi, pi)
 double SymmetricRad(double alpha_rad);
+
+// To make our test check macros work.
+std::ostream& operator<<(std::ostream& os, const Angle& obj);
+
+inline bool operator< (int zero, const Angle& right) {
+  CHECK_EQ(0, zero);
+  return right.negative();
+}
+
+inline bool operator== (int zero, const Angle& right) {
+  CHECK_EQ(0, zero);
+  return right.zero();
+}
+
+inline bool operator!= (int zero, const Angle& right) {
+  CHECK_EQ(0, zero);
+  return !right.zero();
+}
+
+inline bool operator> (int zero, const Angle& right) {
+  CHECK_EQ(0, zero);
+  return right.positive();
+}
+
+#define EXPECT_ANGLE_EQ(a, b) \
+  do { \
+    if (fabs(((a) - (b)).deg()) > 1E-10) { \
+      std::cout << __FILE__ << ":" <<__LINE__ \
+      << "\nTest a == b (tol:1E-10 degree) failed with expected:\n"; \
+      std::cout << #a " which is " << std::setprecision(16) << (a.deg()) << "\n"; \
+      std::cout << "versus actual:\n"; \
+      std::cout << #b " which is " << (b.deg()) << "\n"; \
+      exit(1); \
+    } \
+  } while(0)
 
 #endif  // COMMON_ANGLE_H_

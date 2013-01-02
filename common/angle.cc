@@ -36,8 +36,15 @@ namespace {
 
 Angle::Angle() : angle_(0) {}
 
+// For convenience allow
+// Angle x = 0;
+Angle& Angle::operator= (int zero) {
+  CHECK_EQ(0, zero);  // Only 0 can be assigned to an Angle object.");
+  this->angle_ = 0;
+  return *this;
+}
+
 Angle::Angle(int64_t angle) : angle_(static_cast<utype>(angle)) {
-  // fprintf(stderr, "ctor  : 0x%16llx\n", this->angle_);
 }
 
 Angle Angle::fromDeg(int deg) {
@@ -70,8 +77,8 @@ Angle Angle::fromRad(long double rad) {
   return Angle(RAD_TO_ATYPE * normalizeInputRad(rad) + 0.5);
 }
 
-void Angle::print() const {
-  fprintf(stderr, "print:  %20.20Lf degrees (internally %16lld 0x%16llx)\n", ATYPE_TO_DEG * angle_, angle_, angle_);
+void Angle::print(const char* label) const {
+  fprintf(stderr, "%s  %20.20Lf degrees (internally %16lld 0x%16llx)\n", label, ATYPE_TO_DEG * angle_, angle_, angle_);
 }
 
 
@@ -84,7 +91,6 @@ double Angle::rad() const {
 }
 
 double Angle::udeg() const {
-  fprintf(stderr, "deg : %lld * %15Le = %15Le deg\n", angle_, ATYPE_TO_DEG, ATYPE_TO_DEG * angle_);
   return ATYPE_TO_DEG * angle_;
 }
 
@@ -96,20 +102,16 @@ double Angle::urad() const {
 // the angles stay normalized.
 Angle& Angle::add(const Angle& left, const Angle& right) {
   this->angle_ = left.angle_ + right.angle_;
-  fprintf(stderr, "add              : 0x%16llx\n", this->angle_);
   return *this;
 }
 
 Angle& Angle::sub(const Angle& left, const Angle& right) {
   this->angle_ = left.angle_ - right.angle_;
-  fprintf(stderr, "sub              : 0x%16llx\n", this->angle_);
   return *this;
 }
 
 Angle& Angle::operator+= (const Angle& right) {
-  //fprintf(stderr, "this  : 0x%16llx\nright : 0x%16llx\n", this->angle_, right.angle_);
   this->angle_ += right.angle_;
-  //fprintf(stderr, "sum+= : 0x%16llx %16lld\n", this->angle_, this->angle_);
   return *this;
 }
 
@@ -145,11 +147,11 @@ Angle Angle::operator/ (int divisor) const {
   return a;
 }
 
-double Angle::sin() {
+double Angle::sin() const {
   return math_sin(rad());
 }
 
-double Angle::cos() {
+double Angle::cos() const {
   return math_cos(rad());
 }
 
@@ -158,12 +160,45 @@ Angle Angle::fromAtan2(double y, double x) {
   return Angle::fromRad(math_atan2(y, x));
 }
 
-bool Angle::operator==(const Angle& right) {
-  return this->angle_ == right.angle_;
+// Sign when seen as signed angle.
+int Angle::sign() const {
+  if (angle_ == 0)
+    return 0;
+  return static_cast<atype>(angle_) > 0 ? 1 : -1;
 }
 
+int Angle::signNotZero() const {
+  return static_cast<atype>(angle_) >= 0 ? 1 : -1;
+}
 
-//overflow during multiplication defined or undefined behaviour?
+bool Angle::positive() const {
+  return static_cast<atype>(angle_) > 0;
+}
+
+bool Angle::zero() const {
+  return angle_ == 0;
+}
+
+bool Angle::negative() const {
+  return static_cast<atype>(angle_) < 0;
+}
+
+bool Angle::operator==(const Angle& right) const {
+  return angle_ == right.angle_;
+}
+
+bool Angle::operator< (const Angle& right) const {
+  return static_cast<atype>(angle_) < static_cast<atype>(right.angle_);
+}
+
+static bool equal(const Angle& left, const Angle& right, const Angle& tol) {
+  CHECK(tol.positive());
+  Angle delta = left - right;
+  if (delta.positive())
+    return delta < tol;
+  else
+    return delta > -tol;
+}
 
 // Force result into [-180, 180). template this !
 int Angle::normalizeInputDeg(int alpha_deg) {
@@ -248,4 +283,9 @@ double normalizeRadSaturated(double alpha_rad) {
   else if (alpha_rad < -M_PI)
     alpha_rad = -M_PI;
   return alpha_rad;
+}
+
+// To make our test check macros work.
+std::ostream& operator<<(std::ostream& os, const Angle& obj) {
+  return os << std::fixed << obj.deg() << " degrees";
 }
