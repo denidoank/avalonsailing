@@ -50,19 +50,25 @@ Angle::Angle(int64_t angle) : angle_(static_cast<utype>(angle)) {
 // not mapped correctly.
 Angle deg(int d) {
   CHECK(-180 <= d && d < 360);
-  Angle::atype x = Angle::HALF_RANGE * (Angle::normalizeInputDeg(d) / 180.0L) + 0.25;
+  int d_in_range = Angle::normalizeInputDeg(d);
+  double rounding_shift = d_in_range > 0 ? 0.499999999999 : -0.499999999999;
+  Angle::atype x = Angle::HALF_RANGE * (d_in_range / 180.0L) + rounding_shift;
   return Angle(x);
 }
 
 Angle deg(double d) {
   CHECK(-180 <= d && d < 360);
-  Angle::atype x = Angle::HALF_RANGE * (Angle::normalizeInputDeg(d) / 180.0L) + 0.25;
+  double d_in_range = Angle::normalizeInputDeg(d);
+  double rounding_shift = d_in_range > 0 ? 0.499999999999 : -0.499999999999;
+  Angle::atype x = Angle::HALF_RANGE * (d_in_range / 180.0L) + rounding_shift;
   return Angle(x);
 }
 
 Angle deg(long double d) {
   CHECK(-180 <= d && d < 360);
-  Angle::atype x = Angle::HALF_RANGE * (Angle::normalizeInputDeg(d) / 180.0L) + 0.25;
+  long double d_in_range = Angle::normalizeInputDeg(d);
+  double rounding_shift = d_in_range > 0 ? 0.499999999999 : -0.499999999999;
+  Angle::atype x = Angle::HALF_RANGE * (d_in_range / 180.0L) + rounding_shift;
   return Angle(x);
 }
 
@@ -133,6 +139,15 @@ Angle Angle::opposite() const {
   return a;
 }
 
+Angle Angle::operator* (double factor) const {
+  CHECK(factor <= 1);  // This excludes any overflow.
+  long double prod = static_cast<atype>(this->angle_) * factor;
+  double rounding_shift = prod > 0 ? 0.499999999999 : -0.499999999999;
+  Angle a(static_cast<atype>(prod + rounding_shift));
+  return a;
+}
+
+
 Angle Angle::operator/ (int divisor) const {
   CHECK(divisor != 0);
   Angle a(static_cast<atype>(this->angle_) / divisor);
@@ -175,7 +190,7 @@ bool Angle::operator==(const Angle& right) const {
 }
 
 bool Angle::operator< (const Angle& right) const {
-  return static_cast<atype>(angle_) < static_cast<atype>(right.angle_);
+  return (right.angle_ - angle_) < HALF_RANGE;
 }
 
 static bool equal(const Angle& left, const Angle& right, const Angle& tol) {
@@ -210,14 +225,9 @@ Angle Angle::nearest(Angle option1, Angle option2, bool *took_option1)  const {
   }
 }
 
-
-
-
-
 void Angle::print(const char* label) const {
   fprintf(stderr, "%s  %20.20Lf degrees (internally %16lld 0x%16llx)\n", label, ATYPE_TO_DEG * angle_, angle_, angle_);
 }
-
 
 double Angle::deg() const {
   return ATYPE_TO_DEG * static_cast<atype>(angle_);

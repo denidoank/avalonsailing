@@ -26,22 +26,23 @@ typedef struct Env {
 } EnvT;
 
 namespace {
-double Test(double* sailable, double star, const EnvT& env, double expected) {
+double Test(double* sailable_rad, double star, const EnvT& env, double expected) {
   printf("Want to sail %lf at %lf true wind.\n", star, Rad2Deg(env.alpha_true));
   SectorT sector;
-  double target;
-  *sailable = p.SailableHeading(Deg2Rad(star),
-                                env.alpha_true,
-                                *sailable,
-                                &sector,
-                                &target);
-  EXPECT_IN_INTERVAL(-M_PI, target, M_PI);
-  EXPECT_IN_INTERVAL(-M_PI, *sailable, M_PI);
-  if (fabs(*sailable - Deg2Rad(expected)) > 1E-4) {
-    printf("sailable: %lf deg\n", Rad2Deg(*sailable));
+  Angle target;
+  Angle sailable = p.SailableHeading(deg(star),
+                                     rad(env.alpha_true),
+                                     rad(*sailable_rad),
+                                     &sector,
+                                     &target);
+  *sailable_rad = sailable.rad();
+  EXPECT_IN_INTERVAL(-M_PI, target.rad(), M_PI);
+  EXPECT_IN_INTERVAL(-M_PI, *sailable_rad, M_PI);
+  if (fabs(*sailable_rad - Deg2Rad(expected)) > 1E-4) {
+    printf("sailable: %lf deg\n", Rad2Deg(*sailable_rad));
     printf("expected: %lf deg\n", expected);
   }
-  return *sailable - Deg2Rad(expected);
+  return *sailable_rad - Deg2Rad(expected);
 }
 
 void SetEnvWithoutReset(double alpha_wind_true_deg, double mag_wind_true,
@@ -76,57 +77,59 @@ void SetEnv(double alpha_wind_true_deg, double mag_wind_true,
 
 
 TEST(PointOfSailTest, SailableHeading) {
-  double sailable = 0;
+  Angle angle_sailable = deg(0);
   Env env = {0, 0, 10, 0, 0};  // running
 
   SetEnv(0, 10, 0, 2, &env);  // Go North, running.
 
   const double JibeZoneWidth = 180 - JibeZoneDeg();
   SectorT sector;
-  double target;
-  sailable = p.SailableHeading(Deg2Rad(1),
-                               env.alpha_true,
-                               sailable,
-                               &sector,
-                               &target);
-  EXPECT_FLOAT_EQ(Deg2Rad(JibeZoneWidth), sailable);
+  Angle target;
+  angle_sailable = p.SailableHeading(deg(1),
+                                     rad(env.alpha_true),
+                                     angle_sailable,
+                                     &sector,
+                                     &target);
+  EXPECT_FLOAT_EQ(Deg2Rad(JibeZoneWidth), angle_sailable.rad());
 
   // Test that the sector cases have no gaps.
   // 4 test with alpha star exacly at the limit boundaries.
   double alpha_star = 2.268928027592628460240576;
   SetEnv(0, 10, alpha_star, 2, &env);
-  sailable = p.SailableHeading(alpha_star,
-                               env.alpha_true,
-                               sailable,
-                               &sector,
-                               &target);
-  EXPECT_FLOAT_EQ(alpha_star, sailable);
+  angle_sailable = p.SailableHeading(rad(alpha_star),
+                                     rad(env.alpha_true),
+                                     angle_sailable,
+                                     &sector,
+                                     &target);
+  EXPECT_FLOAT_EQ(alpha_star, angle_sailable.rad());
 
   alpha_star = -2.268928027592628460240576;
   SetEnv(0, 10, alpha_star, 2, &env);
-  sailable = p.SailableHeading(alpha_star,
-                               env.alpha_true,
-                               sailable,
-                               &sector,
-                               &target);
-  EXPECT_FLOAT_EQ(alpha_star, sailable);
+  angle_sailable = p.SailableHeading(rad(alpha_star),
+                                     rad(env.alpha_true),
+                                     angle_sailable,
+                                     &sector,
+                                     &target);
+  EXPECT_FLOAT_EQ(alpha_star, angle_sailable.rad());
   alpha_star = -0.349065850398865951120797;
   SetEnv(0, 10, alpha_star, 2, &env);
-  sailable = p.SailableHeading(alpha_star,
-                               env.alpha_true,
-                               sailable,
-                               &sector,
-                               &target);
-  EXPECT_FLOAT_EQ(alpha_star, sailable);
+  angle_sailable = p.SailableHeading(rad(alpha_star),
+                                     rad(env.alpha_true),
+                                     angle_sailable,
+                                     &sector,
+                                     &target);
+  EXPECT_FLOAT_EQ(alpha_star, angle_sailable.rad());
   alpha_star = 0.349065850398865951120796;
   SetEnv(0, 10, alpha_star, 2, &env);
-  sailable = p.SailableHeading(alpha_star,
-                               env.alpha_true,
-                               sailable,
-                               &sector,
-                               &target);
-  EXPECT_FLOAT_EQ(alpha_star, sailable);
+  angle_sailable = p.SailableHeading(rad(alpha_star),
+                                     rad(env.alpha_true),
+                                     angle_sailable,
+                                     &sector,
+                                     &target);
+  EXPECT_FLOAT_EQ(alpha_star, angle_sailable.rad());
 
+
+  double sailable = -1;
   //              a*         expected
   EXPECT_FLOAT_EQ(0, Test(&sailable, 45, env,   45));
   EXPECT_FLOAT_EQ(0, Test(&sailable,  0, env,   JibeZoneWidth));
@@ -243,7 +246,9 @@ TEST(PointOfSailTest, SailableHeading) {
   SetEnv(120, 10, 0, boat_speed, &env);   // Still go North, Reaching.
   EXPECT_FLOAT_EQ(0, Test(&sailable, 0, env, 0));
   SetEnv(180, 10, 0, boat_speed, &env);
-  EXPECT_FLOAT_EQ(0, Test(&sailable, 0, env, TackZoneDeg()));
+  EXPECT_FLOAT_EQ(0, Test(&sailable, 0, env, -TackZoneDeg()));
+  SetEnv(160, 10, 0, boat_speed, &env);
+  EXPECT_FLOAT_EQ(0, Test(&sailable, 0, env, TackZoneDeg() - 20));
   SetEnv(179, 10, 0, boat_speed, &env);
   EXPECT_FLOAT_EQ(0, Test(&sailable, 0, env, TackZoneDeg() - 1));
   SetEnv(-179, 10, 0, boat_speed, &env);
@@ -317,56 +322,57 @@ TEST(PointOfSailTest, SailableHeading) {
   // mag_app = 0.001 switches off the processing of the apparent wind and
   // the logic that corrects the desired bearing.
   SetEnv(0, 10, alpha_star, 2, &env);
-  sailable = p.SailableHeading(alpha_star,
-                               env.alpha_true,
-                               sailable,
+  angle_sailable = p.SailableHeading(rad(alpha_star),
+                               rad(env.alpha_true),
+                               angle_sailable,
                                &sector,
                                &target);
-  EXPECT_FLOAT_EQ(alpha_star, sailable);
+  EXPECT_FLOAT_EQ(alpha_star, angle_sailable.rad());
+  // TODO: Check written target!
 
   // Do not sail into the forbidden tack zone
-  sailable = p.SailableHeading(alpha_star + 0.2,
-                               env.alpha_true,
-                               sailable,
+  angle_sailable = p.SailableHeading(rad(alpha_star + 0.2),
+                               rad(env.alpha_true),
+                               angle_sailable,
                                &sector,
                                &target);
-  EXPECT_FLOAT_EQ(alpha_star, sailable);
+  EXPECT_FLOAT_EQ(alpha_star, angle_sailable.rad());
 
   // But go off the limit left.
-  sailable = p.SailableHeading(alpha_star - 0.2,
-                               env.alpha_true,
-                               sailable,
+  angle_sailable = p.SailableHeading(rad(alpha_star - 0.2),
+                               rad(env.alpha_true),
+                               angle_sailable,
                                &sector,
                                &target);
-  EXPECT_FLOAT_EQ(alpha_star - 0.2, sailable);
+  EXPECT_FLOAT_EQ(alpha_star - 0.2, angle_sailable.rad());
 
   // The same on the other side.
   alpha_star = -2.268928027592628460240576; // at the limit 2
   // mag_app = 0.001 switches off the processing of the apparent wind and
   // the logic that corrects the desired bearing.
   SetEnv(0, 10, alpha_star, 2, &env);
-  sailable = p.SailableHeading(alpha_star,
-                               env.alpha_true,
-                               sailable,
+  angle_sailable = p.SailableHeading(rad(alpha_star),
+                               rad(env.alpha_true),
+                               angle_sailable,
                                &sector,
                                &target);
-  EXPECT_FLOAT_EQ(alpha_star, sailable);
+  EXPECT_FLOAT_EQ(alpha_star, angle_sailable.rad());
 
   // Do not sail into the forbidden tack zone
-  sailable = p.SailableHeading(alpha_star - 0.2,
-                               env.alpha_true,
-                               sailable,
+  angle_sailable = p.SailableHeading(rad(alpha_star - 0.2),
+                               rad(env.alpha_true),
+                               angle_sailable,
                                &sector,
                                &target);
-  EXPECT_FLOAT_EQ(alpha_star, sailable);
+  EXPECT_FLOAT_EQ(alpha_star, angle_sailable.rad());
 
   // But go off the limit left.
-  sailable = p.SailableHeading(alpha_star + 0.2,
-                               env.alpha_true,
-                               sailable,
+  angle_sailable = p.SailableHeading(rad(alpha_star + 0.2),
+                               rad(env.alpha_true),
+                               angle_sailable,
                                &sector,
                                &target);
-  EXPECT_FLOAT_EQ(alpha_star + 0.2, sailable);
+  EXPECT_FLOAT_EQ(alpha_star + 0.2, angle_sailable.rad());
 }
 
 TEST(PointOfSailTest, AntiWindGust) {
