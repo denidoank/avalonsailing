@@ -19,6 +19,10 @@ extern int debug;
 namespace {
 const double kTackZoneDeg = 50;        // degrees, a safe guess.
 const double kJibeZoneDeg = 180 - 20;  // degrees
+
+const Angle kTackZone = deg(50);       // 50 degrees, a safe guess.
+const Angle kJibeZone = deg(180 - 20);
+const Angle kJibeZoneHW = deg(20);
 }  // namespace
 
 double Speed(double angle_deg, double wind_speed);
@@ -122,6 +126,19 @@ double JibeZoneRad() {
 double JibeZoneHalfWidthRad() {
   return Deg2Rad(180 - kJibeZoneDeg);
 }
+
+Angle TackZone() {
+  return kTackZone;
+}
+
+Angle JibeZone() {
+  return kJibeZone;
+}
+
+Angle JibeZoneHalfWidth() {
+  return kJibeZoneHW;
+}
+
 
 double BestSailableHeading(double alpha_star, double alpha_true) {
   // Stay in sailable zone
