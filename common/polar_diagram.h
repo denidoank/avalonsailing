@@ -6,6 +6,8 @@
 #ifndef COMMON_POLAR_DIAGRAM_H_
 #define COMMON_POLAR_DIAGRAM_H_
 
+#include "common/angle.h"
+
 // After tests in wind speed ranges of 2-10m/s I defined
 // this approximation. Our speed limit is around 2.5m/s.
 
@@ -30,6 +32,10 @@ double JibeZoneDeg();
 double TackZoneRad();
 double JibeZoneRad();  // about 160 in radians
 double JibeZoneHalfWidthRad();  // Returns the more plausible 20 degrees in radians.
+// as Angle
+Angle TackZone();
+Angle JibeZoneHalfWidth();  // Returns the more plausible 20 degrees.
+
 
 double BestSailableHeading(double alpha_star, double alpha_true);
 double BestSailableHeadingDeg(double alpha_star_deg, double alpha_true_deg);
