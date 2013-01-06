@@ -16,8 +16,8 @@
 //    350 degrees plus 15 degrees is not 365 degrees, but 5 degrees. So after each
 //    operation the overflow and underflow have to be handled.
 // These problems are adressed as follows:
-// a) To create a non-zero Angle object static methods (fromRad, fromDeg) are provided.
-//    For output as double values or strings methods with appropriate names are provided.
+// a) To create a non-zero Angle object free methods (rad(), deg()) are provided.
+//    For output as double values methods with appropriate names are provided.
 // b) This problem is relevant for output only. The input methods accept [-180, 360) degrees.
 //    2 output methods (signed and unsigned) are provided.
 // c) The internal representation of the angle supports the wrap around efficiently.
@@ -55,6 +55,7 @@ double SymmetricRad(double alpha_rad);
 #define COMMON_ANGLE_H_
 
 #include <iostream>
+#include <stddef.h>
 #include <stdint.h>
 
 #include "../common/check.h"
@@ -83,36 +84,28 @@ double normalizeDegSaturated(double alpha_deg);
 // Map the input value into [-pi, pi) radians.
 double normalizeRadSaturated(double alpha_rad);
 
-
 class Angle {
 
 public:
-  // For any input guaranteed to be within [-180, 360) use this:
-  static Angle fromDeg(int deg);
-  static Angle fromDeg(double deg);
-  static Angle fromDeg(long double deg);
-  static Angle fromRad(double rad);
-  static Angle fromRad(long double rad);
+  friend Angle deg(int deg);
+  friend Angle deg(double deg);
+  friend Angle deg(long double deg);
+
+  friend Angle rad(int rad);
+  friend Angle rad(double rad);
+  friend Angle rad(long double rad);
+
   // as atan2 from math.h
   // N.B. atan2 has a value range (-pi, pi] but
   // we work with [-pi, pi).
-  static Angle fromAtan2(double y, double x);
+  friend Angle fromAtan2(double y, double x);
+
 
   Angle();  // Intentionally there is no constructor with an input value.
-            // Use fromDeg() or fromRad()!
+            // Use deg() or rad()!
 
   // Requires that zero is 0.
   Angle& operator= (int zero);
-
-  // Returns the angle in the desired unit.
-  // signed degrees, in [-180, 180), i.e. -180 <= x.deg() < 180
-  double deg() const;
-  // signed radians, in [-pi, pi)
-  double rad() const;
-  // unsigned degrees, in [0, 360)
-  double udeg() const;
-  // unsigned radians, in [0, 2*pi)
-  double urad() const;
 
   // Overloaded operators all work as if the angles were signed double angles,
   // with the addition that the wrap around at +180 degrees / 180 degrees is
@@ -161,10 +154,28 @@ public:
     return angle_ == 0;
   }
 
+  // Returns the opposite direction, i.e. this + 180 degrees.
+  Angle opposite() const;
+
+  // The absolute magnitude of the angle when interpreed as
+  // a signed value.
+  Angle abs() const;
+
+  // The nearest of two options from this. Prefer option1 if the distances are equal.
+  Angle nearest(Angle option1, Angle option2, bool* took_option1 = NULL) const;
+
+
   void print(const char* label = "") const;
 
-  // Returns the oppsite direction, i.e. this + 180 degrees.
-  Angle opposite() const;
+  // Returns the angle in the desired unit.
+  // signed degrees, in [-180, 180), i.e. -180 <= x.deg() < 180
+  double deg() const;
+  // signed radians, in [-pi, pi)
+  double rad() const;
+  // unsigned degrees, in [0, 360)
+  double udeg() const;
+  // unsigned radians, in [0, 2*pi)
+  double urad() const;
 
   const static long double EPSILON_DEG;
   const static long double EPSILON_RAD;
@@ -184,7 +195,7 @@ private:
 
   const static int MANTISSA;             // length in bits
   const static utype HALF_RANGE;
-  // Why long double? The output conversion would be to imprecise with double.
+  // Why long double? The output conversion would be too imprecise with double.
   const static long double DEG_TO_ATYPE;
   const static long double RAD_TO_ATYPE;
   const static long double ATYPE_TO_DEG;
@@ -193,21 +204,34 @@ private:
   utype angle_;
 };
 
+// For any input guaranteed to be within [-180, 360) use this:
+Angle deg(int deg);
+Angle deg(double deg);
+Angle deg(long double deg);
 
-// Force angle into [0, 360).
+Angle rad(int radians);
+Angle rad(double radians);
+Angle rad(long double radians);
+
+// as atan2 from math.h
+// N.B. atan2 has a value range (-pi, pi] but
+// we work with [-pi, pi).
+Angle fromAtan2(double y, double x);
+
+// Force any angle into [0, 360).
 int NormalizeDeg(int alpha_deg);
 double NormalizeDeg(double alpha_deg);
 long double NormalizeDeg(long double alpha_deg);
 
-// Force angle into [-180, 180)
+// Force any angle into [-180, 180)
 int SymmetricDeg(int alpha_deg);
 double SymmetricDeg(double alpha_deg);
 long double SymmetricDeg(long double alpha_deg);
 
-// Force radians into [0, 2*pi).
+// Force any radians into [0, 2*pi).
 double NormalizeRad(double alpha_rad);
 
-// Force angle into [-pi, pi)
+// Force any radians angle into [-pi, pi)
 double SymmetricRad(double alpha_rad);
 
 // To make our test check macros work.
