@@ -8,6 +8,7 @@
 #include <math.h>
 #include <stdint.h>
 #include <time.h>
+#include "common/angle.h"
 #include "common/apparent.h"
 #include "common/delta_angle.h"
 #include "common/normalize.h"
@@ -200,8 +201,8 @@ void NormalController::ShapeReferenceValue(double alpha_star,
         &maneuver_target);
     if (sector == prev_sector_) {
       new_sailable += point_of_sail_.AntiWindGust(sector,
-                                                  angle_app,  // apparent wind vector direction
-                                                  mag_app);   // apparent wind vector magnitude
+                                                  rad(angle_app),  // apparent wind vector direction
+                                                  mag_app).rad();  // apparent wind vector magnitude
     }
     maneuver_type_ = SectorToManeuver(sector);
     sail_controller_->SetAlphaSign(SectorToGammaSign(sector));

@@ -18,12 +18,12 @@
 // The overflow of signed integer values is undefined behaviour, but for unsigned integers
 // everything is standardized and portable.
 const int Angle::MANTISSA = 64;  // i.e. bigger than the mantissa of a double variable.
-const Angle::utype Angle::HALF_RANGE = 1ULL << (MANTISSA-1);  // 0x8000..00
+const Angle::utype Angle::HALF_RANGE = 1ULL << (MANTISSA - 1);  // 0x8000..00
 
 const long double Angle::DEG_TO_ATYPE = Angle::HALF_RANGE / 180.0L;
-const long double Angle::RAD_TO_ATYPE = Angle::HALF_RANGE / (long double)M_PI;
+const long double Angle::RAD_TO_ATYPE = Angle::HALF_RANGE / (long double) M_PI;
 const long double Angle::ATYPE_TO_DEG = 180.0L / Angle::HALF_RANGE;
-const long double Angle::ATYPE_TO_RAD = (long double)M_PI / Angle::HALF_RANGE;
+const long double Angle::ATYPE_TO_RAD = (long double) M_PI / Angle::HALF_RANGE;
 const long double Angle::EPSILON_DEG = ATYPE_TO_DEG;
 const long double Angle::EPSILON_RAD = ATYPE_TO_RAD;
 
@@ -31,7 +31,6 @@ namespace {
   // Work around a name clash.
   double math_sin(double x) {return sin(x);}
   double math_cos(double x) {return cos(x);}
-  double math_atan2(double y, double x) {return atan2(y, x);}
 }
 
 Angle::Angle() : angle_(0) {}
@@ -47,56 +46,47 @@ Angle& Angle::operator= (int zero) {
 Angle::Angle(int64_t angle) : angle_(static_cast<utype>(angle)) {
 }
 
-Angle Angle::fromDeg(int deg) {
-  CHECK(-180 <= deg && deg < 360);
-  atype x = DEG_TO_ATYPE * normalizeInputDeg(deg) + 0.5;
+// The rounding summand for the next 3 methods should be 0.4999 but then -180deg is
+// not mapped correctly.
+Angle deg(int d) {
+  CHECK(-180 <= d && d < 360);
+  Angle::atype x = Angle::HALF_RANGE * (Angle::normalizeInputDeg(d) / 180.0L) + 0.25;
   return Angle(x);
 }
 
-Angle Angle::fromDeg(double deg) {
-  CHECK(-180 <= deg && deg < 360);
-  atype x = DEG_TO_ATYPE * normalizeInputDeg(deg) + 0.5;
+Angle deg(double d) {
+  CHECK(-180 <= d && d < 360);
+  Angle::atype x = Angle::HALF_RANGE * (Angle::normalizeInputDeg(d) / 180.0L) + 0.25;
   return Angle(x);
 }
 
-Angle Angle::fromDeg(long double deg) {
-  CHECK(-180 <= deg && deg < 360);
-  atype x = DEG_TO_ATYPE * normalizeInputDeg(deg) + 0.5;
+Angle deg(long double d) {
+  CHECK(-180 <= d && d < 360);
+  Angle::atype x = Angle::HALF_RANGE * (Angle::normalizeInputDeg(d) / 180.0L) + 0.25;
   return Angle(x);
 }
 
-Angle Angle::fromRad(double rad) {
+Angle rad(int radians) {
+  return rad(double(radians));
+}
+
+Angle rad(double radians) {
   // If someone tries to convert 10 rad then it is most probably a mixup with degrees.
-  CHECK(-M_PI <= rad && rad < 2 * M_PI);
-  return Angle(RAD_TO_ATYPE * normalizeInputRad(rad) + 0.5);
+  CHECK(-M_PI <= radians && radians < 2 * M_PI);
+  return Angle(Angle::RAD_TO_ATYPE * Angle::normalizeInputRad(radians) + 0.5);
 }
 
-Angle Angle::fromRad(long double rad) {
+Angle rad(long double radians) {
   // If someone tries to convert 10 rad then it is most probably a mixup with degrees.
-  CHECK(-M_PI <= rad && rad < 2 * M_PI);
-  return Angle(RAD_TO_ATYPE * normalizeInputRad(rad) + 0.5);
+  CHECK(-M_PI <= radians && radians < 2 * M_PI);
+  return Angle(Angle::RAD_TO_ATYPE * Angle::normalizeInputRad(radians) + 0.5);
 }
 
-void Angle::print(const char* label) const {
-  fprintf(stderr, "%s  %20.20Lf degrees (internally %16lld 0x%16llx)\n", label, ATYPE_TO_DEG * angle_, angle_, angle_);
+// as atan2 from math.h
+Angle fromAtan2(double y, double x) {
+  return rad(atan2(y, x));
 }
 
-
-double Angle::deg() const {
-  return ATYPE_TO_DEG * static_cast<atype>(angle_);
-}
-
-double Angle::rad() const {
-  return ATYPE_TO_RAD * static_cast<atype>(angle_);
-}
-
-double Angle::udeg() const {
-  return ATYPE_TO_DEG * angle_;
-}
-
-double Angle::urad() const {
-  return ATYPE_TO_RAD * angle_;
-}
 
 // Over and underflow may occur here, but
 // the angles stay normalized.
@@ -137,6 +127,8 @@ Angle Angle::operator- () const {
 }
 
 Angle Angle::opposite() const {
+  // -180 degrees (0x800..) are mapped onto -180 degrees,
+  // which is correct.
   Angle a(this->angle_ + HALF_RANGE);
   return a;
 }
@@ -153,11 +145,6 @@ double Angle::sin() const {
 
 double Angle::cos() const {
   return math_cos(rad());
-}
-
-// as atan2 from math.h
-Angle Angle::fromAtan2(double y, double x) {
-  return Angle::fromRad(math_atan2(y, x));
 }
 
 // Sign when seen as signed angle.
@@ -199,6 +186,55 @@ static bool equal(const Angle& left, const Angle& right, const Angle& tol) {
   else
     return delta > -tol;
 }
+
+Angle Angle::abs() const {
+  // This is a hack because +180 degrees is not in the valid output range.
+  if (angle_ == HALF_RANGE) {
+    Angle magnitude (HALF_RANGE - 1);  // 0x7FFFF...
+    return magnitude;
+  }
+  Angle magnitude(this->angle_);
+  return this->positive() ? magnitude : -magnitude;
+}
+
+Angle Angle::nearest(Angle option1, Angle option2, bool *took_option1)  const {
+  Angle d1 = option1 - *this;
+  Angle d2 = option2 - *this;
+  bool took1 = d1.abs() <= d2.abs();
+  if (took_option1)
+    *took_option1 = took1;
+  if (took1) {
+    return option1;
+  } else {
+    return option2;
+  }
+}
+
+
+
+
+
+void Angle::print(const char* label) const {
+  fprintf(stderr, "%s  %20.20Lf degrees (internally %16lld 0x%16llx)\n", label, ATYPE_TO_DEG * angle_, angle_, angle_);
+}
+
+
+double Angle::deg() const {
+  return ATYPE_TO_DEG * static_cast<atype>(angle_);
+}
+
+double Angle::rad() const {
+  return ATYPE_TO_RAD * static_cast<atype>(angle_);
+}
+
+double Angle::udeg() const {
+  return ATYPE_TO_DEG * angle_;
+}
+
+double Angle::urad() const {
+  return ATYPE_TO_RAD * angle_;
+}
+
 
 // Force result into [-180, 180). template this !
 int Angle::normalizeInputDeg(int alpha_deg) {

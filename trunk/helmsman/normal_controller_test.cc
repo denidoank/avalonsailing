@@ -193,7 +193,7 @@ TEST(NormalController, AllSailCloseHauledNegative) {
   c.Entry(in, filtered);
   c.Run(in, filtered, &out);
   // Too close, fall off right.
-  EXPECT_FLOAT_EQ(-8, Rad2Deg(out.drives_reference.gamma_rudder_star_left_rad));
+  EXPECT_FLOAT_EQ(-3.078200908151791, Rad2Deg(out.drives_reference.gamma_rudder_star_left_rad));
   EXPECT_EQ(out.drives_reference.gamma_rudder_star_left_rad,
             out.drives_reference.gamma_rudder_star_right_rad);
   // Sail very close to the middle
