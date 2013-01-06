@@ -120,7 +120,11 @@ public:
   // unary minus, as ususal implies signed representation.
   Angle operator- () const;
   // implies signed representation, i.e. -160 / 2 = -80 .
+  // Check-fails for divisor == 0.
   Angle operator/ (int divisor) const;
+  // implies signed representation, i.e. -160 * 0.5 = -80 .
+  // Check-fails for factor > 1, i.e. whenever overflow might occur.
+  Angle operator* (double factor) const;
 
   double sin() const;
   double cos() const;
@@ -132,6 +136,9 @@ public:
   bool negative() const;
   bool zero() const;
 
+  // So (-179degrees > 179 degrees) is true.
+  // By definition (-180degrees < 0 degrees) is false,
+  // as -90deg < 90deg;
   bool operator< (const Angle& right) const;
   bool operator==(const Angle& right) const;
   inline bool operator!=(const Angle& right) const {return !operator==(right);}

@@ -29,27 +29,25 @@ PointOfSail::PointOfSail() {
 // Everything in radians here.
 // If alpha_star and alpha_true are rate limited then the sector
 // output doesn't jump.
-// TODO: 4 limits as array.
-double PointOfSail::SailableHeading(
-    double alpha_star,       // rate limited alpha star
-    double alpha_true,       // true wind vector, slowly filtered
-    double previous_output,  // previous output direction, needed to implement hysteresis
-    SectorT* sector,         // sector codes for state handling and maneuver
-    double* target) {
-  double limit1 = SymmetricRad(alpha_true - M_PI - TackZoneRad());
-  double limit2 = SymmetricRad(alpha_true - M_PI + TackZoneRad());
-  double limit3 = SymmetricRad(alpha_true - JibeZoneHalfWidthRad());
-  double limit4 = SymmetricRad(alpha_true + JibeZoneHalfWidthRad());
+Angle PointOfSail::SailableHeading(
+    Angle alpha_star,       // rate limited alpha star
+    Angle alpha_true,       // true wind vector, slowly filtered
+    Angle previous_output,  // previous output direction, needed to implement hysteresis
+    SectorT* sector,        // sector codes for state handling and maneuver
+    Angle* target) {
+  Angle limit1 = alpha_true.opposite() - TackZone();
+  Angle limit2 = alpha_true.opposite() + TackZone();
+  Angle limit3 = alpha_true - JibeZoneHalfWidth();
+  Angle limit4 = alpha_true + JibeZoneHalfWidth();
   if (debug) {
-    fprintf(stderr, "limits true : % 5.2lf % 5.2lf % 5.2lf % 5.2lf\n",
-            limit1, limit2, limit3, limit4);
+    fprintf(stderr, "limits true : % 5.2lf % 5.2lf % 5.2lf % 5.2lf degrees\n",
+            limit1.deg(), limit2.deg(), limit3.deg(), limit4.deg());
   }
 
   // This keeps a small part of the previous output, later used in the hysteresis
-  // calculation. The hysteresis is good for minimizing the number of maneuvers
-  // but bad for the reaction on quick wind turns.
-  double hysteresis_tack = DeltaOldNewRad(previous_output, alpha_star) * 0.1; // about 5 degrees
-  double hysteresis_jibe = DeltaOldNewRad(previous_output, alpha_star) * 0.3;
+  // calculation. The hysteresis is good for minimizing the number of maneuvers.
+  Angle hysteresis_tack = (alpha_star - previous_output) * 0.1; // about 5 degrees
+  Angle hysteresis_jibe = (alpha_star - previous_output) * 0.3;
   bool left = false;
 
   /* Sector defintion
@@ -59,30 +57,46 @@ double PointOfSail::SailableHeading(
   6   : Reaching with sail on portside
   */
   *target = 0;
-  double alpha_star_limited = alpha_star;
-  if (LessOrEqual(limit1, alpha_star) && Less(alpha_star, limit2)) {
+  Angle alpha_star_limited = alpha_star;
+
+
+
+  if (limit1 <= alpha_star)     fprintf(stderr, "C1:\n");
+
+  if (alpha_star < limit2)     fprintf(stderr, "C2:\n");
+
+
+
+
+
+  if (limit1 <= alpha_star && alpha_star < limit2) {
     // Modify if in the non-sailable tack range.
-    alpha_star_limited = NearerRad(alpha_star - hysteresis_tack, limit1, limit2, &left);
+    alpha_star_limited = (alpha_star - hysteresis_tack).nearest(limit1, limit2, &left);
     *sector = left ? TackPort : TackStar;
     *target = left ? limit1 : limit2;
-  } else if (LessOrEqual(limit2, alpha_star) && Less(alpha_star, limit3)) {
+  } else if (limit2 <= alpha_star && alpha_star < limit3) {
     *sector = ReachStar;
-  } else if (LessOrEqual(limit3, alpha_star) && Less(alpha_star, limit4)) {
+  } else if ((limit3 <= alpha_star) && (alpha_star < limit4)) {
     // Modify if in the non-sailable jibe range.
-    alpha_star_limited = NearerRad(alpha_star - hysteresis_jibe, limit3, limit4, &left);
+    alpha_star_limited = (alpha_star - hysteresis_jibe).nearest(limit3, limit4, &left);
     *sector = left ? JibeStar : JibePort;
     *target = left ? limit3 : limit4;
-  } else if (LessOrEqual(limit4, alpha_star) && Less(alpha_star, limit1)) {
+  } else if ((limit4 <= alpha_star) && (alpha_star < limit1)) {
     *sector = ReachPort;
   } else {
-    fprintf(stderr, "Illegal sector range: limits: %lf %lf %lf %lf alpha*: %lf\n",
-            limit1, limit2, limit3, limit4, alpha_star);
+    fprintf(stderr, "Illegal sector range: limits: %lf %lf %lf %lf alpha*: %lf degrees\n",
+            limit1.deg(), limit2.deg(), limit3.deg(), limit4.deg(), alpha_star.deg());
+    limit1.print("limit1");
+    limit2.print("limit2");
+    limit3.print("limit3");
+    limit4.print("limit4");
+    alpha_star.print("alpha_star");
     CHECK(0);
   }
 
   if (debug) {
-    fprintf(stderr, "limits:       % 5.2lf % 5.2lf % 5.2lf % 5.2lf alpha*: %lf sector %d %c\n",
-            limit1, limit2, limit3, limit4, alpha_star, int(*sector), left?'L':'R');
+    fprintf(stderr, "limits:       % 5.2lf % 5.2lf % 5.2lf % 5.2lf alpha*: %lf degrees, sector %d %c\n",
+            limit1.deg(), limit2.deg(), limit3.deg(), limit4.deg(), alpha_star.deg(), int(*sector), left?'L':'R');
   }
 
   return alpha_star_limited;
@@ -94,8 +108,8 @@ double PointOfSail::SailableHeading(
 // If the sector is stable, we can calculate a bearing correction in response to fast wind
 // turns.
 Angle PointOfSail::AntiWindGust(SectorT sector,      // sector codes
-                                 Angle alpha_app,
-                                 double mag_app_m_s) {
+                                Angle alpha_app,
+                                double mag_app_m_s) {
   // If the apparent wind has direct influence on the desired heading then
   // an instable system is created. We observed such oscillations during our
   // lake tests: their exact mechanism is not clear. We apply an asymmetric
