@@ -391,20 +391,23 @@ int TicksNeeded(const NormalController& c, double from, double to) {
 }
 
 // phi_z (boat.AngleRad()) is important for the sail controller.
-// Assume a perfect rudder controller: phi_z = phi_z*
-#define SHAPE(alpha_star) \
+// Assume a perfect rudder controller: phi_z = phi_z* 
+#define SHAPE(alpha_star)               \
+  {                                     \
+  Polar boat2(phi_z_star, boat.Mag());  \
+  Polar apparent_wind(SymmetricRad(wind_true.AngleRad() - phi_z_star), filtered.mag_app);  \
   c.ShapeReferenceValue(SymmetricRad(Deg2Rad(alpha_star)),     \
-                        wind_true.AngleRad(), wind_true.Mag(), \
-                        phi_z_star, boat.Mag(),           \
-                        SymmetricRad(wind_true.AngleRad() - phi_z_star), filtered.mag_app,  \
+                        wind_true,                             \
+                        boat2,                                 \
+                        apparent_wind,                         \
                         old_gamma_sail,                        \
                         &phi_z_star,                           \
                         &omega_z_star,                         \
                         &gamma_sail_star,                      \
                         &out);                                 \
-    printf("%6.2lf %6.2lf %6.2lf\n", phi_z_star, omega_z_star, gamma_sail_star);\
-    old_gamma_sail = gamma_sail_star; \
-
+  printf("%6.2lf %6.2lf %6.2lf\n", phi_z_star, omega_z_star, gamma_sail_star); \
+  old_gamma_sail = gamma_sail_star;  \
+  }
 
 
 // Tests of the reference value rate limiting and maneuver planning.

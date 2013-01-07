@@ -121,6 +121,8 @@ TEST(SailController, Storm) {
   EXPECT_FLOAT_EQ(Deg2Rad(-90 + optimal_deg / 4), controller.BestGammaSail(Deg2Rad(90), 2 * kAngleReductionLimit));
 }
 
+// TODO Test StableGammaSail!
+
 int main(int argc, char* argv[]) {
   SailController_Basic();
   SailController_Reverse();

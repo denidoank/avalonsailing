@@ -56,11 +56,11 @@ void NormalController::Entry(const ControllerInput& in,
   old_phi_z_star_ = SymmetricRad(filtered.phi_z_boat);
   alpha_star_rate_limited_ = old_phi_z_star_;
   // This serves to initialize prev_sector_ only.
-  double dummy_target;
+  Angle dummy_target;
   point_of_sail_.SailableHeading(
-      filtered.phi_z_boat,  // desired heading alpha*
-      filtered.alpha_true,  // true wind vector direction
-      filtered.phi_z_boat,  // previous output direction, needed to implement hysteresis
+      rad(filtered.phi_z_boat),  // desired heading alpha*
+      rad(filtered.alpha_true),  // true wind vector direction
+      rad(filtered.phi_z_boat),  // previous output direction, needed to implement hysteresis
       &prev_sector_,        // sector codes for state handling and maneuver
       &dummy_target);
   //double gamma_sail =
@@ -92,10 +92,13 @@ void NormalController::Run(const ControllerInput& in,
   double phi_star;
   double omega_star;
   double gamma_sail_star;
+  Polar true_wind(SymmetricRad(filtered.alpha_true), filtered.mag_true);
+  Polar boat(SymmetricRad(filtered.phi_z_boat), filtered.mag_boat);
+  Polar apparent_wind(SymmetricRad(filtered.angle_app),  filtered.mag_app);
   ShapeReferenceValue(SymmetricRad(in.alpha_star_rad),
-                      SymmetricRad(filtered.alpha_true), filtered.mag_true,
-                      SymmetricRad(filtered.phi_z_boat), filtered.mag_boat,
-                      SymmetricRad(filtered.angle_app),  filtered.mag_app,
+                      true_wind,
+                      boat,
+                      apparent_wind,
                       in.drives.gamma_sail_rad,
                       &phi_star,
                       &omega_star,
@@ -156,9 +159,9 @@ double AddOvershoot(double old_bearing,
 // States: old_phi_z_star_ because phi_z_star must not jump
 //   and ref_ because a running plan trumps everything else.
 void NormalController::ShapeReferenceValue(double alpha_star,
-                                           double alpha_true, double mag_true,
-                                           double phi_z_boat, double mag_boat,
-                                           double angle_app,  double mag_app,
+                                           const Polar& true_wind,      // double alpha_true, double mag_true,
+                                           const Polar& boat,           // double phi_z_boat, double mag_boat,
+                                           const Polar& apparent_wind,  // double angle_app,  double mag_app,
                                            double old_gamma_sail,
                                            double* phi_z_star,
                                            double* omega_z_star,
@@ -166,7 +169,7 @@ void NormalController::ShapeReferenceValue(double alpha_star,
                                            ControllerOutput* out) {
   double phi_z_offset = 0;  // used when sailing close hauled.
   double new_sailable = 0;
-  if (debug) fprintf(stderr, "app %6.2lf true %6.2lf old_sail %6.2lf\n", angle_app, alpha_true, old_gamma_sail);
+  if (debug) fprintf(stderr, "app %6.2lf true %6.2lf old_sail %6.2lf\n", apparent_wind.Arg().rad(), true_wind.Arg().rad(), old_gamma_sail);
 
   // 3 cases:
   // If a maneuver is running (tack or jibe or change) we finish that maneuver first
@@ -175,7 +178,7 @@ void NormalController::ShapeReferenceValue(double alpha_star,
   // else we restrict alpha* to the sailable range and rate limit it to [-4deg/s, 4deg/s]
   if (ref_.RunningPlan()) {
     // Abort plan if we are far enough.
-    if (maneuver_type_ == kTack && ref_.TargetReached(phi_z_boat)) {
+    if (maneuver_type_ == kTack && ref_.TargetReached(boat.Arg().rad())) {
       if (debug) fprintf(stderr, "Abort tack\n");
       ref_.Stabilize();
     }
@@ -192,17 +195,18 @@ void NormalController::ShapeReferenceValue(double alpha_star,
     LimitRateWrapRad(alpha_star, alpha_star_rate_limit_ * kSamplingPeriod, &alpha_star_rate_limited_);
     // Stay in sailable zone
     SectorT sector;
-    double maneuver_target;
-    new_sailable = point_of_sail_.SailableHeading(
-        alpha_star_rate_limited_,  // desired heading alpha*, must be rate limited.
-        alpha_true,       // true wind vector direction
-        old_phi_z_star_,  // previous output direction, needed to implement hysteresis
+    Angle maneuver_target;
+    Angle new_sailable_angle = point_of_sail_.SailableHeading(
+        rad(alpha_star_rate_limited_),  // desired heading alpha*, must be rate limited.
+        true_wind.Arg(),       // true wind vector direction
+        rad(old_phi_z_star_),  // previous output direction, needed to implement hysteresis
         &sector,          // sector codes for state handling and maneuver
         &maneuver_target);
+    new_sailable = new_sailable_angle.rad();
     if (sector == prev_sector_) {
       new_sailable += point_of_sail_.AntiWindGust(sector,
-                                                  rad(angle_app),  // apparent wind vector direction
-                                                  mag_app).rad();  // apparent wind vector magnitude
+                                                  apparent_wind.Arg(),
+                                                  apparent_wind.Mag()).rad();
     }
     maneuver_type_ = SectorToManeuver(sector);
     sail_controller_->SetAlphaSign(SectorToGammaSign(sector));
@@ -211,7 +215,7 @@ void NormalController::ShapeReferenceValue(double alpha_star,
 
     if (maneuver_type_ == kTack || maneuver_type_ == kJibe) {
       // We need a new plan ...
-      new_sailable = AddOvershoot(old_phi_z_star_, maneuver_target, maneuver_type_);
+      new_sailable = AddOvershoot(old_phi_z_star_, maneuver_target.rad(), maneuver_type_);
       if (debug) fprintf(stderr, "Start %s maneuver, from  %lf to %lf degrees\n",
                          ManeuverToString(maneuver_type_), Rad2Deg(old_phi_z_star_), Rad2Deg(new_sailable));
       double new_gamma_sail;
@@ -246,9 +250,9 @@ void NormalController::ShapeReferenceValue(double alpha_star,
       // The apparent wind data are filtered to suppress noise in
       // the sail drive reference value.
       *gamma_sail_star =
-            sail_controller_->StableGammaSail(alpha_true, mag_true,
-                                              angle_app, mag_app,
-                                              phi_z_boat,
+            sail_controller_->StableGammaSail(true_wind,      // alpha_true, mag_true,
+                                              apparent_wind,  // angle_app, mag_app,
+                                              boat.Arg().rad(),
                                               &phi_z_offset);
 
       // TODO sail drive lazyness
