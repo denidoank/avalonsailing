@@ -39,10 +39,21 @@ void ApparentPolar(const Polar& true_wind,
                    const Polar& boat_speed,
                    double phi_z,
                    Polar* apparent_wind_on_boat);
+// Angle variant
+void ApparentPolar(const Polar& true_wind,
+                   const Polar& boat_speed,
+                   Angle phi_z,
+                   Polar* apparent_wind_on_boat);
 
 void TruePolar(const Polar& apparent_wind_on_boat,
                const Polar& boat_speed,
                double phi_z,
                Polar* true_wind);
-                   
+// Angle variant
+void TruePolar(const Polar& apparent_wind_on_boat,
+               const Polar& boat_speed,
+               Angle phi_z,
+               Polar* true_wind);
+
+
 #endif  //  COMMON_APPARENT_H

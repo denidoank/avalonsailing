@@ -27,6 +27,17 @@ void ApparentPolar(const Polar& true_wind,
             apparent_global.Mag());
 }
 
+void ApparentPolar(const Polar& true_wind,
+                   const Polar& boat_speed,
+                   Angle phi_z,
+                   Polar* apparent_wind_on_boat) {
+  // apparent wind in global frame
+  Polar apparent_global = true_wind - boat_speed;
+  *apparent_wind_on_boat =
+      Polar(apparent_global.Arg() - phi_z,
+            apparent_global.Mag());
+}
+
 void TruePolar(const Polar& apparent_wind_on_boat,
                const Polar& boat_speed,
                double phi_z,
@@ -34,3 +45,12 @@ void TruePolar(const Polar& apparent_wind_on_boat,
   double alpha_app_global = phi_z + apparent_wind_on_boat.AngleRad();
   *true_wind = Polar(alpha_app_global, apparent_wind_on_boat.Mag()) + boat_speed;
 }
+
+void TruePolar(const Polar& apparent_wind_on_boat,
+               const Polar& boat_speed,
+               Angle phi_z,
+               Polar* true_wind) {
+  Angle alpha_app_global = phi_z + apparent_wind_on_boat.Arg();
+  *true_wind = Polar(alpha_app_global, apparent_wind_on_boat.Mag()) + boat_speed;
+}
+
