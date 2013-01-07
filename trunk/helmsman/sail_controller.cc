@@ -181,10 +181,15 @@ void SailController::SetAlphaSign(int sign) {
   alpha_sign_ = sign;
 }
 
-double SailController::StableGammaSail(double alpha_true, double mag_true,
-                                       double alpha_app, double mag_app,
+double SailController::StableGammaSail(const Polar& true_wind,     // double alpha_true, double mag_true,
+                                       const Polar& apparent_wind, // double alpha_app, double mag_app,
                                        double phi_z,
                                        double* phi_z_offset) {
+  double alpha_true = true_wind.AngleRad();  // TODO: use Angles here
+  double mag_true = true_wind.Mag();
+  double alpha_app = apparent_wind.AngleRad();
+  double mag_app = apparent_wind.Mag();
+
   /* points of sail
      alpha = phi_z - alpha_true_wind
 
@@ -251,7 +256,7 @@ double SailController::StableGammaSail(double alpha_true, double mag_true,
 
   a -= fall_off;
   if (debug) fprintf(stderr, "new phi_z_offset: %lf", fall_off);
-  *phi_z_offset = fall_off;
+  *phi_z_offset = fall_off;  // TODO: What is done with this? Now we have the fall-off feature twice.
 
   // Sailing physics is symmetric
   a = fabs(a);

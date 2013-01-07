@@ -5,6 +5,8 @@
 #ifndef HELMSMAN_SAIL_CONTROLLER_H
 #define HELMSMAN_SAIL_CONTROLLER_H
 
+#include "common/polar.h"
+
 enum SailMode {
   WING,        // for sailing at the wind
   SPINNAKER    // optimal for broad reach
@@ -51,8 +53,8 @@ class SailController {
   // to the normal controller, if the apparent wind turns into
   // the forbidden zone around the eye of the wind. This may
   // happen because the true wind direction is filtered slowly.
-  double StableGammaSail(double alpha_true, double mag_true,
-                         double alpha_app, double mag_app,
+  double StableGammaSail(const Polar& true_wind,      // double alpha_true, double mag_true,
+                         const Polar& apparent_wind,  // double alpha_app, double mag_app,
                          double phi_z,
                          double* phi_z_offset);
 

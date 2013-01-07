@@ -15,6 +15,7 @@
 #define HELMSMAN_NORMAL_CONTROLLER_H
 
 #include "common/point_of_sail.h"  // SectorT
+#include "common/polar.h"
 #include "helmsman/controller.h"
 #include "helmsman/maneuver_type.h"
 #include "helmsman/rudder_controller.h"
@@ -48,9 +49,9 @@ class NormalController : public Controller {
 
   // This method is public for test accessibility only.
   void ShapeReferenceValue(double alpha_star,
-                           double alpha_true, double mag_true,
-                           double phi_z_boat, double mag_boat,
-                           double angle_app,  double mag_app,
+                           const Polar& alpha_true, // alpha_true, mag_true
+                           const Polar& boat,       // phi_z_boat, double mag_boat,
+                           const Polar& apparent,   // angle_app,  double mag_app,
                            double old_gamma_sail,
                            double* phi_z_star,
                            double* omega_z_star,
