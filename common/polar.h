@@ -12,18 +12,23 @@
 #include <math.h>
 #include <stdio.h>
 
+#include "common/angle.h"
 #include "common/check.h"
 #include "common/convert.h"
 
 class Polar {
  public:
   Polar(double alpha_rad, double mag);
+  Polar(Angle alpha, double mag);
   Polar operator+(const Polar& b) const;
   Polar operator-(const Polar& b) const;
   bool operator!=(const Polar& b) const;
   const Polar& operator=(const Polar& r);
   void Print(const char* name) const;
   double AngleRad() const;
+  // argument ( = angle )
+  Angle Arg() const;
+  // magnitude
   double Mag() const;
   
  private:

@@ -3,7 +3,7 @@
 // that can be found in the LICENSE file.
 // Steffen Grundmann, June 2011
 
-#include "polar.h"
+#include "common/polar.h"
 
 #include <math.h>
 #include <stdio.h>
@@ -22,6 +22,16 @@ Polar::Polar(double alpha_rad, double mag)
   if (mag_ == 0)
     alpha_ = 0;
   alpha_ = SymmetricRad(alpha_);
+}
+
+Polar::Polar(Angle alpha, double mag)
+    : alpha_(alpha.rad()),
+      mag_(mag),
+      x_(0),
+      y_(0),
+      cartesian_(false) {
+  if (mag_ == 0)
+    alpha_ = 0;
 }
 
 Polar Polar::operator+(const Polar& b) const {
@@ -70,6 +80,11 @@ void Polar::Print(const char* name) const {
 double Polar::AngleRad() const {
   return alpha_;
 }
+
+Angle Polar::Arg() const {
+  return rad(alpha_);
+}
+
 double Polar::Mag() const {
   return mag_;
 }

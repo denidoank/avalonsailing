@@ -59,16 +59,6 @@ Angle PointOfSail::SailableHeading(
   *target = 0;
   Angle alpha_star_limited = alpha_star;
 
-
-
-  if (limit1 <= alpha_star)     fprintf(stderr, "C1:\n");
-
-  if (alpha_star < limit2)     fprintf(stderr, "C2:\n");
-
-
-
-
-
   if (limit1 <= alpha_star && alpha_star < limit2) {
     // Modify if in the non-sailable tack range.
     alpha_star_limited = (alpha_star - hysteresis_tack).nearest(limit1, limit2, &left);
