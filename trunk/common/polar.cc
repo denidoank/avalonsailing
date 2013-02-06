@@ -60,6 +60,26 @@ Polar Polar::operator-(const Polar& b) const {
   return Polar(alpha, mag);
 }
 
+Polar Polar::MirrorX() const {
+  MakeCartesian();
+  double alpha;
+  if (mag_ > 0)
+    alpha = atan2(-y_, x_);
+  else
+    alpha = 0;
+  return Polar(alpha, mag_);
+}
+
+Polar Polar::MirrorY() const {
+  MakeCartesian();
+  double alpha;
+  if (mag_ > 0)
+    alpha = atan2(y_, -x_);
+  else
+    alpha = 0;
+  return Polar(alpha, mag_);
+}
+
 bool Polar::operator!=(const Polar& b) const {
   return alpha_ != b.alpha_ || mag_ != b.mag_;
 }

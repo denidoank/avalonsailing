@@ -140,13 +140,24 @@ Angle Angle::opposite() const {
 }
 
 Angle Angle::operator* (double factor) const {
-  CHECK(factor <= 1);  // This excludes any overflow.
+  CHECK(factor <= 1);   // This excludes any overflow.
+  CHECK(factor >= -1);  // This excludes any overflow.
   long double prod = static_cast<atype>(this->angle_) * factor;
   double rounding_shift = prod > 0 ? 0.499999999999 : -0.499999999999;
   Angle a(static_cast<atype>(prod + rounding_shift));
   return a;
 }
 
+Angle Angle::operator* (int factor) const {
+  CHECK(factor <= 1);   // This excludes any overflow.
+  CHECK(factor >= -1);  // This excludes any overflow.
+  if (factor == 1)
+    return *this;
+  if (factor == -1)
+    return -*this;
+  Angle a;
+  return a;
+}
 
 Angle Angle::operator/ (int divisor) const {
   CHECK(divisor != 0);
