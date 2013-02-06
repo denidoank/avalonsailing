@@ -30,6 +30,9 @@ class Polar {
   Angle Arg() const;
   // magnitude
   double Mag() const;
+  // Mirror on the x and y axis resp. .
+  Polar MirrorX() const;
+  Polar MirrorY() const;
   
  private:
   void MakeCartesian() const;
