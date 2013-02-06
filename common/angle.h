@@ -125,6 +125,7 @@ public:
   // implies signed representation, i.e. -160 * 0.5 = -80 .
   // Check-fails for factor > 1, i.e. whenever overflow might occur.
   Angle operator* (double factor) const;
+  Angle operator* (int factor) const;  // checkfails for |factor| > 1
 
   double sin() const;
   double cos() const;
@@ -138,7 +139,8 @@ public:
 
   // So (-179degrees > 179 degrees) is true.
   // By definition (-180degrees < 0 degrees) is false,
-  // as -90deg < 90deg;
+  // and -90deg < 90deg is false also.
+  // "less than" is to be interpreted as "left of".
   bool operator< (const Angle& right) const;
   bool operator==(const Angle& right) const;
   inline bool operator!=(const Angle& right) const {return !operator==(right);}
