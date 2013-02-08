@@ -58,25 +58,38 @@ TEST(Polar, All) {
   EXPECT_FLOAT_EQ(0, e.AngleRad());
   EXPECT_ANGLE_EQ(rad(0), e.Arg());
   EXPECT_FLOAT_EQ(0, e.Mag());
+
+  Polar zero(0, 0);
+  x = Polar(0, 1);
+  Polar rev_x = zero - x;
+  EXPECT_ANGLE_EQ(deg(-180), rev_x.Arg());
+  EXPECT_FLOAT_EQ(1, rev_x.Mag());
+  rev_x = zero - Polar(deg(1), 2);
+  EXPECT_ANGLE_EQ(deg(-179), rev_x.Arg());
+  EXPECT_FLOAT_EQ(2, rev_x.Mag());
+  rev_x = zero - Polar(deg(90), 2);
+  EXPECT_ANGLE_EQ(deg(-90), rev_x   .Arg());
+  EXPECT_FLOAT_EQ(2, rev_x.Mag());
+
 }
 
 TEST(Polar, Mirror) {
   Polar up(0, 1);
   Polar right(M_PI / 2, 1);
   Polar up_right = up + right;
-  EXPECT_EQ(rad(0), up.MirrorX().Arg());
-  EXPECT_EQ(rad(-M_PI / 2), right.MirrorX().Arg());
-  EXPECT_EQ(rad(-M_PI / 4), up_right.MirrorX().Arg());
-  EXPECT_EQ(1, up.MirrorX().Mag());
-  EXPECT_EQ(1, right.MirrorX().Mag());
-  EXPECT_EQ(sqrt(2), up_right.MirrorX().Mag());
+  EXPECT_EQ(rad(0), up.MirrorOnXAxis().Arg());
+  EXPECT_EQ(rad(-M_PI / 2), right.MirrorOnXAxis().Arg());
+  EXPECT_EQ(rad(-M_PI / 4), up_right.MirrorOnXAxis().Arg());
+  EXPECT_EQ(1, up.MirrorOnXAxis().Mag());
+  EXPECT_EQ(1, right.MirrorOnXAxis().Mag());
+  EXPECT_EQ(sqrt(2), up_right.MirrorOnXAxis().Mag());
 
-  EXPECT_EQ(rad(-M_PI), up.MirrorY().Arg());
-  EXPECT_EQ(rad(M_PI / 2), right.MirrorY().Arg());
-  EXPECT_EQ(rad(3 * M_PI / 4), up_right.MirrorY().Arg());
-  EXPECT_EQ(1, up.MirrorY().Mag());
-  EXPECT_EQ(1, right.MirrorY().Mag());
-  EXPECT_EQ(sqrt(2), up_right.MirrorY().Mag());
+  EXPECT_EQ(rad(-M_PI), up.MirrorOnYAxis().Arg());
+  EXPECT_EQ(rad(M_PI / 2), right.MirrorOnYAxis().Arg());
+  EXPECT_EQ(rad(3 * M_PI / 4), up_right.MirrorOnYAxis().Arg());
+  EXPECT_EQ(1, up.MirrorOnYAxis().Mag());
+  EXPECT_EQ(1, right.MirrorOnYAxis().Mag());
+  EXPECT_EQ(sqrt(2), up_right.MirrorOnYAxis().Mag());
 
 }
 

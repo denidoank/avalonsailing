@@ -163,7 +163,8 @@ public:
     return angle_ == 0;
   }
 
-  // Returns the opposite direction, i.e. this + 180 degrees.
+  // Returns the opposite direction, i.e. this + 180 degrees or
+  // this angle rotated by 180 degrees.
   Angle opposite() const;
 
   // The absolute magnitude of the angle when interpreed as

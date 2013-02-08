@@ -288,8 +288,6 @@ long double Angle::normalizeInputRad(long double alpha_rad) {
   return alpha_rad;
 }
 
-
-
 // Force result into [-180, 180).
 int normalizeDeg(int alpha_deg) {
   while (alpha_deg >= 180)
