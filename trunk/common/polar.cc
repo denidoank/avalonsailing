@@ -40,7 +40,7 @@ Polar Polar::operator+(const Polar& b) const {
   double y = y_ + b.mag_ * sin(b.alpha_);
   double mag = sqrt(x * x + y * y);
   double alpha;
-  if (mag_ > 0)
+  if (mag > 0)
     alpha = atan2(y, x);
   else
     alpha = 0;
@@ -53,14 +53,15 @@ Polar Polar::operator-(const Polar& b) const {
   double y = y_ - b.mag_ * sin(b.alpha_);
   double mag = sqrt(x * x + y * y);
   double alpha;
-  if (mag_ != 0)
+  if (mag != 0) {
     alpha = atan2(y, x);
-  else
+  } else {
     alpha = 0;
+  }
   return Polar(alpha, mag);
 }
 
-Polar Polar::MirrorX() const {
+Polar Polar::MirrorOnXAxis() const {
   MakeCartesian();
   double alpha;
   if (mag_ > 0)
@@ -70,7 +71,7 @@ Polar Polar::MirrorX() const {
   return Polar(alpha, mag_);
 }
 
-Polar Polar::MirrorY() const {
+Polar Polar::MirrorOnYAxis() const {
   MakeCartesian();
   double alpha;
   if (mag_ > 0)
