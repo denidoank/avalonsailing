@@ -134,16 +134,16 @@ TEST(NormalController, AllSailCloseHauled) {
   EXPECT_EQ(out.drives_reference.gamma_rudder_star_left_rad,
             out.drives_reference.gamma_rudder_star_right_rad);
   // Sail very close to the middle
-  EXPECT_FLOAT_EQ(23.8351, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
+  EXPECT_FLOAT_EQ(22.9364121029707, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
 
   c.Run(in, filtered, &out);
   c.Run(in, filtered, &out);
-  EXPECT_FLOAT_EQ(23.8351, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
+  EXPECT_FLOAT_EQ(22.9364121029707, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
 
   c.Run(in, filtered, &out);
   SimDrives(out, &in);
 
-  EXPECT_FLOAT_EQ(23.8351, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
+  EXPECT_FLOAT_EQ(22.9364121029707, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
 
   wind_true = Polar(Deg2Rad(-35), 2);  // wind turns against us
   // so the apparent wind vector is around 180 degrees
@@ -153,8 +153,8 @@ TEST(NormalController, AllSailCloseHauled) {
   c.Run(in, filtered, &out);
   SimDrives(out, &in);
   // sail opposing the apparent wind.
-  // Limited by CHP +kCloseHauledLimit
-  EXPECT_FLOAT_EQ(13, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
+  // No resistance, try to get through the tack by momentum.
+  EXPECT_FLOAT_EQ(0, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
 
   wind_true = Polar(Deg2Rad(-49.9), 2);  // wind turns completely against us
   // so the apparent wind vector is around 180 degrees
@@ -164,8 +164,8 @@ TEST(NormalController, AllSailCloseHauled) {
   c.Run(in, filtered, &out);
   SimDrives(out, &in);
   // sail opposing the apparent wind.
-  // Limited by CHP
-  EXPECT_FLOAT_EQ(13, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
+  // Least resistance.
+  EXPECT_FLOAT_EQ(0, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
 }
 
 // Check sail control negative
@@ -197,16 +197,16 @@ TEST(NormalController, AllSailCloseHauledNegative) {
   EXPECT_EQ(out.drives_reference.gamma_rudder_star_left_rad,
             out.drives_reference.gamma_rudder_star_right_rad);
   // Sail very close to the middle
-  EXPECT_FLOAT_EQ(-23.8351, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
+  EXPECT_FLOAT_EQ(-22.9364121029707, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
 
   c.Run(in, filtered, &out);
   c.Run(in, filtered, &out);
-  EXPECT_FLOAT_EQ(-23.8351, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
+  EXPECT_FLOAT_EQ(-22.9364121029707, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
 
   c.Run(in, filtered, &out);
   SimDrives(out, &in);
 
-  EXPECT_FLOAT_EQ(-23.8351, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
+  EXPECT_FLOAT_EQ(-22.9364121029707, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
 
   wind_true = Polar(Deg2Rad(35), 2);  // wind turns against us
   // so the apparent wind vector is around 180 degrees
@@ -215,9 +215,9 @@ TEST(NormalController, AllSailCloseHauledNegative) {
 
   c.Run(in, filtered, &out);
   SimDrives(out, &in);
- // sail opposing the apparent wind.
-  // Limited by CHP +kCloseHauledLimit
-  EXPECT_FLOAT_EQ(-13, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
+  // sail opposing the apparent wind.
+  // Keep a low profile.
+  EXPECT_FLOAT_EQ(0, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
 
   wind_true = Polar(Deg2Rad(49.9), 2);  // wind turns completely against us
   // so the apparent wind vector is around 180 degrees
@@ -227,8 +227,8 @@ TEST(NormalController, AllSailCloseHauledNegative) {
   c.Run(in, filtered, &out);
   SimDrives(out, &in);
   // sail opposing the apparent wind.
-  // Limited by CHP
-  EXPECT_FLOAT_EQ(-13, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
+  // Keep the least resistance.
+  EXPECT_FLOAT_EQ(0, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
 }
 
 TEST(NormalController, AllRudder) {
@@ -347,26 +347,26 @@ TEST(NormalController, Synthetic) {
   EXPECT_FLOAT_EQ(0, Rad2Deg(out.drives_reference.gamma_rudder_star_left_rad));
   EXPECT_FLOAT_EQ(0, Rad2Deg(out.drives_reference.gamma_rudder_star_right_rad));
   // Sail in wing mode
-  EXPECT_FLOAT_EQ(70, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
+  EXPECT_FLOAT_EQ(50.2369181956312, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
 
   c.Run(in, filtered, &out);
   EXPECT_FLOAT_EQ(0, Rad2Deg(out.drives_reference.gamma_rudder_star_left_rad));
   EXPECT_FLOAT_EQ(0, Rad2Deg(out.drives_reference.gamma_rudder_star_right_rad));
-  EXPECT_FLOAT_EQ(70, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
+  EXPECT_FLOAT_EQ(50.2369181956312, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
   in.alpha_star_rad = Deg2Rad(90.0) + 0.001;
 
   c.Run(in, filtered, &out);
   EXPECT_FLOAT_EQ(-0.001, out.drives_reference.gamma_rudder_star_left_rad);
   EXPECT_EQ(out.drives_reference.gamma_rudder_star_left_rad,
             out.drives_reference.gamma_rudder_star_right_rad);
-  EXPECT_FLOAT_EQ(70, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
+  EXPECT_FLOAT_EQ(50.2369181956312, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
 
   in.alpha_star_rad = Deg2Rad(90.0);
   c.Run(in, filtered, &out);
   EXPECT_FLOAT_EQ(-0.0, out.drives_reference.gamma_rudder_star_left_rad);
   EXPECT_EQ(out.drives_reference.gamma_rudder_star_left_rad,
             out.drives_reference.gamma_rudder_star_right_rad);
-  EXPECT_FLOAT_EQ(70, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
+  EXPECT_FLOAT_EQ(50.2369181956312, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
   c.Run(in, filtered, &out);
   EXPECT_FLOAT_EQ(-0.0, out.drives_reference.gamma_rudder_star_left_rad);
   in.alpha_star_rad = Deg2Rad(90.0) - 0.001;
@@ -377,13 +377,13 @@ TEST(NormalController, Synthetic) {
   EXPECT_FLOAT_EQ(0.0, out.drives_reference.gamma_rudder_star_left_rad);
 
   wind_true = Polar(M_PI / 2, 2);  // wind vector to East, with 2m/s
-  boat = Polar(0, 2);              // boat going North, with 2 m/s
+  boat = Polar(0, 1);              // boat going North, with 2 m/s
   // so the apparent wind vector is at -135 degree to
   // the boats x-axis, sqrt(2) * 2m/s magnitude.
   SetEnv(wind_true, boat, &filtered, &out);
   c.Entry(in, filtered);
   c.Run(in, filtered, &out);
-  //EXPECT_FLOAT_EQ(-25, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
+  EXPECT_FLOAT_EQ(-50.23691819563117, Rad2Deg(out.drives_reference.gamma_sail_star_rad));
 }
 
 int TicksNeeded(const NormalController& c, double from, double to) {
@@ -456,7 +456,7 @@ TEST(NormalController, ReferenceValueShaping) {
     SHAPE(new_alpha_star_deg);
     EXPECT_FLOAT_EQ(Deg2Rad(90) + (i + 1) * change_per_call_rad, phi_z_star);
     EXPECT_FLOAT_EQ(0, omega_z_star);
-    EXPECT_IN_INTERVAL(Deg2Rad(75), gamma_sail_star, Deg2Rad(85));
+    EXPECT_IN_INTERVAL(Deg2Rad(70), gamma_sail_star, Deg2Rad(80));
   }
   SHAPE(new_alpha_star_deg);
   EXPECT_FLOAT_EQ(Deg2Rad(new_alpha_star_deg), phi_z_star);
@@ -467,7 +467,7 @@ TEST(NormalController, ReferenceValueShaping) {
     SHAPE(90);
     EXPECT_FLOAT_EQ(Deg2Rad(90) + (9 - i) * change_per_call_rad, phi_z_star);
     EXPECT_FLOAT_EQ(0, omega_z_star);
-    EXPECT_IN_INTERVAL(Deg2Rad(75), gamma_sail_star, Deg2Rad(85));
+    EXPECT_IN_INTERVAL(Deg2Rad(70), gamma_sail_star, Deg2Rad(80));
   }
   SHAPE(90);
   EXPECT_FLOAT_EQ(Deg2Rad(90), phi_z_star);
@@ -605,7 +605,7 @@ TEST(NormalController, ReferenceValueShapingWest) {
   }
   EXPECT_FLOAT_EQ(0, omega_z_star);
   EXPECT_FLOAT_EQ(Deg2Rad(-180), phi_z_star);
-  EXPECT_IN_INTERVAL(-80, Rad2Deg(gamma_sail_star), -70);
+  EXPECT_IN_INTERVAL(-65, Rad2Deg(gamma_sail_star), -55);
 
   // South to North Jibe.
   // TODO Check where the extra 10 steps come from.
@@ -616,7 +616,7 @@ TEST(NormalController, ReferenceValueShapingWest) {
   }
   EXPECT_FLOAT_EQ(0, omega_z_star);
   EXPECT_FLOAT_EQ(Deg2Rad(0), phi_z_star);
-  EXPECT_IN_INTERVAL(60, Rad2Deg(gamma_sail_star), 80);
+  EXPECT_IN_INTERVAL(55, Rad2Deg(gamma_sail_star), 65);
 
   for (int i = 0;
        i < TicksNeeded(c, 30, 0) + 20;
@@ -625,7 +625,7 @@ TEST(NormalController, ReferenceValueShapingWest) {
   }
   EXPECT_FLOAT_EQ(0, omega_z_star);
   EXPECT_FLOAT_EQ(Deg2Rad(30), phi_z_star);
-  EXPECT_IN_INTERVAL(40, Rad2Deg(gamma_sail_star), 50);
+  EXPECT_IN_INTERVAL(25, Rad2Deg(gamma_sail_star), 35);
 
   // A tack.
   for (int i = 0;
@@ -635,14 +635,13 @@ TEST(NormalController, ReferenceValueShapingWest) {
   }
   EXPECT_FLOAT_EQ(0, omega_z_star);
   EXPECT_FLOAT_EQ(Deg2Rad(150), phi_z_star);
-  EXPECT_IN_INTERVAL(-50, Rad2Deg(gamma_sail_star), -40);
+  EXPECT_IN_INTERVAL(-35, Rad2Deg(gamma_sail_star), -25);
 
   // A circle.
   printf("Circle\n");
   for (int i = 0; i < Deg2Rad(500) / c.RateLimit() / kSamplingPeriod; ++i) {
     SHAPE(Rad2Deg(i * c.RateLimit() * kSamplingPeriod));
   }
-
 }
 
 #undef SHAPE

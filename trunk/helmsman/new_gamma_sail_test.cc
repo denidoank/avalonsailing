@@ -4,15 +4,21 @@
 // Steffen Grundmann, June 2011
 #include "helmsman/new_gamma_sail.h"
 
+#include "common/angle.h"
 #include "common/apparent.h"
 #include "common/convert.h"
 #include "common/normalize.h"
 #include "common/polar_diagram.h"
+#include "common/sign.h"
 #include "lib/testing/testing.h"
 #include "helmsman/maneuver_type.h"
 
+Polar app(double alpha_deg, double mag) {
+  Polar apparent_wind(deg(alpha_deg), mag);
+  return apparent_wind;
+}
 
-TEST(NewGammaSail, NewTack) {
+ATEST(NewGammaSail, NewTack) {
   double aoa_optimal = Deg2Rad(10);
   SailController sail_controller;
   sail_controller.SetOptimalAngleOfAttack(aoa_optimal);
@@ -27,7 +33,9 @@ TEST(NewGammaSail, NewTack) {
            alpha_boat, mag_boat,
            alpha_boat,
            &angle_app, &mag_app);
-  double old_gamma_sail = sail_controller.BestGammaSail(angle_app, mag_app);
+  sail_controller.SetAppSign(SignNotZero(angle_app));
+  double old_gamma_sail =
+      sail_controller.StableGammaSailFromApparent(app(angle_app, mag_app)).rad();
 
   double new_gamma_sail = -1;
   double delta_gamma_sail = -1;
@@ -53,7 +61,8 @@ TEST(NewGammaSail, NewTack) {
            alpha_boat, mag_boat,
            alpha_boat,
            &angle_app, &mag_app);
-  old_gamma_sail = sail_controller.BestGammaSail(angle_app, mag_app);
+  old_gamma_sail =
+      sail_controller.StableGammaSailFromApparent(app(angle_app, mag_app)).rad();
 
   NewGammaSail(old_gamma_sail,  // -33.4 degree
                kTack,
@@ -89,8 +98,7 @@ TEST(NewGammaSail, NewTack) {
   EXPECT_FLOAT_EQ(-2 * old_gamma_sail + 0.1, delta_gamma_sail);
 }
 
-
-TEST(NewGammaSail, NewJibe) {
+ATEST(NewGammaSail, NewJibe) {
   printf("Jibe\n");
   double aoa_optimal = Deg2Rad(10);
   SailController sail_controller;
@@ -106,7 +114,8 @@ TEST(NewGammaSail, NewJibe) {
            alpha_boat, mag_boat,
            alpha_boat,
            &angle_app, &mag_app);
-  double old_gamma_sail = sail_controller.BestGammaSail(angle_app, mag_app);
+  double old_gamma_sail =
+      sail_controller.StableGammaSailFromApparent(app(angle_app, mag_app)).rad();
   printf("old_gamma_sail %lf deg\n", Rad2Deg(old_gamma_sail));
   double new_gamma_sail = -1;
   double delta_gamma_sail = -1;
@@ -135,7 +144,8 @@ TEST(NewGammaSail, NewJibe) {
            alpha_boat, mag_boat,
            alpha_boat,
            &angle_app, &mag_app);
-  old_gamma_sail = sail_controller.BestGammaSail(angle_app, mag_app);
+  old_gamma_sail =
+      sail_controller.StableGammaSailFromApparent(app(angle_app, mag_app)).rad();
 
   NewGammaSail(old_gamma_sail,  // -84 degree
                kJibe,
@@ -166,7 +176,6 @@ TEST(NewGammaSail, NewJibe) {
 }
 
 int main() {
-  NewGammaSail_NewTack();
-  NewGammaSail_NewJibe();
+  return testing::RunAllTests();
   return 0;
 }
