@@ -63,14 +63,13 @@ void NormalController::Entry(const ControllerInput& in,
       rad(filtered.phi_z_boat),  // previous output direction, needed to implement hysteresis
       &prev_sector_,        // sector codes for state handling and maneuver
       &dummy_target);
-  //double gamma_sail =
-  //    sail_controller_->BestGammaSail(filtered.angle_app, filtered.mag_app);
-  sail_controller_->SetAlphaSign(SectorToGammaSign(prev_sector_));
+  sail_controller_->SetAppSign(-SectorToGammaSign(prev_sector_));
   ref_.SetReferenceValues(old_phi_z_star_, in.drives.gamma_sail_rad);
   give_up_counter_ = 0;
   start_time_ms_ = now_ms();
   if (debug) {
-    fprintf(stderr, "NormalController::Entry old_phi_z_star_: %6.1lf deg\n",  Rad2Deg(old_phi_z_star_));
+    fprintf(stderr, "NormalController::Entry old_phi_z_star_: %6.1lf deg\n",
+            Rad2Deg(old_phi_z_star_));
     fprintf(stderr, "Entry Time: %10.1lf s\n", (double)start_time_ms_ / 1000);
   }
   rudder_controller_->Reset();
@@ -167,7 +166,6 @@ void NormalController::ShapeReferenceValue(double alpha_star,
                                            double* omega_z_star,
                                            double* gamma_sail_star,
                                            ControllerOutput* out) {
-  double phi_z_offset = 0;  // used when sailing close hauled.
   double new_sailable = 0;
   if (debug) fprintf(stderr, "app %6.2lf true %6.2lf old_sail %6.2lf\n", apparent_wind.Arg().rad(), true_wind.Arg().rad(), old_gamma_sail);
 
@@ -209,7 +207,7 @@ void NormalController::ShapeReferenceValue(double alpha_star,
                                                   apparent_wind.Mag()).rad();
     }
     maneuver_type_ = SectorToManeuver(sector);
-    sail_controller_->SetAlphaSign(SectorToGammaSign(sector));
+    sail_controller_->SetAppSign(-SectorToGammaSign(sector));
 
     if (debug) fprintf(stderr, "new sailable: %6.2lf\n", new_sailable);
 
@@ -249,12 +247,11 @@ void NormalController::ShapeReferenceValue(double alpha_star,
       *omega_z_star = 0;
       // The apparent wind data are filtered to suppress noise in
       // the sail drive reference value.
-      *gamma_sail_star =
-            sail_controller_->StableGammaSail(true_wind,      // alpha_true, mag_true,
-                                              apparent_wind,  // angle_app, mag_app,
-                                              boat.Arg().rad(),
-                                              &phi_z_offset);
-
+      Angle a =
+          sail_controller_->StableGammaSail(true_wind,      // alpha_true, mag_true,
+                                            apparent_wind,  // angle_app, mag_app,
+                                            boat.Arg());
+      *gamma_sail_star = a.rad();
       // TODO sail drive lazyness
     }
     prev_sector_ = sector;

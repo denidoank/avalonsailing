@@ -70,16 +70,14 @@ void InitialController::Run(const ControllerInput& in,
 		      in.drives.homed_rudder_left ? "" : "right");
   }
 
-
   // The delay of 20s could be smaller but if we need to tack immediately
   // after leaving the InitialController then the boat needs some momentum
-  // and the speed measurement filter should
-  // have a stabilized value. This depends on the quality of the IMU speed
-  // calculation. Therefore the more conservative waiting time of 20s.
+  // and the speed measurement filter should have a stabilized value.
+  // This depends on the quality of the IMU speed calculation. Therefore
+  // the more conservative waiting time of 20s.
   kogge_time_ = filtered.mag_app > 4.0 ?
-          20.0 : // no time to waste
-          60.0;  // for weak wind
-
+      20.0 : // no time to waste
+      60.0;  // for weak wind
 
   positive_speed_ = filtered.mag_boat > kMinimumSpeed;
   if (debug) {
@@ -92,6 +90,7 @@ void InitialController::Run(const ControllerInput& in,
   }
   
   double angle_app = SymmetricRad(filtered.angle_app);
+  Polar apparent_wind(angle_app, filtered.mag_app);
 
   switch (phase_) {
     case SLEEP:
@@ -106,6 +105,7 @@ void InitialController::Run(const ControllerInput& in,
         phase_ = TURTLE;
         // Decide which way to go.
         sign_ = SignNotZero(angle_app);
+        sail_controller_->SetAppSign(sign_);
         if (debug) fprintf(stderr, "SLEEP to TURTLE %d\n", sign_);
         out->status.inits++;
       }
@@ -116,18 +116,18 @@ void InitialController::Run(const ControllerInput& in,
       // put the rudder at a big angle such that the boat turns.
       if (debug) fprintf(stderr, "phase TURTLE\n");
       // Turn into a sailable direction if necessary.
-      if (fabs(angle_app) > kRunSector) {
-        gamma_rudder = kReverseMotionRudderAngle * sign_;
-        gamma_sail = -sign_ * sail_controller_->BestGammaSailForReverseMotion(angle_app, filtered.mag_app);
-      } else {
+      if (fabs(angle_app) <= kRunSector) {
         phase_ = KOGGE;
         count_ = 0;
         if (debug) fprintf(stderr, "TURTLE to KOGGE %d\n", sign_);
       }
+      gamma_rudder = kReverseMotionRudderAngle * sign_;
+      gamma_sail = sail_controller_->ReverseGammaSailFromApparent(apparent_wind).rad();
       break;
     case KOGGE:
       if (debug) fprintf(stderr, "phase KOGGE\n");
-      gamma_sail = sail_controller_->BestStabilizedGammaSail(angle_app, filtered.mag_app);
+      sail_controller_->SetAppSign(sign_);  // which side the wind is coming from.
+      gamma_sail = sail_controller_->StableGammaSailFromApparent(apparent_wind).rad();
       if (fabs(angle_app) > Deg2Rad(120))
         gamma_rudder = -Sign(angle_app) * kBangBangRudderAngle;
       else  
@@ -139,6 +139,7 @@ void InitialController::Run(const ControllerInput& in,
         phase_ = TURTLE;
         // Decide which way to go.
         sign_ = SignNotZero(angle_app);
+        sail_controller_->SetAppSign(sign_);
         if (debug) fprintf(stderr, "KOGGE to TURTLE %d\n", sign_);
       }
       break;

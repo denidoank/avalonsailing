@@ -5,6 +5,7 @@
 #ifndef HELMSMAN_SAIL_CONTROLLER_H
 #define HELMSMAN_SAIL_CONTROLLER_H
 
+#include "common/angle.h"
 #include "common/polar.h"
 
 enum SailMode {
@@ -31,58 +32,40 @@ class SailController {
  public:
   SailController();
 
-  // Optimal gamma wind for a given apparent wind direction and strength.
-  // alpha wind: direction of the apparent wind vector relative to the boats x-axis
-  // (in radians, pi/2 is wind from port side, 0 rad is wind
-  // from behind) in [0, 2*pi) and
-  // the wind speed (magnitude of wind vector) in m/s. mag_wind >= 0
-  double BestGammaSail(double alpha_wind_rad,
-                       double mag_wind);
-  // Return the absolute magnitude of the sail angle to push backwards.
-  // Always positive.
-  double BestGammaSailForReverseMotion(double alpha_wind_rad,
-                                       double mag_wind);
+  // Set Tack, i.e. which side the wind is coming from.
+  // Equal to the sign of the apparent wind
+  // -1: from starboard (right) to portside,
+  // +1: from portside (left) to starboard
+  void SetAppSign(int sign);
 
-  // The same as BestGammaSail but with hysteresis and stabilization to avoid
-  // frequent switching.
-  double BestStabilizedGammaSail(double alpha_wind_rad,
-                                 double mag_wind);
-  // set Tack, i.e. which side the wind is coming from.
-  void SetAlphaSign(int sign);
-  // phi_z_offset gives feedback from the sail controller
-  // to the normal controller, if the apparent wind turns into
-  // the forbidden zone around the eye of the wind. This may
-  // happen because the true wind direction is filtered slowly.
-  double StableGammaSail(const Polar& true_wind,      // double alpha_true, double mag_true,
-                         const Polar& apparent_wind,  // double alpha_app, double mag_app,
-                         double phi_z,
-                         double* phi_z_offset);
+  Angle StableGammaSail(const Polar& true_wind,
+                        const Polar& apparent_wind,
+                        Angle phi_z);
+
+  // Use this if the true wind is unavailable.
+  Angle StableGammaSailFromApparent(const Polar& apparent_wind);
+
+  // For the initial controller we need a reverse gear of the sail
+  // controller which works for apparent angles in (-180, -85) and
+  // (85, 179) degrees resp. . Looking backwards this means (-95, 95 degrees)
+  // for the apparent angle.
+  // The spinakker sail mode must not be used for strong winds (risk of overloading
+  // especially because the stern might dig into the waves.) So we use a wing mode
+  // with an angle of attack of 50 degrees instead which produces smaller forces.
+  // Needs a prior call of SetAlphaSign().
+  Angle ReverseGammaSailFromApparent(const Polar& apparent_wind);
 
   void SetOptimalAngleOfAttack(double optimal_angle_of_attack_rad);
   double GetOptimalAngleOfAttack();
-  void UnlockMode();
   void Reset();
-  double FilterOffset(double offset);
 
  private:
   // Optimal angle of attack, reduced at high wind strength.
   double AngleOfAttack(double mag_wind);
 
-  double GammaSailInternal(double alpha_wind_rad,
-                           double mag_wind,
-                           bool stabilized);
-  void HandleSign(double* alpha_wind_rad, int* sign);
-
   double optimal_angle_of_attack_rad_;
   SailModeLogic logic_;
-  int sign_;  // The sign has no inertia
-  // But we might get into a
-  // situation if the apparent wind is around zero and we would have
-  // to turn the sail back and forth between -90 and +90.
-
-  int alpha_sign_;  // positive when sailing on starboard tack.
+  int app_sign_;  // +1 when sailing on portside tack (apparent wind from left to right).
 };
-
-
 
 #endif  // HELMSMAN_SAIL_CONTROLLER_H
