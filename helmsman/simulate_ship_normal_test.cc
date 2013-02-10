@@ -210,7 +210,7 @@ TEST(SimShip, Wind_Debug) {
 int main(int argc, char* argv[]) {
   debug = 0;
   SimShip_Wind_0();
-  SimShip_Wind_2();
+  SimShip_Wind_2();   // It works but takes a while.
   SimShip_Wind_Strong();
   SimShip_Wind_Debug();
   SimShip_Wind_1();
