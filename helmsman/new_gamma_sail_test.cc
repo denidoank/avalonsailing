@@ -7,14 +7,14 @@
 #include "common/angle.h"
 #include "common/apparent.h"
 #include "common/convert.h"
-#include "common/normalize.h"
+//#include "common/normalize.h"
 #include "common/polar_diagram.h"
 #include "common/sign.h"
 #include "lib/testing/testing.h"
 #include "helmsman/maneuver_type.h"
 
 Polar app(double alpha_deg, double mag) {
-  Polar apparent_wind(deg(alpha_deg), mag);
+  Polar apparent_wind(rad(alpha_deg), mag);
   return apparent_wind;
 }
 
@@ -33,27 +33,29 @@ ATEST(NewGammaSail, NewTack) {
            alpha_boat, mag_boat,
            alpha_boat,
            &angle_app, &mag_app);
+  printf("app: %lf rad %lf m/s\n", angle_app, mag_app);
+
+
   sail_controller.SetAppSign(SignNotZero(angle_app));
-  double old_gamma_sail =
-      sail_controller.StableGammaSailFromApparent(app(angle_app, mag_app)).rad();
+  Angle original_gamma_sail =
+      sail_controller.StableGammaSailFromApparent(app(angle_app, mag_app));
+  double delta_gamma_sail = NewGammaSail(original_gamma_sail,  // -37.87 degree
+                                         kTack,
+                                         rad(0));
+  Angle new_gamma_sail = original_gamma_sail + rad(NormalizeRad(delta_gamma_sail));
+  printf("delta_gamma_sail %lf deg\n", Rad2Deg(delta_gamma_sail));
+  EXPECT_ANGLE_EQ(-original_gamma_sail, new_gamma_sail);
+  // delta_gamma_sail can be bigger than 180degrees, so it is
+  // stored as a double.
+  EXPECT_FLOAT_EQ(-2 * original_gamma_sail.rad(), delta_gamma_sail);
 
-  double new_gamma_sail = -1;
-  double delta_gamma_sail = -1;
-  NewGammaSail(old_gamma_sail,  // -37.87 degree
-               kTack,
-               0,
-               &new_gamma_sail,
-               &delta_gamma_sail);
-  EXPECT_FLOAT_EQ(-old_gamma_sail, new_gamma_sail);
-  EXPECT_FLOAT_EQ(-2*old_gamma_sail, delta_gamma_sail);
-
-  NewGammaSail(-old_gamma_sail,
-               kTack,
-               0,
-               &new_gamma_sail,
-               &delta_gamma_sail);
-  EXPECT_FLOAT_EQ(old_gamma_sail, new_gamma_sail);
-  EXPECT_FLOAT_EQ(2*old_gamma_sail, delta_gamma_sail);
+  delta_gamma_sail = NewGammaSail(-original_gamma_sail,
+                                  kTack,
+                                  rad(0));
+  new_gamma_sail = -original_gamma_sail + rad(NormalizeRad(delta_gamma_sail));
+  printf("delta_gamma_sail %lf deg\n", Rad2Deg(delta_gamma_sail));
+  EXPECT_ANGLE_EQ(original_gamma_sail, new_gamma_sail);
+  EXPECT_FLOAT_EQ(2 * original_gamma_sail.rad(), delta_gamma_sail);
 
   // different wind speed.
   mag_true = 3;
@@ -61,41 +63,37 @@ ATEST(NewGammaSail, NewTack) {
            alpha_boat, mag_boat,
            alpha_boat,
            &angle_app, &mag_app);
-  old_gamma_sail =
-      sail_controller.StableGammaSailFromApparent(app(angle_app, mag_app)).rad();
+  original_gamma_sail =
+      sail_controller.StableGammaSailFromApparent(app(angle_app, mag_app));
 
-  NewGammaSail(old_gamma_sail,  // -33.4 degree
-               kTack,
-               0,
-               &new_gamma_sail,
-               &delta_gamma_sail);
-  EXPECT_FLOAT_EQ(-old_gamma_sail, new_gamma_sail);
-  EXPECT_FLOAT_EQ(-2*old_gamma_sail, delta_gamma_sail);
+  delta_gamma_sail = NewGammaSail(original_gamma_sail,  // -33.4 degree
+                                  kTack,
+                                  rad(0));
+  new_gamma_sail = original_gamma_sail + rad(NormalizeRad(delta_gamma_sail));
+  EXPECT_ANGLE_EQ(-original_gamma_sail, new_gamma_sail);
+  EXPECT_FLOAT_EQ(-2 * original_gamma_sail.rad(), delta_gamma_sail);
 
-  NewGammaSail(-old_gamma_sail,
-               kTack,
-               0,
-               &new_gamma_sail,
-               &delta_gamma_sail);
-  EXPECT_FLOAT_EQ(old_gamma_sail, new_gamma_sail);
-  EXPECT_FLOAT_EQ(2*old_gamma_sail, delta_gamma_sail);
+  delta_gamma_sail = NewGammaSail(-original_gamma_sail,
+                                  kTack,
+                                  rad(0));
+  new_gamma_sail = -original_gamma_sail + rad(NormalizeRad(delta_gamma_sail));
+  EXPECT_ANGLE_EQ(original_gamma_sail, new_gamma_sail);
+  EXPECT_FLOAT_EQ(2 * original_gamma_sail.rad(), delta_gamma_sail);
 
-  NewGammaSail(-old_gamma_sail,
-               kTack,
-               0.1,
-               &new_gamma_sail,
-               &delta_gamma_sail);
-  EXPECT_FLOAT_EQ(old_gamma_sail - 0.1, new_gamma_sail);
-  EXPECT_FLOAT_EQ(2*old_gamma_sail - 0.1, delta_gamma_sail);
+  delta_gamma_sail = NewGammaSail(-original_gamma_sail,
+                                  kTack,
+                                  rad(0.1));
+  new_gamma_sail = -original_gamma_sail + rad(NormalizeRad(delta_gamma_sail));
+  EXPECT_ANGLE_EQ(original_gamma_sail - rad(0.1), new_gamma_sail);
+  EXPECT_FLOAT_EQ(2 * original_gamma_sail.rad() - 0.1, delta_gamma_sail);
 
   // overshoot
-  NewGammaSail(old_gamma_sail,
-               kTack,
-               0.1,
-               &new_gamma_sail,
-               &delta_gamma_sail);
-  EXPECT_FLOAT_EQ(-old_gamma_sail + 0.1, new_gamma_sail);
-  EXPECT_FLOAT_EQ(-2 * old_gamma_sail + 0.1, delta_gamma_sail);
+  delta_gamma_sail = NewGammaSail(original_gamma_sail,
+                                  kTack,
+                                  rad(0.1));
+  new_gamma_sail = original_gamma_sail + rad(NormalizeRad(delta_gamma_sail));
+  EXPECT_ANGLE_EQ(-original_gamma_sail + rad(0.1), new_gamma_sail);
+  EXPECT_FLOAT_EQ(-2 * original_gamma_sail.rad() + 0.1, delta_gamma_sail);
 }
 
 ATEST(NewGammaSail, NewJibe) {
@@ -114,29 +112,26 @@ ATEST(NewGammaSail, NewJibe) {
            alpha_boat, mag_boat,
            alpha_boat,
            &angle_app, &mag_app);
-  double old_gamma_sail =
-      sail_controller.StableGammaSailFromApparent(app(angle_app, mag_app)).rad();
-  printf("old_gamma_sail %lf deg\n", Rad2Deg(old_gamma_sail));
-  double new_gamma_sail = -1;
+  Angle original_gamma_sail =
+      sail_controller.StableGammaSailFromApparent(app(angle_app, mag_app));
+  original_gamma_sail.print("original_gamma_sail");
   double delta_gamma_sail = -1;
-  NewGammaSail(old_gamma_sail,  // -85.1 degree
-               kJibe,
-               0,
-               &new_gamma_sail,
-               &delta_gamma_sail);
-  printf("new_gamma_sail %lf deg\n", Rad2Deg(new_gamma_sail));
-  printf("delta_gamma_sail %lf deg\n", Rad2Deg(delta_gamma_sail));
-  EXPECT_FLOAT_EQ(-old_gamma_sail, new_gamma_sail);
-  EXPECT_FLOAT_EQ(-2 * old_gamma_sail - 2 * M_PI, delta_gamma_sail);
+  delta_gamma_sail = NewGammaSail(original_gamma_sail,  // -85.1 degree
+                                  kJibe,
+                                  rad(0));
+  Angle new_gamma_sail = original_gamma_sail + rad(NormalizeRad(delta_gamma_sail));
+  new_gamma_sail.print("new_gamma_sail");
+  printf("delta_gamma_sail %lf\n", delta_gamma_sail);
+  EXPECT_ANGLE_EQ(-original_gamma_sail, new_gamma_sail);
+  EXPECT_FLOAT_EQ(-2 * original_gamma_sail.rad() - 2 * M_PI, delta_gamma_sail);
 
-  NewGammaSail(-old_gamma_sail,   // 85.1 degree
-               kJibe,
-               0,
-               &new_gamma_sail,
-               &delta_gamma_sail);
+  delta_gamma_sail = NewGammaSail(-original_gamma_sail,   // 85.1 degree
+                                  kJibe,
+                                  rad(0));
+  new_gamma_sail = -original_gamma_sail + rad(NormalizeRad(delta_gamma_sail));
   printf("delta_gamma_sail %lf deg\n", Rad2Deg(delta_gamma_sail));
-  EXPECT_FLOAT_EQ(old_gamma_sail, new_gamma_sail);
-  EXPECT_FLOAT_EQ(2 * old_gamma_sail + 2 * M_PI, delta_gamma_sail);
+  EXPECT_ANGLE_EQ(original_gamma_sail, new_gamma_sail);
+  EXPECT_FLOAT_EQ(2 * original_gamma_sail.rad() + 2 * M_PI, delta_gamma_sail);
 
   // different wind speed.
   mag_true = 3;
@@ -144,35 +139,32 @@ ATEST(NewGammaSail, NewJibe) {
            alpha_boat, mag_boat,
            alpha_boat,
            &angle_app, &mag_app);
-  old_gamma_sail =
-      sail_controller.StableGammaSailFromApparent(app(angle_app, mag_app)).rad();
+  original_gamma_sail =
+      sail_controller.StableGammaSailFromApparent(app(angle_app, mag_app));
 
-  NewGammaSail(old_gamma_sail,  // -84 degree
-               kJibe,
-               0,
-               &new_gamma_sail,
-               &delta_gamma_sail);
+  delta_gamma_sail = NewGammaSail(original_gamma_sail,  // -84 degree
+                                  kJibe,
+                                  rad(0));
+  new_gamma_sail = original_gamma_sail + rad(NormalizeRad(delta_gamma_sail));
   printf("delta_gamma_sail %lf deg\n", Rad2Deg(delta_gamma_sail));
-  EXPECT_FLOAT_EQ(-old_gamma_sail, new_gamma_sail);
-  EXPECT_FLOAT_EQ(-2 * old_gamma_sail - 2 * M_PI, delta_gamma_sail);
+  EXPECT_ANGLE_EQ(-original_gamma_sail, new_gamma_sail);
+  EXPECT_FLOAT_EQ(-2 * original_gamma_sail.rad() - 2 * M_PI, delta_gamma_sail);
 
-  NewGammaSail(-old_gamma_sail,  // 84 degree
-               kJibe,
-               0,
-               &new_gamma_sail,
-               &delta_gamma_sail);
+  delta_gamma_sail = NewGammaSail(-original_gamma_sail,  // 84 degree
+                                  kJibe,
+                                  rad(0));
+  new_gamma_sail = -original_gamma_sail + rad(NormalizeRad(delta_gamma_sail));
   printf("delta_gamma_sail %lf deg\n", Rad2Deg(delta_gamma_sail));
-  EXPECT_FLOAT_EQ(old_gamma_sail, new_gamma_sail);
-  EXPECT_FLOAT_EQ(2 * old_gamma_sail + 2 * M_PI, delta_gamma_sail);
+  EXPECT_ANGLE_EQ(original_gamma_sail, new_gamma_sail);
+  EXPECT_FLOAT_EQ(2 * original_gamma_sail.rad() + 2 * M_PI, delta_gamma_sail);
   // No overshoot for jibe
-  NewGammaSail(-old_gamma_sail,  // 84 degree
-               kJibe,
-               0.1,
-               &new_gamma_sail,
-               &delta_gamma_sail);
+  delta_gamma_sail = NewGammaSail(-original_gamma_sail,  // 84 degree
+                                  kJibe,
+                                  rad(0.1));
+  new_gamma_sail = -original_gamma_sail + rad(delta_gamma_sail);
   printf("delta_gamma_sail %lf deg\n", Rad2Deg(delta_gamma_sail));
-  EXPECT_FLOAT_EQ(old_gamma_sail, new_gamma_sail);
-  EXPECT_FLOAT_EQ(2 * old_gamma_sail + 2 * M_PI, delta_gamma_sail);
+  EXPECT_ANGLE_EQ(original_gamma_sail, new_gamma_sail);
+  EXPECT_FLOAT_EQ(2 * original_gamma_sail.rad() + 2 * M_PI, delta_gamma_sail);
 }
 
 int main() {

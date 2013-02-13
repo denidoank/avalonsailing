@@ -4,8 +4,6 @@
 // Steffen Grundmann, June 2011
 #include "helmsman/new_gamma_sail.h"
 
-#include "common/delta_angle.h"
-#include "common/normalize.h"
 #include "common/polar.h"
 #include "common/sign.h"
 
@@ -22,29 +20,18 @@ extern int debug;
 // - Tacks and jibes are more or less symmetrical in reference to the wind axis.
 // - The apparent wind changes in a symmetrical fashion as well.
 // - The resulting gamma_sail is also symmetrical.
-// However, for tacks we get an asymmetry diu to the intentional overshoot.
+// However, for tacks we get an asymmetry due to the intentional overshoot.
 
-void NewGammaSail(double old_gamma_sail,  // star
-                  ManeuverType maneuver_type,
-                  double overshoot,
-                  double* new_gamma_sail,
-                  double* delta_gamma_sail) {
-  old_gamma_sail = SymmetricRad(old_gamma_sail);
-
-  if (debug) {
-    fprintf(stderr, "old_gamma_sail %6.2lf deg\n", Rad2Deg(old_gamma_sail));
-    fprintf(stderr, "overshoot contribution %6.2lf deg\n", Rad2Deg(Sign(old_gamma_sail) * overshoot));
-  }
-
+double NewGammaSail(Angle old_gamma_sail,
+                    ManeuverType maneuver_type,
+                    Angle overshoot) {
+  Angle new_gamma_sail;
   switch(maneuver_type) {
     case kJibe:
-      *new_gamma_sail = SymmetricRad(-old_gamma_sail);
-      if (debug) {
-        fprintf(stderr, "*new_gamma_sail %6.2lf deg\n", Rad2Deg(*new_gamma_sail));
-      }
+      new_gamma_sail = -old_gamma_sail;
       break;
     case kTack:
-      *new_gamma_sail = SymmetricRad(-old_gamma_sail - Sign(old_gamma_sail) * overshoot);
+      new_gamma_sail = -old_gamma_sail - overshoot * old_gamma_sail.sign();
       break;
     case kChange:
       // When used with the NormalController this branch is never used.
@@ -54,10 +41,13 @@ void NewGammaSail(double old_gamma_sail,  // star
       CHECK(0);
       break;
   }
-  double delta = *new_gamma_sail - old_gamma_sail;
+  if (debug) {
+    fprintf(stderr, "new_gamma_sail %6.2lf deg\n", new_gamma_sail.deg());
+  }
 
+  double delta = new_gamma_sail.rad() - old_gamma_sail.rad();
   if (maneuver_type == kJibe)
-    *delta_gamma_sail = delta - 2 * M_PI * Sign(delta);
+    return delta - 2 * M_PI * Sign(delta);
   else
-    *delta_gamma_sail = delta;
+    return delta;
 }
