@@ -300,4 +300,3 @@ ATEST(SailController, AngleStorm) {
 int main(int argc, char* argv[]) {
   return testing::RunAllTests();
 }
-

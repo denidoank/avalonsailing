@@ -5,8 +5,8 @@
 #ifndef HELMSMAN_NEW_GAMMA_SAIL_H
 #define HELMSMAN_NEW_GAMMA_SAIL_H
 
+#include "common/angle.h"
 #include "helmsman/maneuver_type.h"
-#include "helmsman/sail_controller.h"
 
 // When the desired heading alpha_star or the wind changes
 // we might need to plan a maneuver consisting of fast
@@ -19,11 +19,12 @@
 // This simple routine assumes that a maneuver is more or less symmetrical
 // in relation to the wind.
 // N.B. a tack is assymmetrical due to the intentional overshoot.
-void NewGammaSail(double old_gamma_sail,
-                  ManeuverType maneuver_type,
-                  double overshoot,
-                  double* new_gamma_sail,
-                  double* delta_gamma_sail);                 // delta_gamma_sail is produced here, because
-                                                             // delta is not always new-old. In some cases (jibes)
-                                                             // the sail must turn by more than 180 degrees.
+// Returns the delta_gamma_sail_rad.
+// delta_gamma_sail_rad is produced here, because
+// delta is not always new-old. In some cases (jibes)
+// the sail must turn by more than 180 degrees! (which does not fit into
+// an Angle object)
+double NewGammaSail(Angle old_gamma_sail,
+                    ManeuverType maneuver_type,
+                    Angle overshoot);
 #endif   // HELMSMAN_NEW_GAMMA_SAIL_H

@@ -98,11 +98,12 @@ SailController::SailController()
 }
 
 void SailController::SetOptimalAngleOfAttack(double optimal_angle_of_attack_rad) {
+  CHECK_LT(0.1, optimal_angle_of_attack_rad);
+  CHECK_GT(1.0, optimal_angle_of_attack_rad);
   optimal_angle_of_attack_rad_ = optimal_angle_of_attack_rad;
 }
 
 double SailController::GetOptimalAngleOfAttack() {
-  CHECK_LT(0.1, optimal_angle_of_attack_rad_);  // paranoid
   return optimal_angle_of_attack_rad_;
 }
 
