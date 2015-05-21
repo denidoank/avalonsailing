@@ -1,0 +1,3 @@
+The goal of the Avalon project is to build an autonomous sailing boat and to win the Microtransat Challenge Race. The boat was build by a group of students of the ETH Zuerich and is equipped with a Linux based control system. Google sponsors this project by software fit for accomplishing the projects objective.
+
+In September 2012 the Avalon covered a distance of 80 miles during a test on the Mediterranean sea. It sailed fully autonomously for 42 hours. The boat is now at the SUPMECA Toulon and gets prepared for the WRSC 2013.
